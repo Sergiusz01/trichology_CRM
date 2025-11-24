@@ -1,0 +1,540 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  DOCTOR
+  ASSISTANT
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum AlopeciaType {
+  ANDROGENETIC_ALOPECIA
+  TELOGEN_EFFLUVIUM
+  ALOPECIA_AREATA
+  TRACTION_ALOPECIA
+  SCARRING_ALOPECIA
+  OTHER
+}
+
+enum ReminderType {
+  CARE_PLAN_REMINDER
+  FOLLOW_UP_VISIT
+  LAB_RESULTS_REMINDER
+}
+
+enum ReminderStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+enum AnnotationType {
+  PROBLEM_AREA
+  NOTE
+  OTHER
+}
+
+enum ShapeType {
+  RECT
+  CIRCLE
+  POLYGON
+}
+
+model User {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  passwordHash  String
+  role          UserRole @default(DOCTOR)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  consultations        Consultation[]
+  createdCarePlans     CarePlan[]          @relation("CarePlanCreator")
+  uploadedScalpPhotos  ScalpPhoto[]
+  createdReminders     EmailReminder[]     @relation("EmailReminderCreator")
+  sentEmails           EmailHistory[]     @relation("EmailHistorySender")
+
+  @@index([email])
+}
+
+model Patient {
+  id          String   @id @default(cuid())
+  firstName   String
+  lastName    String
+  age         Int?
+  gender      Gender?
+  occupation  String?
+  address     String?
+  phone       String?
+  email       String?
+  isArchived  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  consultations Consultation[]
+  labResults    LabResult[]
+  scalpPhotos   ScalpPhoto[]
+  carePlans     CarePlan[]
+  reminders     EmailReminder[]
+  emailHistory  EmailHistory[]
+
+  @@index([firstName, lastName])
+  @@index([phone])
+  @@index([email])
+  @@index([isArchived])
+}
+
+model Consultation {
+  id              String   @id @default(cuid())
+  patientId       String
+  doctorId        String
+  consultationDate DateTime @default(now())
+
+  // 1. WYPADANIE WŁOSÓW
+  hairLossSeverity        String?  // normie, nasilone, nadmierne, okresowe, brak
+  hairLossLocalization    Json?     // Array: ciemieniowa, skronie, czołowa, tonsura, potylica, uogólnione, brwi_rzesy, pachy, pachwiny
+  hairLossDuration        String?   // 0-6 m-cy, 6-12 m-cy, 12-24 m-cy, powyżej roku
+  hairLossShampoos        String?
+
+  // 2. PRZETŁUSZCZANIE WŁOSÓW
+  oilyHairSeverity        String?
+  oilyHairWashingFreq      String?
+  oilyHairDuration         String?
+  oilyHairShampoos         String?
+  oilyHairNotes            String?
+
+  // 3. ŁUSZCZENIE SKÓRY GŁOWY
+  scalingSeverity          String?   // normie, nasilone, nadmierne, okresowe, brak
+  scalingType              Json?     // Array: suchy, tłusty, miejscowy, uogólniony
+  scalingDuration          String?   // 0-6 m-cy, 6-12 m-cy, 12-24 m-cy, powyżej roku
+  scalingOther             String?
+
+  // 4. WRAŻLIWOŚĆ SKÓRY GŁOWY
+  sensitivitySeverity      String?   // normie, nasilone, nadmierne, okresowe, brak
+  sensitivityProblemType   Json?     // Array: świąd, pieczenie, nadwrażliwość na preparaty, trichodynia
+  sensitivityDuration      String?   // 0-6 m-cy, 6-12 m-cy, 12-24 m-cy, powyżej roku
+  sensitivityOther         String?
+
+  // 5. STANY ZAPALNE/GRUDKI
+  inflammatoryStates       String?
+
+  // WYWIAD
+  familyHistory           String?   // tak, nie
+  dermatologyVisits       String?   // tak, nie
+  dermatologyVisitsReason String?  // Powód wizyty u dermatologa
+  pregnancy               String?   // tak, nie
+  menstruationRegularity  String?   // tak, nie
+  contraception           String?   // Antykoncepcja hormonalna (tekst)
+  medications             String?   // tak, nie
+  medicationsList         String?   // Jakie leki
+  supplements             String?   // Tekst
+  stressLevel             String?   // duży, mały, średni
+  anesthesia              String?   // tak, nie
+  chemotherapy            String?   // tak, nie
+  radiotherapy            String?   // tak, nie
+  vaccination             String?   // tak, nie
+  antibiotics             String?   // Tekst
+  chronicDiseases         String?   // tak, nie
+  chronicDiseasesList     String?   // Jakie choroby
+  specialists             String?   // tak, nie
+  specialistsList         String?   // Jakiego specjalisty
+  eatingDisorders         String?   // tak, nie
+  foodIntolerances        String?   // Tekst
+  diet                    String?   // tak, nie
+  allergies               String?   // tak, nie
+  metalPartsInBody        String?   // tak, nie
+  careRoutineShampoo      String?
+  careRoutineConditioner  String?
+  careRoutineOils         String?
+  careRoutineChemical     String?
+
+  // TRICHOSKOPIA
+  scalpType               Json?     // Array: sucha, tłusta, wrażliwa, nadreaktywna, z erytrodermią, normalna
+  scalpAppearance         Json?     // Array: zaczerwienie, świąd, pieczenie, ból, suchość, łojotok
+  skinLesions             Json?     // Array: plama, grudka, krosta, guzek, blizna, strup, pęknięcie, łuska, przeczos, złuszczanie płatowe, złuszczanie otrębiaste, obj. Kebnera
+  hyperhidrosis           String?   // miejscowa, uogólniona, brak
+  hyperkeratinization     String?   // miejscowa, uogólniona, okołomieszkowa, tubule, brak
+  sebaceousSecretion      String?   // oleista, zalegająca, brak
+  seborrheaType           Json?     // Array: Skóra sucha odwodniona/Cebulka tłusta, Skóra tłusta/Cebulka tłusta, Hiperhydroza/Cebulka tłusta, Skóra tłusta/Cebulka dystroficzna, Łojotok/Wypadanie włosów, Inne
+  seborrheaTypeOther      String?   // Inne (tekst)
+  dandruffType            Json?     // Array: Suchy, Tłusty, Kosmetyczny, miejscowy, uogólniony
+  scalpPH                 String?   // Wartość pH (liczba)
+  hairDamage              Json?     // Array: naturalne, fizyczne, mechaniczne, chemiczne
+  hairDamageReason        Json?     // Array: trwała, trwałe prostowanie, farby/rozjaśnianie, lakier do włosów, produkty do stylizacji, prostownica/lokówka
+  hairQuality             String?   // zdrowe, suche, przetłuszczone, zniszczona łuska włosa
+  hairShape               String?   // prosty, kręcony, falisty, fil-fil
+  hairTypes               Json?     // Array: urwane, kręte, paciorkowate, obrączkowate, tulipanowe, wykrzyknikowe
+  regrowingHairs          String?   // dużo, niewiele
+  vellusMiniaturizedHairs Json?     // Array: dużo, mało, uogólnione, miejscowo, brak
+
+  // DIAGNOSTYKA
+  vascularPatterns        Json?     // Array: naczynia proste, naczynia poskręcane, naczynia drzewkowate, wzorzec plastra miodu, typ spinek, okołomieszkowe, miejscowe, rozlane
+  perifollicularFeatures  Json?     // Array: white dots, yellow dots, black dots, prawidłowe
+  scalpDiseases           Json?     // Array: ŁZS, LLP, AZS, grzybica, łuszczyca, zapalenia okołomieszkowe
+  otherDiagnostics        Json?     // Array: trychodynia, plaster miodu, cofnięcie linii czołowej, trichokinesis
+
+  // DIAGNOSTYKA ŁYSIENIA
+  alopeciaTypes           Json?     // Array: androgenetic alopecia MAGA/AG, telogen efluvium TE, anagen efluvium AE, Alopecia aerata AA, folicularis decalvans/bliznowaciejące FD, trichotillomania TTM, trichodynia, Idiopatyczne skrócenie anagenu, łysienie starcze
+  degreeOfThinning        String?   // zanik, mało, miejscowo, dużo
+  alopeciaType            String?   // Androgenowe typu męskiego, Androgenowe typu żeńskiego, Plackowate AA, Telogenowe TE
+  alopeciaAffectedAreas   Json?     // Array: Hormonozależny, Tył głowy, Cały obszar głowy, Inne
+  miniaturization         String?   // Występują, Nie występują
+  follicularUnits         String?   // Przewaga pojedynczych, Przewaga podwójnych, Przewaga potrójnych/poczwórnych, Występują puste mieszki włosowe
+  pullTest                String?   // dodatni TE/AE, ujemny AGA
+  alopeciaOther           String?
+
+  // Diagnosis
+  diagnosis               String?
+
+  // ZALECENIA DO PIELĘGNACJI
+  careRecommendationsWashing    String?   // preparaty do mycia
+  careRecommendationsTopical    String?   // preparaty do wcierania
+  careRecommendationsSupplement String?   // suplementacja
+  careRecommendationsBehavior  String?   // zmiany w pielęgnacji
+
+  // Visits/Procedures
+  visitsProcedures        String?
+
+  // General Remarks
+  generalRemarks        String?
+
+  // Scales
+  norwoodHamiltonStage  String?
+  norwoodHamiltonNotes  String?
+  ludwigStage           String?
+  ludwigNotes           String?
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  patient               Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor                User     @relation(fields: [doctorId], references: [id])
+
+  labResults            LabResult[]
+  scalpPhotos           ScalpPhoto[]
+  carePlans             CarePlan[]
+  emailHistory          EmailHistory[]
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([consultationDate])
+}
+
+model LabResult {
+  id            String    @id @default(cuid())
+  patientId     String
+  consultationId String?
+  date         DateTime  @default(now())
+
+  // Morphology
+  hgb          Float?
+  hgbUnit      String?
+  hgbRefLow    Float?
+  hgbRefHigh   Float?
+  hgbFlag      String?
+
+  rbc          Float?
+  rbcUnit      String?
+  rbcRefLow    Float?
+  rbcRefHigh   Float?
+  rbcFlag      String?
+
+  wbc          Float?
+  wbcUnit      String?
+  wbcRefLow    Float?
+  wbcRefHigh   Float?
+  wbcFlag      String?
+
+  plt          Float?
+  pltUnit      String?
+  pltRefLow    Float?
+  pltRefHigh   Float?
+  pltFlag      String?
+
+  // Inflammatory markers
+  crp          Float?
+  crpUnit      String?
+  crpRefLow    Float?
+  crpRefHigh   Float?
+  crpFlag      String?
+
+  // Iron
+  iron         Float?
+  ironUnit     String?
+  ironRefLow   Float?
+  ironRefHigh  Float?
+  ironFlag     String?
+
+  ferritin     Float?
+  ferritinUnit String?
+  ferritinRefLow Float?
+  ferritinRefHigh Float?
+  ferritinFlag String?
+
+  // Vitamins
+  vitaminD3    Float?
+  vitaminD3Unit String?
+  vitaminD3RefLow Float?
+  vitaminD3RefHigh Float?
+  vitaminD3Flag String?
+
+  vitaminB12   Float?
+  vitaminB12Unit String?
+  vitaminB12RefLow Float?
+  vitaminB12RefHigh Float?
+  vitaminB12Flag String?
+
+  folicAcid    Float?
+  folicAcidUnit String?
+  folicAcidRefLow Float?
+  folicAcidRefHigh Float?
+  folicAcidFlag String?
+
+  // Thyroid
+  tsh          Float?
+  tshUnit      String?
+  tshRefLow    Float?
+  tshRefHigh   Float?
+  tshFlag      String?
+
+  ft3          Float?
+  ft3Unit      String?
+  ft3RefLow    Float?
+  ft3RefHigh   Float?
+  ft3Flag      String?
+
+  ft4          Float?
+  ft4Unit      String?
+  ft4RefLow    Float?
+  ft4RefHigh   Float?
+  ft4Flag      String?
+
+  antiTPO      Float?
+  antiTPOUnit  String?
+  antiTPORefLow Float?
+  antiTPORefHigh Float?
+  antiTPOFlag  String?
+
+  antiTG       Float?
+  antiTGUnit   String?
+  antiTGRefLow Float?
+  antiTGRefHigh Float?
+  antiTGFlag   String?
+
+  trab         Float?
+  trabUnit     String?
+  trabRefLow   Float?
+  trabRefHigh  Float?
+  trabFlag     String?
+
+  // Hormones
+  estrogen     Float?
+  estrogenUnit String?
+  estrogenRefLow Float?
+  estrogenRefHigh Float?
+  estrogenFlag String?
+
+  progesterone Float?
+  progesteroneUnit String?
+  progesteroneRefLow Float?
+  progesteroneRefHigh Float?
+  progesteroneFlag String?
+
+  testosterone Float?
+  testosteroneUnit String?
+  testosteroneRefLow Float?
+  testosteroneRefHigh Float?
+  testosteroneFlag String?
+
+  dheas        Float?
+  dheasUnit    String?
+  dheasRefLow  Float?
+  dheasRefHigh Float?
+  dheasFlag    String?
+
+  prolactin    Float?
+  prolactinUnit String?
+  prolactinRefLow Float?
+  prolactinRefHigh Float?
+  prolactinFlag String?
+
+  // Glucose/Insulin
+  glucose      Float?
+  glucoseUnit  String?
+  glucoseRefLow Float?
+  glucoseRefHigh Float?
+  glucoseFlag  String?
+
+  insulin      Float?
+  insulinUnit  String?
+  insulinRefLow Float?
+  insulinRefHigh Float?
+  insulinFlag  String?
+
+  homaIR       Float?
+  homaIRRefLow Float?
+  homaIRRefHigh Float?
+  homaIRFlag   String?
+
+  hba1c        Float?
+  hba1cUnit    String?
+  hba1cRefLow  Float?
+  hba1cRefHigh Float?
+  hba1cFlag    String?
+
+  notes        String?
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  patient      Patient   @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  consultation Consultation? @relation(fields: [consultationId], references: [id], onDelete: SetNull)
+
+  @@index([patientId])
+  @@index([consultationId])
+  @@index([date])
+}
+
+model ScalpPhoto {
+  id              String   @id @default(cuid())
+  patientId       String
+  consultationId  String?
+  uploadedByUserId String
+  filePath        String
+  originalFilename String
+  mimeType        String
+  notes           String?
+  createdAt       DateTime @default(now())
+
+  patient         Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  consultation    Consultation? @relation(fields: [consultationId], references: [id], onDelete: SetNull)
+  uploadedBy      User     @relation(fields: [uploadedByUserId], references: [id])
+
+  annotations     ScalpPhotoAnnotation[]
+
+  @@index([patientId])
+  @@index([consultationId])
+  @@index([createdAt])
+}
+
+model ScalpPhotoAnnotation {
+  id            String   @id @default(cuid())
+  scalpPhotoId String
+  type          AnnotationType @default(PROBLEM_AREA)
+  shapeType     ShapeType
+  coordinates   Json     // { x: number, y: number, width?: number, height?: number, points?: Array<{x, y}> }
+  label         String
+  createdAt     DateTime @default(now())
+
+  scalpPhoto    ScalpPhoto @relation(fields: [scalpPhotoId], references: [id], onDelete: Cascade)
+
+  @@index([scalpPhotoId])
+}
+
+model CarePlan {
+  id              String   @id @default(cuid())
+  patientId       String
+  consultationId  String?
+  createdByUserId String
+  title           String
+  totalDurationWeeks Int
+  notes           String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  patient         Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  consultation    Consultation? @relation(fields: [consultationId], references: [id], onDelete: SetNull)
+  createdBy       User     @relation("CarePlanCreator", fields: [createdByUserId], references: [id])
+
+  weeks           CarePlanWeek[]
+  reminders       EmailReminder[]
+  emailHistory    EmailHistory[]
+
+  @@index([patientId])
+  @@index([consultationId])
+  @@index([isActive])
+}
+
+model CarePlanWeek {
+  id                  String   @id @default(cuid())
+  carePlanId          String
+  weekNumber          Int
+  description         String?
+  washingRoutine      String?
+  topicalProducts     String?
+  supplements         String?
+  inClinicProcedures  String?
+  remarks             String?
+
+  carePlan            CarePlan @relation(fields: [carePlanId], references: [id], onDelete: Cascade)
+
+  @@index([carePlanId])
+  @@unique([carePlanId, weekNumber])
+}
+
+model EmailReminder {
+  id          String          @id @default(cuid())
+  patientId   String
+  carePlanId  String?
+  createdByUserId String
+  type        ReminderType
+  sendAt      DateTime
+  status      ReminderStatus  @default(PENDING)
+  subject     String
+  bodyPreview String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  patient     Patient         @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  carePlan    CarePlan?       @relation(fields: [carePlanId], references: [id], onDelete: SetNull)
+  createdBy   User            @relation("EmailReminderCreator", fields: [createdByUserId], references: [id])
+
+  @@index([patientId])
+  @@index([carePlanId])
+  @@index([sendAt])
+  @@index([status])
+}
+
+model EmailHistory {
+  id                String   @id @default(cuid())
+  patientId         String
+  sentByUserId      String
+  recipientEmail    String
+  subject           String
+  message           String
+  consultationId    String?
+  carePlanId        String?
+  attachmentCount   Int      @default(0)
+  attachmentNames   String[] // Array of attachment filenames
+  status            String   @default("SENT") // SENT, FAILED
+  errorMessage      String?
+  sentAt            DateTime @default(now())
+
+  patient           Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  sentBy            User     @relation("EmailHistorySender", fields: [sentByUserId], references: [id])
+  consultation      Consultation? @relation(fields: [consultationId], references: [id], onDelete: SetNull)
+  carePlan          CarePlan? @relation(fields: [carePlanId], references: [id], onDelete: SetNull)
+
+  @@index([patientId])
+  @@index([sentByUserId])
+  @@index([sentAt])
+  @@index([status])
+}
+
