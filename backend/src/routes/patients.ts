@@ -1,6 +1,7 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
+import path from 'path';
 import { authenticate, AuthRequest } from '../middleware/auth';
 
 const router = express.Router();
@@ -95,7 +96,16 @@ router.get('/:id', authenticate, async (req: AuthRequest, res, next) => {
       return res.status(404).json({ error: 'Pacjent nie znaleziony' });
     }
 
-    res.json({ patient });
+    // Add URL field to scalp photos
+    const patientWithUrls = {
+      ...patient,
+      scalpPhotos: patient.scalpPhotos.map((photo: any) => ({
+        ...photo,
+        url: `/uploads/${path.basename(photo.filePath)}`,
+      })),
+    };
+
+    res.json({ patient: patientWithUrls });
   } catch (error) {
     next(error);
   }

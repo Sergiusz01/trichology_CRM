@@ -92,7 +92,13 @@ router.post('/patient/:patientId', authenticate, upload.single('photo'), async (
       },
     });
 
-    res.status(201).json({ scalpPhoto });
+    // Add URL field for frontend
+    const photoWithUrl = {
+      ...scalpPhoto,
+      url: `/uploads/${path.basename(scalpPhoto.filePath)}`,
+    };
+
+    res.status(201).json({ scalpPhoto: photoWithUrl });
   } catch (error) {
     next(error);
   }
@@ -160,6 +166,41 @@ router.get('/:id', authenticate, async (req: AuthRequest, res, next) => {
     if (!scalpPhoto) {
       return res.status(404).json({ error: 'Zdjęcie nie znalezione' });
     }
+
+    const photoWithUrl = {
+      ...scalpPhoto,
+      url: `/uploads/${path.basename(scalpPhoto.filePath)}`,
+    };
+
+    res.json({ scalpPhoto: photoWithUrl });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Update scalp photo (notes)
+router.put('/:id', authenticate, async (req: AuthRequest, res, next) => {
+  try {
+    const { id } = req.params;
+    const { notes } = req.body;
+
+    const scalpPhoto = await prisma.scalpPhoto.update({
+      where: { id },
+      data: {
+        notes: notes || undefined,
+      },
+      include: {
+        patient: {
+          select: { id: true, firstName: true, lastName: true },
+        },
+        uploadedBy: {
+          select: { id: true, name: true },
+        },
+        annotations: {
+          orderBy: { createdAt: 'asc' },
+        },
+      },
+    });
 
     const photoWithUrl = {
       ...scalpPhoto,

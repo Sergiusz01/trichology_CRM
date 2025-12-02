@@ -1,11 +1,11 @@
 import puppeteer from 'puppeteer';
-import path from 'path';
-import fs from 'fs';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+// Funkcje pomocnicze
 const formatDate = (date: Date): string => {
+  if (!date) return '-';
   return new Date(date).toLocaleDateString('pl-PL', {
     day: '2-digit',
     month: '2-digit',
@@ -23,309 +23,308 @@ const formatDateTime = (date: Date): string => {
   });
 };
 
+// Pomocnik do formatowania pól JSON (tablice)
+const formatJsonField = (value: any): string => {
+  if (!value) return '';
+  if (Array.isArray(value)) {
+    return value.join(', ');
+  }
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) {
+        return parsed.join(', ');
+      }
+      return value;
+    } catch {
+      return value;
+    }
+  }
+  return String(value);
+};
+
+// Pomocnik do renderowania "checkboxa" (wizualna reprezentacja wyboru)
+const renderCheckboxInfo = (label: string, value: any, isBoolean = false) => {
+  if (!value) return '';
+  const displayValue = isBoolean ? (value ? 'TAK' : 'NIE') : formatJsonField(value);
+  return `
+    <div class="checkbox-item">
+      <span class="cb-box">■</span>
+      <span class="cb-label">${label}:</span>
+      <span class="cb-value">${displayValue}</span>
+    </div>
+  `;
+};
+
 export const generateConsultationPDF = async (consultation: any): Promise<Buffer> => {
   const html = `
     <!DOCTYPE html>
     <html lang="pl">
     <head>
       <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Karta Konsultacyjna</title>
       <style>
+        @page {
+          margin: 10mm 10mm 10mm 10mm; /* Małe marginesy dla oszczędności papieru */
+        }
         body {
-          font-family: Arial, sans-serif;
-          font-size: 11pt;
-          line-height: 1.6;
-          margin: 20px;
-          color: #333;
-        }
-        .header {
-          text-align: center;
-          margin-bottom: 30px;
-          border-bottom: 2px solid #333;
-          padding-bottom: 20px;
-        }
-        .header h1 {
+          font-family: 'Helvetica', 'Arial', sans-serif;
+          font-size: 9pt; /* Mniejsza czcionka, by zmieścić więcej */
+          line-height: 1.3;
+          color: #000;
           margin: 0;
-          font-size: 18pt;
+          padding: 0;
         }
-        .section {
-          margin-bottom: 25px;
-          page-break-inside: avoid;
-        }
-        .section-title {
-          font-size: 14pt;
-          font-weight: bold;
+        
+        /* Layout Grid System */
+        .container { width: 100%; }
+        .row { display: flex; width: 100%; margin-bottom: 4px; }
+        .col-2 { width: 50%; padding-right: 5px; }
+        .col-3 { width: 33.33%; padding-right: 5px; }
+        .col-4 { width: 25%; padding-right: 5px; }
+        
+        /* Stylistyka nagłówków jak w formularzu */
+        .header-main {
+          text-align: center;
+          border-bottom: 2px solid #000;
           margin-bottom: 10px;
-          padding: 8px;
-          background-color: #f0f0f0;
-          border-left: 4px solid #333;
+          padding-bottom: 5px;
         }
-        .field {
-          margin-bottom: 8px;
-        }
-        .field-label {
+        .header-title { font-size: 14pt; font-weight: bold; text-transform: uppercase; margin: 0; }
+        .header-sub { font-size: 8pt; letter-spacing: 2px; text-transform: uppercase; }
+
+        .section-header {
+          background-color: #e0e0e0;
           font-weight: bold;
-          display: inline-block;
-          min-width: 200px;
+          font-size: 10pt;
+          padding: 2px 5px;
+          margin-top: 8px;
+          margin-bottom: 4px;
+          border-left: 5px solid #333;
+          text-transform: uppercase;
         }
-        .field-value {
-          display: inline-block;
+
+        .sub-header {
+          font-weight: bold;
+          font-size: 9pt;
+          margin-top: 4px;
+          margin-bottom: 2px;
+          text-decoration: underline;
         }
-        .two-columns {
+
+        /* Styl pól danych */
+        .field-row {
           display: flex;
-          gap: 20px;
+          border-bottom: 1px dotted #ccc;
+          padding-bottom: 1px;
+          margin-bottom: 2px;
         }
-        .column {
-          flex: 1;
+        .field-label { font-weight: bold; margin-right: 5px; min-width: 80px; }
+        .field-value { flex: 1; font-weight: normal; }
+
+        /* Stylizacja "checkboxów" */
+        .checkbox-group { display: flex; flex-wrap: wrap; gap: 8px; }
+        .checkbox-item { display: flex; align-items: center; margin-right: 10px; font-size: 8.5pt; }
+        .cb-box { font-size: 10px; margin-right: 3px; color: #333; }
+        .cb-label { color: #444; margin-right: 3px; }
+        .cb-value { font-weight: bold; color: #000; }
+
+        /* Ramki dla sekcji problemów (aby wyglądało jak tabela) */
+        .boxed-section {
+          border: 1px solid #ccc;
+          padding: 5px;
+          margin-bottom: 5px;
+          break-inside: avoid;
         }
-        .patient-info {
-          background-color: #f9f9f9;
-          padding: 15px;
-          border-radius: 5px;
-          margin-bottom: 20px;
-        }
-        .empty-field {
-          color: #999;
-          font-style: italic;
+        
+        .footer {
+          margin-top: 20px;
+          font-size: 7pt;
+          text-align: right;
+          color: #666;
+          border-top: 1px solid #ddd;
         }
       </style>
     </head>
     <body>
-      <div class="header">
-        <h1>KARTA KONSULTACYJNA TRYCHOLOGICZNA</h1>
-        <p>Data konsultacji: ${formatDate(consultation.consultationDate)}</p>
-      </div>
 
-      <div class="patient-info">
-        <h2>Dane pacjenta</h2>
-        <div class="field">
-          <span class="field-label">Imię i nazwisko:</span>
-          <span class="field-value">${consultation.patient.firstName} ${consultation.patient.lastName}</span>
-        </div>
-        ${consultation.patient.age ? `
-        <div class="field">
-          <span class="field-label">Wiek:</span>
-          <span class="field-value">${consultation.patient.age} lat</span>
-        </div>
-        ` : ''}
-        ${consultation.patient.gender ? `
-        <div class="field">
-          <span class="field-label">Płeć:</span>
-          <span class="field-value">${consultation.patient.gender === 'MALE' ? 'Mężczyzna' : consultation.patient.gender === 'FEMALE' ? 'Kobieta' : 'Inna'}</span>
-        </div>
-        ` : ''}
-        ${consultation.patient.phone ? `
-        <div class="field">
-          <span class="field-label">Telefon:</span>
-          <span class="field-value">${consultation.patient.phone}</span>
-        </div>
-        ` : ''}
-        ${consultation.patient.email ? `
-        <div class="field">
-          <span class="field-label">Email:</span>
-          <span class="field-value">${consultation.patient.email}</span>
-        </div>
-        ` : ''}
-      </div>
-
-      ${consultation.hairLossSeverity || consultation.hairLossLocalization ? `
-      <div class="section">
-        <div class="section-title">1. Wypadanie włosów</div>
-        ${consultation.hairLossSeverity ? `<div class="field"><span class="field-label">Nasilenie:</span><span class="field-value">${consultation.hairLossSeverity}</span></div>` : ''}
-        ${consultation.hairLossLocalization ? `<div class="field"><span class="field-label">Lokalizacja:</span><span class="field-value">${consultation.hairLossLocalization}</span></div>` : ''}
-        ${consultation.hairLossDuration ? `<div class="field"><span class="field-label">Czas trwania:</span><span class="field-value">${consultation.hairLossDuration}</span></div>` : ''}
-        ${consultation.hairLossShampoos ? `<div class="field"><span class="field-label">Używane szampony:</span><span class="field-value">${consultation.hairLossShampoos}</span></div>` : ''}
-        ${consultation.hairLossNotes ? `<div class="field"><span class="field-label">Uwagi:</span><span class="field-value">${consultation.hairLossNotes}</span></div>` : ''}
-      </div>
-      ` : ''}
-
-      ${consultation.oilyHairSeverity || consultation.oilyHairWashingFreq ? `
-      <div class="section">
-        <div class="section-title">2. Przetłuszczanie się włosów</div>
-        ${consultation.oilyHairSeverity ? `<div class="field"><span class="field-label">Nasilenie:</span><span class="field-value">${consultation.oilyHairSeverity}</span></div>` : ''}
-        ${consultation.oilyHairWashingFreq ? `<div class="field"><span class="field-label">Częstotliwość mycia:</span><span class="field-value">${consultation.oilyHairWashingFreq}</span></div>` : ''}
-        ${consultation.oilyHairDuration ? `<div class="field"><span class="field-label">Czas trwania:</span><span class="field-value">${consultation.oilyHairDuration}</span></div>` : ''}
-        ${consultation.oilyHairShampoos ? `<div class="field"><span class="field-label">Używane szampony:</span><span class="field-value">${consultation.oilyHairShampoos}</span></div>` : ''}
-        ${consultation.oilyHairNotes ? `<div class="field"><span class="field-label">Uwagi:</span><span class="field-value">${consultation.oilyHairNotes}</span></div>` : ''}
-      </div>
-      ` : ''}
-
-      ${consultation.scalingSeverity || consultation.scalingType ? `
-      <div class="section">
-        <div class="section-title">3. Łuszczenie się skóry głowy</div>
-        ${consultation.scalingSeverity ? `<div class="field"><span class="field-label">Nasilenie:</span><span class="field-value">${consultation.scalingSeverity}</span></div>` : ''}
-        ${consultation.scalingType ? `<div class="field"><span class="field-label">Typ:</span><span class="field-value">${consultation.scalingType}</span></div>` : ''}
-        ${consultation.scalingDuration ? `<div class="field"><span class="field-label">Czas trwania:</span><span class="field-value">${consultation.scalingDuration}</span></div>` : ''}
-        ${consultation.scalingNotes ? `<div class="field"><span class="field-label">Uwagi:</span><span class="field-value">${consultation.scalingNotes}</span></div>` : ''}
-      </div>
-      ` : ''}
-
-      ${consultation.sensitivitySeverity || consultation.sensitivityProblemType ? `
-      <div class="section">
-        <div class="section-title">4. Wrażliwość skóry głowy</div>
-        ${consultation.sensitivitySeverity ? `<div class="field"><span class="field-label">Nasilenie:</span><span class="field-value">${consultation.sensitivitySeverity}</span></div>` : ''}
-        ${consultation.sensitivityProblemType ? `<div class="field"><span class="field-label">Typ problemu:</span><span class="field-value">${consultation.sensitivityProblemType}</span></div>` : ''}
-        ${consultation.sensitivityDuration ? `<div class="field"><span class="field-label">Czas trwania:</span><span class="field-value">${consultation.sensitivityDuration}</span></div>` : ''}
-        ${consultation.sensitivityNotes ? `<div class="field"><span class="field-label">Uwagi:</span><span class="field-value">${consultation.sensitivityNotes}</span></div>` : ''}
-      </div>
-      ` : ''}
-
-      ${consultation.inflammatoryStates || consultation.papules ? `
-      <div class="section">
-        <div class="section-title">5. Stany zapalne / Grudki</div>
-        ${consultation.inflammatoryStates ? `<div class="field"><span class="field-label">Stany zapalne:</span><span class="field-value">${consultation.inflammatoryStates}</span></div>` : ''}
-        ${consultation.papules ? `<div class="field"><span class="field-label">Grudki:</span><span class="field-value">${consultation.papules}</span></div>` : ''}
-      </div>
-      ` : ''}
-
-      ${consultation.familyHistory || consultation.medications || consultation.stressLevel ? `
-      <div class="section">
-        <div class="section-title">6. Wywiad / Anamneza</div>
-        <div class="two-columns">
-          <div class="column">
-            ${consultation.familyHistory ? `<div class="field"><span class="field-label">Wywiad rodzinny:</span><span class="field-value">${consultation.familyHistory}</span></div>` : ''}
-            ${consultation.dermatologyVisits ? `<div class="field"><span class="field-label">Wizyty u dermatologa:</span><span class="field-value">${consultation.dermatologyVisits}</span></div>` : ''}
-            ${consultation.pregnancy ? `<div class="field"><span class="field-label">Ciąża:</span><span class="field-value">${consultation.pregnancy}</span></div>` : ''}
-            ${consultation.menstruationRegularity ? `<div class="field"><span class="field-label">Regularność miesiączkowania:</span><span class="field-value">${consultation.menstruationRegularity}</span></div>` : ''}
-            ${consultation.contraception ? `<div class="field"><span class="field-label">Antykoncepcja:</span><span class="field-value">${consultation.contraception}</span></div>` : ''}
-            ${consultation.stressLevel ? `<div class="field"><span class="field-label">Poziom stresu:</span><span class="field-value">${consultation.stressLevel}</span></div>` : ''}
-            ${consultation.medications ? `<div class="field"><span class="field-label">Leki:</span><span class="field-value">${consultation.medications}</span></div>` : ''}
-            ${consultation.supplements ? `<div class="field"><span class="field-label">Suplementy:</span><span class="field-value">${consultation.supplements}</span></div>` : ''}
-          </div>
-          <div class="column">
-            ${consultation.anesthesia ? `<div class="field"><span class="field-label">Znieczulenie:</span><span class="field-value">${consultation.anesthesia}</span></div>` : ''}
-            ${consultation.chemotherapy ? `<div class="field"><span class="field-label">Chemioterapia:</span><span class="field-value">${consultation.chemotherapy}</span></div>` : ''}
-            ${consultation.radiotherapy ? `<div class="field"><span class="field-label">Radioterapia:</span><span class="field-value">${consultation.radiotherapy}</span></div>` : ''}
-            ${consultation.vaccination ? `<div class="field"><span class="field-label">Szczepienia:</span><span class="field-value">${consultation.vaccination}</span></div>` : ''}
-            ${consultation.antibiotics ? `<div class="field"><span class="field-label">Antybiotyki:</span><span class="field-value">${consultation.antibiotics}</span></div>` : ''}
-            ${consultation.chronicDiseases ? `<div class="field"><span class="field-label">Choroby przewlekłe:</span><span class="field-value">${consultation.chronicDiseases}</span></div>` : ''}
-            ${consultation.specialists ? `<div class="field"><span class="field-label">Specjaliści:</span><span class="field-value">${consultation.specialists}</span></div>` : ''}
-            ${consultation.eatingDisorders ? `<div class="field"><span class="field-label">Zaburzenia odżywiania:</span><span class="field-value">${consultation.eatingDisorders}</span></div>` : ''}
-            ${consultation.foodIntolerances ? `<div class="field"><span class="field-label">Nietolerancje pokarmowe:</span><span class="field-value">${consultation.foodIntolerances}</span></div>` : ''}
-            ${consultation.diet ? `<div class="field"><span class="field-label">Dieta:</span><span class="field-value">${consultation.diet}</span></div>` : ''}
-            ${consultation.allergies ? `<div class="field"><span class="field-label">Alergie:</span><span class="field-value">${consultation.allergies}</span></div>` : ''}
-            ${consultation.metalPartsInBody ? `<div class="field"><span class="field-label">Metalowe części w ciele:</span><span class="field-value">${consultation.metalPartsInBody}</span></div>` : ''}
-          </div>
-        </div>
-        ${consultation.careRoutineShampoo || consultation.careRoutineConditioner ? `
-        <div style="margin-top: 15px;">
-          <strong>Rutyna pielęgnacyjna:</strong>
-          ${consultation.careRoutineShampoo ? `<div class="field"><span class="field-label">Szampon:</span><span class="field-value">${consultation.careRoutineShampoo}</span></div>` : ''}
-          ${consultation.careRoutineConditioner ? `<div class="field"><span class="field-label">Odżywka/Maska:</span><span class="field-value">${consultation.careRoutineConditioner}</span></div>` : ''}
-          ${consultation.careRoutineOils ? `<div class="field"><span class="field-label">Oleje/Lotiony:</span><span class="field-value">${consultation.careRoutineOils}</span></div>` : ''}
-          ${consultation.careRoutineChemical ? `<div class="field"><span class="field-label">Zabiegi chemiczne/Termiczne:</span><span class="field-value">${consultation.careRoutineChemical}</span></div>` : ''}
-        </div>
-        ` : ''}
-      </div>
-      ` : ''}
-
-      ${consultation.scalpType || consultation.hairQuality || consultation.seborrheaType ? `
-      <div class="section">
-        <div class="section-title">7. Trichoskopia</div>
-        <div class="two-columns">
-          <div class="column">
-            ${consultation.scalpType ? `<div class="field"><span class="field-label">Typ skóry głowy:</span><span class="field-value">${consultation.scalpType}</span></div>` : ''}
-            ${consultation.scalpAppearance ? `<div class="field"><span class="field-label">Wygląd skóry głowy:</span><span class="field-value">${consultation.scalpAppearance}</span></div>` : ''}
-            ${consultation.scalpSymptoms ? `<div class="field"><span class="field-label">Objawy:</span><span class="field-value">${consultation.scalpSymptoms}</span></div>` : ''}
-            ${consultation.skinLesions ? `<div class="field"><span class="field-label">Zmiany skórne:</span><span class="field-value">${consultation.skinLesions}</span></div>` : ''}
-            ${consultation.hyperhidrosis ? `<div class="field"><span class="field-label">Nadmierna potliwość:</span><span class="field-value">${consultation.hyperhidrosis}</span></div>` : ''}
-            ${consultation.hyperkeratinization ? `<div class="field"><span class="field-label">Hiperkeratynizacja:</span><span class="field-value">${consultation.hyperkeratinization}</span></div>` : ''}
-            ${consultation.sebaceousSecretion ? `<div class="field"><span class="field-label">Wydzielina łojowa:</span><span class="field-value">${consultation.sebaceousSecretion}</span></div>` : ''}
-            ${consultation.seborrheaType ? `<div class="field"><span class="field-label">Typ łojotoku:</span><span class="field-value">${consultation.seborrheaType}</span></div>` : ''}
-            ${consultation.dandruffType ? `<div class="field"><span class="field-label">Typ łupieżu:</span><span class="field-value">${consultation.dandruffType}</span></div>` : ''}
-            ${consultation.scalpPH ? `<div class="field"><span class="field-label">pH skóry głowy:</span><span class="field-value">${consultation.scalpPH}</span></div>` : ''}
-          </div>
-          <div class="column">
-            ${consultation.hairDamage ? `<div class="field"><span class="field-label">Uszkodzenie włosów:</span><span class="field-value">${consultation.hairDamage}</span></div>` : ''}
-            ${consultation.hairDamageReason ? `<div class="field"><span class="field-label">Przyczyna uszkodzenia:</span><span class="field-value">${consultation.hairDamageReason}</span></div>` : ''}
-            ${consultation.hairQuality ? `<div class="field"><span class="field-label">Jakość włosów:</span><span class="field-value">${consultation.hairQuality}</span></div>` : ''}
-            ${consultation.hairShape ? `<div class="field"><span class="field-label">Kształt włosów:</span><span class="field-value">${consultation.hairShape}</span></div>` : ''}
-            ${consultation.hairTypes ? `<div class="field"><span class="field-label">Typy włosów:</span><span class="field-value">${consultation.hairTypes}</span></div>` : ''}
-            ${consultation.regrowingHairs ? `<div class="field"><span class="field-label">Włosy odrastające:</span><span class="field-value">${consultation.regrowingHairs}</span></div>` : ''}
-            ${consultation.vellusMiniaturizedHairs ? `<div class="field"><span class="field-label">Włosy vellus/miniaturyzowane:</span><span class="field-value">${consultation.vellusMiniaturizedHairs}</span></div>` : ''}
-          </div>
+      <div class="header-main">
+        <div class="header-title">Karta Konsultacyjna</div>
+        <div class="header-sub">Rich Diagnostic</div>
+        <div style="font-size: 9pt; margin-top: 5px; text-align: right;">
+          Data konsultacji: <strong>${formatDate(consultation.consultationDate)}</strong>
         </div>
       </div>
-      ` : ''}
 
-      ${consultation.vascularPatterns || consultation.seborrheicDermatitis || consultation.LLP ? `
-      <div class="section">
-        <div class="section-title">8. Diagnostyka</div>
-        ${consultation.vascularPatterns ? `<div class="field"><span class="field-label">Wzorce naczyniowe:</span><span class="field-value">${consultation.vascularPatterns}</span></div>` : ''}
-        ${consultation.perifollicularFeatures ? `<div class="field"><span class="field-label">Cechy okołomieszkowe:</span><span class="field-value">${consultation.perifollicularFeatures}</span></div>` : ''}
-        ${consultation.seborrheicDermatitis ? `<div class="field"><span class="field-label">Łojotokowe zapalenie skóry:</span><span class="field-value">${consultation.seborrheicDermatitis}</span></div>` : ''}
-        ${consultation.LLP ? `<div class="field"><span class="field-label">LLP:</span><span class="field-value">${consultation.LLP}</span></div>` : ''}
-        ${consultation.AD ? `<div class="field"><span class="field-label">AD:</span><span class="field-value">${consultation.AD}</span></div>` : ''}
-        ${consultation.mycosis ? `<div class="field"><span class="field-label">Grzybica:</span><span class="field-value">${consultation.mycosis}</span></div>` : ''}
-        ${consultation.psoriasis ? `<div class="field"><span class="field-label">Łuszczyca:</span><span class="field-value">${consultation.psoriasis}</span></div>` : ''}
-        ${consultation.otherDiagnostics ? `<div class="field"><span class="field-label">Inne cechy:</span><span class="field-value">${consultation.otherDiagnostics}</span></div>` : ''}
-        ${consultation.trichodynia ? `<div class="field"><span class="field-label">Trychodynia:</span><span class="field-value">${consultation.trichodynia}</span></div>` : ''}
-        ${consultation.hairlineRecession ? `<div class="field"><span class="field-label">Cofanie linii włosów:</span><span class="field-value">${consultation.hairlineRecession}</span></div>` : ''}
-        ${consultation.trichokinesis ? `<div class="field"><span class="field-label">Trychokineza:</span><span class="field-value">${consultation.trichokinesis}</span></div>` : ''}
+      <div class="section-header">Dane Pacjenta</div>
+      <div class="row">
+        <div class="col-2">
+           <div class="field-row"><span class="field-label">Pacjent:</span><span class="field-value">${consultation.patient.firstName} ${consultation.patient.lastName}</span></div>
+           <div class="field-row"><span class="field-label">Wiek/Płeć:</span><span class="field-value">${consultation.patient.age || '-'} lat / ${consultation.patient.gender === 'MALE' ? 'M' : consultation.patient.gender === 'FEMALE' ? 'K' : '-'}</span></div>
+        </div>
+        <div class="col-2">
+           <div class="field-row"><span class="field-label">Telefon:</span><span class="field-value">${consultation.patient.phone || '-'}</span></div>
+           <div class="field-row"><span class="field-label">Email:</span><span class="field-value">${consultation.patient.email || '-'}</span></div>
+        </div>
       </div>
-      ` : ''}
 
-      ${consultation.alopeciaTypes || consultation.degreeOfThinning ? `
-      <div class="section">
-        <div class="section-title">9. Diagnostyka łysienia</div>
-        ${consultation.alopeciaTypes ? `<div class="field"><span class="field-label">Typy łysienia:</span><span class="field-value">${consultation.alopeciaTypes}</span></div>` : ''}
-        ${consultation.degreeOfThinning ? `<div class="field"><span class="field-label">Stopień przerzedzenia:</span><span class="field-value">${consultation.degreeOfThinning}</span></div>` : ''}
-        ${consultation.affectedAreas ? `<div class="field"><span class="field-label">Obszary objęte:</span><span class="field-value">${consultation.affectedAreas}</span></div>` : ''}
-        ${consultation.miniaturization ? `<div class="field"><span class="field-label">Miniaturyzacja:</span><span class="field-value">${consultation.miniaturization}</span></div>` : ''}
-        ${consultation.follicularUnits ? `<div class="field"><span class="field-label">Jednostki mieszkowe:</span><span class="field-value">${consultation.follicularUnits}</span></div>` : ''}
-        ${consultation.pullTest ? `<div class="field"><span class="field-label">Test pociągania:</span><span class="field-value">${consultation.pullTest}</span></div>` : ''}
-        ${consultation.alopeciaOther ? `<div class="field"><span class="field-label">Inne:</span><span class="field-value">${consultation.alopeciaOther}</span></div>` : ''}
+      <div class="section-header">Problem Główny</div>
+      <div class="row">
+        <div class="col-2 boxed-section">
+            <div class="sub-header">1. WYPADANIE WŁOSÓW</div>
+            ${consultation.hairLossSeverity ? renderCheckboxInfo('Nasilenie', consultation.hairLossSeverity) : ''}
+            ${consultation.hairLossLocalization ? renderCheckboxInfo('Lokalizacja', consultation.hairLossLocalization) : ''}
+            ${consultation.hairLossDuration ? renderCheckboxInfo('Czas trwania', consultation.hairLossDuration) : ''}
+            ${consultation.hairLossShampoos ? `<div class="field-row"><span style="font-size:8pt">Szampon: ${consultation.hairLossShampoos}</span></div>` : ''}
+        </div>
+
+        <div class="col-2 boxed-section">
+            <div class="sub-header">2. PRZETŁUSZCZANIE</div>
+            ${consultation.oilyHairSeverity ? renderCheckboxInfo('Nasilenie', consultation.oilyHairSeverity) : ''}
+            ${consultation.oilyHairWashingFreq ? renderCheckboxInfo('Mycie', consultation.oilyHairWashingFreq) : ''}
+            ${consultation.oilyHairDuration ? renderCheckboxInfo('Trwanie', consultation.oilyHairDuration) : ''}
+            ${consultation.oilyHairShampoos ? `<div class="field-row"><span style="font-size:8pt">Szampon: ${consultation.oilyHairShampoos}</span></div>` : ''}
+            ${consultation.oilyHairNotes ? `<div class="field-row"><span style="font-size:8pt">Uwagi: ${consultation.oilyHairNotes}</span></div>` : ''}
+        </div>
       </div>
-      ` : ''}
-
-      ${consultation.diagnosis ? `
-      <div class="section">
-        <div class="section-title">10. Rozpoznanie</div>
-        <div class="field-value" style="font-size: 12pt; font-weight: bold;">${consultation.diagnosis}</div>
+      
+      <div class="row">
+         <div class="col-2 boxed-section">
+            <div class="sub-header">3. ŁUSZCZENIE</div>
+            ${consultation.scalingType ? renderCheckboxInfo('Rodzaj', consultation.scalingType) : ''}
+            ${consultation.scalingSeverity ? renderCheckboxInfo('Nasilenie', consultation.scalingSeverity) : ''}
+            ${consultation.scalingDuration ? renderCheckboxInfo('Czas trwania', consultation.scalingDuration) : ''}
+            ${consultation.scalingOther ? `<div class="field-row"><span style="font-size:8pt">Inne: ${consultation.scalingOther}</span></div>` : ''}
+        </div>
+         <div class="col-2 boxed-section">
+            <div class="sub-header">4. WRAŻLIWOŚĆ / INNE</div>
+            ${consultation.sensitivityProblemType ? renderCheckboxInfo('Problem', consultation.sensitivityProblemType) : ''}
+            ${consultation.sensitivitySeverity ? renderCheckboxInfo('Nasilenie', consultation.sensitivitySeverity) : ''}
+            ${consultation.sensitivityDuration ? renderCheckboxInfo('Czas trwania', consultation.sensitivityDuration) : ''}
+            ${consultation.sensitivityOther ? `<div class="field-row"><span style="font-size:8pt">Inne: ${consultation.sensitivityOther}</span></div>` : ''}
+            ${consultation.inflammatoryStates ? renderCheckboxInfo('Stany zapalne', consultation.inflammatoryStates) : ''}
+        </div>
       </div>
-      ` : ''}
 
-      ${consultation.careRecommendationsWashing || consultation.careRecommendationsTopical ? `
-      <div class="section">
-        <div class="section-title">11. Zalecenia</div>
-        ${consultation.careRecommendationsWashing ? `<div class="field"><span class="field-label">Produkty do mycia:</span><span class="field-value">${consultation.careRecommendationsWashing}</span></div>` : ''}
-        ${consultation.careRecommendationsTopical ? `<div class="field"><span class="field-label">Produkty miejscowe:</span><span class="field-value">${consultation.careRecommendationsTopical}</span></div>` : ''}
-        ${consultation.careRecommendationsSupplement ? `<div class="field"><span class="field-label">Suplementacja:</span><span class="field-value">${consultation.careRecommendationsSupplement}</span></div>` : ''}
-        ${consultation.careRecommendationsBehavior ? `<div class="field"><span class="field-label">Zmiany w zachowaniu:</span><span class="field-value">${consultation.careRecommendationsBehavior}</span></div>` : ''}
-        ${consultation.careRecommendationsDiet ? `<div class="field"><span class="field-label">Dieta:</span><span class="field-value">${consultation.careRecommendationsDiet}</span></div>` : ''}
-        ${consultation.careRecommendationsOther ? `<div class="field"><span class="field-label">Inne:</span><span class="field-value">${consultation.careRecommendationsOther}</span></div>` : ''}
+      <div class="section-header">Wywiad (Anamneza)</div>
+      <div class="row" style="font-size: 8pt;">
+        <div class="col-2">
+            ${renderCheckboxInfo('Rodzina', consultation.familyHistory)}
+            ${renderCheckboxInfo('Dermatolog', consultation.dermatologyVisits)}
+            ${consultation.dermatologyVisitsReason ? `<div class="field-row"><span class="field-label">Powód:</span><span class="field-value">${consultation.dermatologyVisitsReason}</span></div>` : ''}
+            ${renderCheckboxInfo('Ciąża', consultation.pregnancy)}
+            ${renderCheckboxInfo('Miesiączki', consultation.menstruationRegularity)}
+            ${consultation.contraception ? `<div class="field-row"><span class="field-label">Hormony:</span><span class="field-value">${consultation.contraception}</span></div>` : ''}
+            ${renderCheckboxInfo('Stres', consultation.stressLevel)}
+            ${renderCheckboxInfo('Leki', consultation.medications)}
+            ${consultation.medicationsList ? `<div class="field-row"><span class="field-label">Lista leków:</span><span class="field-value">${consultation.medicationsList}</span></div>` : ''}
+            ${consultation.supplements ? `<div class="field-row"><span class="field-label">Suplementy:</span><span class="field-value">${consultation.supplements}</span></div>` : ''}
+        </div>
+        <div class="col-2">
+             ${renderCheckboxInfo('Znieczulenie', consultation.anesthesia)}
+             ${renderCheckboxInfo('Chemioterapia', consultation.chemotherapy)}
+             ${renderCheckboxInfo('Radioterapia', consultation.radiotherapy)}
+             ${renderCheckboxInfo('Szczepienia', consultation.vaccination)}
+             ${consultation.antibiotics ? `<div class="field-row"><span class="field-label">Antybiotyki:</span><span class="field-value">${consultation.antibiotics}</span></div>` : ''}
+             ${renderCheckboxInfo('Choroby', consultation.chronicDiseases)}
+             ${consultation.chronicDiseasesList ? `<div class="field-row"><span class="field-label">Lista chorób:</span><span class="field-value">${consultation.chronicDiseasesList}</span></div>` : ''}
+             ${renderCheckboxInfo('Specjaliści', consultation.specialists)}
+             ${consultation.specialistsList ? `<div class="field-row"><span class="field-label">Jakiego:</span><span class="field-value">${consultation.specialistsList}</span></div>` : ''}
+             ${renderCheckboxInfo('Zab. odżywiania', consultation.eatingDisorders)}
+             ${consultation.foodIntolerances ? `<div class="field-row"><span class="field-label">Nietolerancje:</span><span class="field-value">${consultation.foodIntolerances}</span></div>` : ''}
+             ${renderCheckboxInfo('Dieta', consultation.diet)}
+             ${renderCheckboxInfo('Alergie', consultation.allergies)}
+             ${renderCheckboxInfo('Metal w ciele', consultation.metalPartsInBody)}
+        </div>
       </div>
-      ` : ''}
+      
+      ${(consultation.careRoutineShampoo || consultation.careRoutineConditioner || consultation.careRoutineOils || consultation.careRoutineChemical) ? `
+      <div style="border-top: 1px dashed #ccc; margin-top: 5px; padding-top:2px; font-size: 8pt;">
+         <strong>Aktualna pielęgnacja:</strong> 
+         ${consultation.careRoutineShampoo ? `Szampon: ${consultation.careRoutineShampoo}, ` : ''}
+         ${consultation.careRoutineConditioner ? `Odżywka: ${consultation.careRoutineConditioner}, ` : ''}
+         ${consultation.careRoutineOils ? `Wcierki: ${consultation.careRoutineOils}, ` : ''}
+         ${consultation.careRoutineChemical ? `Zabiegi: ${consultation.careRoutineChemical}` : ''}
+      </div>` : ''}
 
-      ${consultation.visitsProcedures ? `
-      <div class="section">
-        <div class="section-title">12. Wizyty / Zabiegi</div>
-        <div class="field-value">${consultation.visitsProcedures}</div>
+      <div class="section-header">Trichoskopia - Badanie</div>
+      <div class="row">
+        <div class="col-3 boxed-section">
+            <div class="sub-header">SKÓRA GŁOWY</div>
+            ${consultation.scalpType ? renderCheckboxInfo('Typ', consultation.scalpType) : ''}
+            ${consultation.scalpAppearance ? renderCheckboxInfo('Objawy', consultation.scalpAppearance) : ''}
+            ${consultation.skinLesions ? renderCheckboxInfo('Wykwity', consultation.skinLesions) : ''}
+            ${consultation.hyperhidrosis ? renderCheckboxInfo('Potliwość', consultation.hyperhidrosis) : ''}
+            ${consultation.hyperkeratinization ? renderCheckboxInfo('Hiperkeratynizacja', consultation.hyperkeratinization) : ''}
+            ${consultation.sebaceousSecretion ? renderCheckboxInfo('Wydzielina', consultation.sebaceousSecretion) : ''}
+            ${consultation.seborrheaType ? renderCheckboxInfo('Łojotok', consultation.seborrheaType) : ''}
+            ${consultation.seborrheaTypeOther ? `<div class="field-row"><span style="font-size:8pt">Inne: ${consultation.seborrheaTypeOther}</span></div>` : ''}
+            ${consultation.dandruffType ? renderCheckboxInfo('Złuszczanie', consultation.dandruffType) : ''}
+            ${consultation.scalpPH ? renderCheckboxInfo('pH', consultation.scalpPH) : ''}
+        </div>
+
+        <div class="col-3 boxed-section">
+            <div class="sub-header">STAN WŁOSÓW</div>
+            ${consultation.hairQuality ? renderCheckboxInfo('Jakość', consultation.hairQuality) : ''}
+            ${consultation.hairDamage ? renderCheckboxInfo('Uszkodzenia', consultation.hairDamage) : ''}
+            ${consultation.hairDamageReason ? renderCheckboxInfo('Przyczyna', consultation.hairDamageReason) : ''}
+            ${consultation.hairShape ? renderCheckboxInfo('Kształt', consultation.hairShape) : ''}
+            ${consultation.hairTypes ? renderCheckboxInfo('Typy', consultation.hairTypes) : ''}
+            ${consultation.regrowingHairs ? renderCheckboxInfo('Odrastające', consultation.regrowingHairs) : ''}
+            ${consultation.vellusMiniaturizedHairs ? renderCheckboxInfo('Vellus', consultation.vellusMiniaturizedHairs) : ''}
+        </div>
+
+        <div class="col-3 boxed-section">
+             <div class="sub-header">CECHY SPECYFICZNE</div>
+             <div class="checkbox-group">
+                ${consultation.vascularPatterns ? `<span class="checkbox-item">[x] ${formatJsonField(consultation.vascularPatterns)}</span>` : ''}
+                ${consultation.perifollicularFeatures ? `<span class="checkbox-item">[x] ${formatJsonField(consultation.perifollicularFeatures)}</span>` : ''}
+                ${consultation.scalpDiseases ? `<span class="checkbox-item">[x] ${formatJsonField(consultation.scalpDiseases)}</span>` : ''}
+                ${consultation.otherDiagnostics ? `<span class="checkbox-item">[x] ${formatJsonField(consultation.otherDiagnostics)}</span>` : ''}
+             </div>
+        </div>
       </div>
-      ` : ''}
 
-      ${consultation.norwoodHamiltonStage || consultation.ludwigStage ? `
-      <div class="section">
-        <div class="section-title">13. Skale Norwood-Hamilton i Ludwig</div>
-        ${consultation.norwoodHamiltonStage ? `<div class="field"><span class="field-label">Stopień Norwood-Hamilton:</span><span class="field-value">${consultation.norwoodHamiltonStage}</span></div>` : ''}
-        ${consultation.norwoodHamiltonNotes ? `<div class="field"><span class="field-label">Uwagi:</span><span class="field-value">${consultation.norwoodHamiltonNotes}</span></div>` : ''}
-        ${consultation.ludwigStage ? `<div class="field"><span class="field-label">Stopień Ludwig:</span><span class="field-value">${consultation.ludwigStage}</span></div>` : ''}
-        ${consultation.ludwigNotes ? `<div class="field"><span class="field-label">Uwagi:</span><span class="field-value">${consultation.ludwigNotes}</span></div>` : ''}
+      <div class="row">
+         <div class="col-2">
+            <div class="section-header">Rozpoznanie (Diagnoza)</div>
+            <div style="font-weight:bold; font-size: 10pt; margin: 5px 0;">
+                ${consultation.diagnosis || 'Brak wpisu'}
+            </div>
+            ${consultation.alopeciaTypes ? `<div style="font-size: 8.5pt;">Typ: ${formatJsonField(consultation.alopeciaTypes)}</div>` : ''}
+            ${consultation.alopeciaType ? `<div style="font-size: 8.5pt;">Klasyfikacja: ${consultation.alopeciaType}</div>` : ''}
+            ${consultation.degreeOfThinning ? `<div style="font-size: 8.5pt;">Przerzedzenie: ${consultation.degreeOfThinning}</div>` : ''}
+            ${consultation.alopeciaAffectedAreas ? `<div style="font-size: 8.5pt;">Obszary: ${formatJsonField(consultation.alopeciaAffectedAreas)}</div>` : ''}
+            ${consultation.miniaturization ? `<div style="font-size: 8.5pt;">Miniaturyzacja: ${consultation.miniaturization}</div>` : ''}
+            ${consultation.follicularUnits ? `<div style="font-size: 8.5pt;">Jednostki: ${consultation.follicularUnits}</div>` : ''}
+            ${consultation.pullTest ? `<div style="font-size: 8.5pt;">Pull Test: ${consultation.pullTest}</div>` : ''}
+            ${consultation.alopeciaOther ? `<div style="font-size: 8.5pt;">Inne: ${consultation.alopeciaOther}</div>` : ''}
+            ${consultation.norwoodHamiltonStage ? `<div style="font-size: 8.5pt; margin-top: 5px;">Norwood-Hamilton: ${consultation.norwoodHamiltonStage}${consultation.norwoodHamiltonNotes ? ` (${consultation.norwoodHamiltonNotes})` : ''}</div>` : ''}
+            ${consultation.ludwigStage ? `<div style="font-size: 8.5pt;">Ludwig: ${consultation.ludwigStage}${consultation.ludwigNotes ? ` (${consultation.ludwigNotes})` : ''}</div>` : ''}
+         </div>
+         
+         <div class="col-2" style="background-color: #f9f9f9; border: 1px solid #ddd; padding: 5px;">
+            <div class="section-header" style="background:none; border:none; padding:0; margin:0;">Zalecenia Domowe</div>
+            <div style="font-size: 8.5pt;">
+                ${consultation.careRecommendationsWashing ? `<div><strong>Mycie:</strong> ${consultation.careRecommendationsWashing}</div>` : ''}
+                ${consultation.careRecommendationsTopical ? `<div><strong>Wcierki:</strong> ${consultation.careRecommendationsTopical}</div>` : ''}
+                ${consultation.careRecommendationsSupplement ? `<div><strong>Suplementy:</strong> ${consultation.careRecommendationsSupplement}</div>` : ''}
+                ${consultation.careRecommendationsBehavior ? `<div><strong>Zachowanie:</strong> ${consultation.careRecommendationsBehavior}</div>` : ''}
+                ${consultation.visitsProcedures ? `<div><strong>Gabinet:</strong> ${consultation.visitsProcedures}</div>` : ''}
+            </div>
+         </div>
       </div>
-      ` : ''}
-
+      
       ${consultation.generalRemarks ? `
-      <div class="section">
-        <div class="section-title">14. Uwagi ogólne</div>
-        <div class="field-value">${consultation.generalRemarks}</div>
-      </div>
+       <div class="boxed-section" style="margin-top: 5px; background: #fffbe6;">
+         <strong>Uwagi dodatkowe:</strong> ${consultation.generalRemarks}
+       </div>
       ` : ''}
 
-      <div style="margin-top: 40px; text-align: right; font-size: 9pt; color: #666;">
-        <p>Wygenerowano: ${formatDateTime(new Date())}</p>
-        <p>Lekarz: ${consultation.doctor.name}</p>
+      <div class="footer">
+        Dokument wygenerowany elektronicznie. Lekarz prowadzący: ${consultation.doctor.name} | Data wydruku: ${formatDateTime(new Date())}
       </div>
+
     </body>
     </html>
   `;
@@ -341,12 +340,8 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
     const pdf = await page.pdf({
       format: 'A4',
       printBackground: true,
-      margin: {
-        top: '20mm',
-        right: '15mm',
-        bottom: '20mm',
-        left: '15mm',
-      },
+      // Minimalne marginesy ustawione w @page CSS, tutaj zerujemy domyślne puppeteer'a
+      margin: { top: '0', right: '0', bottom: '0', left: '0' },
     });
     return Buffer.from(pdf);
   } finally {

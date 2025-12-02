@@ -40,7 +40,11 @@ export default function LabResultsPage() {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
         <Typography variant="h4">Wyniki badań laboratoryjnych</Typography>
-        <Button variant="contained" startIcon={<Add />}>
+        <Button 
+          variant="contained" 
+          startIcon={<Add />}
+          onClick={() => navigate(`/patients/${id}/lab-results/new`)}
+        >
           Dodaj wynik
         </Button>
       </Box>

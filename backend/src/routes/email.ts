@@ -666,6 +666,210 @@ router.post('/send', authenticate, upload.array('attachments', 5), async (req: A
   }
 });
 
+// Send lab result email
+router.post('/lab-result/:id', authenticate, async (req: AuthRequest, res, next) => {
+  try {
+    const { id } = req.params;
+    const { recipientEmail } = req.body;
+
+    if (!recipientEmail) {
+      return res.status(400).json({ error: 'Adres email odbiorcy jest wymagany' });
+    }
+
+    const labResult = await prisma.labResult.findUnique({
+      where: { id },
+      include: {
+        patient: true,
+      },
+    });
+
+    if (!labResult) {
+      return res.status(404).json({ error: 'Wynik badania nie znaleziony' });
+    }
+
+    // Create a simple text summary of lab results
+    let labSummary = `Wyniki badań laboratoryjnych z dnia ${new Date(labResult.date).toLocaleDateString('pl-PL')}\n\n`;
+    
+    const fields = [
+      { key: 'hgb', label: 'Hemoglobina', unit: labResult.hgbUnit, value: labResult.hgb, refLow: labResult.hgbRefLow, refHigh: labResult.hgbRefHigh, flag: labResult.hgbFlag },
+      { key: 'rbc', label: 'Erytrocyty', unit: labResult.rbcUnit, value: labResult.rbc, refLow: labResult.rbcRefLow, refHigh: labResult.rbcRefHigh, flag: labResult.rbcFlag },
+      { key: 'wbc', label: 'Leukocyty', unit: labResult.wbcUnit, value: labResult.wbc, refLow: labResult.wbcRefLow, refHigh: labResult.wbcRefHigh, flag: labResult.wbcFlag },
+      { key: 'plt', label: 'Płytki krwi', unit: labResult.pltUnit, value: labResult.plt, refLow: labResult.pltRefLow, refHigh: labResult.pltRefHigh, flag: labResult.pltFlag },
+      { key: 'crp', label: 'CRP', unit: labResult.crpUnit, value: labResult.crp, refLow: labResult.crpRefLow, refHigh: labResult.crpRefHigh, flag: labResult.crpFlag },
+      { key: 'iron', label: 'Żelazo', unit: labResult.ironUnit, value: labResult.iron, refLow: labResult.ironRefLow, refHigh: labResult.ironRefHigh, flag: labResult.ironFlag },
+      { key: 'ferritin', label: 'Ferrytyna', unit: labResult.ferritinUnit, value: labResult.ferritin, refLow: labResult.ferritinRefLow, refHigh: labResult.ferritinRefHigh, flag: labResult.ferritinFlag },
+      { key: 'vitaminD3', label: 'Witamina D3', unit: labResult.vitaminD3Unit, value: labResult.vitaminD3, refLow: labResult.vitaminD3RefLow, refHigh: labResult.vitaminD3RefHigh, flag: labResult.vitaminD3Flag },
+      { key: 'vitaminB12', label: 'Witamina B12', unit: labResult.vitaminB12Unit, value: labResult.vitaminB12, refLow: labResult.vitaminB12RefLow, refHigh: labResult.vitaminB12RefHigh, flag: labResult.vitaminB12Flag },
+      { key: 'folicAcid', label: 'Kwas foliowy', unit: labResult.folicAcidUnit, value: labResult.folicAcid, refLow: labResult.folicAcidRefLow, refHigh: labResult.folicAcidRefHigh, flag: labResult.folicAcidFlag },
+      { key: 'tsh', label: 'TSH', unit: labResult.tshUnit, value: labResult.tsh, refLow: labResult.tshRefLow, refHigh: labResult.tshRefHigh, flag: labResult.tshFlag },
+      { key: 'ft3', label: 'FT3', unit: labResult.ft3Unit, value: labResult.ft3, refLow: labResult.ft3RefLow, refHigh: labResult.ft3RefHigh, flag: labResult.ft3Flag },
+      { key: 'ft4', label: 'FT4', unit: labResult.ft4Unit, value: labResult.ft4, refLow: labResult.ft4RefLow, refHigh: labResult.ft4RefHigh, flag: labResult.ft4Flag },
+    ];
+
+    fields.forEach(field => {
+      if (field.value !== null && field.value !== undefined) {
+        labSummary += `${field.label}: ${field.value} ${field.unit || ''}`;
+        if (field.refLow !== null && field.refHigh !== null) {
+          labSummary += ` (norma: ${field.refLow}-${field.refHigh})`;
+        }
+        if (field.flag) {
+          labSummary += ` [${field.flag}]`;
+        }
+        labSummary += '\n';
+      }
+    });
+
+    if (labResult.notes) {
+      labSummary += `\nUwagi: ${labResult.notes}`;
+    }
+
+    const subject = `Wyniki badań laboratoryjnych - ${labResult.patient.firstName} ${labResult.patient.lastName}`;
+    const message = `W załączeniu przesyłamy wyniki badań laboratoryjnych z dnia ${new Date(labResult.date).toLocaleDateString('pl-PL')}.`;
+
+    try {
+      await sendEmail({
+        to: recipientEmail,
+        subject,
+        html: `
+          <h2>Wyniki badań laboratoryjnych</h2>
+          <p>Dzień dobry,</p>
+          <p>${message}</p>
+          <p>Pacjent: ${labResult.patient.firstName} ${labResult.patient.lastName}</p>
+          <pre style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; font-family: monospace; white-space: pre-wrap;">${labSummary}</pre>
+          <p>Pozdrawiamy,<br>Zespół kliniki</p>
+        `,
+      });
+
+      // Save to email history
+      await prisma.emailHistory.create({
+        data: {
+          patientId: labResult.patientId,
+          sentByUserId: req.user!.id,
+          recipientEmail,
+          subject,
+          message,
+          attachmentCount: 0,
+          attachmentNames: [],
+          status: 'SENT',
+        },
+      });
+
+      res.json({ message: 'Email wysłany pomyślnie' });
+    } catch (emailError: any) {
+      // Save failed email to history
+      await prisma.emailHistory.create({
+        data: {
+          patientId: labResult.patientId,
+          sentByUserId: req.user!.id,
+          recipientEmail,
+          subject,
+          message,
+          attachmentCount: 0,
+          attachmentNames: [],
+          status: 'FAILED',
+          errorMessage: emailError.message,
+        },
+      });
+      throw emailError;
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Send scalp photo email
+router.post('/scalp-photo/:id', authenticate, async (req: AuthRequest, res, next) => {
+  try {
+    const { id } = req.params;
+    const { recipientEmail } = req.body;
+
+    if (!recipientEmail) {
+      return res.status(400).json({ error: 'Adres email odbiorcy jest wymagany' });
+    }
+
+    const scalpPhoto = await prisma.scalpPhoto.findUnique({
+      where: { id },
+      include: {
+        patient: true,
+      },
+    });
+
+    if (!scalpPhoto) {
+      return res.status(404).json({ error: 'Zdjęcie nie znalezione' });
+    }
+
+    // Read the image file
+    const imagePath = scalpPhoto.filePath;
+    if (!fs.existsSync(imagePath)) {
+      return res.status(404).json({ error: 'Plik zdjęcia nie istnieje' });
+    }
+
+    const imageBuffer = fs.readFileSync(imagePath);
+    const imageExtension = path.extname(scalpPhoto.originalFilename || imagePath).toLowerCase();
+    const mimeType = imageExtension === '.jpg' || imageExtension === '.jpeg' ? 'image/jpeg' : 
+                     imageExtension === '.png' ? 'image/png' : 'image/jpeg';
+
+    const subject = `Zdjęcie skóry głowy - ${scalpPhoto.patient.firstName} ${scalpPhoto.patient.lastName}`;
+    const message = `W załączeniu przesyłamy zdjęcie skóry głowy z dnia ${new Date(scalpPhoto.createdAt).toLocaleDateString('pl-PL')}.${scalpPhoto.notes ? `\n\nUwagi: ${scalpPhoto.notes}` : ''}`;
+
+    try {
+      await sendEmail({
+        to: recipientEmail,
+        subject,
+        html: `
+          <h2>Zdjęcie skóry głowy</h2>
+          <p>Dzień dobry,</p>
+          <p>W załączeniu przesyłamy zdjęcie skóry głowy z dnia ${new Date(scalpPhoto.createdAt).toLocaleDateString('pl-PL')}.</p>
+          ${scalpPhoto.notes ? `<p><strong>Uwagi:</strong> ${scalpPhoto.notes}</p>` : ''}
+          <p>Pacjent: ${scalpPhoto.patient.firstName} ${scalpPhoto.patient.lastName}</p>
+          <p>Pozdrawiamy,<br>Zespół kliniki</p>
+        `,
+        attachments: [
+          {
+            filename: scalpPhoto.originalFilename || `zdjecie-${id}${imageExtension}`,
+            content: imageBuffer,
+            contentType: mimeType,
+          },
+        ],
+      });
+
+      // Save to email history
+      await prisma.emailHistory.create({
+        data: {
+          patientId: scalpPhoto.patientId,
+          sentByUserId: req.user!.id,
+          recipientEmail,
+          subject,
+          message,
+          attachmentCount: 1,
+          attachmentNames: [scalpPhoto.originalFilename || 'Zdjęcie skóry głowy'],
+          status: 'SENT',
+        },
+      });
+
+      res.json({ message: 'Email wysłany pomyślnie' });
+    } catch (emailError: any) {
+      // Save failed email to history
+      await prisma.emailHistory.create({
+        data: {
+          patientId: scalpPhoto.patientId,
+          sentByUserId: req.user!.id,
+          recipientEmail,
+          subject,
+          message,
+          attachmentCount: 1,
+          attachmentNames: [scalpPhoto.originalFilename || 'Zdjęcie skóry głowy'],
+          status: 'FAILED',
+          errorMessage: emailError.message,
+        },
+      });
+      throw emailError;
+    }
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;
 
 

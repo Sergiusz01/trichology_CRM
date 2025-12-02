@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Paper, Typography, Button, Grid, Card, CardMedia } from '@mui/material';
 import { Add } from '@mui/icons-material';
 import { api } from '../services/api';
 
 export default function ScalpPhotosPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [photos, setPhotos] = useState<any[]>([]);
 
   useEffect(() => {
@@ -27,7 +28,11 @@ export default function ScalpPhotosPage() {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
         <Typography variant="h4">Zdjęcia skóry głowy</Typography>
-        <Button variant="contained" startIcon={<Add />}>
+        <Button 
+          variant="contained" 
+          startIcon={<Add />}
+          onClick={() => navigate(`/patients/${id}/scalp-photos/new`)}
+        >
           Dodaj zdjęcie
         </Button>
       </Box>
@@ -40,7 +45,13 @@ export default function ScalpPhotosPage() {
         ) : (
           photos.map((photo) => (
             <Grid item xs={12} sm={6} md={4} key={photo.id}>
-              <Card>
+              <Card
+                sx={{
+                  cursor: 'pointer',
+                  '&:hover': { boxShadow: 4 },
+                }}
+                onClick={() => navigate(`/patients/${id}/scalp-photos/${photo.id}`)}
+              >
                 <CardMedia
                   component="img"
                   height="200"

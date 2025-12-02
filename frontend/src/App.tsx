@@ -8,7 +8,10 @@ import PatientFormPage from './pages/PatientFormPage';
 import ConsultationFormPage from './pages/ConsultationFormPage';
 import ConsultationViewPage from './pages/ConsultationViewPage';
 import LabResultsPage from './pages/LabResultsPage';
+import LabResultFormPage from './pages/LabResultFormPage';
 import ScalpPhotosPage from './pages/ScalpPhotosPage';
+import ScalpPhotoFormPage from './pages/ScalpPhotoFormPage';
+import ScalpPhotoDetailPage from './pages/ScalpPhotoDetailPage';
 import CarePlansPage from './pages/CarePlansPage';
 import CarePlanDetailPage from './pages/CarePlanDetailPage';
 import EmailComposePage from './pages/EmailComposePage';
@@ -35,7 +38,10 @@ function App() {
         <Route path="consultations/:id" element={<ConsultationViewPage />} />
         <Route path="consultations/:id/edit" element={<ConsultationFormPage />} />
         <Route path="patients/:id/lab-results" element={<LabResultsPage />} />
+        <Route path="patients/:id/lab-results/new" element={<LabResultFormPage />} />
         <Route path="patients/:id/scalp-photos" element={<ScalpPhotosPage />} />
+        <Route path="patients/:id/scalp-photos/new" element={<ScalpPhotoFormPage />} />
+        <Route path="patients/:id/scalp-photos/:photoId" element={<ScalpPhotoDetailPage />} />
         <Route path="patients/:id/care-plans" element={<CarePlansPage />} />
         <Route path="patients/:id/email" element={<EmailComposePage />} />
         <Route path="patients/:id/email-history" element={<EmailHistoryPage />} />
