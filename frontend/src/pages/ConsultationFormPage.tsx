@@ -296,8 +296,16 @@ export default function ConsultationFormPage() {
   };
 
   return (
-    <Box>
-      <Typography variant="h4" gutterBottom>
+    <Box sx={{ width: '100%', maxWidth: '100%', overflow: 'hidden', px: { xs: 0, sm: 0 } }}>
+      <Typography 
+        variant="h4" 
+        gutterBottom
+        sx={{ 
+          fontSize: { xs: '1.5rem', sm: '2rem' },
+          mb: { xs: 2, sm: 3 },
+          px: { xs: 1.5, sm: 0 },
+        }}
+      >
         {isNewConsultation ? 'Nowa konsultacja' : 'Edycja konsultacji'}
       </Typography>
 
@@ -314,8 +322,8 @@ export default function ConsultationFormPage() {
       )}
 
       <form onSubmit={handleSubmit}>
-        <Paper sx={{ p: 3, mb: 2 }}>
-          <Grid container spacing={2}>
+        <Paper sx={{ p: { xs: 1.5, sm: 2, md: 3 }, mb: { xs: 1.5, sm: 2 } }}>
+          <Grid container spacing={{ xs: 1.5, sm: 2 }}>
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
@@ -334,8 +342,8 @@ export default function ConsultationFormPage() {
           <AccordionSummary expandIcon={<ExpandMore />}>
             <Typography variant="h6">1. Wypadanie włosów</Typography>
           </AccordionSummary>
-          <AccordionDetails>
-            <Grid container spacing={2}>
+          <AccordionDetails sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
+            <Grid container spacing={{ xs: 1.5, sm: 2 }}>
               <Grid item xs={12} md={6}>
                 <FormControl fullWidth>
                   <InputLabel>Nasilenie</InputLabel>
@@ -406,8 +414,8 @@ export default function ConsultationFormPage() {
           <AccordionSummary expandIcon={<ExpandMore />}>
             <Typography variant="h6">2. Przetłuszczanie się włosów</Typography>
           </AccordionSummary>
-          <AccordionDetails>
-            <Grid container spacing={2}>
+          <AccordionDetails sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
+            <Grid container spacing={{ xs: 1.5, sm: 2 }}>
               <Grid item xs={12} md={6}>
                 <FormControl fullWidth>
                   <InputLabel>Nasilenie</InputLabel>
@@ -475,8 +483,8 @@ export default function ConsultationFormPage() {
           <AccordionSummary expandIcon={<ExpandMore />}>
             <Typography variant="h6">3. Łuszczenie skóry głowy</Typography>
           </AccordionSummary>
-          <AccordionDetails>
-            <Grid container spacing={2}>
+          <AccordionDetails sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
+            <Grid container spacing={{ xs: 1.5, sm: 2 }}>
               <Grid item xs={12} md={6}>
                 <FormControl fullWidth>
                   <InputLabel>Nasilenie</InputLabel>
@@ -537,8 +545,8 @@ export default function ConsultationFormPage() {
           <AccordionSummary expandIcon={<ExpandMore />}>
             <Typography variant="h6">4. Wrażliwość skóry głowy</Typography>
           </AccordionSummary>
-          <AccordionDetails>
-            <Grid container spacing={2}>
+          <AccordionDetails sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
+            <Grid container spacing={{ xs: 1.5, sm: 2 }}>
               <Grid item xs={12} md={6}>
                 <FormControl fullWidth>
                   <InputLabel>Nasilenie</InputLabel>
@@ -599,8 +607,8 @@ export default function ConsultationFormPage() {
           <AccordionSummary expandIcon={<ExpandMore />}>
             <Typography variant="h6">5. Stany zapalne / Grudki</Typography>
           </AccordionSummary>
-          <AccordionDetails>
-            <Grid container spacing={2}>
+          <AccordionDetails sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
+            <Grid container spacing={{ xs: 1.5, sm: 2 }}>
               <Grid item xs={12}>
                 <TextField
                   fullWidth
@@ -620,8 +628,8 @@ export default function ConsultationFormPage() {
           <AccordionSummary expandIcon={<ExpandMore />}>
             <Typography variant="h6">6. Wywiad</Typography>
           </AccordionSummary>
-          <AccordionDetails>
-            <Grid container spacing={2}>
+          <AccordionDetails sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
+            <Grid container spacing={{ xs: 1.5, sm: 2 }}>
               <Grid item xs={12} md={6}>
                 <FormControl fullWidth>
                   <InputLabel>Czy problem występuje u innych członków rodziny?</InputLabel>
@@ -987,8 +995,8 @@ export default function ConsultationFormPage() {
           <AccordionSummary expandIcon={<ExpandMore />}>
             <Typography variant="h6">7. Trichoskopia</Typography>
           </AccordionSummary>
-          <AccordionDetails>
-            <Grid container spacing={2}>
+          <AccordionDetails sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
+            <Grid container spacing={{ xs: 1.5, sm: 2 }}>
               <Grid item xs={12}>
                 <MultiSelectCheckboxes
                   label="Typ skóry głowy"
@@ -1211,8 +1219,8 @@ export default function ConsultationFormPage() {
           <AccordionSummary expandIcon={<ExpandMore />}>
             <Typography variant="h6">8. Diagnostyka</Typography>
           </AccordionSummary>
-          <AccordionDetails>
-            <Grid container spacing={2}>
+          <AccordionDetails sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
+            <Grid container spacing={{ xs: 1.5, sm: 2 }}>
               <Grid item xs={12}>
                 <MultiSelectCheckboxes
                   label="Unaczynienie"
@@ -1263,8 +1271,8 @@ export default function ConsultationFormPage() {
           <AccordionSummary expandIcon={<ExpandMore />}>
             <Typography variant="h6">9. Diagnostyka łysienia</Typography>
           </AccordionSummary>
-          <AccordionDetails>
-            <Grid container spacing={2}>
+          <AccordionDetails sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
+            <Grid container spacing={{ xs: 1.5, sm: 2 }}>
               <Grid item xs={12}>
                 <MultiSelectCheckboxes
                   label="Łysienie"
@@ -1403,8 +1411,8 @@ export default function ConsultationFormPage() {
           <AccordionSummary expandIcon={<ExpandMore />}>
             <Typography variant="h6">11. Zalecenia</Typography>
           </AccordionSummary>
-          <AccordionDetails>
-            <Grid container spacing={2}>
+          <AccordionDetails sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
+            <Grid container spacing={{ xs: 1.5, sm: 2 }}>
               <Grid item xs={12}>
                 <TextField
                   fullWidth
@@ -1471,8 +1479,8 @@ export default function ConsultationFormPage() {
           <AccordionSummary expandIcon={<ExpandMore />}>
             <Typography variant="h6">13. Skale Norwood-Hamilton i Ludwig</Typography>
           </AccordionSummary>
-          <AccordionDetails>
-            <Grid container spacing={2}>
+          <AccordionDetails sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
+            <Grid container spacing={{ xs: 1.5, sm: 2 }}>
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth

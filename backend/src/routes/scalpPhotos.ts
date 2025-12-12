@@ -260,7 +260,10 @@ router.post('/:id/annotations', authenticate, async (req: AuthRequest, res, next
     const annotation = await prisma.scalpPhotoAnnotation.create({
       data: {
         scalpPhotoId: id,
-        ...data,
+        type: data.type,
+        shapeType: data.shapeType,
+        label: data.label,
+        coordinates: data.coordinates || {},
       },
     });
 

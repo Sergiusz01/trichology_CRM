@@ -2,7 +2,8 @@ import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import path from 'path';
-import { authenticate, AuthRequest } from '../middleware/auth';
+import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
+import fs from 'fs';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -74,10 +75,12 @@ router.get('/:id', authenticate, async (req: AuthRequest, res, next) => {
       where: { id },
       include: {
         consultations: {
+          where: { isArchived: false },
           orderBy: { consultationDate: 'desc' },
           take: 10,
         },
         labResults: {
+          where: { isArchived: false },
           orderBy: { date: 'desc' },
           take: 10,
         },
@@ -86,7 +89,10 @@ router.get('/:id', authenticate, async (req: AuthRequest, res, next) => {
           take: 10,
         },
         carePlans: {
-          where: { isActive: true },
+          where: { 
+            isActive: true,
+            isArchived: false,
+          },
           orderBy: { createdAt: 'desc' },
         },
       },
@@ -160,6 +166,87 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res, next) => {
     });
 
     res.json({ patient });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Restore archived patient
+router.post('/:id/restore', authenticate, async (req: AuthRequest, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const patient = await prisma.patient.findUnique({
+      where: { id },
+    });
+
+    if (!patient) {
+      return res.status(404).json({ error: 'Pacjent nie znaleziony' });
+    }
+
+    if (!patient.isArchived) {
+      return res.status(400).json({ error: 'Pacjent nie jest zarchiwizowany' });
+    }
+
+    const restoredPatient = await prisma.patient.update({
+      where: { id },
+      data: { isArchived: false },
+    });
+
+    res.json({ patient: restoredPatient, message: 'Pacjent został przywrócony' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Permanently delete patient and all related data (RODO/GDPR) - ADMIN only
+router.delete('/:id/permanent', authenticate, requireRole('ADMIN'), async (req: AuthRequest, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const patient = await prisma.patient.findUnique({
+      where: { id },
+      include: {
+        scalpPhotos: true,
+      },
+    });
+
+    if (!patient) {
+      return res.status(404).json({ error: 'Pacjent nie znaleziony' });
+    }
+
+    // Delete all scalp photo files from filesystem
+    for (const photo of patient.scalpPhotos) {
+      try {
+        const photoPath = path.join(__dirname, '../../storage/uploads', path.basename(photo.filePath));
+        if (fs.existsSync(photoPath)) {
+          fs.unlinkSync(photoPath);
+        }
+      } catch (fileError) {
+        console.error(`Error deleting photo file ${photo.filePath}:`, fileError);
+        // Continue with deletion even if file deletion fails
+      }
+    }
+
+    // Delete patient (cascade will delete all related data)
+    // Prisma will automatically delete:
+    // - consultations (onDelete: Cascade)
+    // - labResults (onDelete: Cascade)
+    // - scalpPhotos (onDelete: Cascade)
+    // - carePlans (onDelete: Cascade)
+    // - reminders (onDelete: Cascade)
+    // - emailHistory (onDelete: Cascade)
+    await prisma.patient.delete({
+      where: { id },
+    });
+
+    res.json({ 
+      message: 'Pacjent i wszystkie powiązane dane zostały trwale usunięte zgodnie z RODO',
+      deletedPatient: {
+        id: patient.id,
+        name: `${patient.firstName} ${patient.lastName}`,
+      }
+    });
   } catch (error) {
     next(error);
   }

@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { hashPassword } from '../utils/password';
+import { initializeDefaultTemplates } from '../utils/initializeDefaultTemplates';
 
 const prisma = new PrismaClient();
 
@@ -146,6 +147,9 @@ async function main() {
     },
   });
   console.log('✅ Utworzono plan opieki:', carePlan.id);
+
+  // Initialize default email templates
+  await initializeDefaultTemplates(admin.id, prisma);
 
   console.log('\n🎉 Seedowanie zakończone pomyślnie!');
   console.log('\nDane logowania:');

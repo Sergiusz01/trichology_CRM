@@ -8,8 +8,6 @@ import {
   Alert,
   CircularProgress,
   Grid,
-  Card,
-  CardContent,
 } from '@mui/material';
 import { Send, CheckCircle, Error } from '@mui/icons-material';
 import { api } from '../services/api';

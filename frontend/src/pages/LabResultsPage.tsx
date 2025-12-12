@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Paper, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip } from '@mui/material';
-import { Add } from '@mui/icons-material';
+import { Box, Paper, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, IconButton } from '@mui/material';
+import { Add, Edit } from '@mui/icons-material';
 import { api } from '../services/api';
 
 export default function LabResultsPage() {
@@ -59,12 +59,13 @@ export default function LabResultsPage() {
               <TableCell>Jednostka</TableCell>
               <TableCell>Zakres</TableCell>
               <TableCell>Status</TableCell>
+              <TableCell align="right">Akcje</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {labResults.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} align="center">
+                <TableCell colSpan={7} align="center">
                   Brak wyników
                 </TableCell>
               </TableRow>
@@ -86,6 +87,15 @@ export default function LabResultsPage() {
                       color={getFlagColor(result.ferritinFlag || '')}
                       size="small"
                     />
+                  </TableCell>
+                  <TableCell align="right">
+                    <IconButton
+                      size="small"
+                      onClick={() => navigate(`/patients/${id}/lab-results/${result.id}/edit`)}
+                      color="primary"
+                    >
+                      <Edit />
+                    </IconButton>
                   </TableCell>
                 </TableRow>
               ))

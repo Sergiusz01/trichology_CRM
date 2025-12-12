@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
 
 export const api = axios.create({
   baseURL: `${API_URL}/api`,
@@ -10,10 +10,26 @@ export const api = axios.create({
 });
 
 // Add token to requests if available
-const token = localStorage.getItem('accessToken');
+const getToken = () => localStorage.getItem('accessToken');
+const token = getToken();
 if (token) {
   api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 }
+
+// Update token when it changes
+api.interceptors.request.use((config) => {
+  const token = getToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  } else {
+    delete config.headers.Authorization;
+  }
+  // Don't set Content-Type for FormData (let browser set it with boundary)
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type'];
+  }
+  return config;
+});
 
 // Response interceptor for token refresh
 api.interceptors.response.use(

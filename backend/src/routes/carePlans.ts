@@ -1,7 +1,7 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
-import { authenticate, AuthRequest } from '../middleware/auth';
+import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 import { generateCarePlanPDF } from '../services/pdfService';
 
 const router = express.Router();
@@ -9,19 +9,19 @@ const prisma = new PrismaClient();
 
 const carePlanSchema = z.object({
   patientId: z.string(),
-  consultationId: z.string().optional(),
+  consultationId: z.string().optional().nullable().transform(val => val === '' || !val ? undefined : val),
   title: z.string().min(1, 'Tytuł jest wymagany'),
   totalDurationWeeks: z.number().int().positive('Liczba tygodni musi być dodatnia'),
-  notes: z.string().optional(),
+  notes: z.string().optional().nullable(),
   isActive: z.boolean().optional(),
   weeks: z.array(z.object({
     weekNumber: z.number().int().positive(),
-    description: z.string().optional(),
-    washingRoutine: z.string().optional(),
-    topicalProducts: z.string().optional(),
-    supplements: z.string().optional(),
-    inClinicProcedures: z.string().optional(),
-    remarks: z.string().optional(),
+    description: z.string().optional().nullable(),
+    washingRoutine: z.string().optional().nullable(),
+    topicalProducts: z.string().optional().nullable(),
+    supplements: z.string().optional().nullable(),
+    inClinicProcedures: z.string().optional().nullable(),
+    remarks: z.string().optional().nullable(),
   })).optional(),
 });
 
@@ -29,9 +29,13 @@ const carePlanSchema = z.object({
 router.get('/patient/:patientId', authenticate, async (req: AuthRequest, res, next) => {
   try {
     const { patientId } = req.params;
-    const { active } = req.query;
+    const { active, archived = 'false' } = req.query;
+    const isArchived = archived === 'true';
 
-    const where: any = { patientId };
+    const where: any = { 
+      patientId,
+      isArchived,
+    };
     if (active === 'true') {
       where.isActive = true;
     }
@@ -101,11 +105,25 @@ router.post('/', authenticate, async (req: AuthRequest, res, next) => {
       return res.status(404).json({ error: 'Pacjent nie znaleziony' });
     }
 
-    const { weeks, ...planData } = data;
+    // Verify consultation exists if provided
+    let consultationId = data.consultationId;
+    if (consultationId && consultationId.trim() !== '') {
+      const consultation = await prisma.consultation.findUnique({
+        where: { id: consultationId },
+      });
+      if (!consultation) {
+        return res.status(404).json({ error: 'Konsultacja nie znaleziona' });
+      }
+    } else {
+      consultationId = undefined; // Set to undefined if empty string
+    }
+
+    const { weeks, consultationId: _, ...planData } = data;
 
     const carePlan = await prisma.carePlan.create({
       data: {
         ...planData,
+        consultationId, // Use validated consultationId
         createdByUserId,
         weeks: weeks ? {
           create: weeks,
@@ -177,16 +195,81 @@ router.put('/:id', authenticate, async (req: AuthRequest, res, next) => {
   }
 });
 
-// Delete care plan
+// Archive care plan (soft delete)
 router.delete('/:id', authenticate, async (req: AuthRequest, res, next) => {
   try {
     const { id } = req.params;
 
+    const carePlan = await prisma.carePlan.update({
+      where: { id },
+      data: { isArchived: true },
+    });
+
+    res.json({ 
+      carePlan,
+      message: 'Plan opieki został zarchiwizowany'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Restore archived care plan
+router.post('/:id/restore', authenticate, async (req: AuthRequest, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const carePlan = await prisma.carePlan.findUnique({
+      where: { id },
+    });
+
+    if (!carePlan) {
+      return res.status(404).json({ error: 'Plan opieki nie znaleziony' });
+    }
+
+    if (!carePlan.isArchived) {
+      return res.status(400).json({ error: 'Plan opieki nie jest zarchiwizowany' });
+    }
+
+    const restoredCarePlan = await prisma.carePlan.update({
+      where: { id },
+      data: { isArchived: false },
+    });
+
+    res.json({ 
+      carePlan: restoredCarePlan, 
+      message: 'Plan opieki został przywrócony' 
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Permanently delete care plan (RODO/GDPR) - ADMIN only
+router.delete('/:id/permanent', authenticate, requireRole('ADMIN'), async (req: AuthRequest, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const carePlan = await prisma.carePlan.findUnique({
+      where: { id },
+    });
+
+    if (!carePlan) {
+      return res.status(404).json({ error: 'Plan opieki nie znaleziony' });
+    }
+
+    // Prisma will cascade delete:
+    // - CarePlanWeek (onDelete: Cascade)
+    // - EmailReminder (onDelete: SetNull - carePlanId will be set to null)
+    // - EmailHistory (onDelete: SetNull - carePlanId will be set to null)
     await prisma.carePlan.delete({
       where: { id },
     });
 
-    res.json({ message: 'Plan opieki usunięty' });
+    res.json({ 
+      message: 'Plan opieki został trwale usunięty zgodnie z RODO',
+      deleted: true
+    });
   } catch (error) {
     next(error);
   }

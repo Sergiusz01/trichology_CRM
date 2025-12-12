@@ -10,6 +10,8 @@ import {
   MenuItem,
   Alert,
   CircularProgress,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import { api } from '../services/api';
 
@@ -18,6 +20,8 @@ export default function PatientFormPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -199,11 +203,22 @@ export default function PatientFormPage() {
               />
             </Grid>
             <Grid item xs={12}>
-              <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+              <Box sx={{ 
+                display: 'flex', 
+                gap: { xs: 1, sm: 2 }, 
+                justifyContent: 'flex-end',
+                flexDirection: { xs: 'column-reverse', sm: 'row' },
+              }}>
                 <Button
                   variant="outlined"
                   onClick={() => navigate('/patients')}
                   disabled={loading}
+                  fullWidth={isMobile}
+                  size={isMobile ? 'medium' : 'large'}
+                  sx={{ 
+                    fontSize: { xs: '0.875rem', sm: '1rem' },
+                    py: { xs: 1.25, sm: 1.5 },
+                  }}
                 >
                   Anuluj
                 </Button>
@@ -211,8 +226,14 @@ export default function PatientFormPage() {
                   type="submit"
                   variant="contained"
                   disabled={loading}
+                  fullWidth={isMobile}
+                  size={isMobile ? 'medium' : 'large'}
+                  sx={{ 
+                    fontSize: { xs: '0.875rem', sm: '1rem' },
+                    py: { xs: 1.25, sm: 1.5 },
+                  }}
                 >
-                  {loading ? 'Zapisywanie...' : 'Zapisz'}
+                  {loading ? 'Zapisywanie...' : (isMobile ? 'Zapisz' : (id && id !== 'new' ? 'Zapisz zmiany' : 'Utwórz pacjenta'))}
                 </Button>
               </Box>
             </Grid>

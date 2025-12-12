@@ -1,8 +1,9 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
-import { authenticate, AuthRequest } from '../middleware/auth';
+import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 import { calculateLabFlags } from '../utils/labResults';
+import { generateLabResultPDF } from '../services/pdfService';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -124,9 +125,14 @@ const labResultSchema = z.object({
 router.get('/patient/:patientId', authenticate, async (req: AuthRequest, res, next) => {
   try {
     const { patientId } = req.params;
+    const { archived = 'false' } = req.query;
+    const isArchived = archived === 'true';
 
     const labResults = await prisma.labResult.findMany({
-      where: { patientId },
+      where: { 
+        patientId,
+        isArchived,
+      },
       orderBy: { date: 'desc' },
       include: {
         consultation: {
@@ -141,7 +147,36 @@ router.get('/patient/:patientId', authenticate, async (req: AuthRequest, res, ne
   }
 });
 
-// Get lab result by ID
+// Generate PDF for lab result
+router.get('/:id/pdf', authenticate, async (req: AuthRequest, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const labResult = await prisma.labResult.findUnique({
+      where: { id },
+      include: {
+        patient: true,
+        consultation: {
+          select: { id: true, consultationDate: true },
+        },
+      },
+    });
+
+    if (!labResult) {
+      return res.status(404).json({ error: 'Wynik laboratoryjny nie znaleziony' });
+    }
+
+    const pdfBuffer = await generateLabResultPDF(labResult, labResult.patient);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="wynik-badan-${id}.pdf"`);
+    res.send(pdfBuffer);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get lab result by ID (MUST be after specific routes like /:id/pdf)
 router.get('/:id', authenticate, async (req: AuthRequest, res, next) => {
   try {
     const { id } = req.params;
@@ -233,16 +268,78 @@ router.put('/:id', authenticate, async (req: AuthRequest, res, next) => {
   }
 });
 
-// Delete lab result
+// Archive lab result (soft delete)
 router.delete('/:id', authenticate, async (req: AuthRequest, res, next) => {
   try {
     const { id } = req.params;
 
+    const labResult = await prisma.labResult.update({
+      where: { id },
+      data: { isArchived: true },
+    });
+
+    res.json({ 
+      labResult,
+      message: 'Wynik badania został zarchiwizowany'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Restore archived lab result
+router.post('/:id/restore', authenticate, async (req: AuthRequest, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const labResult = await prisma.labResult.findUnique({
+      where: { id },
+    });
+
+    if (!labResult) {
+      return res.status(404).json({ error: 'Wynik badania nie znaleziony' });
+    }
+
+    if (!labResult.isArchived) {
+      return res.status(400).json({ error: 'Wynik badania nie jest zarchiwizowany' });
+    }
+
+    const restoredLabResult = await prisma.labResult.update({
+      where: { id },
+      data: { isArchived: false },
+    });
+
+    res.json({ 
+      labResult: restoredLabResult, 
+      message: 'Wynik badania został przywrócony' 
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Permanently delete lab result (RODO/GDPR) - ADMIN only
+router.delete('/:id/permanent', authenticate, requireRole('ADMIN'), async (req: AuthRequest, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const labResult = await prisma.labResult.findUnique({
+      where: { id },
+    });
+
+    if (!labResult) {
+      return res.status(404).json({ error: 'Wynik badania nie znaleziony' });
+    }
+
+    // Permanent delete - RODO compliant
     await prisma.labResult.delete({
       where: { id },
     });
 
-    res.json({ message: 'Wynik laboratoryjny usunięty' });
+    res.json({ 
+      message: 'Wynik badania został trwale usunięty zgodnie z RODO',
+      deleted: true
+    });
   } catch (error) {
     next(error);
   }

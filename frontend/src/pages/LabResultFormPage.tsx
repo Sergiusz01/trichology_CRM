@@ -8,14 +8,18 @@ import {
   Typography,
   Grid,
   Alert,
-  MenuItem,
   CircularProgress,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import { api } from '../services/api';
 
 export default function LabResultFormPage() {
   const { id, labResultId } = useParams<{ id?: string; labResultId?: string }>();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const [loadingData, setLoadingData] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -157,7 +161,82 @@ export default function LabResultFormPage() {
     }
   };
 
-  if (loading && !formData.patientId) {
+  useEffect(() => {
+    if (labResultId && id) {
+      fetchLabResult();
+    }
+  }, [labResultId, id]);
+
+  const fetchLabResult = async () => {
+    if (!labResultId) return;
+    try {
+      setLoadingData(true);
+      const response = await api.get(`/lab-results/${labResultId}`);
+      const result = response.data.labResult;
+      
+      setFormData({
+        patientId: result.patientId || id || '',
+        consultationId: result.consultationId || '',
+        date: result.date ? new Date(result.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        hgb: result.hgb || '',
+        hgbUnit: result.hgbUnit || 'g/dL',
+        hgbRefLow: result.hgbRefLow || '',
+        hgbRefHigh: result.hgbRefHigh || '',
+        rbc: result.rbc || '',
+        rbcUnit: result.rbcUnit || 'M/μL',
+        rbcRefLow: result.rbcRefLow || '',
+        rbcRefHigh: result.rbcRefHigh || '',
+        wbc: result.wbc || '',
+        wbcUnit: result.wbcUnit || 'K/μL',
+        wbcRefLow: result.wbcRefLow || '',
+        wbcRefHigh: result.wbcRefHigh || '',
+        plt: result.plt || '',
+        pltUnit: result.pltUnit || 'K/μL',
+        pltRefLow: result.pltRefLow || '',
+        pltRefHigh: result.pltRefHigh || '',
+        ferritin: result.ferritin || '',
+        ferritinUnit: result.ferritinUnit || 'ng/mL',
+        ferritinRefLow: result.ferritinRefLow || '',
+        ferritinRefHigh: result.ferritinRefHigh || '',
+        iron: result.iron || '',
+        ironUnit: result.ironUnit || 'μg/dL',
+        ironRefLow: result.ironRefLow || '',
+        ironRefHigh: result.ironRefHigh || '',
+        vitaminD3: result.vitaminD3 || '',
+        vitaminD3Unit: result.vitaminD3Unit || 'ng/mL',
+        vitaminD3RefLow: result.vitaminD3RefLow || '',
+        vitaminD3RefHigh: result.vitaminD3RefHigh || '',
+        vitaminB12: result.vitaminB12 || '',
+        vitaminB12Unit: result.vitaminB12Unit || 'pg/mL',
+        vitaminB12RefLow: result.vitaminB12RefLow || '',
+        vitaminB12RefHigh: result.vitaminB12RefHigh || '',
+        folicAcid: result.folicAcid || '',
+        folicAcidUnit: result.folicAcidUnit || 'ng/mL',
+        folicAcidRefLow: result.folicAcidRefLow || '',
+        folicAcidRefHigh: result.folicAcidRefHigh || '',
+        tsh: result.tsh || '',
+        tshUnit: result.tshUnit || 'mIU/L',
+        tshRefLow: result.tshRefLow || '',
+        tshRefHigh: result.tshRefHigh || '',
+        ft3: result.ft3 || '',
+        ft3Unit: result.ft3Unit || 'pg/mL',
+        ft3RefLow: result.ft3RefLow || '',
+        ft3RefHigh: result.ft3RefHigh || '',
+        ft4: result.ft4 || '',
+        ft4Unit: result.ft4Unit || 'ng/dL',
+        ft4RefLow: result.ft4RefLow || '',
+        ft4RefHigh: result.ft4RefHigh || '',
+        notes: result.notes || '',
+      });
+    } catch (error: any) {
+      console.error('Błąd pobierania wyniku:', error);
+      setError(error.response?.data?.error || 'Błąd pobierania wyniku');
+    } finally {
+      setLoadingData(false);
+    }
+  };
+
+  if (loadingData || (loading && !formData.patientId)) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
         <CircularProgress />
@@ -166,9 +245,17 @@ export default function LabResultFormPage() {
   }
 
   return (
-    <Box>
-      <Typography variant="h4" gutterBottom>
-        {labResultId ? 'Edycja wyniku badań' : 'Nowy wynik badań'}
+    <Box sx={{ width: '100%', maxWidth: '100%', overflow: 'hidden', px: { xs: 0, sm: 0 } }}>
+      <Typography 
+        variant="h4" 
+        gutterBottom
+        sx={{ 
+          fontSize: { xs: '1.5rem', sm: '2rem' },
+          mb: { xs: 2, sm: 3 },
+          px: { xs: 1.5, sm: 0 },
+        }}
+      >
+        {labResultId ? 'Edytuj wynik badania' : 'Dodaj wynik badania'}
       </Typography>
 
       {error && (
@@ -183,9 +270,9 @@ export default function LabResultFormPage() {
         </Alert>
       )}
 
-      <Paper sx={{ p: 3 }}>
+      <Paper sx={{ p: { xs: 1.5, sm: 2, md: 3 }, mb: { xs: 1.5, sm: 2 } }}>
         <form onSubmit={handleSubmit}>
-          <Grid container spacing={2}>
+          <Grid container spacing={{ xs: 1.5, sm: 2 }}>
             <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
@@ -377,17 +464,34 @@ export default function LabResultFormPage() {
             </Grid>
 
             <Grid item xs={12}>
-              <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+              <Box sx={{ 
+                display: 'flex', 
+                gap: { xs: 1, sm: 2 }, 
+                mt: { xs: 1.5, sm: 2 },
+                flexDirection: { xs: 'column-reverse', sm: 'row' },
+              }}>
                 <Button
                   type="submit"
                   variant="contained"
                   disabled={loading}
+                  fullWidth={isMobile}
+                  size={isMobile ? 'medium' : 'large'}
+                  sx={{ 
+                    fontSize: { xs: '0.875rem', sm: '1rem' },
+                    py: { xs: 1.25, sm: 1.5 },
+                  }}
                 >
-                  {loading ? <CircularProgress size={24} /> : 'Zapisz'}
+                  {loading ? <CircularProgress size={24} /> : (isMobile ? 'Zapisz' : 'Zapisz wynik')}
                 </Button>
                 <Button
                   variant="outlined"
                   onClick={() => navigate(`/patients/${id}`)}
+                  fullWidth={isMobile}
+                  size={isMobile ? 'medium' : 'large'}
+                  sx={{ 
+                    fontSize: { xs: '0.875rem', sm: '1rem' },
+                    py: { xs: 1.25, sm: 1.5 },
+                  }}
                 >
                   Anuluj
                 </Button>

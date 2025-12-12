@@ -29,3 +29,35 @@ body {
 * {
   transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
+
+/* MOBILE FIX: Prevent horizontal scroll */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* MOBILE FIX: Ensure all containers respect viewport width */
+#root {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+/* MOBILE FIX: Prevent tables from overflowing on small screens */
+@media (max-width: 768px) {
+  .MuiTableContainer-root {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Ensure dialog content doesn't overflow */
+  .MuiDialog-paper {
+    margin: 8px !important;
+    max-width: calc(100% - 16px) !important;
+  }
+  
+  /* Prevent text from overflowing */
+  * {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+}

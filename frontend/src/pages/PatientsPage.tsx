@@ -31,8 +31,9 @@ import {
   Avatar,
   Container,
 } from '@mui/material';
-import { Add, Visibility, Delete, Search, Person } from '@mui/icons-material';
+import { Add, Visibility, Delete, Search, Person, Download, Restore, DeleteForever, Archive } from '@mui/icons-material';
 import { api } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Patient {
   id: string;
@@ -46,13 +47,26 @@ interface Patient {
 }
 
 export default function PatientsPage() {
+  const { user } = useAuth();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [search, setSearch] = useState('');
   const [total, setTotal] = useState(0);
+  const [showArchived, setShowArchived] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState<{
+    open: boolean;
+    patientId: string | null;
+    patientName: string;
+  }>({ open: false, patientId: null, patientName: '' });
+  const [restoreDialog, setRestoreDialog] = useState<{
+    open: boolean;
+    patientId: string | null;
+    patientName: string;
+  }>({ open: false, patientId: null, patientName: '' });
+  const [permanentDeleteDialog, setPermanentDeleteDialog] = useState<{
     open: boolean;
     patientId: string | null;
     patientName: string;
@@ -63,9 +77,13 @@ export default function PatientsPage() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
+  // Check if user can export (ADMIN or DOCTOR)
+  const canExport = user?.role === 'ADMIN' || user?.role === 'DOCTOR';
+  const isAdmin = user?.role === 'ADMIN';
+
   useEffect(() => {
     fetchPatients();
-  }, [page, rowsPerPage, search]);
+  }, [page, rowsPerPage, search, showArchived]);
 
   const fetchPatients = async () => {
     try {
@@ -75,7 +93,7 @@ export default function PatientsPage() {
           page: page + 1,
           limit: rowsPerPage,
           search,
-          archived: false,
+          archived: showArchived,
         },
       });
       setPatients(response.data.patients);
@@ -119,30 +137,179 @@ export default function PatientsPage() {
     setDeleteDialog({ open: false, patientId: null, patientName: '' });
   };
 
+  const handleRestoreClick = (patientId: string, patientName: string) => {
+    setRestoreDialog({ open: true, patientId, patientName });
+  };
+
+  const handleRestoreConfirm = async () => {
+    if (!restoreDialog.patientId) return;
+
+    try {
+      setError('');
+      setSuccess('');
+      await api.post(`/patients/${restoreDialog.patientId}/restore`);
+      setSuccess('Pacjent został przywrócony');
+      setRestoreDialog({ open: false, patientId: null, patientName: '' });
+      fetchPatients();
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Błąd podczas przywracania pacjenta');
+    }
+  };
+
+  const handleRestoreCancel = () => {
+    setRestoreDialog({ open: false, patientId: null, patientName: '' });
+  };
+
+  const handlePermanentDeleteClick = (patientId: string, patientName: string) => {
+    setPermanentDeleteDialog({ open: true, patientId, patientName });
+  };
+
+  const handlePermanentDeleteConfirm = async () => {
+    if (!permanentDeleteDialog.patientId) return;
+
+    try {
+      setError('');
+      setSuccess('');
+      await api.delete(`/patients/${permanentDeleteDialog.patientId}/permanent`);
+      setSuccess('Pacjent i wszystkie dane zostały trwale usunięte zgodnie z RODO');
+      setPermanentDeleteDialog({ open: false, patientId: null, patientName: '' });
+      fetchPatients();
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Błąd podczas trwałego usuwania pacjenta');
+    }
+  };
+
+  const handlePermanentDeleteCancel = () => {
+    setPermanentDeleteDialog({ open: false, patientId: null, patientName: '' });
+  };
+
+  const handleExport = async () => {
+    try {
+      setExporting(true);
+      setError('');
+      
+      const response = await api.get('/export/patients/zip', {
+        responseType: 'blob',
+      });
+
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+      link.setAttribute('download', `eksport-pacjentow-${timestamp}.zip`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      setSuccess('Eksport zakończony pomyślnie');
+      setTimeout(() => setSuccess(''), 5000);
+    } catch (err: any) {
+      console.error('Błąd eksportu:', err);
+      setError(err.response?.data?.error || 'Błąd podczas eksportu danych');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
 
   return (
-    <Container maxWidth="xl">
-      <Box sx={{ mb: 3 }}>
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 2, gap: 2 }}>
-          <Box>
-            <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+    <Container maxWidth="xl" sx={{ px: { xs: 1, sm: 2, md: 3 } }}>
+      <Box sx={{ mb: { xs: 2, sm: 3 } }}>
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: { xs: 'column', sm: 'row' }, 
+          justifyContent: 'space-between', 
+          alignItems: { xs: 'flex-start', sm: 'center' }, 
+          mb: { xs: 1.5, sm: 2 }, 
+          gap: { xs: 1.5, sm: 2 },
+        }}>
+          <Box sx={{ width: { xs: '100%', sm: 'auto' } }}>
+            <Typography 
+              variant="h4" 
+              component="h1" 
+              sx={{ 
+                fontWeight: 'bold', 
+                mb: 0.5,
+                fontSize: { xs: '1.5rem', sm: '2rem' },
+              }}
+            >
               Pacjenci
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography 
+              variant="body2" 
+              color="text.secondary"
+              sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+            >
               Zarządzaj danymi pacjentów i ich konsultacjami
             </Typography>
           </Box>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={() => navigate('/patients/new')}
-            sx={{ textTransform: 'none', fontWeight: 600 }}
-          >
-            NOWY PACJENT
-          </Button>
+          <Box sx={{ 
+            display: 'flex', 
+            gap: { xs: 1, sm: 2 }, 
+            flexWrap: 'wrap',
+            width: { xs: '100%', sm: 'auto' },
+            '& > *': {
+              flex: { xs: '1 1 auto', sm: '0 0 auto' },
+              minWidth: { xs: 'auto', sm: '120px' },
+            },
+          }}>
+            <Button
+              variant={showArchived ? 'outlined' : 'contained'}
+              startIcon={<Archive />}
+              onClick={() => {
+                setShowArchived(!showArchived);
+                setPage(0);
+              }}
+              sx={{ 
+                textTransform: 'none', 
+                fontWeight: 600,
+                fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                px: { xs: 1.5, sm: 2 },
+              }}
+              size={isMobile ? 'small' : 'medium'}
+            >
+              {showArchived ? 'Aktywni' : 'Zarchiwizowani'}
+            </Button>
+            {canExport && !showArchived && (
+              <Button
+                variant="outlined"
+                startIcon={exporting ? <CircularProgress size={20} /> : <Download />}
+                onClick={handleExport}
+                disabled={exporting}
+                sx={{ 
+                  textTransform: 'none', 
+                  fontWeight: 600,
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                  px: { xs: 1.5, sm: 2 },
+                }}
+                size={isMobile ? 'small' : 'medium'}
+              >
+                {exporting ? (isMobile ? 'Eksport...' : 'Eksportowanie...') : (isMobile ? 'Eksport' : 'Eksportuj dane')}
+              </Button>
+            )}
+            {!showArchived && (
+              <Button
+                variant="contained"
+                startIcon={<Add />}
+                onClick={() => navigate('/patients/new')}
+                sx={{ 
+                  textTransform: 'none', 
+                  fontWeight: 600,
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                  px: { xs: 1.5, sm: 2 },
+                }}
+                size={isMobile ? 'small' : 'medium'}
+                fullWidth={isMobile}
+              >
+                {isMobile ? 'NOWY' : 'NOWY PACJENT'}
+              </Button>
+            )}
+          </Box>
         </Box>
 
         {error && (
@@ -157,19 +324,20 @@ export default function PatientsPage() {
           </Alert>
         )}
 
-        <Paper sx={{ p: 2, mb: 2 }}>
+        <Paper sx={{ p: { xs: 1.5, sm: 2 }, mb: { xs: 1.5, sm: 2 } }}>
           <TextField
             fullWidth
-            placeholder="Szukaj (imię, nazwisko, telefon, email)..."
+            placeholder={isMobile ? "Szukaj..." : "Szukaj (imię, nazwisko, telefon, email)..."}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
               setPage(0);
             }}
+            size={isMobile ? 'small' : 'medium'}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <Search />
+                  <Search fontSize={isMobile ? 'small' : 'medium'} />
                 </InputAdornment>
               ),
             }}
@@ -233,19 +401,54 @@ export default function PatientsPage() {
                           >
                             <Visibility />
                           </IconButton>
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteClick(
-                                patient.id,
-                                `${patient.firstName} ${patient.lastName}`
-                              );
-                            }}
-                          >
-                            <Delete />
-                          </IconButton>
+                          {showArchived ? (
+                            <>
+                              <IconButton
+                                size="small"
+                                color="success"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRestoreClick(
+                                    patient.id,
+                                    `${patient.firstName} ${patient.lastName}`
+                                  );
+                                }}
+                                title="Przywróć pacjenta"
+                              >
+                                <Restore />
+                              </IconButton>
+                              {isAdmin && (
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handlePermanentDeleteClick(
+                                      patient.id,
+                                      `${patient.firstName} ${patient.lastName}`
+                                    );
+                                  }}
+                                  title="Trwale usuń (RODO)"
+                                >
+                                  <DeleteForever />
+                                </IconButton>
+                              )}
+                            </>
+                          ) : (
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteClick(
+                                  patient.id,
+                                  `${patient.firstName} ${patient.lastName}`
+                                );
+                              }}
+                            >
+                              <Delete />
+                            </IconButton>
+                          )}
                         </Box>
                       </Box>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -275,16 +478,55 @@ export default function PatientsPage() {
             )}
           </Grid>
         ) : (
-          <TableContainer component={Paper}>
-            <Table>
+          <TableContainer 
+            component={Paper}
+            sx={{
+              overflowX: 'auto',
+              WebkitOverflowScrolling: 'touch',
+            }}
+          >
+            <Table sx={{ minWidth: 650 }}>
               <TableHead>
                 <TableRow>
-                  <TableCell>Imię i nazwisko</TableCell>
-                  <TableCell>Wiek</TableCell>
-                  <TableCell>Płeć</TableCell>
-                  <TableCell>Telefon</TableCell>
-                  <TableCell>Email</TableCell>
-                  <TableCell align="right">Akcje</TableCell>
+                  <TableCell sx={{ 
+                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                    fontWeight: 600,
+                    whiteSpace: 'nowrap',
+                  }}>
+                    Imię i nazwisko
+                  </TableCell>
+                  <TableCell sx={{ 
+                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                    whiteSpace: 'nowrap',
+                  }}>
+                    Wiek
+                  </TableCell>
+                  <TableCell sx={{ 
+                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                    whiteSpace: 'nowrap',
+                  }}>
+                    Płeć
+                  </TableCell>
+                  <TableCell sx={{ 
+                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                    whiteSpace: 'nowrap',
+                    display: { xs: 'none', md: 'table-cell' },
+                  }}>
+                    Telefon
+                  </TableCell>
+                  <TableCell sx={{ 
+                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                    whiteSpace: 'nowrap',
+                    display: { xs: 'none', lg: 'table-cell' },
+                  }}>
+                    Email
+                  </TableCell>
+                  <TableCell align="right" sx={{ 
+                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                    whiteSpace: 'nowrap',
+                  }}>
+                    Akcje
+                  </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -319,18 +561,41 @@ export default function PatientsPage() {
                           </Typography>
                         </Box>
                       </TableCell>
-                      <TableCell>{patient.age || '-'}</TableCell>
-                      <TableCell>
+                      <TableCell sx={{ 
+                        fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                      }}>
+                        {patient.age || '-'}
+                      </TableCell>
+                      <TableCell sx={{ 
+                        fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                      }}>
                         {patient.gender && (
                           <Chip
-                            label={patient.gender === 'MALE' ? 'Mężczyzna' : patient.gender === 'FEMALE' ? 'Kobieta' : '-'}
+                            label={patient.gender === 'MALE' ? 'M' : patient.gender === 'FEMALE' ? 'K' : '-'}
                             size="small"
                             color={patient.gender === 'MALE' ? 'primary' : 'secondary'}
+                            sx={{ 
+                              fontSize: { xs: '0.65rem', sm: '0.75rem' },
+                              height: { xs: 20, sm: 24 },
+                            }}
                           />
                         )}
                       </TableCell>
-                      <TableCell>{patient.phone || '-'}</TableCell>
-                      <TableCell>{patient.email || '-'}</TableCell>
+                      <TableCell sx={{ 
+                        fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                        display: { xs: 'none', md: 'table-cell' },
+                      }}>
+                        {patient.phone || '-'}
+                      </TableCell>
+                      <TableCell sx={{ 
+                        fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                        display: { xs: 'none', lg: 'table-cell' },
+                        maxWidth: { lg: 200 },
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}>
+                        {patient.email || '-'}
+                      </TableCell>
                       <TableCell align="right">
                         <IconButton
                           size="small"
@@ -341,19 +606,54 @@ export default function PatientsPage() {
                         >
                           <Visibility />
                         </IconButton>
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteClick(
-                              patient.id,
-                              `${patient.firstName} ${patient.lastName}`
-                            );
-                          }}
-                        >
-                          <Delete />
-                        </IconButton>
+                        {showArchived ? (
+                          <>
+                            <IconButton
+                              size="small"
+                              color="success"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRestoreClick(
+                                  patient.id,
+                                  `${patient.firstName} ${patient.lastName}`
+                                );
+                              }}
+                              title="Przywróć pacjenta"
+                            >
+                              <Restore />
+                            </IconButton>
+                            {isAdmin && (
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handlePermanentDeleteClick(
+                                    patient.id,
+                                    `${patient.firstName} ${patient.lastName}`
+                                  );
+                                }}
+                                title="Trwale usuń (RODO)"
+                              >
+                                <DeleteForever />
+                              </IconButton>
+                            )}
+                          </>
+                        ) : (
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteClick(
+                                patient.id,
+                                `${patient.firstName} ${patient.lastName}`
+                              );
+                            }}
+                          >
+                            <Delete />
+                          </IconButton>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))
@@ -368,25 +668,161 @@ export default function PatientsPage() {
               rowsPerPage={rowsPerPage}
               onRowsPerPageChange={handleChangeRowsPerPage}
               rowsPerPageOptions={[10, 25, 50]}
-              labelRowsPerPage="Wierszy na stronę:"
+              labelRowsPerPage={isMobile ? "Na stronie:" : "Wierszy na stronę:"}
+              sx={{
+                '& .MuiTablePagination-toolbar': {
+                  flexWrap: 'wrap',
+                  gap: 1,
+                },
+                '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                },
+              }}
             />
           </TableContainer>
         )}
 
-        <Dialog open={deleteDialog.open} onClose={handleDeleteCancel}>
-          <DialogTitle>Potwierdzenie usunięcia</DialogTitle>
+        <Dialog 
+          open={deleteDialog.open} 
+          onClose={handleDeleteCancel}
+          fullWidth
+          maxWidth="sm"
+          PaperProps={{
+            sx: {
+              m: { xs: 2, sm: 3 },
+              width: { xs: 'calc(100% - 32px)', sm: 'auto' },
+            },
+          }}
+        >
+          <DialogTitle sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+            Potwierdzenie usunięcia
+          </DialogTitle>
           <DialogContent>
-            <DialogContentText>
+            <DialogContentText sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
               Czy na pewno chcesz zarchiwizować pacjenta <strong>{deleteDialog.patientName}</strong>?
-              <Typography variant="body2" color="warning.main" sx={{ mt: 2, p: 2, bgcolor: 'warning.50', borderRadius: 1 }}>
+              <Typography 
+                variant="body2" 
+                color="warning.main" 
+                sx={{ 
+                  mt: 2, 
+                  p: { xs: 1.5, sm: 2 }, 
+                  bgcolor: 'warning.50', 
+                  borderRadius: 1,
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                }}
+              >
                 ⚠️ Uwaga: Pacjent zostanie zarchiwizowany (soft delete). Wszystkie powiązane dane pozostaną w systemie.
               </Typography>
             </DialogContentText>
           </DialogContent>
-          <DialogActions>
-            <Button onClick={handleDeleteCancel}>Anuluj</Button>
-            <Button onClick={handleDeleteConfirm} color="error" variant="contained">
+          <DialogActions sx={{ px: { xs: 2, sm: 3 }, pb: { xs: 2, sm: 3 } }}>
+            <Button 
+              onClick={handleDeleteCancel}
+              size={isMobile ? 'small' : 'medium'}
+            >
+              Anuluj
+            </Button>
+            <Button 
+              onClick={handleDeleteConfirm} 
+              color="error" 
+              variant="contained"
+              size={isMobile ? 'small' : 'medium'}
+            >
               Zarchiwizuj
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        <Dialog 
+          open={restoreDialog.open} 
+          onClose={handleRestoreCancel}
+          fullWidth
+          maxWidth="sm"
+          PaperProps={{
+            sx: {
+              m: { xs: 2, sm: 3 },
+              width: { xs: 'calc(100% - 32px)', sm: 'auto' },
+            },
+          }}
+        >
+          <DialogTitle sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+            Przywróć pacjenta
+          </DialogTitle>
+          <DialogContent>
+            <DialogContentText sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+              Czy na pewno chcesz przywrócić pacjenta <strong>{restoreDialog.patientName}</strong>?
+              Pacjent zostanie przywrócony do aktywnej listy.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions sx={{ px: { xs: 2, sm: 3 }, pb: { xs: 2, sm: 3 } }}>
+            <Button 
+              onClick={handleRestoreCancel}
+              size={isMobile ? 'small' : 'medium'}
+            >
+              Anuluj
+            </Button>
+            <Button 
+              onClick={handleRestoreConfirm} 
+              color="success" 
+              variant="contained"
+              size={isMobile ? 'small' : 'medium'}
+            >
+              Przywróć
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        <Dialog 
+          open={permanentDeleteDialog.open} 
+          onClose={handlePermanentDeleteCancel}
+          fullWidth
+          maxWidth="sm"
+          PaperProps={{
+            sx: {
+              m: { xs: 2, sm: 3 },
+              width: { xs: 'calc(100% - 32px)', sm: 'auto' },
+            },
+          }}
+        >
+          <DialogTitle sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+            Trwałe usunięcie danych (RODO)
+          </DialogTitle>
+          <DialogContent>
+            <DialogContentText sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+              <strong>UWAGA: Ta operacja jest nieodwracalna!</strong>
+              <br /><br />
+              Czy na pewno chcesz trwale usunąć pacjenta <strong>{permanentDeleteDialog.patientName}</strong> i wszystkie powiązane dane?
+              <br /><br />
+              Zostaną usunięte:
+              <ul style={{ 
+                marginLeft: isMobile ? '16px' : '20px',
+                paddingLeft: isMobile ? '8px' : '12px',
+                fontSize: isMobile ? '0.875rem' : '1rem',
+              }}>
+                <li>Wszystkie konsultacje</li>
+                <li>Wszystkie wyniki badań</li>
+                <li>Wszystkie zdjęcia skóry głowy (również pliki)</li>
+                <li>Wszystkie plany opieki</li>
+                <li>Historia emaili</li>
+                <li>Wszystkie przypomnienia</li>
+              </ul>
+              Ta operacja jest zgodna z RODO i nie może być cofnięta.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions sx={{ px: { xs: 2, sm: 3 }, pb: { xs: 2, sm: 3 } }}>
+            <Button 
+              onClick={handlePermanentDeleteCancel}
+              size={isMobile ? 'small' : 'medium'}
+            >
+              Anuluj
+            </Button>
+            <Button 
+              onClick={handlePermanentDeleteConfirm} 
+              color="error" 
+              variant="contained"
+              size={isMobile ? 'small' : 'medium'}
+            >
+              Trwale usuń
             </Button>
           </DialogActions>
         </Dialog>

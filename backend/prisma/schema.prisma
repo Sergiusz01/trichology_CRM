@@ -69,6 +69,7 @@ model User {
   uploadedScalpPhotos  ScalpPhoto[]
   createdReminders     EmailReminder[]     @relation("EmailReminderCreator")
   sentEmails           EmailHistory[]     @relation("EmailHistorySender")
+  createdEmailTemplates EmailTemplate[]    @relation("EmailTemplateCreator")
 
   @@index([email])
 }
@@ -105,6 +106,7 @@ model Consultation {
   patientId       String
   doctorId        String
   consultationDate DateTime @default(now())
+  isArchived      Boolean  @default(false)
 
   // 1. WYPADANIE WŁOSÓW
   hairLossSeverity        String?  // normie, nasilone, nadmierne, okresowe, brak
@@ -234,6 +236,7 @@ model Consultation {
   @@index([patientId])
   @@index([doctorId])
   @@index([consultationDate])
+  @@index([isArchived])
 }
 
 model LabResult {
@@ -241,6 +244,7 @@ model LabResult {
   patientId     String
   consultationId String?
   date         DateTime  @default(now())
+  isArchived    Boolean   @default(false)
 
   // Morphology
   hgb          Float?
@@ -409,6 +413,7 @@ model LabResult {
   @@index([patientId])
   @@index([consultationId])
   @@index([date])
+  @@index([isArchived])
 }
 
 model ScalpPhoto {
@@ -456,6 +461,7 @@ model CarePlan {
   totalDurationWeeks Int
   notes           String?
   isActive        Boolean  @default(true)
+  isArchived      Boolean  @default(false)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -470,6 +476,7 @@ model CarePlan {
   @@index([patientId])
   @@index([consultationId])
   @@index([isActive])
+  @@index([isArchived])
 }
 
 model CarePlanWeek {
@@ -536,5 +543,31 @@ model EmailHistory {
   @@index([sentByUserId])
   @@index([sentAt])
   @@index([status])
+}
+
+enum EmailTemplateType {
+  CONSULTATION
+  CARE_PLAN
+  LAB_RESULT
+  CUSTOM
+}
+
+model EmailTemplate {
+  id          String            @id @default(cuid())
+  name        String            // Nazwa szablonu (np. "Konsultacja - standardowy")
+  type        EmailTemplateType // Typ szablonu
+  subject     String            // Temat emaila (może zawierać zmienne jak {{patientName}})
+  htmlBody    String            // Treść HTML (może zawierać zmienne)
+  textBody    String?           // Treść tekstowa (opcjonalna)
+  isDefault   Boolean           @default(false) // Czy to domyślny szablon dla danego typu
+  isActive    Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  createdByUserId String
+  createdBy   User              @relation("EmailTemplateCreator", fields: [createdByUserId], references: [id])
+
+  @@index([type])
+  @@index([isDefault])
+  @@index([isActive])
 }
 

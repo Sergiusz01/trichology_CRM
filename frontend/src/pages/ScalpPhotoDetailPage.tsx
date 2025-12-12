@@ -25,7 +25,6 @@ import {
   Save,
   Cancel,
   Delete,
-  Add,
 } from '@mui/icons-material';
 import { api } from '../services/api';
 
@@ -91,6 +90,7 @@ export default function ScalpPhotoDetailPage() {
     }
   };
 
+
   const handleImageLoad = () => {
     if (imageRef.current && canvasRef.current) {
       const img = imageRef.current;
@@ -99,10 +99,14 @@ export default function ScalpPhotoDetailPage() {
       
       if (!ctx) return;
 
+      // Use natural dimensions (browser handles EXIF orientation for img element)
+      const imgWidth = img.naturalWidth;
+      const imgHeight = img.naturalHeight;
+
       // Calculate scale to fit image in container
       const containerWidth = 800; // Max width
       const containerHeight = 600; // Max height
-      const imgAspect = img.naturalWidth / img.naturalHeight;
+      const imgAspect = imgWidth / imgHeight;
       const containerAspect = containerWidth / containerHeight;
 
       let drawWidth, drawHeight;
@@ -116,7 +120,7 @@ export default function ScalpPhotoDetailPage() {
 
       canvas.width = drawWidth;
       canvas.height = drawHeight;
-      setScale(drawWidth / img.naturalWidth);
+      setScale(drawWidth / imgWidth);
       
       drawImageAndAnnotations();
     }
@@ -134,7 +138,7 @@ export default function ScalpPhotoDetailPage() {
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Draw image
+    // Draw image (browser handles EXIF orientation for img element, so we use it as-is)
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
     // Draw annotations
@@ -216,7 +220,9 @@ export default function ScalpPhotoDetailPage() {
   };
 
   useEffect(() => {
-    drawImageAndAnnotations();
+    if (imageRef.current && imageRef.current.complete && canvasRef.current) {
+      drawImageAndAnnotations();
+    }
   }, [annotations, currentAnnotation, scale, drawing, startPos, selectedShapeType]);
 
   const handleCanvasMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -376,10 +382,23 @@ export default function ScalpPhotoDetailPage() {
             <Box sx={{ position: 'relative', display: 'inline-block', width: '100%' }}>
               <img
                 ref={imageRef}
-                src={`http://localhost:3001${photo.url}`}
-                alt={photo.originalFilename}
-                onLoad={handleImageLoad}
-                style={{ maxWidth: '100%', height: 'auto', display: 'none' }}
+                src={`${(import.meta as any).env?.VITE_API_URL || 'http://localhost:3001'}${photo.url || `/uploads/${photo.filePath?.split(/[/\\]/).pop()}`}`}
+                alt={photo.originalFilename || 'Zdjęcie skóry głowy'}
+                onLoad={() => {
+                  console.log('Obraz załadowany:', photo.url);
+                  handleImageLoad();
+                }}
+                onError={(e) => {
+                  const img = e.target as HTMLImageElement;
+                  console.error('Błąd ładowania obrazu:', {
+                    url: photo.url,
+                    filePath: photo.filePath,
+                    fullUrl: img.src,
+                    photo: photo
+                  });
+                  setError(`Nie można załadować obrazu: ${photo.url || photo.filePath}`);
+                }}
+                style={{ maxWidth: '100%', height: 'auto', display: 'none', imageOrientation: 'from-image' }}
               />
               <canvas
                 ref={canvasRef}

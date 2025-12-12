@@ -3,8 +3,8 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// Funkcje pomocnicze
-const formatDate = (date: Date): string => {
+// Export helper functions for use in other modules
+export const formatDate = (date: Date): string => {
   if (!date) return '-';
   return new Date(date).toLocaleDateString('pl-PL', {
     day: '2-digit',
@@ -13,7 +13,7 @@ const formatDate = (date: Date): string => {
   });
 };
 
-const formatDateTime = (date: Date): string => {
+export const formatDateTime = (date: Date): string => {
   return new Date(date).toLocaleString('pl-PL', {
     day: '2-digit',
     month: '2-digit',
@@ -22,6 +22,8 @@ const formatDateTime = (date: Date): string => {
     minute: '2-digit',
   });
 };
+
+// Helper functions are now exported above
 
 // Pomocnik do formatowania pól JSON (tablice)
 const formatJsonField = (value: any): string => {
@@ -515,4 +517,5 @@ export const generateCarePlanPDF = async (carePlan: any): Promise<Buffer> => {
   }
 };
 
-
+// Re-export functions from pdfServiceAdditional
+export { generateLabResultPDF, generatePatientInfoPDF } from './pdfServiceAdditional';

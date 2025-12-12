@@ -23,6 +23,8 @@ import {
   Logout,
   Menu,
   Settings,
+  AccountCircle,
+  Email as EmailIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -31,6 +33,7 @@ const drawerWidth = 280;
 const menuItems = [
   { text: 'Pacjenci', icon: <People />, path: '/patients' },
   { text: 'Historia emaili', icon: <Email />, path: '/email/history' },
+  { text: 'Szablony emaili', icon: <EmailIcon />, path: '/email/templates' },
   { text: 'Test email', icon: <Settings />, path: '/email/test' },
 ];
 
@@ -149,8 +152,28 @@ export default function Layout() {
 
       <Divider />
 
-      {/* Logout */}
+      {/* Profile and Logout */}
       <Box sx={{ p: 1 }}>
+        <ListItemButton
+          onClick={() => navigate('/profile')}
+          sx={{
+            mx: 1,
+            mb: 1,
+            borderRadius: 2,
+            '&:hover': {
+              bgcolor: 'action.hover',
+            },
+          }}
+        >
+          <ListItemIcon sx={{ minWidth: 40 }}>
+            <AccountCircle />
+          </ListItemIcon>
+          <ListItemText
+            primary="Mój profil"
+            primaryTypographyProps={{ fontSize: '0.9rem' }}
+          />
+        </ListItemButton>
+        
         <ListItemButton
           onClick={logout}
           sx={{
@@ -216,7 +239,8 @@ export default function Layout() {
             display: { xs: 'block', md: 'none' },
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
-              width: drawerWidth,
+              width: { xs: '85vw', sm: drawerWidth },
+              maxWidth: drawerWidth,
             },
           }}
         >
@@ -242,10 +266,12 @@ export default function Layout() {
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
-          width: { md: `calc(100% - ${drawerWidth}px)` },
+          p: { xs: 1.5, sm: 2, md: 3 },
+          width: { xs: '100%', md: `calc(100% - ${drawerWidth}px)` },
           mt: { xs: 7, md: 0 },
           bgcolor: 'background.default',
+          minWidth: 0, // MOBILE FIX: Prevent flex item from overflowing
+          maxWidth: '100%', // MOBILE FIX: Ensure content doesn't exceed viewport
         }}
       >
         <Outlet />

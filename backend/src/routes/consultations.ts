@@ -1,7 +1,7 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
-import { authenticate, AuthRequest } from '../middleware/auth';
+import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 import { generateConsultationPDF } from '../services/pdfService';
 
 const router = express.Router();
@@ -117,11 +117,16 @@ const consultationSchema = z.object({
 
 // Get consultations for a patient
 router.get('/patient/:patientId', authenticate, async (req: AuthRequest, res, next) => {
+  const { archived = 'false' } = req.query;
+  const isArchived = archived === 'true';
   try {
     const { patientId } = req.params;
 
     const consultations = await prisma.consultation.findMany({
-      where: { patientId },
+      where: { 
+        patientId,
+        isArchived,
+      },
       orderBy: { consultationDate: 'desc' },
       include: {
         doctor: {
@@ -494,16 +499,82 @@ router.put('/:id', authenticate, async (req: AuthRequest, res, next) => {
   }
 });
 
-// Delete consultation
+// Archive consultation (soft delete)
 router.delete('/:id', authenticate, async (req: AuthRequest, res, next) => {
   try {
     const { id } = req.params;
 
+    const consultation = await prisma.consultation.update({
+      where: { id },
+      data: { isArchived: true },
+    });
+
+    res.json({ 
+      consultation,
+      message: 'Konsultacja została zarchiwizowana'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Restore archived consultation
+router.post('/:id/restore', authenticate, async (req: AuthRequest, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const consultation = await prisma.consultation.findUnique({
+      where: { id },
+    });
+
+    if (!consultation) {
+      return res.status(404).json({ error: 'Konsultacja nie znaleziona' });
+    }
+
+    if (!consultation.isArchived) {
+      return res.status(400).json({ error: 'Konsultacja nie jest zarchiwizowana' });
+    }
+
+    const restoredConsultation = await prisma.consultation.update({
+      where: { id },
+      data: { isArchived: false },
+    });
+
+    res.json({ 
+      consultation: restoredConsultation, 
+      message: 'Konsultacja została przywrócona' 
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Permanently delete consultation (RODO/GDPR) - ADMIN only
+router.delete('/:id/permanent', authenticate, requireRole('ADMIN'), async (req: AuthRequest, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const consultation = await prisma.consultation.findUnique({
+      where: { id },
+    });
+
+    if (!consultation) {
+      return res.status(404).json({ error: 'Konsultacja nie znaleziona' });
+    }
+
+    // Prisma will cascade delete:
+    // - labResults (onDelete: SetNull - consultationId will be set to null)
+    // - scalpPhotos (onDelete: SetNull - consultationId will be set to null)
+    // - carePlans (onDelete: SetNull - consultationId will be set to null)
+    // - emailHistory (onDelete: SetNull - consultationId will be set to null)
     await prisma.consultation.delete({
       where: { id },
     });
 
-    res.json({ message: 'Konsultacja usunięta' });
+    res.json({ 
+      message: 'Konsultacja została trwale usunięta zgodnie z RODO',
+      deleted: true
+    });
   } catch (error) {
     next(error);
   }

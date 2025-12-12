@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Paper, Typography, Button, Card, CardContent } from '@mui/material';
+import { Box, Typography, Button, Card, CardContent } from '@mui/material';
 import { Add } from '@mui/icons-material';
 import { api } from '../services/api';
 
@@ -28,7 +28,11 @@ export default function CarePlansPage() {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
         <Typography variant="h4">Plany opieki</Typography>
-        <Button variant="contained" startIcon={<Add />}>
+        <Button 
+          variant="contained" 
+          startIcon={<Add />}
+          onClick={() => navigate(`/patients/${id}/care-plans/new`)}
+        >
           Nowy plan
         </Button>
       </Box>

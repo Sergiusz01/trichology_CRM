@@ -12,7 +12,6 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Checkbox,
   IconButton,
   List,
   ListItem,
@@ -39,7 +38,7 @@ export default function EmailComposePage() {
     attachCarePlanId: '',
   });
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
-  const [fileInputKey, setFileInputKey] = useState(0);
+  const [fileInputKey] = useState(0);
 
   useEffect(() => {
     if (id) {

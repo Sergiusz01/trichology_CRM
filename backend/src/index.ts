@@ -10,6 +10,9 @@ import labResultRoutes from './routes/labResults';
 import scalpPhotoRoutes from './routes/scalpPhotos';
 import carePlanRoutes from './routes/carePlans';
 import emailRoutes from './routes/email';
+import emailTemplateRoutes from './routes/emailTemplates';
+import userProfileRoutes from './routes/userProfile';
+import exportRoutes from './routes/export';
 import { errorHandler } from './middleware/errorHandler';
 import { startReminderWorker } from './services/reminderWorker';
 
@@ -30,7 +33,16 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Serve uploaded files (secure route - authentication required in routes)
-app.use('/uploads', express.static(path.join(__dirname, '../storage/uploads')));
+const uploadsPath = process.env.UPLOAD_DIR || path.join(__dirname, '../storage/uploads');
+app.use('/uploads', express.static(uploadsPath, {
+  setHeaders: (res, filePath) => {
+    // Set CORS headers for images
+    res.setHeader('Access-Control-Allow-Origin', FRONTEND_URL);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    // Cache images for 1 day
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+  }
+}));
 
 // Health check
 app.get('/health', (req, res) => {
@@ -45,6 +57,9 @@ app.use('/api/lab-results', labResultRoutes);
 app.use('/api/scalp-photos', scalpPhotoRoutes);
 app.use('/api/care-plans', carePlanRoutes);
 app.use('/api/email', emailRoutes);
+app.use('/api/email-templates', emailTemplateRoutes);
+app.use('/api/user-profile', userProfileRoutes);
+app.use('/api/export', exportRoutes);
 
 // Error handler
 app.use(errorHandler);
@@ -57,6 +72,24 @@ app.listen(PORT, () => {
 
 // Start reminder worker
 startReminderWorker();
+
+// Initialize default email templates on startup (if no templates exist)
+(async () => {
+  try {
+    const { initializeDefaultTemplates } = await import('./utils/initializeDefaultTemplates');
+    
+    // Get first admin user to use as creator
+    const admin = await prisma.user.findFirst({
+      where: { role: 'ADMIN' },
+    });
+
+    if (admin) {
+      await initializeDefaultTemplates(admin.id, prisma);
+    }
+  } catch (error) {
+    console.error('Błąd podczas inicjalizacji domyślnych szablonów:', error);
+  }
+})();
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {

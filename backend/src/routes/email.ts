@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { sendEmail } from '../services/emailService';
 import { generateConsultationPDF, generateCarePlanPDF } from '../services/pdfService';
+import { renderEmailTemplate, TemplateVariables } from '../utils/emailTemplateRenderer';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -65,21 +66,54 @@ router.post('/consultation/:id', authenticate, async (req: AuthRequest, res, nex
     }
 
     const pdfBuffer = await generateConsultationPDF(consultation);
-    const subject = `Konsultacja trychologiczna - ${consultation.patient.firstName} ${consultation.patient.lastName}`;
-    const message = `W załączeniu przesyłamy szczegóły konsultacji z dnia ${new Date(consultation.consultationDate).toLocaleDateString('pl-PL')}.`;
+    
+    // Try to get email template, fallback to default if not found
+    let template = await prisma.emailTemplate.findFirst({
+      where: {
+        type: 'CONSULTATION',
+        isDefault: true,
+        isActive: true,
+      },
+    });
+
+    // If no default template, use hardcoded fallback
+    const consultationDate = new Date(consultation.consultationDate).toLocaleDateString('pl-PL');
+    const variables: TemplateVariables = {
+      patientName: `${consultation.patient.firstName} ${consultation.patient.lastName}`,
+      patientFirstName: consultation.patient.firstName,
+      patientLastName: consultation.patient.lastName,
+      patientEmail: consultation.patient.email || '',
+      patientPhone: consultation.patient.phone || '',
+      doctorName: consultation.doctor.name,
+      consultationDate,
+    };
+
+    let subject: string;
+    let htmlBody: string;
+
+    if (template) {
+      subject = renderEmailTemplate(template.subject, variables);
+      htmlBody = renderEmailTemplate(template.htmlBody, variables);
+    } else {
+      // Fallback to default
+      subject = `Konsultacja trychologiczna - ${consultation.patient.firstName} ${consultation.patient.lastName}`;
+      htmlBody = `
+        <h2>Konsultacja trychologiczna</h2>
+        <p>Dzień dobry,</p>
+        <p>W załączeniu przesyłamy szczegóły konsultacji z dnia ${consultationDate}.</p>
+        <p>Pacjent: ${consultation.patient.firstName} ${consultation.patient.lastName}</p>
+        <p>Lekarz: ${consultation.doctor.name}</p>
+        <p>Pozdrawiamy,<br>Zespół kliniki</p>
+      `;
+    }
+
+    const message = `W załączeniu przesyłamy szczegóły konsultacji z dnia ${consultationDate}.`;
 
     try {
       await sendEmail({
         to: recipientEmail,
         subject,
-        html: `
-          <h2>Konsultacja trychologiczna</h2>
-          <p>Dzień dobry,</p>
-          <p>${message}</p>
-          <p>Pacjent: ${consultation.patient.firstName} ${consultation.patient.lastName}</p>
-          <p>Lekarz: ${consultation.doctor.name}</p>
-          <p>Pozdrawiamy,<br>Zespół kliniki</p>
-        `,
+        html: htmlBody,
         attachments: [
           {
             filename: `konsultacja-${id}.pdf`,
@@ -155,21 +189,53 @@ router.post('/care-plan/:id', authenticate, async (req: AuthRequest, res, next) 
     }
 
     const pdfBuffer = await generateCarePlanPDF(carePlan);
-    const subject = `Plan opieki trychologicznej - ${carePlan.patient.firstName} ${carePlan.patient.lastName}`;
+    
+    // Try to get email template, fallback to default if not found
+    let template = await prisma.emailTemplate.findFirst({
+      where: {
+        type: 'CARE_PLAN',
+        isDefault: true,
+        isActive: true,
+      },
+    });
+
+    const variables: TemplateVariables = {
+      patientName: `${carePlan.patient.firstName} ${carePlan.patient.lastName}`,
+      patientFirstName: carePlan.patient.firstName,
+      patientLastName: carePlan.patient.lastName,
+      patientEmail: carePlan.patient.email || '',
+      patientPhone: carePlan.patient.phone || '',
+      doctorName: carePlan.createdBy.name,
+      carePlanTitle: carePlan.title,
+      carePlanDuration: `${carePlan.totalDurationWeeks} tygodni`,
+    };
+
+    let subject: string;
+    let htmlBody: string;
+
+    if (template) {
+      subject = renderEmailTemplate(template.subject, variables);
+      htmlBody = renderEmailTemplate(template.htmlBody, variables);
+    } else {
+      // Fallback to default
+      subject = `Plan opieki trychologicznej - ${carePlan.patient.firstName} ${carePlan.patient.lastName}`;
+      htmlBody = `
+        <h2>Plan opieki trychologicznej</h2>
+        <p>Dzień dobry,</p>
+        <p>W załączeniu przesyłamy Twój indywidualny plan opieki trychologicznej: ${carePlan.title} (${carePlan.totalDurationWeeks} tygodni).</p>
+        <p>Pacjent: ${carePlan.patient.firstName} ${carePlan.patient.lastName}</p>
+        <p>Lekarz: ${carePlan.createdBy.name}</p>
+        <p>Pozdrawiamy,<br>Zespół kliniki</p>
+      `;
+    }
+
     const message = `W załączeniu przesyłamy Twój indywidualny plan opieki trychologicznej: ${carePlan.title} (${carePlan.totalDurationWeeks} tygodni).`;
 
     try {
       await sendEmail({
         to: recipientEmail,
         subject,
-        html: `
-          <h2>Plan opieki trychologicznej</h2>
-          <p>Dzień dobry,</p>
-          <p>${message}</p>
-          <p>Pacjent: ${carePlan.patient.firstName} ${carePlan.patient.lastName}</p>
-          <p>Lekarz: ${carePlan.createdBy.name}</p>
-          <p>Pozdrawiamy,<br>Zespół kliniki</p>
-        `,
+        html: htmlBody,
         attachments: [
           {
             filename: `plan-opieki-${id}.pdf`,
@@ -723,21 +789,57 @@ router.post('/lab-result/:id', authenticate, async (req: AuthRequest, res, next)
       labSummary += `\nUwagi: ${labResult.notes}`;
     }
 
-    const subject = `Wyniki badań laboratoryjnych - ${labResult.patient.firstName} ${labResult.patient.lastName}`;
-    const message = `W załączeniu przesyłamy wyniki badań laboratoryjnych z dnia ${new Date(labResult.date).toLocaleDateString('pl-PL')}.`;
+    // Try to get email template, fallback to default if not found
+    let template = await prisma.emailTemplate.findFirst({
+      where: {
+        type: 'LAB_RESULT',
+        isDefault: true,
+        isActive: true,
+      },
+    });
+
+    const labResultDate = new Date(labResult.date).toLocaleDateString('pl-PL');
+    const variables: TemplateVariables = {
+      patientName: `${labResult.patient.firstName} ${labResult.patient.lastName}`,
+      patientFirstName: labResult.patient.firstName,
+      patientLastName: labResult.patient.lastName,
+      patientEmail: labResult.patient.email || '',
+      patientPhone: labResult.patient.phone || '',
+      labResultDate,
+    };
+
+    let subject: string;
+    let htmlBody: string;
+
+    if (template) {
+      subject = renderEmailTemplate(template.subject, variables);
+      // Add lab summary to the template body
+      htmlBody = renderEmailTemplate(template.htmlBody, variables);
+      // Insert lab summary before closing tags
+      htmlBody = htmlBody.replace(
+        '</p>',
+        `</p><pre style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; font-family: monospace; white-space: pre-wrap;">${labSummary}</pre>`
+      );
+    } else {
+      // Fallback to default
+      subject = `Wyniki badań laboratoryjnych - ${labResult.patient.firstName} ${labResult.patient.lastName}`;
+      htmlBody = `
+        <h2>Wyniki badań laboratoryjnych</h2>
+        <p>Dzień dobry,</p>
+        <p>W załączeniu przesyłamy wyniki badań laboratoryjnych z dnia ${labResultDate}.</p>
+        <p>Pacjent: ${labResult.patient.firstName} ${labResult.patient.lastName}</p>
+        <pre style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; font-family: monospace; white-space: pre-wrap;">${labSummary}</pre>
+        <p>Pozdrawiamy,<br>Zespół kliniki</p>
+      `;
+    }
+
+    const message = `W załączeniu przesyłamy wyniki badań laboratoryjnych z dnia ${labResultDate}.`;
 
     try {
       await sendEmail({
         to: recipientEmail,
         subject,
-        html: `
-          <h2>Wyniki badań laboratoryjnych</h2>
-          <p>Dzień dobry,</p>
-          <p>${message}</p>
-          <p>Pacjent: ${labResult.patient.firstName} ${labResult.patient.lastName}</p>
-          <pre style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; font-family: monospace; white-space: pre-wrap;">${labSummary}</pre>
-          <p>Pozdrawiamy,<br>Zespół kliniki</p>
-        `,
+        html: htmlBody,
       });
 
       // Save to email history
@@ -828,8 +930,8 @@ router.post('/scalp-photo/:id', authenticate, async (req: AuthRequest, res, next
           {
             filename: scalpPhoto.originalFilename || `zdjecie-${id}${imageExtension}`,
             content: imageBuffer,
-            contentType: mimeType,
-          },
+            contentType: mimeType as string,
+          } as any,
         ],
       });
 
