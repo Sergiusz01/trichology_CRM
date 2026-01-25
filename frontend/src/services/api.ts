@@ -1,9 +1,12 @@
 import axios from 'axios';
 
-const API_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001';
+// Use relative path for production (Nginx proxy handles /api)
+// Use full URL only for local development
+const API_URL = (import.meta as any).env?.VITE_API_URL || 
+  (import.meta.env.MODE === 'development' ? 'http://localhost:3001' : '');
 
 export const api = axios.create({
-  baseURL: `${API_URL}/api`,
+  baseURL: API_URL ? `${API_URL}/api` : '/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -43,7 +46,8 @@ api.interceptors.response.use(
       try {
         const refreshToken = localStorage.getItem('refreshToken');
         if (refreshToken) {
-          const response = await axios.post(`${API_URL}/api/auth/refresh`, {
+          const refreshUrl = API_URL ? `${API_URL}/api/auth/refresh` : '/api/auth/refresh';
+          const response = await axios.post(refreshUrl, {
             refreshToken,
           });
 

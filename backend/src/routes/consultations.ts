@@ -114,7 +114,30 @@ const consultationSchema = z.object({
   ludwigStage: z.string().optional(),
   ludwigNotes: z.string().optional(),
 });
+// Get all consultations (for dashboard and reports)
+router.get('/', authenticate, async (req: AuthRequest, res, next) => {
+  try {
+    const { limit = '100' } = req.query;
+    const limitNum = parseInt(limit as string, 10);
 
+    const consultations = await prisma.consultation.findMany({
+      take: limitNum,
+      orderBy: { consultationDate: 'desc' },
+      include: {
+        patient: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
+        doctor: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+    });
+
+    res.json({ consultations });
+  } catch (error) {
+    next(error);
+  }
+});
 // Get consultations for a patient
 router.get('/patient/:patientId', authenticate, async (req: AuthRequest, res, next) => {
   const { archived = 'false' } = req.query;

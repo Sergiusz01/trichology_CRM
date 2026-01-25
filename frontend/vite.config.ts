@@ -2,28 +2,12 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
+// Minimal configuration to isolate the issue
 export default defineConfig({
-  plugins: [react({
-    jsxImportSource: '@emotion/react',
-    babel: {
-      plugins: ['@emotion/babel-plugin'],
-    },
-  })],
+  plugins: [react()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-    },
-  },
-  optimizeDeps: {
-    include: ['@emotion/react', '@emotion/styled', '@emotion/cache'],
-    esbuildOptions: {
-      jsx: 'automatic',
-    },
-  },
-  build: {
-    commonjsOptions: {
-      include: [/node_modules/],
-      transformMixedEsModules: true,
     },
   },
   server: {
@@ -40,5 +24,3 @@ export default defineConfig({
     },
   },
 });
-
-

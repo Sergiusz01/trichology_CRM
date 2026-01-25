@@ -8,8 +8,6 @@ import {
   Tabs,
   Tab,
   Grid,
-  Card,
-  CardContent,
   Chip,
   Dialog,
   DialogTitle,
@@ -20,30 +18,29 @@ import {
   Alert,
   Avatar,
   Container,
-  useMediaQuery,
-  useTheme,
   CircularProgress,
-  Divider,
   Stack,
+  alpha,
 } from '@mui/material';
 import {
   Add,
   Edit,
   Delete,
   Email,
-  History,
   Assignment,
   Science,
   PhotoCamera,
   LocalHospital,
-  Person,
   ArrowBack,
   Restore,
   DeleteForever,
   Archive,
+  Phone,
+  LocationOn,
+  Work,
+  CalendarToday,
 } from '@mui/icons-material';
 import { api } from '../services/api';
-import { useAuth } from '../contexts/AuthContext';
 
 interface Patient {
   id: string;
@@ -73,7 +70,7 @@ function TabPanel(props: TabPanelProps) {
       aria-labelledby={`patient-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ p: { xs: 1.5, sm: 2, md: 3 } }}>{children}</Box>}
+      {value === index && <Box sx={{ pt: 5, px: { xs: 2, md: 4 } }}>{children}</Box>}
     </div>
   );
 }
@@ -82,10 +79,6 @@ export default function PatientDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const { user } = useAuth();
-  const isAdmin = user?.role === 'ADMIN';
   const [patient, setPatient] = useState<Patient | null>(null);
   const [loading, setLoading] = useState(true);
   const [tabValue, setTabValue] = useState(0);
@@ -138,20 +131,17 @@ export default function PatientDetailPage() {
       const response = await api.get(`/patients/${id}`);
       setPatient(response.data.patient);
       setScalpPhotos(response.data.patient.scalpPhotos || []);
-      
-      // Fetch consultations
+
       const consultationsResponse = await api.get(`/consultations/patient/${id}`, {
         params: { archived: showArchived.consultations ? 'true' : 'false' },
       });
       setConsultations(consultationsResponse.data.consultations || []);
-      
-      // Fetch lab results
+
       const labResultsResponse = await api.get(`/lab-results/patient/${id}`, {
         params: { archived: showArchived.labResults ? 'true' : 'false' },
       });
       setLabResults(labResultsResponse.data.labResults || []);
-      
-      // Fetch care plans
+
       const carePlansResponse = await api.get(`/care-plans/patient/${id}`, {
         params: { archived: showArchived.carePlans ? 'true' : 'false' },
       });
@@ -335,582 +325,481 @@ export default function PatientDetailPage() {
 
   if (loading) {
     return (
-      <Container maxWidth="xl" sx={{ px: { xs: 1, sm: 2 } }}>
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-          <CircularProgress />
-        </Box>
-      </Container>
+      <Box sx={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '60vh'
+      }}>
+        <CircularProgress size={48} thickness={3} sx={{ color: '#1d1d1f' }} />
+      </Box>
     );
   }
 
   if (!patient) {
     return (
-      <Container maxWidth="xl" sx={{ px: { xs: 1, sm: 2 } }}>
+      <Container maxWidth="lg">
         <Alert severity="error">Pacjent nie znaleziony</Alert>
       </Container>
     );
   }
 
+  const stats = [
+    { label: 'Konsultacje', value: consultations.length, icon: Assignment, color: '#007AFF' },
+    { label: 'Wyniki badań', value: labResults.length, icon: Science, color: '#34C759' },
+    { label: 'Zdjęcia', value: scalpPhotos.length, icon: PhotoCamera, color: '#FF9500' },
+    { label: 'Plany opieki', value: carePlans.length, icon: LocalHospital, color: '#FF3B30' },
+  ];
+
   return (
-    <Container maxWidth="xl" sx={{ px: { xs: 1, sm: 2, md: 3 } }}>
-      <Box sx={{ mb: { xs: 2, sm: 3 } }}>
+    <Box sx={{
+      bgcolor: '#f5f5f7',
+      minHeight: '100vh',
+      pb: 6,
+    }}>
+      <Container maxWidth="lg" sx={{ pt: 3 }}>
         {/* Back Button */}
         <Button
           startIcon={<ArrowBack />}
           onClick={() => navigate('/patients')}
-          sx={{ mb: 2 }}
-          size="small"
+          sx={{
+            mb: 3,
+            color: '#1d1d1f',
+            '&:hover': {
+              bgcolor: alpha('#000', 0.05),
+            },
+          }}
         >
-          {isMobile ? 'Powrót' : 'Powrót do listy'}
+          Powrót do listy pacjentów
         </Button>
 
-        {/* Header Section */}
-        <Box sx={{ 
-          display: 'flex', 
-          flexDirection: { xs: 'column', sm: 'row' },
-          justifyContent: 'space-between', 
-          alignItems: { xs: 'flex-start', sm: 'center' },
-          mb: { xs: 2, sm: 3 },
-          gap: 2,
-        }}>
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: { xs: 1.5, sm: 2 }, 
-            flex: 1, 
-            minWidth: 0,
-            width: { xs: '100%', sm: 'auto' },
-          }}>
-            <Avatar 
-              sx={{ 
-                bgcolor: 'primary.main', 
-                width: { xs: 40, sm: 56, md: 64 }, 
-                height: { xs: 40, sm: 56, md: 64 },
-                fontSize: { xs: '1rem', sm: '1.25rem', md: '1.5rem' },
-                fontWeight: 'bold',
-                flexShrink: 0,
-              }}
-            >
-              {getInitials(patient.firstName, patient.lastName)}
-            </Avatar>
-            <Box sx={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
-              <Typography 
-                variant={isMobile ? 'h6' : 'h4'} 
-                sx={{ 
-                  fontWeight: 'bold', 
-                  mb: 0.5,
-                  fontSize: { xs: '1.25rem', sm: '1.5rem', md: '2.125rem' },
-                }}
-                noWrap={false}
-              >
-                {patient.firstName} {patient.lastName}
-              </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, alignItems: 'center' }}>
-                {patient.age && (
-                  <Typography 
-                    variant="body2" 
-                    color="text.secondary"
-                    sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
-                  >
-                    {patient.age} lat
-                  </Typography>
-                )}
-                {patient.gender && (
-                  <>
-                    {patient.age && (
-                      <Typography 
-                        variant="body2" 
-                        color="text.secondary"
-                        sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
-                      >
-                        {' '}•{' '}
-                      </Typography>
-                    )}
-                    <Chip
-                      label={patient.gender === 'MALE' ? 'Mężczyzna' : patient.gender === 'FEMALE' ? 'Kobieta' : 'Inna'}
-                      size="small"
-                      color={patient.gender === 'MALE' ? 'primary' : 'secondary'}
-                      sx={{ height: { xs: 20, sm: 24 }, fontSize: { xs: '0.65rem', sm: '0.75rem' } }}
-                    />
-                  </>
-                )}
-              </Box>
-            </Box>
-          </Box>
-
-          {/* Action Buttons - Mobile: Column, Desktop: Row */}
-          <Stack 
-            direction={{ xs: 'column', sm: 'row' }} 
-            spacing={1}
-            sx={{ 
-              width: { xs: '100%', sm: 'auto' },
-              '& > *': { 
-                width: { xs: '100%', sm: 'auto' },
-                minWidth: { xs: 'auto', sm: '100px' },
-              },
-            }}
-          >
-            <Button
-              variant="outlined"
-              startIcon={<Edit />}
-              onClick={() => navigate(`/patients/${id}/edit`)}
-              size="small"
-              fullWidth={isMobile}
-            >
-              Edytuj
-            </Button>
-            {patient.email && (
-              <>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  startIcon={<Email />}
-                  onClick={() => navigate(`/patients/${id}/email`)}
-                  size="small"
-                  fullWidth={isMobile}
-                >
-                  {isMobile ? 'Email' : 'Wyślij email'}
-                </Button>
-                <Button
-                  variant="outlined"
-                  startIcon={<History />}
-                  onClick={() => navigate(`/patients/${id}/email-history`)}
-                  size="small"
-                  fullWidth={isMobile}
-                >
-                  {isMobile ? 'Historia' : 'Historia emaili'}
-                </Button>
-              </>
-            )}
-            <Button
-              variant="contained"
-              startIcon={<Add />}
-              onClick={() => navigate(`/patients/${id}/consultations/new`)}
-              size="small"
-              fullWidth={isMobile}
-            >
-              {isMobile ? 'Konsultacja' : 'Nowa konsultacja'}
-            </Button>
-            <Button
-              variant="outlined"
-              color="error"
-              startIcon={<Delete />}
-              onClick={() => handleDeleteClick('patient', id!, `${patient.firstName} ${patient.lastName}`)}
-              size="small"
-              fullWidth={isMobile}
-            >
-              Usuń
-            </Button>
-          </Stack>
-        </Box>
-
+        {/* Alerts */}
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+          <Alert severity="error" sx={{ mb: 4, borderRadius: 2 }} onClose={() => setError('')}>
             {error}
           </Alert>
         )}
 
         {success && (
-          <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>
+          <Alert severity="success" sx={{ mb: 4, borderRadius: 2 }} onClose={() => setSuccess('')}>
             {success}
           </Alert>
         )}
 
-        <Paper sx={{ overflow: 'hidden', width: '100%' }}>
-          <Box sx={{ 
-            borderBottom: 1, 
-            borderColor: 'divider', 
-            overflowX: 'auto',
-            WebkitOverflowScrolling: 'touch',
-          }}>
-            <Tabs 
-              value={tabValue} 
-              onChange={(_, newValue) => setTabValue(newValue)}
-              variant="scrollable"
-              scrollButtons="auto"
-              allowScrollButtonsMobile
+        {/* Header Card */}
+        <Paper
+          elevation={0}
+          sx={{
+            p: 4,
+            mb: 3,
+            borderRadius: 3,
+            bgcolor: 'white',
+            border: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: { xs: 2, md: 4 }, mb: 4 }}>
+            <Avatar
               sx={{
-                minHeight: { xs: 48, sm: 64 },
-                '& .MuiTab-root': {
-                  minHeight: { xs: 48, sm: 64 },
-                  fontSize: { xs: '0.7rem', sm: '0.875rem' },
-                  textTransform: 'none',
-                  fontWeight: 500,
-                  px: { xs: 1, sm: 2 },
-                  minWidth: { xs: 72, sm: 100 },
-                },
-                '& .MuiTabs-scrollButtons': {
-                  width: { xs: 32, sm: 40 },
-                },
-                '& .MuiTabs-indicator': {
-                  height: 3,
+                bgcolor: '#007AFF',
+                width: { xs: 64, md: 96 },
+                height: { xs: 64, md: 96 },
+                fontSize: { xs: '1.5rem', md: '2.5rem' },
+                fontWeight: 600,
+              }}
+            >
+              {getInitials(patient.firstName, patient.lastName)}
+            </Avatar>
+            <Box sx={{ flex: 1 }}>
+              <Typography
+                variant="h3"
+                sx={{
+                  fontWeight: 700,
+                  color: '#1d1d1f',
+                  mb: 2,
+                  fontSize: { xs: '1.75rem', md: '2.5rem' },
+                  lineHeight: 1.2,
+                }}
+              >
+                {patient.firstName} {patient.lastName}
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+                {patient.age && (
+                  <Chip
+                    icon={<CalendarToday sx={{ fontSize: 16 }} />}
+                    label={`${patient.age} lat`}
+                    sx={{
+                      bgcolor: alpha('#007AFF', 0.1),
+                      color: '#007AFF',
+                      border: 'none',
+                      fontWeight: 500,
+                    }}
+                  />
+                )}
+                {patient.gender && (
+                  <Chip
+                    label={patient.gender === 'MALE' ? 'Mężczyzna' : patient.gender === 'FEMALE' ? 'Kobieta' : 'Inna'}
+                    sx={{
+                      bgcolor: alpha('#34C759', 0.1),
+                      color: '#34C759',
+                      border: 'none',
+                      fontWeight: 500,
+                      height: 32,
+                      fontSize: '0.9rem',
+                    }}
+                  />
+                )}
+              </Box>
+            </Box>
+          </Box>
+
+          {/* Action Buttons */}
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={() => navigate(`/patients/${id}/consultations/new`)}
+              sx={{
+                bgcolor: '#007AFF',
+                color: 'white',
+                textTransform: 'none',
+                fontWeight: 600,
+                py: 1.5,
+                borderRadius: 2,
+                boxShadow: 'none',
+                '&:hover': {
+                  bgcolor: '#0051D5',
+                  boxShadow: 'none',
                 },
               }}
             >
-              <Tab 
-                label="Przegląd" 
-                icon={isMobile ? <Person fontSize="small" /> : undefined} 
-                iconPosition="start"
-                sx={{ 
-                  '&.Mui-selected': {
-                    fontWeight: 600,
+              Nowa konsultacja
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<Edit />}
+              onClick={() => navigate(`/patients/${id}/edit`)}
+              sx={{
+                borderColor: '#d2d2d7',
+                color: '#1d1d1f',
+                textTransform: 'none',
+                fontWeight: 600,
+                py: 1.5,
+                borderRadius: 2,
+                '&:hover': {
+                  borderColor: '#1d1d1f',
+                  bgcolor: alpha('#000', 0.02),
+                },
+              }}
+            >
+              Edytuj dane
+            </Button>
+            {patient.email && (
+              <Button
+                variant="outlined"
+                startIcon={<Email />}
+                onClick={() => navigate(`/patients/${id}/email`)}
+                sx={{
+                  borderColor: '#d2d2d7',
+                  color: '#1d1d1f',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  py: 1.5,
+                  borderRadius: 2,
+                  '&:hover': {
+                    borderColor: '#1d1d1f',
+                    bgcolor: alpha('#000', 0.02),
                   },
                 }}
-              />
-              <Tab 
-                label={isMobile ? 'Konsultacje' : 'Konsultacje'} 
-                icon={<Assignment fontSize={isMobile ? 'small' : 'medium'} />} 
-                iconPosition="start"
-                sx={{ 
-                  '&.Mui-selected': {
-                    fontWeight: 600,
-                  },
-                }}
-              />
-              <Tab 
-                label={isMobile ? 'Wyniki' : 'Wyniki badań'} 
-                icon={<Science fontSize={isMobile ? 'small' : 'medium'} />} 
-                iconPosition="start"
-                sx={{ 
-                  '&.Mui-selected': {
-                    fontWeight: 600,
-                  },
-                }}
-              />
-              <Tab 
-                label="Zdjęcia" 
-                icon={<PhotoCamera fontSize={isMobile ? 'small' : 'medium'} />} 
-                iconPosition="start"
-                sx={{ 
-                  '&.Mui-selected': {
-                    fontWeight: 600,
-                  },
-                }}
-              />
-              <Tab 
-                label={isMobile ? 'Plany' : 'Plany opieki'} 
-                icon={<LocalHospital fontSize={isMobile ? 'small' : 'medium'} />} 
-                iconPosition="start"
-                sx={{ 
-                  '&.Mui-selected': {
-                    fontWeight: 600,
-                  },
-                }}
-              />
-            </Tabs>
-          </Box>
+              >
+                Wyślij email
+              </Button>
+            )}
+          </Stack>
+        </Paper>
 
+        {/* Stats Grid */}
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          {stats.map((stat, index) => (
+            <Grid key={index} size={{ xs: 6, md: 3 }}>
+              <Paper
+                elevation={0}
+                sx={{
+                  p: { xs: 2.5, md: 3.5 },
+                  borderRadius: 3,
+                  bgcolor: 'white',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  transition: 'all 0.2s',
+                  '&:hover': {
+                    borderColor: stat.color,
+                    transform: 'translateY(-2px)',
+                  },
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Box
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 2,
+                      bgcolor: alpha(stat.color, 0.1),
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <stat.icon sx={{ color: stat.color, fontSize: 20 }} />
+                  </Box>
+                </Box>
+                <Typography
+                  variant="h2"
+                  sx={{
+                    fontWeight: 700,
+                    color: '#1d1d1f',
+                    mb: 1,
+                    fontSize: { xs: '2rem', md: '2.5rem' },
+                  }}
+                >
+                  {stat.value}
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: '#86868b',
+                    fontSize: '0.95rem',
+                    fontWeight: 500,
+                  }}
+                >
+                  {stat.label}
+                </Typography>
+              </Paper>
+            </Grid>
+          ))}
+        </Grid>
+
+        {/* Tabs */}
+        <Paper
+          elevation={0}
+          sx={{
+            borderRadius: 3,
+            bgcolor: 'white',
+            border: '1px solid',
+            borderColor: 'divider',
+            overflow: 'hidden',
+          }}
+        >
+          <Tabs
+            value={tabValue}
+            onChange={(_, newValue) => setTabValue(newValue)}
+            sx={{
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+              px: 2,
+              '& .MuiTab-root': {
+                textTransform: 'none',
+                fontWeight: 600,
+                fontSize: '1rem',
+                color: '#86868b',
+                minHeight: 64,
+                '&.Mui-selected': {
+                  color: '#1d1d1f',
+                },
+              },
+              '& .MuiTabs-indicator': {
+                height: 3,
+                borderRadius: '3px 3px 0 0',
+                bgcolor: '#007AFF',
+              },
+            }}
+          >
+            <Tab label="Przegląd" />
+            <Tab label="Konsultacje" />
+            <Tab label="Wyniki badań" />
+            <Tab label="Zdjęcia" />
+            <Tab label="Plany opieki" />
+          </Tabs>
+
+          {/* Tab Panel 0: Overview */}
           <TabPanel value={tabValue} index={0}>
-            <Grid container spacing={{ xs: 1.5, sm: 2 }}>
-              <Grid item xs={12} md={6}>
-                <Card>
-                  <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-                    <Typography 
-                      variant="h6" 
-                      gutterBottom 
-                      sx={{ 
-                        fontWeight: 600,
-                        fontSize: { xs: '1rem', sm: '1.25rem' },
-                        mb: 1.5,
-                      }}
-                    >
-                      Dane osobowe
-                    </Typography>
-                    <Divider sx={{ mb: 2 }} />
-                    <Stack spacing={1.5}>
-                      <Box>
-                        <Typography 
-                          variant="body2" 
-                          color="text.secondary" 
-                          sx={{ 
-                            fontSize: { xs: '0.7rem', sm: '0.75rem' }, 
-                            mb: 0.5,
-                            fontWeight: 500,
+            <Grid container spacing={3}>
+              {/* Contact Information */}
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Box sx={{ mb: 3 }}>
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      fontWeight: 700,
+                      color: '#1d1d1f',
+                      mb: 3,
+                    }}
+                  >
+                    Informacje kontaktowe
+                  </Typography>
+                  <Stack spacing={4}>
+                    {patient.phone && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Box
+                          sx={{
+                            width: 48,
+                            height: 48,
+                            borderRadius: 2,
+                            bgcolor: alpha('#007AFF', 0.1),
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
                           }}
                         >
-                          Imię
-                        </Typography>
-                        <Typography 
-                          variant="body1" 
-                          sx={{ 
-                            fontWeight: 500,
-                            fontSize: { xs: '0.875rem', sm: '1rem' },
-                          }}
-                        >
-                          {patient.firstName}
-                        </Typography>
-                      </Box>
-                      <Box>
-                        <Typography 
-                          variant="body2" 
-                          color="text.secondary" 
-                          sx={{ 
-                            fontSize: { xs: '0.7rem', sm: '0.75rem' }, 
-                            mb: 0.5,
-                            fontWeight: 500,
-                          }}
-                        >
-                          Nazwisko
-                        </Typography>
-                        <Typography 
-                          variant="body1" 
-                          sx={{ 
-                            fontWeight: 500,
-                            fontSize: { xs: '0.875rem', sm: '1rem' },
-                          }}
-                        >
-                          {patient.lastName}
-                        </Typography>
-                      </Box>
-                      {patient.age && (
-                        <Box>
-                          <Typography 
-                            variant="body2" 
-                            color="text.secondary" 
-                            sx={{ 
-                              fontSize: { xs: '0.7rem', sm: '0.75rem' }, 
-                              mb: 0.5,
-                              fontWeight: 500,
-                            }}
-                          >
-                            Wiek
-                          </Typography>
-                          <Typography 
-                            variant="body1" 
-                            sx={{ 
-                              fontWeight: 500,
-                              fontSize: { xs: '0.875rem', sm: '1rem' },
-                            }}
-                          >
-                            {patient.age} lat
-                          </Typography>
+                          <Phone sx={{ color: '#007AFF', fontSize: 24 }} />
                         </Box>
-                      )}
-                      {patient.gender && (
                         <Box>
-                          <Typography 
-                            variant="body2" 
-                            color="text.secondary" 
-                            sx={{ 
-                              fontSize: { xs: '0.7rem', sm: '0.75rem' }, 
-                              mb: 0.5,
-                              fontWeight: 500,
-                            }}
-                          >
-                            Płeć
-                          </Typography>
-                          <Chip
-                            label={patient.gender === 'MALE' ? 'Mężczyzna' : patient.gender === 'FEMALE' ? 'Kobieta' : 'Inna'}
-                            size="small"
-                            color={patient.gender === 'MALE' ? 'primary' : 'secondary'}
-                            sx={{ 
-                              height: { xs: 22, sm: 24 },
-                              fontSize: { xs: '0.7rem', sm: '0.75rem' },
-                            }}
-                          />
-                        </Box>
-                      )}
-                      {patient.phone && (
-                        <Box>
-                          <Typography 
-                            variant="body2" 
-                            color="text.secondary" 
-                            sx={{ 
-                              fontSize: { xs: '0.7rem', sm: '0.75rem' }, 
-                              mb: 0.5,
-                              fontWeight: 500,
-                            }}
-                          >
+                          <Typography variant="caption" sx={{ color: '#86868b', fontWeight: 500, fontSize: '0.8rem', mb: 0.5, display: 'block' }}>
                             Telefon
                           </Typography>
-                          <Typography 
-                            variant="body1" 
-                            sx={{ 
-                              fontWeight: 500,
-                              fontSize: { xs: '0.875rem', sm: '1rem' },
-                            }}
-                          >
+                          <Typography variant="body1" sx={{ fontWeight: 600, color: '#1d1d1f', fontSize: '1.1rem' }}>
                             {patient.phone}
                           </Typography>
                         </Box>
-                      )}
-                      {patient.email && (
-                        <Box>
-                          <Typography 
-                            variant="body2" 
-                            color="text.secondary" 
-                            sx={{ 
-                              fontSize: { xs: '0.7rem', sm: '0.75rem' }, 
-                              mb: 0.5,
-                              fontWeight: 500,
-                            }}
-                          >
+                      </Box>
+                    )}
+                    {patient.email && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Box
+                          sx={{
+                            width: 48,
+                            height: 48,
+                            borderRadius: 2,
+                            bgcolor: alpha('#34C759', 0.1),
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <Email sx={{ color: '#34C759', fontSize: 24 }} />
+                        </Box>
+                        <Box sx={{ minWidth: 0, flex: 1 }}>
+                          <Typography variant="caption" sx={{ color: '#86868b', fontWeight: 500, fontSize: '0.8rem', mb: 0.5, display: 'block' }}>
                             Email
                           </Typography>
-                          <Typography 
-                            variant="body1" 
-                            sx={{ 
-                              fontWeight: 500,
-                              fontSize: { xs: '0.875rem', sm: '1rem' },
+                          <Typography
+                            variant="body1"
+                            sx={{
+                              fontWeight: 600,
+                              color: '#1d1d1f',
+                              fontSize: '1.1rem',
                               wordBreak: 'break-word',
                             }}
                           >
                             {patient.email}
                           </Typography>
                         </Box>
-                      )}
-                      {patient.occupation && (
-                        <Box>
-                          <Typography 
-                            variant="body2" 
-                            color="text.secondary" 
-                            sx={{ 
-                              fontSize: { xs: '0.7rem', sm: '0.75rem' }, 
-                              mb: 0.5,
-                              fontWeight: 500,
-                            }}
-                          >
-                            Zawód
-                          </Typography>
-                          <Typography 
-                            variant="body1" 
-                            sx={{ 
-                              fontWeight: 500,
-                              fontSize: { xs: '0.875rem', sm: '1rem' },
-                            }}
-                          >
-                            {patient.occupation}
-                          </Typography>
+                      </Box>
+                    )}
+                    {patient.address && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Box
+                          sx={{
+                            width: 48,
+                            height: 48,
+                            borderRadius: 2,
+                            bgcolor: alpha('#FF9500', 0.1),
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <LocationOn sx={{ color: '#FF9500', fontSize: 24 }} />
                         </Box>
-                      )}
-                      {patient.address && (
-                        <Box>
-                          <Typography 
-                            variant="body2" 
-                            color="text.secondary" 
-                            sx={{ 
-                              fontSize: { xs: '0.7rem', sm: '0.75rem' }, 
-                              mb: 0.5,
-                              fontWeight: 500,
-                            }}
-                          >
+                        <Box sx={{ minWidth: 0, flex: 1 }}>
+                          <Typography variant="caption" sx={{ color: '#86868b', fontWeight: 500, fontSize: '0.8rem', mb: 0.5, display: 'block' }}>
                             Adres
                           </Typography>
-                          <Typography 
-                            variant="body1" 
-                            sx={{ 
-                              fontWeight: 500,
-                              fontSize: { xs: '0.875rem', sm: '1rem' },
+                          <Typography
+                            variant="body1"
+                            sx={{
+                              fontWeight: 600,
+                              color: '#1d1d1f',
+                              fontSize: '1.1rem',
                               wordBreak: 'break-word',
                             }}
                           >
                             {patient.address}
                           </Typography>
                         </Box>
-                      )}
-                    </Stack>
-                  </CardContent>
-                </Card>
+                      </Box>
+                    )}
+                  </Stack>
+                </Box>
               </Grid>
-              <Grid item xs={12} md={6}>
-                <Card>
-                  <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-                    <Typography 
-                      variant="h6" 
-                      gutterBottom 
-                      sx={{ 
-                        fontWeight: 600,
-                        fontSize: { xs: '1rem', sm: '1.25rem' },
-                        mb: 1.5,
-                      }}
-                    >
-                      Statystyki
-                    </Typography>
-                    <Divider sx={{ mb: 2 }} />
-                    <Stack spacing={2}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Typography 
-                          variant="body1"
-                          sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}
-                        >
-                          Konsultacje
-                        </Typography>
-                        <Chip 
-                          label={consultations.length} 
-                          color="primary"
-                          size="small"
-                          sx={{ 
-                            height: { xs: 24, sm: 28 },
-                            fontSize: { xs: '0.75rem', sm: '0.875rem' },
+
+              {/* Additional Information */}
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Box sx={{ mb: 3 }}>
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      fontWeight: 700,
+                      color: '#1d1d1f',
+                      mb: 3,
+                    }}
+                  >
+                    Dodatkowe informacje
+                  </Typography>
+                  <Stack spacing={4}>
+                    {patient.occupation && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Box
+                          sx={{
+                            width: 48,
+                            height: 48,
+                            borderRadius: 2,
+                            bgcolor: alpha('#FF3B30', 0.1),
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
                           }}
-                        />
-                      </Box>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Typography 
-                          variant="body1"
-                          sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}
                         >
-                          Wyniki badań
-                        </Typography>
-                        <Chip 
-                          label={labResults.length} 
-                          color="secondary"
-                          size="small"
-                          sx={{ 
-                            height: { xs: 24, sm: 28 },
-                            fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                          }}
-                        />
+                          <Work sx={{ color: '#FF3B30', fontSize: 24 }} />
+                        </Box>
+                        <Box>
+                          <Typography variant="caption" sx={{ color: '#86868b', fontWeight: 500, fontSize: '0.8rem', mb: 0.5, display: 'block' }}>
+                            Zawód
+                          </Typography>
+                          <Typography variant="body1" sx={{ fontWeight: 600, color: '#1d1d1f', fontSize: '1.1rem' }}>
+                            {patient.occupation}
+                          </Typography>
+                        </Box>
                       </Box>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Typography 
-                          variant="body1"
-                          sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}
-                        >
-                          Zdjęcia
-                        </Typography>
-                        <Chip 
-                          label={scalpPhotos.length} 
-                          color="info"
-                          size="small"
-                          sx={{ 
-                            height: { xs: 24, sm: 28 },
-                            fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                          }}
-                        />
-                      </Box>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Typography 
-                          variant="body1"
-                          sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}
-                        >
-                          Plany opieki
-                        </Typography>
-                        <Chip 
-                          label={carePlans.length} 
-                          color="success"
-                          size="small"
-                          sx={{ 
-                            height: { xs: 24, sm: 28 },
-                            fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                          }}
-                        />
-                      </Box>
-                    </Stack>
-                  </CardContent>
-                </Card>
+                    )}
+                  </Stack>
+                </Box>
               </Grid>
             </Grid>
           </TabPanel>
 
+          {/* Tab Panel 1: Consultations */}
           <TabPanel value={tabValue} index={1}>
-            <Box sx={{ mb: 2, display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+            <Box sx={{ mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
               <Button
                 variant="contained"
                 startIcon={<Add />}
                 onClick={() => navigate(`/patients/${id}/consultations/new`)}
-                fullWidth={isMobile}
-                size="small"
+                sx={{
+                  bgcolor: '#007AFF',
+                  color: 'white',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  borderRadius: 2,
+                  boxShadow: 'none',
+                  '&:hover': {
+                    bgcolor: '#0051D5',
+                    boxShadow: 'none',
+                  },
+                }}
               >
                 Nowa konsultacja
               </Button>
@@ -920,150 +809,161 @@ export default function PatientDetailPage() {
                 onClick={() => {
                   setShowArchived(prev => ({ ...prev, consultations: !prev.consultations }));
                 }}
-                size="small"
+                sx={{
+                  borderColor: '#d2d2d7',
+                  color: showArchived.consultations ? 'white' : '#1d1d1f',
+                  bgcolor: showArchived.consultations ? '#007AFF' : 'transparent',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  borderRadius: 2,
+                  boxShadow: 'none',
+                  '&:hover': {
+                    borderColor: '#1d1d1f',
+                    bgcolor: showArchived.consultations ? '#0051D5' : alpha('#000', 0.02),
+                    boxShadow: 'none',
+                  },
+                }}
               >
-                {showArchived.consultations ? 'Aktywne' : 'Zarchiwizowane'}
+                {showArchived.consultations ? 'Pokaż aktywne' : 'Pokaż zarchiwizowane'}
               </Button>
             </Box>
             {consultations.length === 0 ? (
-              <Box sx={{ textAlign: 'center', py: 4 }}>
-                <Assignment sx={{ fontSize: { xs: 48, sm: 64 }, color: 'text.secondary', mb: 2 }} />
-                <Typography color="text.secondary">Brak konsultacji</Typography>
+              <Box sx={{ textAlign: 'center', py: 8 }}>
+                <Assignment sx={{ fontSize: 64, color: '#d2d2d7', mb: 2 }} />
+                <Typography variant="h6" sx={{ color: '#86868b', fontWeight: 500 }}>
+                  Brak konsultacji
+                </Typography>
               </Box>
             ) : (
-              <Stack spacing={2}>
+              <Stack spacing={3}>
                 {consultations.map((consultation) => (
-                  <Card key={consultation.id}>
-                    <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-                      <Box sx={{ 
-                        display: 'flex', 
-                        flexDirection: { xs: 'column', sm: 'row' },
-                        justifyContent: 'space-between', 
-                        alignItems: { xs: 'flex-start', sm: 'center' },
-                        gap: 2,
-                      }}>
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Typography 
-                            variant="h6" 
-                            sx={{ 
-                              fontWeight: 600,
-                              fontSize: { xs: '1rem', sm: '1.25rem' },
-                            }}
-                          >
-                            {new Date(consultation.consultationDate).toLocaleDateString('pl-PL')}
+                  <Paper
+                    key={consultation.id}
+                    elevation={0}
+                    sx={{
+                      p: 3,
+                      borderRadius: 2,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      transition: 'all 0.2s',
+                      '&:hover': {
+                        borderColor: '#007AFF',
+                        transform: 'translateY(-2px)',
+                      },
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2 }}>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700, color: '#1d1d1f', mb: 1, fontSize: '1.15rem' }}>
+                          {new Date(consultation.consultationDate).toLocaleDateString('pl-PL', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                          })}
+                        </Typography>
+                        {consultation.diagnosis && (
+                          <Typography variant="body2" sx={{ color: '#86868b', fontSize: '0.95rem', lineHeight: 1.6 }}>
+                            {consultation.diagnosis}
                           </Typography>
-                          {consultation.diagnosis && (
-                            <Typography 
-                              variant="body2" 
-                              color="text.secondary" 
-                              sx={{ 
-                                mt: 0.5,
-                                fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                                wordBreak: 'break-word',
-                              }}
-                            >
-                              {consultation.diagnosis}
-                            </Typography>
-                          )}
-                        </Box>
-                        <Box sx={{ display: 'flex', gap: 1, width: { xs: '100%', sm: 'auto' }, flexWrap: 'wrap' }}>
+                        )}
+                      </Box>
+                      <Stack direction="row" spacing={1}>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => navigate(`/consultations/${consultation.id}`)}
+                          sx={{
+                            borderColor: '#d2d2d7',
+                            color: '#1d1d1f',
+                            textTransform: 'none',
+                            fontWeight: 600,
+                            borderRadius: 1.5,
+                            '&:hover': {
+                              borderColor: '#1d1d1f',
+                              bgcolor: alpha('#000', 0.02),
+                            },
+                          }}
+                        >
+                          Zobacz
+                        </Button>
+                        {patient.email && (
                           <Button
                             size="small"
-                            variant="outlined"
-                            onClick={() => navigate(`/consultations/${consultation.id}`)}
-                            fullWidth={isMobile}
+                            variant="contained"
+                            startIcon={<Email />}
+                            onClick={() => handleSendEmail('consultation', consultation.id, 'Konsultacja')}
+                            disabled={loading}
+                            sx={{
+                              bgcolor: '#007AFF',
+                              color: 'white',
+                              textTransform: 'none',
+                              fontWeight: 600,
+                              borderRadius: 1.5,
+                              boxShadow: 'none',
+                              '&:hover': {
+                                bgcolor: '#0051D5',
+                                boxShadow: 'none',
+                              },
+                            }}
                           >
-                            Zobacz
+                            Wyślij
                           </Button>
-                          {patient.email && (
-                            <Button
-                              size="small"
-                              variant="contained"
-                              color="primary"
-                              startIcon={<Email />}
-                              onClick={() =>
-                                handleSendEmail(
-                                  'consultation',
-                                  consultation.id,
-                                  'Konsultacja'
-                                )
-                              }
-                              disabled={loading}
-                              fullWidth={isMobile}
-                            >
-                              {isMobile ? 'Email' : 'Wyślij email'}
-                            </Button>
-                          )}
-                          {showArchived.consultations ? (
-                            <>
-                              <IconButton
-                                size="small"
-                                color="success"
-                                onClick={() =>
-                                  handleRestoreClick(
-                                    'consultation',
-                                    consultation.id,
-                                    new Date(consultation.consultationDate).toLocaleDateString('pl-PL')
-                                  )
-                                }
-                                sx={{ flexShrink: 0 }}
-                                title="Przywróć konsultację"
-                              >
-                                <Restore />
-                              </IconButton>
-                              {isAdmin && (
-                                <IconButton
-                                  size="small"
-                                  color="error"
-                                  onClick={() =>
-                                    handlePermanentDeleteClick(
-                                      'consultation',
-                                      consultation.id,
-                                      new Date(consultation.consultationDate).toLocaleDateString('pl-PL')
-                                    )
-                                  }
-                                  sx={{ flexShrink: 0 }}
-                                  title="Trwale usuń (RODO)"
-                                >
-                                  <DeleteForever />
-                                </IconButton>
-                              )}
-                            </>
-                          ) : (
+                        )}
+                        {showArchived.consultations ? (
+                          <>
                             <IconButton
                               size="small"
-                              color="error"
-                              onClick={() =>
-                                handleDeleteClick(
-                                  'consultation',
-                                  consultation.id,
-                                  new Date(consultation.consultationDate).toLocaleDateString('pl-PL')
-                                )
-                              }
-                              sx={{ flexShrink: 0 }}
+                              onClick={() => handleRestoreClick('consultation', consultation.id, 'Konsultacja')}
+                              sx={{ color: '#34C759' }}
                             >
-                              <Delete />
+                              <Restore />
                             </IconButton>
-                          )}
-                        </Box>
-                      </Box>
-                    </CardContent>
-                  </Card>
+                            <IconButton
+                              size="small"
+                              onClick={() => handlePermanentDeleteClick('consultation', consultation.id, 'Konsultacja')}
+                              sx={{ color: '#FF3B30' }}
+                            >
+                              <DeleteForever />
+                            </IconButton>
+                          </>
+                        ) : (
+                          <IconButton
+                            size="small"
+                            onClick={() => handleDeleteClick('consultation', consultation.id, 'Konsultacja')}
+                            sx={{ color: '#FF3B30' }}
+                          >
+                            <Delete />
+                          </IconButton>
+                        )}
+                      </Stack>
+                    </Box>
+                  </Paper>
                 ))}
               </Stack>
             )}
           </TabPanel>
 
+          {/* Tab Panel 2: Lab Results */}
           <TabPanel value={tabValue} index={2}>
-            <Box sx={{ mb: 2, display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+            <Box sx={{ mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
               <Button
                 variant="contained"
                 startIcon={<Add />}
-                onClick={() => navigate(`/patients/${id}/lab-results`)}
-                fullWidth={isMobile}
-                size="small"
+                onClick={() => navigate(`/patients/${id}/lab-results/new`)}
+                sx={{
+                  bgcolor: '#007AFF',
+                  color: 'white',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  borderRadius: 2,
+                  boxShadow: 'none',
+                  '&:hover': {
+                    bgcolor: '#0051D5',
+                    boxShadow: 'none',
+                  },
+                }}
               >
-                Dodaj wynik
+                Nowy wynik badania
               </Button>
               <Button
                 variant={showArchived.labResults ? 'contained' : 'outlined'}
@@ -1071,275 +971,247 @@ export default function PatientDetailPage() {
                 onClick={() => {
                   setShowArchived(prev => ({ ...prev, labResults: !prev.labResults }));
                 }}
-                size="small"
+                sx={{
+                  borderColor: '#d2d2d7',
+                  color: showArchived.labResults ? 'white' : '#1d1d1f',
+                  bgcolor: showArchived.labResults ? '#007AFF' : 'transparent',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  borderRadius: 2,
+                  boxShadow: 'none',
+                  '&:hover': {
+                    borderColor: '#1d1d1f',
+                    bgcolor: showArchived.labResults ? '#0051D5' : alpha('#000', 0.02),
+                    boxShadow: 'none',
+                  },
+                }}
               >
-                {showArchived.labResults ? 'Aktywne' : 'Zarchiwizowane'}
+                {showArchived.labResults ? 'Pokaż aktywne' : 'Pokaż zarchiwizowane'}
               </Button>
             </Box>
             {labResults.length === 0 ? (
-              <Box sx={{ textAlign: 'center', py: 4 }}>
-                <Science sx={{ fontSize: { xs: 48, sm: 64 }, color: 'text.secondary', mb: 2 }} />
-                <Typography color="text.secondary">Brak wyników badań</Typography>
+              <Box sx={{ textAlign: 'center', py: 8 }}>
+                <Science sx={{ fontSize: 64, color: '#d2d2d7', mb: 2 }} />
+                <Typography variant="h6" sx={{ color: '#86868b', fontWeight: 500 }}>
+                  Brak wyników badań
+                </Typography>
               </Box>
             ) : (
               <Stack spacing={2}>
                 {labResults.map((result) => (
-                  <Card key={result.id}>
-                    <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-                      <Box sx={{ 
-                        display: 'flex', 
-                        flexDirection: { xs: 'column', sm: 'row' },
-                        justifyContent: 'space-between', 
-                        alignItems: { xs: 'flex-start', sm: 'center' },
-                        gap: 2,
-                      }}>
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Typography 
-                            variant="h6" 
-                            sx={{ 
-                              fontWeight: 600,
-                              fontSize: { xs: '1rem', sm: '1.25rem' },
-                            }}
-                          >
-                            {new Date(result.date).toLocaleDateString('pl-PL')}
-                          </Typography>
-                          {result.notes && (
-                            <Typography 
-                              variant="body2" 
-                              color="text.secondary" 
-                              sx={{ 
-                                mt: 0.5,
-                                fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                                wordBreak: 'break-word',
-                              }}
-                            >
-                              {result.notes}
-                            </Typography>
-                          )}
-                        </Box>
-                        <Box sx={{ display: 'flex', gap: 1, width: { xs: '100%', sm: 'auto' }, flexWrap: 'wrap' }}>
+                  <Paper
+                    key={result.id}
+                    elevation={0}
+                    sx={{
+                      p: 3,
+                      borderRadius: 2,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      transition: 'all 0.2s',
+                      '&:hover': {
+                        borderColor: '#34C759',
+                        transform: 'translateY(-2px)',
+                      },
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2 }}>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700, color: '#1d1d1f', mb: 1 }}>
+                          {result.testName || 'Wynik badania'}
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: '#86868b' }}>
+                          {new Date(result.testDate).toLocaleDateString('pl-PL')}
+                        </Typography>
+                      </Box>
+                      <Stack direction="row" spacing={1}>
+                        {patient.email && (
                           <Button
                             size="small"
-                            variant="outlined"
-                            onClick={() => navigate(`/patients/${id}/lab-results/${result.id}`)}
-                            fullWidth={isMobile}
+                            variant="contained"
+                            startIcon={<Email />}
+                            onClick={() => handleSendEmail('labResult', result.id, 'Wynik badania')}
+                            disabled={loading}
+                            sx={{
+                              bgcolor: '#007AFF',
+                              color: 'white',
+                              textTransform: 'none',
+                              fontWeight: 600,
+                              borderRadius: 1.5,
+                              boxShadow: 'none',
+                              '&:hover': {
+                                bgcolor: '#0051D5',
+                                boxShadow: 'none',
+                              },
+                            }}
                           >
-                            Zobacz
+                            Wyślij
                           </Button>
-                          {patient.email && (
-                            <Button
-                              size="small"
-                              variant="contained"
-                              color="primary"
-                              startIcon={<Email />}
-                              onClick={() =>
-                                handleSendEmail(
-                                  'labResult',
-                                  result.id,
-                                  'Wyniki badań'
-                                )
-                              }
-                              disabled={loading}
-                              fullWidth={isMobile}
-                            >
-                              {isMobile ? 'Email' : 'Wyślij email'}
-                            </Button>
-                          )}
-                          {showArchived.labResults ? (
-                            <>
-                              <IconButton
-                                size="small"
-                                color="success"
-                                onClick={() =>
-                                  handleRestoreClick(
-                                    'labResult',
-                                    result.id,
-                                    new Date(result.date).toLocaleDateString('pl-PL')
-                                  )
-                                }
-                                sx={{ flexShrink: 0 }}
-                                title="Przywróć wynik badania"
-                              >
-                                <Restore />
-                              </IconButton>
-                              {isAdmin && (
-                                <IconButton
-                                  size="small"
-                                  color="error"
-                                  onClick={() =>
-                                    handlePermanentDeleteClick(
-                                      'labResult',
-                                      result.id,
-                                      new Date(result.date).toLocaleDateString('pl-PL')
-                                    )
-                                  }
-                                  sx={{ flexShrink: 0 }}
-                                  title="Trwale usuń (RODO)"
-                                >
-                                  <DeleteForever />
-                                </IconButton>
-                              )}
-                            </>
-                          ) : (
+                        )}
+                        {showArchived.labResults ? (
+                          <>
                             <IconButton
                               size="small"
-                              color="error"
-                              onClick={() =>
-                                handleDeleteClick(
-                                  'labResult',
-                                  result.id,
-                                  new Date(result.date).toLocaleDateString('pl-PL')
-                                )
-                              }
-                              sx={{ flexShrink: 0 }}
+                              onClick={() => handleRestoreClick('labResult', result.id, 'Wynik badania')}
+                              sx={{ color: '#34C759' }}
                             >
-                              <Delete />
+                              <Restore />
                             </IconButton>
-                          )}
-                        </Box>
-                      </Box>
-                    </CardContent>
-                  </Card>
+                            <IconButton
+                              size="small"
+                              onClick={() => handlePermanentDeleteClick('labResult', result.id, 'Wynik badania')}
+                              sx={{ color: '#FF3B30' }}
+                            >
+                              <DeleteForever />
+                            </IconButton>
+                          </>
+                        ) : (
+                          <IconButton
+                            size="small"
+                            onClick={() => handleDeleteClick('labResult', result.id, 'Wynik badania')}
+                            sx={{ color: '#FF3B30' }}
+                          >
+                            <Delete />
+                          </IconButton>
+                        )}
+                      </Stack>
+                    </Box>
+                  </Paper>
                 ))}
               </Stack>
             )}
           </TabPanel>
 
+          {/* Tab Panel 3: Photos */}
           <TabPanel value={tabValue} index={3}>
-            <Box sx={{ mb: 2 }}>
+            <Box sx={{ mb: 3 }}>
               <Button
                 variant="contained"
                 startIcon={<Add />}
-                onClick={() => navigate(`/patients/${id}/scalp-photos`)}
-                fullWidth={isMobile}
-                size="small"
+                onClick={() => navigate(`/patients/${id}/scalp-photos/new`)}
+                sx={{
+                  bgcolor: '#007AFF',
+                  color: 'white',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  borderRadius: 2,
+                  boxShadow: 'none',
+                  '&:hover': {
+                    bgcolor: '#0051D5',
+                    boxShadow: 'none',
+                  },
+                }}
               >
                 Dodaj zdjęcie
               </Button>
             </Box>
             {scalpPhotos.length === 0 ? (
-              <Box sx={{ textAlign: 'center', py: 4 }}>
-                <PhotoCamera sx={{ fontSize: { xs: 48, sm: 64 }, color: 'text.secondary', mb: 2 }} />
-                <Typography color="text.secondary">Brak zdjęć</Typography>
+              <Box sx={{ textAlign: 'center', py: 8 }}>
+                <PhotoCamera sx={{ fontSize: 64, color: '#d2d2d7', mb: 2 }} />
+                <Typography variant="h6" sx={{ color: '#86868b', fontWeight: 500 }}>
+                  Brak zdjęć
+                </Typography>
               </Box>
             ) : (
-              <Grid container spacing={{ xs: 1.5, sm: 2 }}>
+              <Grid container spacing={2}>
                 {scalpPhotos.map((photo) => (
-                  <Grid item xs={12} sm={6} md={4} lg={3} key={photo.id}>
-                    <Card
+                  <Grid key={photo.id} size={{ xs: 12, sm: 6, md: 4 }}>
+                    <Paper
+                      elevation={0}
                       sx={{
-                        cursor: 'pointer',
-                        '&:hover': { boxShadow: 4 },
-                        transition: 'box-shadow 0.2s',
-                        height: '100%',
-                        display: 'flex',
-                        flexDirection: 'column',
+                        borderRadius: 2,
+                        overflow: 'hidden',
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        transition: 'all 0.2s',
+                        '&:hover': {
+                          borderColor: '#FF9500',
+                          transform: 'translateY(-4px)',
+                        },
                       }}
-                      onClick={() => navigate(`/patients/${id}/scalp-photos/${photo.id}`)}
                     >
-                      <Box sx={{ position: 'relative', flex: 1, minHeight: { xs: 180, sm: 200 } }}>
-                        <Box
-                          component="img"
-                          src={`${(import.meta as any).env?.VITE_API_URL || 'http://localhost:3001'}${photo.url || `/uploads/${photo.filePath?.split(/[/\\]/).pop()}`}`}
-                          alt={photo.originalFilename || 'Zdjęcie skóry głowy'}
-                          sx={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
-                            imageOrientation: 'from-image',
-                            backgroundColor: '#f5f5f5',
-                          }}
-                          onLoad={() => {
-                            console.log('Obraz załadowany:', photo.url);
-                          }}
-                          onError={(e) => {
-                            const img = e.target as HTMLImageElement;
-                            console.error('Błąd ładowania obrazu:', {
-                              url: photo.url,
-                              filePath: photo.filePath,
-                              fullUrl: img.src,
-                              photo: photo
-                            });
-                            img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23ddd" width="200" height="200"/%3E%3Ctext fill="%23999" font-family="sans-serif" font-size="14" dy="10.5" font-weight="bold" x="50%25" y="50%25" text-anchor="middle"%3EBrak zdj%26%23381%3Bcia%3C/text%3E%3C/svg%3E';
-                          }}
-                        />
-                        <IconButton
-                          size="small"
-                          color="error"
-                          sx={{
-                            position: 'absolute',
-                            top: 8,
-                            right: 8,
-                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                            '&:hover': {
-                              backgroundColor: 'rgba(255, 255, 255, 1)',
-                            },
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteClick('scalpPhoto', photo.id, photo.originalFilename);
-                          }}
-                        >
-                          <Delete fontSize="small" />
-                        </IconButton>
-                      </Box>
-                      <CardContent sx={{ p: { xs: 1.5, sm: 2 }, flexGrow: 0 }}>
-                        <Typography 
-                          variant="body2" 
-                          color="text.secondary" 
-                          sx={{ 
-                            fontSize: { xs: '0.7rem', sm: '0.75rem' },
-                            mb: photo.notes ? 0.5 : 0,
-                          }}
-                        >
-                          {new Date(photo.createdAt).toLocaleDateString('pl-PL')}
-                        </Typography>
-                        {photo.notes && (
-                          <Typography 
-                            variant="body2" 
-                            sx={{ 
-                              mt: 0.5,
-                              fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                              wordBreak: 'break-word',
+                      <Box
+                        sx={{
+                          width: '100%',
+                          height: 200,
+                          bgcolor: '#f5f5f7',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        {photo.photoUrl ? (
+                          <img
+                            src={photo.photoUrl}
+                            alt="Zdjęcie skóry głowy"
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover',
                             }}
-                            noWrap={false}
-                          >
-                            {photo.notes}
-                          </Typography>
+                          />
+                        ) : (
+                          <PhotoCamera sx={{ fontSize: 48, color: '#d2d2d7' }} />
                         )}
-                        {patient.email && (
+                      </Box>
+                      <Box sx={{ p: 2 }}>
+                        <Typography variant="body2" sx={{ color: '#86868b', mb: 1 }}>
+                          {new Date(photo.photoDate).toLocaleDateString('pl-PL')}
+                        </Typography>
+                        <Stack direction="row" spacing={1}>
                           <Button
                             size="small"
-                            variant="contained"
-                            color="primary"
-                            startIcon={<Email />}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSendEmail('scalpPhoto', photo.id, 'Zdjęcie');
+                            variant="outlined"
+                            onClick={() => navigate(`/scalp-photos/${photo.id}`)}
+                            sx={{
+                              borderColor: '#d2d2d7',
+                              color: '#1d1d1f',
+                              textTransform: 'none',
+                              fontWeight: 600,
+                              borderRadius: 1.5,
+                              flex: 1,
+                              '&:hover': {
+                                borderColor: '#1d1d1f',
+                                bgcolor: alpha('#000', 0.02),
+                              },
                             }}
-                            disabled={loading}
-                            fullWidth
-                            sx={{ mt: 1 }}
                           >
-                            Wyślij email
+                            Zobacz
                           </Button>
-                        )}
-                      </CardContent>
-                    </Card>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleDeleteClick('scalpPhoto', photo.id, 'Zdjęcie')}
+                            sx={{ color: '#FF3B30' }}
+                          >
+                            <Delete />
+                          </IconButton>
+                        </Stack>
+                      </Box>
+                    </Paper>
                   </Grid>
                 ))}
               </Grid>
             )}
           </TabPanel>
 
+          {/* Tab Panel 4: Care Plans */}
           <TabPanel value={tabValue} index={4}>
-            <Box sx={{ mb: 2, display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+            <Box sx={{ mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
               <Button
                 variant="contained"
                 startIcon={<Add />}
                 onClick={() => navigate(`/patients/${id}/care-plans/new`)}
-                fullWidth={isMobile}
-                size="small"
+                sx={{
+                  bgcolor: '#007AFF',
+                  color: 'white',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  borderRadius: 2,
+                  boxShadow: 'none',
+                  '&:hover': {
+                    bgcolor: '#0051D5',
+                    boxShadow: 'none',
+                  },
+                }}
               >
                 Nowy plan opieki
               </Button>
@@ -1349,294 +1221,287 @@ export default function PatientDetailPage() {
                 onClick={() => {
                   setShowArchived(prev => ({ ...prev, carePlans: !prev.carePlans }));
                 }}
-                size="small"
+                sx={{
+                  borderColor: '#d2d2d7',
+                  color: showArchived.carePlans ? 'white' : '#1d1d1f',
+                  bgcolor: showArchived.carePlans ? '#007AFF' : 'transparent',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  borderRadius: 2,
+                  boxShadow: 'none',
+                  '&:hover': {
+                    borderColor: '#1d1d1f',
+                    bgcolor: showArchived.carePlans ? '#0051D5' : alpha('#000', 0.02),
+                    boxShadow: 'none',
+                  },
+                }}
               >
-                {showArchived.carePlans ? 'Aktywne' : 'Zarchiwizowane'}
+                {showArchived.carePlans ? 'Pokaż aktywne' : 'Pokaż zarchiwizowane'}
               </Button>
             </Box>
             {carePlans.length === 0 ? (
-              <Box sx={{ textAlign: 'center', py: 4 }}>
-                <LocalHospital sx={{ fontSize: { xs: 48, sm: 64 }, color: 'text.secondary', mb: 2 }} />
-                <Typography color="text.secondary">Brak planów opieki</Typography>
+              <Box sx={{ textAlign: 'center', py: 8 }}>
+                <LocalHospital sx={{ fontSize: 64, color: '#d2d2d7', mb: 2 }} />
+                <Typography variant="h6" sx={{ color: '#86868b', fontWeight: 500 }}>
+                  Brak planów opieki
+                </Typography>
               </Box>
             ) : (
               <Stack spacing={2}>
                 {carePlans.map((plan) => (
-                  <Card key={plan.id}>
-                    <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-                      <Box sx={{ 
-                        display: 'flex', 
-                        flexDirection: { xs: 'column', sm: 'row' },
-                        justifyContent: 'space-between', 
-                        alignItems: { xs: 'flex-start', sm: 'center' },
-                        gap: 2,
-                      }}>
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Typography 
-                            variant="h6" 
-                            sx={{ 
-                              fontWeight: 600,
-                              fontSize: { xs: '1rem', sm: '1.25rem' },
-                            }}
-                          >
-                            {plan.title}
+                  <Paper
+                    key={plan.id}
+                    elevation={0}
+                    sx={{
+                      p: 3,
+                      borderRadius: 2,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      transition: 'all 0.2s',
+                      '&:hover': {
+                        borderColor: '#FF3B30',
+                        transform: 'translateY(-2px)',
+                      },
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2 }}>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700, color: '#1d1d1f', mb: 1 }}>
+                          {plan.title || 'Plan opieki'}
+                        </Typography>
+                        {plan.description && (
+                          <Typography variant="body2" sx={{ color: '#86868b' }}>
+                            {plan.description}
                           </Typography>
-                          <Typography 
-                            variant="body2" 
-                            color="text.secondary" 
-                            sx={{ 
-                              mt: 0.5,
-                              fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                            }}
-                          >
-                            {plan.totalDurationWeeks} tygodni
-                          </Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', gap: 1, width: { xs: '100%', sm: 'auto' }, flexWrap: 'wrap' }}>
+                        )}
+                      </Box>
+                      <Stack direction="row" spacing={1}>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => navigate(`/care-plans/${plan.id}`)}
+                          sx={{
+                            borderColor: '#d2d2d7',
+                            color: '#1d1d1f',
+                            textTransform: 'none',
+                            fontWeight: 600,
+                            borderRadius: 1.5,
+                            '&:hover': {
+                              borderColor: '#1d1d1f',
+                              bgcolor: alpha('#000', 0.02),
+                            },
+                          }}
+                        >
+                          Zobacz
+                        </Button>
+                        {patient.email && (
                           <Button
                             size="small"
-                            variant="outlined"
-                            onClick={() => navigate(`/patients/${id}/care-plans/${plan.id}`)}
-                            fullWidth={isMobile}
+                            variant="contained"
+                            startIcon={<Email />}
+                            onClick={() => handleSendEmail('carePlan', plan.id, 'Plan opieki')}
+                            disabled={loading}
+                            sx={{
+                              bgcolor: '#007AFF',
+                              color: 'white',
+                              textTransform: 'none',
+                              fontWeight: 600,
+                              borderRadius: 1.5,
+                              boxShadow: 'none',
+                              '&:hover': {
+                                bgcolor: '#0051D5',
+                                boxShadow: 'none',
+                              },
+                            }}
                           >
-                            Zobacz
+                            Wyślij
                           </Button>
-                          {patient.email && (
-                            <Button
-                              size="small"
-                              variant="contained"
-                              color="primary"
-                              startIcon={<Email />}
-                              onClick={() =>
-                                handleSendEmail(
-                                  'carePlan',
-                                  plan.id,
-                                  'Plan opieki'
-                                )
-                              }
-                              disabled={loading}
-                              fullWidth={isMobile}
-                            >
-                              {isMobile ? 'Email' : 'Wyślij email'}
-                            </Button>
-                          )}
-                          {showArchived.carePlans ? (
-                            <>
-                              <IconButton
-                                size="small"
-                                color="success"
-                                onClick={() => handleRestoreClick('carePlan', plan.id, plan.title)}
-                                sx={{ flexShrink: 0 }}
-                                title="Przywróć plan opieki"
-                              >
-                                <Restore />
-                              </IconButton>
-                              {isAdmin && (
-                                <IconButton
-                                  size="small"
-                                  color="error"
-                                  onClick={() => handlePermanentDeleteClick('carePlan', plan.id, plan.title)}
-                                  sx={{ flexShrink: 0 }}
-                                  title="Trwale usuń (RODO)"
-                                >
-                                  <DeleteForever />
-                                </IconButton>
-                              )}
-                            </>
-                          ) : (
+                        )}
+                        {showArchived.carePlans ? (
+                          <>
                             <IconButton
                               size="small"
-                              color="error"
-                              onClick={() => handleDeleteClick('carePlan', plan.id, plan.title)}
-                              sx={{ flexShrink: 0 }}
+                              onClick={() => handleRestoreClick('carePlan', plan.id, 'Plan opieki')}
+                              sx={{ color: '#34C759' }}
                             >
-                              <Delete />
+                              <Restore />
                             </IconButton>
-                          )}
-                        </Box>
-                      </Box>
-                    </CardContent>
-                  </Card>
+                            <IconButton
+                              size="small"
+                              onClick={() => handlePermanentDeleteClick('carePlan', plan.id, 'Plan opieki')}
+                              sx={{ color: '#FF3B30' }}
+                            >
+                              <DeleteForever />
+                            </IconButton>
+                          </>
+                        ) : (
+                          <IconButton
+                            size="small"
+                            onClick={() => handleDeleteClick('carePlan', plan.id, 'Plan opieki')}
+                            sx={{ color: '#FF3B30' }}
+                          >
+                            <Delete />
+                          </IconButton>
+                        )}
+                      </Stack>
+                    </Box>
+                  </Paper>
                 ))}
               </Stack>
             )}
           </TabPanel>
         </Paper>
+      </Container>
 
-        <Dialog 
-          open={deleteDialog.open} 
-          onClose={handleDeleteCancel} 
-          fullWidth 
-          maxWidth="sm"
-          PaperProps={{
-            sx: {
-              m: { xs: 2, sm: 3 },
-              width: { xs: 'calc(100% - 32px)', sm: 'auto' },
-            },
-          }}
-        >
-          <DialogTitle sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
-            {deleteDialog.type === 'patient' ? 'Zarchiwizuj pacjenta' : deleteDialog.type === 'scalpPhoto' ? 'Trwałe usunięcie (RODO)' : 'Zarchiwizuj'}
-          </DialogTitle>
-          <DialogContent>
-            <DialogContentText sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-              {deleteDialog.type === 'scalpPhoto' && (
-                <>
-                  <strong>UWAGA: Ta operacja jest nieodwracalna i zgodna z RODO!</strong>
-                  <br /><br />
-                </>
-              )}
-              Czy na pewno chcesz{' '}
-              {deleteDialog.type === 'patient' && 'zarchiwizować pacjenta'}
-              {deleteDialog.type === 'consultation' && 'zarchiwizować konsultację'}
-              {deleteDialog.type === 'labResult' && 'zarchiwizować wynik badania'}
-              {deleteDialog.type === 'scalpPhoto' && 'trwale usunąć zdjęcie'}
-              {deleteDialog.type === 'carePlan' && 'zarchiwizować plan opieki'}{' '}
-              <strong>{deleteDialog.name}</strong>?
-              {deleteDialog.type === 'patient' && (
-                <Typography 
-                  variant="body2" 
-                  color="warning.main" 
-                  sx={{ 
-                    mt: 2, 
-                    p: 2, 
-                    bgcolor: 'warning.50', 
-                    borderRadius: 1,
-                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                  }}
-                >
-                  ⚠️ Uwaga: Pacjent zostanie zarchiwizowany (soft delete). Wszystkie powiązane dane pozostaną w systemie.
-                </Typography>
-              )}
-              {deleteDialog.type === 'consultation' && (
-                <Typography 
-                  variant="body2" 
-                  color="warning.main" 
-                  sx={{ 
-                    mt: 2, 
-                    p: 2, 
-                    bgcolor: 'warning.50', 
-                    borderRadius: 1,
-                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                  }}
-                >
-                  ⚠️ Konsultacja zostanie zarchiwizowana (soft delete). Możesz ją później przywrócić.
-                </Typography>
-              )}
-              {deleteDialog.type === 'labResult' && (
-                <Typography 
-                  variant="body2" 
-                  color="warning.main" 
-                  sx={{ 
-                    mt: 2, 
-                    p: 2, 
-                    bgcolor: 'warning.50', 
-                    borderRadius: 1,
-                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                  }}
-                >
-                  ⚠️ Wynik badania zostanie zarchiwizowany (soft delete). Możesz go później przywrócić.
-                </Typography>
-              )}
-              {deleteDialog.type === 'carePlan' && (
-                <Typography 
-                  variant="body2" 
-                  color="warning.main" 
-                  sx={{ 
-                    mt: 2, 
-                    p: 2, 
-                    bgcolor: 'warning.50', 
-                    borderRadius: 1,
-                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                  }}
-                >
-                  ⚠️ Plan opieki zostanie zarchiwizowany (soft delete). Możesz go później przywrócić.
-                </Typography>
-              )}
-              {deleteDialog.type === 'scalpPhoto' && (
-                <Typography 
-                  variant="body2" 
-                  color="error.main" 
-                  sx={{ 
-                    mt: 2, 
-                    p: 2, 
-                    bgcolor: 'error.50', 
-                    borderRadius: 1,
-                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                  }}
-                >
-                  ⚠️ Zdjęcie i wszystkie adnotacje zostaną trwale usunięte. 
-                  Plik zdjęcia również zostanie usunięty z serwera. Ta operacja jest nieodwracalna i zgodna z RODO.
-                </Typography>
-              )}
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions sx={{ px: { xs: 2, sm: 3 }, pb: { xs: 2, sm: 3 } }}>
-            <Button 
-              onClick={handleDeleteCancel}
-              size={isMobile ? 'small' : 'medium'}
-            >
-              Anuluj
-            </Button>
-            <Button 
-              onClick={handleDeleteConfirm} 
-              color={deleteDialog.type === 'scalpPhoto' ? 'error' : 'error'} 
-              variant="contained"
-              size={isMobile ? 'small' : 'medium'}
-            >
-              {deleteDialog.type === 'scalpPhoto' ? 'Trwale usuń' : 'Zarchiwizuj'}
-            </Button>
-          </DialogActions>
-        </Dialog>
+      {/* Delete Dialog */}
+      <Dialog
+        open={deleteDialog.open}
+        onClose={handleDeleteCancel}
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            p: 1,
+          },
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 700, color: '#1d1d1f' }}>
+          Potwierdź usunięcie
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ color: '#86868b' }}>
+            Czy na pewno chcesz usunąć: {deleteDialog.name}?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={handleDeleteCancel}
+            sx={{
+              color: '#1d1d1f',
+              textTransform: 'none',
+              fontWeight: 600,
+            }}
+          >
+            Anuluj
+          </Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            variant="contained"
+            sx={{
+              bgcolor: '#FF3B30',
+              color: 'white',
+              textTransform: 'none',
+              fontWeight: 600,
+              boxShadow: 'none',
+              '&:hover': {
+                bgcolor: '#D70015',
+                boxShadow: 'none',
+              },
+            }}
+          >
+            Usuń
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-        <Dialog 
-          open={restoreDialog.open} 
-          onClose={() => setRestoreDialog({ open: false, type: null, id: null, name: '' })} 
-          fullWidth 
-          maxWidth="sm"
-        >
-          <DialogTitle>Przywróć {restoreDialog.type === 'consultation' ? 'konsultację' : restoreDialog.type === 'labResult' ? 'wynik badania' : 'plan opieki'}</DialogTitle>
-          <DialogContent>
-            <DialogContentText>
-              Czy na pewno chcesz przywrócić{' '}
-              {restoreDialog.type === 'consultation' && 'konsultację'}
-              {restoreDialog.type === 'labResult' && 'wynik badania'}
-              {restoreDialog.type === 'carePlan' && 'plan opieki'}{' '}
-              <strong>{restoreDialog.name}</strong>?
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setRestoreDialog({ open: false, type: null, id: null, name: '' })}>Anuluj</Button>
-            <Button onClick={handleRestoreConfirm} color="success" variant="contained">Przywróć</Button>
-          </DialogActions>
-        </Dialog>
+      {/* Restore Dialog */}
+      <Dialog
+        open={restoreDialog.open}
+        onClose={() => setRestoreDialog({ open: false, type: null, id: null, name: '' })}
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            p: 1,
+          },
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 700, color: '#1d1d1f' }}>
+          Potwierdź przywrócenie
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ color: '#86868b' }}>
+            Czy na pewno chcesz przywrócić: {restoreDialog.name}?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={() => setRestoreDialog({ open: false, type: null, id: null, name: '' })}
+            sx={{
+              color: '#1d1d1f',
+              textTransform: 'none',
+              fontWeight: 600,
+            }}
+          >
+            Anuluj
+          </Button>
+          <Button
+            onClick={handleRestoreConfirm}
+            variant="contained"
+            sx={{
+              bgcolor: '#34C759',
+              color: 'white',
+              textTransform: 'none',
+              fontWeight: 600,
+              boxShadow: 'none',
+              '&:hover': {
+                bgcolor: '#248A3D',
+                boxShadow: 'none',
+              },
+            }}
+          >
+            Przywróć
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-        <Dialog 
-          open={permanentDeleteDialog.open} 
-          onClose={() => setPermanentDeleteDialog({ open: false, type: null, id: null, name: '' })} 
-          fullWidth 
-          maxWidth="sm"
-        >
-          <DialogTitle>Trwałe usunięcie (RODO)</DialogTitle>
-          <DialogContent>
-            <DialogContentText>
-              <strong>UWAGA: Ta operacja jest nieodwracalna!</strong>
-              <br /><br />
-              Czy na pewno chcesz trwale usunąć{' '}
-              {permanentDeleteDialog.type === 'consultation' && 'konsultację'}
-              {permanentDeleteDialog.type === 'labResult' && 'wynik badania'}
-              {permanentDeleteDialog.type === 'carePlan' && 'plan opieki'}{' '}
-              <strong>{permanentDeleteDialog.name}</strong> zgodnie z RODO?
-              <br /><br />
-              Ta operacja jest zgodna z RODO i nie może być cofnięta.
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setPermanentDeleteDialog({ open: false, type: null, id: null, name: '' })}>Anuluj</Button>
-            <Button onClick={handlePermanentDeleteConfirm} color="error" variant="contained">Trwale usuń</Button>
-          </DialogActions>
-        </Dialog>
-      </Box>
-    </Container>
+      {/* Permanent Delete Dialog */}
+      <Dialog
+        open={permanentDeleteDialog.open}
+        onClose={() => setPermanentDeleteDialog({ open: false, type: null, id: null, name: '' })}
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            p: 1,
+          },
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 700, color: '#FF3B30' }}>
+          Trwałe usunięcie
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ color: '#86868b' }}>
+            UWAGA: Ta operacja jest nieodwracalna. Czy na pewno chcesz trwale usunąć: {permanentDeleteDialog.name}?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={() => setPermanentDeleteDialog({ open: false, type: null, id: null, name: '' })}
+            sx={{
+              color: '#1d1d1f',
+              textTransform: 'none',
+              fontWeight: 600,
+            }}
+          >
+            Anuluj
+          </Button>
+          <Button
+            onClick={handlePermanentDeleteConfirm}
+            variant="contained"
+            sx={{
+              bgcolor: '#FF3B30',
+              color: 'white',
+              textTransform: 'none',
+              fontWeight: 600,
+              boxShadow: 'none',
+              '&:hover': {
+                bgcolor: '#D70015',
+                boxShadow: 'none',
+              },
+            }}
+          >
+            Usuń trwale
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 }

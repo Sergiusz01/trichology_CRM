@@ -21,6 +21,7 @@ import EmailTestPage from './pages/EmailTestPage';
 import EmailHistoryPage from './pages/EmailHistoryPage';
 import EmailTemplatesPage from './pages/EmailTemplatesPage';
 import UserProfilePage from './pages/UserProfilePage';
+import DashboardPage from './pages/DashboardPage';
 
 function App() {
   const { user, loading } = useAuth();
@@ -33,7 +34,8 @@ function App() {
     <Routes>
       <Route path="/login" element={!user ? <LoginPage /> : <Navigate to="/" />} />
       <Route path="/" element={user ? <Layout /> : <Navigate to="/login" />}>
-        <Route index element={<Navigate to="/patients" />} />
+        <Route index element={<DashboardPage />} />
+        <Route path="dashboard" element={<DashboardPage />} />
         <Route path="patients" element={<PatientsPage />} />
         <Route path="patients/new" element={<PatientFormPage />} />
         <Route path="patients/:id" element={<PatientDetailPage />} />

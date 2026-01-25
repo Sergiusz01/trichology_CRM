@@ -382,7 +382,7 @@ export default function ScalpPhotoDetailPage() {
             <Box sx={{ position: 'relative', display: 'inline-block', width: '100%' }}>
               <img
                 ref={imageRef}
-                src={`${(import.meta as any).env?.VITE_API_URL || 'http://localhost:3001'}${photo.url || `/uploads/${photo.filePath?.split(/[/\\]/).pop()}`}`}
+                src={`${photo.url || `/uploads/${photo.filePath?.split(/[/\\]/).pop()}`}`}
                 alt={photo.originalFilename || 'Zdjęcie skóry głowy'}
                 onLoad={() => {
                   console.log('Obraz załadowany:', photo.url);

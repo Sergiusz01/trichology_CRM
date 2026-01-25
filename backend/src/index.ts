@@ -76,18 +76,24 @@ startReminderWorker();
 // Initialize default email templates on startup (if no templates exist)
 (async () => {
   try {
+    // Wait a bit for database connection to be ready
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
     const { initializeDefaultTemplates } = await import('./utils/initializeDefaultTemplates');
-    
+
     // Get first admin user to use as creator
     const admin = await prisma.user.findFirst({
       where: { role: 'ADMIN' },
     });
 
-    if (admin) {
+    if (admin && prisma) {
       await initializeDefaultTemplates(admin.id, prisma);
+    } else {
+      console.log('⚠️ Brak użytkownika admin lub prisma nie jest zainicjalizowane - pomijam inicjalizację szablonów');
     }
   } catch (error) {
-    console.error('Błąd podczas inicjalizacji domyślnych szablonów:', error);
+    console.error('❌ Błąd podczas inicjalizacji domyślnych szablonów:', error);
+    // Don't throw - this is not critical for server startup
   }
 })();
 

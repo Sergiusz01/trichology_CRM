@@ -22,8 +22,18 @@ const createTransporter = (): nodemailer.Transporter => {
   
   // Port 465 = SSL/TLS (secure: true), Port 587 = STARTTLS (secure: false, requireTLS: true)
   // If port is 587, always use STARTTLS regardless of SMTP_SECURE value
-  const isSecure = port === 465 || (secureValue === 'true' && port !== 587);
+  // Handle various formats: "true", "ssl/tls", "ssl", "tls" -> secure
+  const isSecureValue = secureValue === 'true' || 
+                        secureValue === 'ssl/tls' || 
+                        secureValue === 'ssl' || 
+                        secureValue === 'tls';
+  const isSecure = port === 465 || (isSecureValue && port !== 587);
   const requireTLS = port === 587 || (!isSecure && secureValue !== 'false');
+
+  // Validate required SMTP configuration
+  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    throw new Error('Brak konfiguracji SMTP. Sprawdź zmienne środowiskowe: SMTP_HOST, SMTP_USER, SMTP_PASS');
+  }
 
   const smtpConfig: any = {
     host: process.env.SMTP_HOST,
@@ -61,10 +71,20 @@ export const sendEmail = async (options: EmailOptions): Promise<void> => {
 
   try {
     await emailTransporter.sendMail(mailOptions);
-    console.log(`Email wysłany do: ${options.to}`);
-  } catch (error) {
-    console.error('Błąd wysyłania email:', error);
-    throw error;
+    console.log(`✅ Email wysłany do: ${options.to}`);
+  } catch (error: any) {
+    console.error('❌ Błąd wysyłania email:', error);
+    // Provide more detailed error message
+    const smtpPort = process.env.SMTP_PORT || '587';
+    if (error.code === 'EAUTH') {
+      throw new Error('Błąd autoryzacji SMTP. Sprawdź SMTP_USER i SMTP_PASS w .env');
+    } else if (error.code === 'ECONNECTION') {
+      throw new Error(`Nie można połączyć się z serwerem SMTP ${process.env.SMTP_HOST}:${smtpPort}. Sprawdź SMTP_HOST i SMTP_PORT.`);
+    } else if (error.code === 'ETIMEDOUT') {
+      throw new Error('Timeout połączenia z serwerem SMTP. Sprawdź połączenie internetowe i ustawienia firewall.');
+    } else {
+      throw new Error(`Błąd wysyłania email: ${error.message || error}`);
+    }
   }
 };
 

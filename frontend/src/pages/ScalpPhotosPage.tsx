@@ -79,7 +79,7 @@ export default function ScalpPhotosPage() {
                 <CardMedia
                   component="img"
                   height={isMobile ? 180 : 200}
-                  image={`${(import.meta as any).env?.VITE_API_URL || 'http://localhost:3001'}${photo.url || `/uploads/${photo.filePath?.split(/[/\\]/).pop()}`}?v=${cacheBuster}`}
+                  image={`${photo.url || `/uploads/${photo.filePath?.split(/[/\\]/).pop()}`}?v=${cacheBuster}`}
                   alt={photo.originalFilename || 'Zdjęcie skóry głowy'}
                   sx={{
                     imageOrientation: 'from-image',

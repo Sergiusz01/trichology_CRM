@@ -75,12 +75,10 @@ router.get('/:id', authenticate, async (req: AuthRequest, res, next) => {
       where: { id },
       include: {
         consultations: {
-          where: { isArchived: false },
           orderBy: { consultationDate: 'desc' },
           take: 10,
         },
         labResults: {
-          where: { isArchived: false },
           orderBy: { date: 'desc' },
           take: 10,
         },
@@ -91,7 +89,6 @@ router.get('/:id', authenticate, async (req: AuthRequest, res, next) => {
         carePlans: {
           where: { 
             isActive: true,
-            isArchived: false,
           },
           orderBy: { createdAt: 'desc' },
         },

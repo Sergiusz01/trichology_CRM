@@ -12,7 +12,7 @@ const emailTemplateSchema = z.object({
   type: z.enum(['CONSULTATION', 'CARE_PLAN', 'LAB_RESULT', 'CUSTOM']),
   subject: z.string().min(1, 'Temat jest wymagany'),
   htmlBody: z.string().min(1, 'Treść HTML jest wymagana'),
-  textBody: z.string().optional(),
+
   isDefault: z.boolean().optional(),
   isActive: z.boolean().optional(),
 });
@@ -21,7 +21,7 @@ const emailTemplateSchema = z.object({
 router.get('/', authenticate, async (req: AuthRequest, res, next) => {
   try {
     const { type, active } = req.query;
-    
+
     const where: any = {};
     if (type) {
       where.type = type;
@@ -176,7 +176,6 @@ router.put('/:id', authenticate, async (req: AuthRequest, res, next) => {
         type: data.type,
         subject: data.subject,
         htmlBody: data.htmlBody,
-        textBody: data.textBody,
         isDefault: data.isDefault ?? existingTemplate.isDefault,
         isActive: data.isActive ?? existingTemplate.isActive,
       },
