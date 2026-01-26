@@ -21,6 +21,8 @@ import {
     TextField,
     InputAdornment,
     LinearProgress,
+    useTheme,
+    useMediaQuery,
 } from '@mui/material';
 import {
     PersonAdd,
@@ -55,6 +57,8 @@ interface RecentActivity {
 }
 
 export default function DashboardPage() {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
@@ -276,11 +280,12 @@ export default function DashboardPage() {
     return (
         <Box sx={{ pb: 4 }}>
             {/* Header Section */}
-            <Box sx={{ mb: 4 }}>
+            <Box sx={{ mb: { xs: 3, sm: 4 }, px: { xs: 1, sm: 0 } }}>
                 <Typography
                     variant="h4"
                     sx={{
                         fontWeight: 800,
+                        fontSize: { xs: '1.75rem', sm: '2.5rem' },
                         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                         backgroundClip: 'text',
                         WebkitBackgroundClip: 'text',
@@ -290,7 +295,7 @@ export default function DashboardPage() {
                 >
                     Panel Główny
                 </Typography>
-                <Typography variant="body1" color="text.secondary">
+                <Typography variant="body1" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
                     {format(new Date(), "EEEE, d MMMM yyyy", { locale: pl })}
                 </Typography>
             </Box>
@@ -298,11 +303,14 @@ export default function DashboardPage() {
             {/* Search Bar */}
             <Paper
                 sx={{
-                    p: 2,
+                    p: { xs: 1.5, sm: 2 },
                     mb: 4,
+                    mx: { xs: 1, sm: 0 },
                     background: 'white',
+                    borderRadius: 3,
                     border: '1px solid',
                     borderColor: 'divider',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
                 }}
             >
                 <TextField
@@ -310,6 +318,7 @@ export default function DashboardPage() {
                     placeholder="Szybkie wyszukiwanie pacjenta..."
                     value={searchQuery}
                     onChange={(e) => handleSearch(e.target.value)}
+                    size={isMobile ? 'small' : 'medium'}
                     InputProps={{
                         startAdornment: (
                             <InputAdornment position="start">
@@ -319,7 +328,7 @@ export default function DashboardPage() {
                     }}
                     sx={{
                         '& .MuiOutlinedInput-root': {
-                            borderRadius: 2,
+                            borderRadius: 3,
                         },
                     }}
                 />
@@ -330,7 +339,7 @@ export default function DashboardPage() {
                                 key={patient.id}
                                 onClick={() => navigate(`/patients/${patient.id}`)}
                                 sx={{
-                                    borderRadius: 2,
+                                    borderRadius: 3,
                                     mb: 1,
                                     '&:hover': {
                                         bgcolor: alpha('#667eea', 0.05),
@@ -338,15 +347,16 @@ export default function DashboardPage() {
                                 }}
                             >
                                 <ListItemAvatar>
-                                    <Avatar sx={{ bgcolor: '#667eea' }}>
+                                    <Avatar sx={{ bgcolor: alpha('#667eea', 0.1), color: '#667eea', fontWeight: 700 }}>
                                         {patient.firstName[0]}{patient.lastName[0]}
                                     </Avatar>
                                 </ListItemAvatar>
                                 <ListItemText
                                     primary={`${patient.firstName} ${patient.lastName}`}
+                                    primaryTypographyProps={{ fontWeight: 600 }}
                                     secondary={patient.email || patient.phone}
                                 />
-                                <ArrowForward sx={{ color: '#667eea' }} />
+                                <ArrowForward sx={{ color: '#667eea', opacity: 0.5 }} />
                             </ListItemButton>
                         ))}
                     </List>
@@ -355,43 +365,45 @@ export default function DashboardPage() {
 
             {/* Patients Needing Attention */}
             {(patientsNeedingAttention.length > 0 || inactivePatientsList.length > 0) && (
-                <Grid container spacing={3} sx={{ mb: 4 }}>
+                <Grid container spacing={3} sx={{ mb: 4, px: { xs: 1, sm: 0 } }}>
                     {patientsNeedingAttention.length > 0 && (
                         <Grid size={{ xs: 12, md: 6 }}>
                             <Paper
                                 sx={{
-                                    p: 3,
+                                    p: { xs: 2, sm: 3 },
                                     background: 'white',
-                                    border: '2px solid',
-                                    borderColor: '#fa709a',
+                                    borderRadius: 3,
+                                    border: '1px solid',
+                                    borderColor: alpha('#fa709a', 0.3),
+                                    boxShadow: `0 8px 24px ${alpha('#fa709a', 0.1)}`,
                                 }}
                             >
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                                    <Warning sx={{ color: '#fa709a', fontSize: 32 }} />
+                                    <Warning sx={{ color: '#fa709a', fontSize: { xs: 24, sm: 32 } }} />
                                     <Box>
-                                        <Typography variant="h6" sx={{ fontWeight: 700, color: '#fa709a' }}>
+                                        <Typography variant="h6" sx={{ fontWeight: 700, color: '#fa709a', fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                                             Pacjenci bez konsultacji
                                         </Typography>
                                         <Typography variant="body2" color="text.secondary">
-                                            {patientsNeedingAttention.length} pacjentów wymaga pierwszej konsultacji
+                                            {stats.patientsWithoutConsultation} pacjentów wymaga uwagi
                                         </Typography>
                                     </Box>
                                 </Box>
                                 <List sx={{ p: 0 }}>
-                                    {patientsNeedingAttention.map((patient, index) => (
+                                    {patientsNeedingAttention.map((patient) => (
                                         <React.Fragment key={patient.id}>
-                                            {index > 0 && <Divider sx={{ my: 1 }} />}
                                             <ListItemButton
                                                 onClick={() => navigate(`/patients/${patient.id}`)}
                                                 sx={{
                                                     borderRadius: 2,
+                                                    mb: 0.5,
                                                     '&:hover': {
                                                         bgcolor: alpha('#fa709a', 0.05),
                                                     },
                                                 }}
                                             >
                                                 <ListItemAvatar>
-                                                    <Avatar sx={{ bgcolor: '#fa709a' }}>
+                                                    <Avatar sx={{ bgcolor: alpha('#fa709a', 0.1), color: '#fa709a', fontWeight: 600 }}>
                                                         {patient.firstName[0]}{patient.lastName[0]}
                                                     </Avatar>
                                                 </ListItemAvatar>
@@ -407,29 +419,30 @@ export default function DashboardPage() {
                                                         </Typography>
                                                     }
                                                 />
-                                                <ArrowForward sx={{ color: '#fa709a' }} />
+                                                <ArrowForward sx={{ color: '#fa709a', opacity: 0.5 }} />
                                             </ListItemButton>
                                         </React.Fragment>
                                     ))}
                                 </List>
-                                {patientsNeedingAttention.length > 5 && (
-                                    <Button
-                                        fullWidth
-                                        variant="outlined"
-                                        onClick={() => navigate('/patients')}
-                                        sx={{
-                                            mt: 2,
+                                <Button
+                                    fullWidth
+                                    variant="outlined"
+                                    onClick={() => navigate('/patients')}
+                                    sx={{
+                                        mt: 2,
+                                        borderRadius: 2,
+                                        textTransform: 'none',
+                                        fontWeight: 600,
+                                        borderColor: '#fa709a',
+                                        color: '#fa709a',
+                                        '&:hover': {
                                             borderColor: '#fa709a',
-                                            color: '#fa709a',
-                                            '&:hover': {
-                                                borderColor: '#fa709a',
-                                                bgcolor: alpha('#fa709a', 0.05),
-                                            },
-                                        }}
-                                    >
-                                        Zobacz wszystkich ({stats.patientsWithoutConsultation})
-                                    </Button>
-                                )}
+                                            bgcolor: alpha('#fa709a', 0.05),
+                                        },
+                                    }}
+                                >
+                                    Zobacz wszystkich
+                                </Button>
                             </Paper>
                         </Grid>
                     )}
@@ -438,38 +451,40 @@ export default function DashboardPage() {
                         <Grid size={{ xs: 12, md: 6 }}>
                             <Paper
                                 sx={{
-                                    p: 3,
+                                    p: { xs: 2, sm: 3 },
                                     background: 'white',
-                                    border: '2px solid',
-                                    borderColor: '#4facfe',
+                                    borderRadius: 3,
+                                    border: '1px solid',
+                                    borderColor: alpha('#4facfe', 0.3),
+                                    boxShadow: `0 8px 24px ${alpha('#4facfe', 0.1)}`,
                                 }}
                             >
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                                    <Warning sx={{ color: '#4facfe', fontSize: 32 }} />
+                                    <Assessment sx={{ color: '#4facfe', fontSize: { xs: 24, sm: 32 } }} />
                                     <Box>
-                                        <Typography variant="h6" sx={{ fontWeight: 700, color: '#4facfe' }}>
+                                        <Typography variant="h6" sx={{ fontWeight: 700, color: '#4facfe', fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                                             Pacjenci nieaktywni
                                         </Typography>
                                         <Typography variant="body2" color="text.secondary">
-                                            {inactivePatientsList.length} pacjentów bez konsultacji przez 30+ dni
+                                            Brak konsultacji przez 30+ dni
                                         </Typography>
                                     </Box>
                                 </Box>
                                 <List sx={{ p: 0 }}>
-                                    {inactivePatientsList.map((patient, index) => (
+                                    {inactivePatientsList.map((patient) => (
                                         <React.Fragment key={patient.id}>
-                                            {index > 0 && <Divider sx={{ my: 1 }} />}
                                             <ListItemButton
                                                 onClick={() => navigate(`/patients/${patient.id}`)}
                                                 sx={{
                                                     borderRadius: 2,
+                                                    mb: 0.5,
                                                     '&:hover': {
                                                         bgcolor: alpha('#4facfe', 0.05),
                                                     },
                                                 }}
                                             >
                                                 <ListItemAvatar>
-                                                    <Avatar sx={{ bgcolor: '#4facfe' }}>
+                                                    <Avatar sx={{ bgcolor: alpha('#4facfe', 0.1), color: '#4facfe', fontWeight: 600 }}>
                                                         {patient.firstName[0]}{patient.lastName[0]}
                                                     </Avatar>
                                                 </ListItemAvatar>
@@ -485,7 +500,7 @@ export default function DashboardPage() {
                                                         </Typography>
                                                     }
                                                 />
-                                                <ArrowForward sx={{ color: '#4facfe' }} />
+                                                <ArrowForward sx={{ color: '#4facfe', opacity: 0.5 }} />
                                             </ListItemButton>
                                         </React.Fragment>
                                     ))}
@@ -497,21 +512,26 @@ export default function DashboardPage() {
             )}
 
             {/* Stats Cards */}
-            <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid container spacing={3} sx={{ mb: 4, px: { xs: 1, sm: 0 } }}>
                 {statCards.map((stat, index) => (
                     <Grid key={index} size={{ xs: 12, sm: 6, md: 3 }}>
                         <Card
                             sx={{
                                 position: 'relative',
                                 overflow: 'visible',
+                                borderRadius: 3,
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
                                 background: 'white',
+                                height: '100%',
                                 '&::before': {
                                     content: '""',
                                     position: 'absolute',
                                     top: 0,
                                     left: 0,
                                     right: 0,
-                                    height: '4px',
+                                    height: '6px',
                                     background: stat.gradient,
                                     borderRadius: '16px 16px 0 0',
                                 },
@@ -539,6 +559,7 @@ export default function DashboardPage() {
                                     sx={{
                                         fontWeight: 800,
                                         mb: 0.5,
+                                        fontSize: { xs: '2rem', sm: '2.5rem' },
                                         background: stat.gradient,
                                         backgroundClip: 'text',
                                         WebkitBackgroundClip: 'text',
@@ -547,10 +568,10 @@ export default function DashboardPage() {
                                 >
                                     {stat.value}
                                 </Typography>
-                                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500, mb: 1 }}>
+                                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, mb: 1 }}>
                                     {stat.title}
                                 </Typography>
-                                <Typography variant="caption" color="text.secondary">
+                                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
                                     {stat.subtitle}
                                 </Typography>
                                 {stat.progress > 0 && (
@@ -558,12 +579,13 @@ export default function DashboardPage() {
                                         variant="determinate"
                                         value={Math.min(stat.progress, 100)}
                                         sx={{
-                                            mt: 2,
-                                            height: 6,
-                                            borderRadius: 3,
+                                            mt: 2.5,
+                                            height: 8,
+                                            borderRadius: 4,
                                             bgcolor: alpha(stat.color, 0.1),
                                             '& .MuiLinearProgress-bar': {
                                                 background: stat.gradient,
+                                                borderRadius: 4,
                                             },
                                         }}
                                     />
@@ -575,18 +597,20 @@ export default function DashboardPage() {
             </Grid>
 
             {/* Content Grid */}
-            <Grid container spacing={3}>
+            <Grid container spacing={3} sx={{ px: { xs: 1, sm: 0 } }}>
                 {/* Recent Activity */}
                 <Grid size={{ xs: 12, md: 8 }}>
                     <Paper
                         sx={{
-                            p: 3,
+                            p: { xs: 2, sm: 3 },
                             background: 'white',
+                            borderRadius: 3,
                             border: '1px solid',
                             borderColor: 'divider',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
                         }}
                     >
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 2, mb: 3 }}>
                             <Box>
                                 <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>
                                     Ostatnia aktywność
@@ -598,9 +622,14 @@ export default function DashboardPage() {
                             <Button
                                 endIcon={<ArrowForward />}
                                 onClick={() => navigate('/patients')}
+                                variant="contained"
+                                fullWidth={isMobile}
                                 sx={{
+                                    borderRadius: 2,
+                                    textTransform: 'none',
+                                    fontWeight: 600,
                                     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                    color: 'white',
+                                    boxShadow: `0 4px 12px ${alpha('#667eea', 0.2)}`,
                                     '&:hover': {
                                         background: 'linear-gradient(135deg, #764ba2 0%, #667eea 100%)',
                                     },
@@ -696,17 +725,19 @@ export default function DashboardPage() {
                 <Grid size={{ xs: 12, md: 4 }}>
                     <Paper
                         sx={{
-                            p: 3,
+                            p: { xs: 2.5, sm: 4 },
                             height: '100%',
+                            borderRadius: 3,
                             background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                             color: 'white',
+                            boxShadow: `0 8px 24px ${alpha('#667eea', 0.25)}`,
                         }}
                     >
-                        <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, color: 'white' }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700, mb: 1.5, color: 'white' }}>
                             Szybkie akcje
                         </Typography>
-                        <Typography variant="body2" sx={{ mb: 3, opacity: 0.9 }}>
-                            Najczęściej używane funkcje
+                        <Typography variant="body2" sx={{ mb: 4, opacity: 0.9 }}>
+                            Najczęściej używane funkcje systemu
                         </Typography>
                         <List sx={{ p: 0 }}>
                             <ListItemButton

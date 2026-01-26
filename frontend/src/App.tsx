@@ -61,6 +61,7 @@ function App() {
         <Route path="email/templates" element={<EmailTemplatesPage />} />
         <Route path="profile" element={<UserProfilePage />} />
         <Route path="care-plans/:id" element={<CarePlanDetailPage />} />
+        <Route path="scalp-photos/:photoId" element={<ScalpPhotoDetailPage />} />
       </Route>
     </Routes>
   );

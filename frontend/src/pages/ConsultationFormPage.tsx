@@ -27,13 +27,13 @@ export default function ConsultationFormPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  
+
   // Check if we're creating a new consultation by checking the URL path
   const isNewConsultation = location.pathname.includes('/consultations/new') || (!id && patientId);
   // If we're on /patients/:id/consultations/new, then id is actually the patientId
   const actualPatientId = location.pathname.includes('/consultations/new') ? id : (patientId || id);
   const actualConsultationId = location.pathname.includes('/consultations/new') ? undefined : id;
-  
+
   const [formData, setFormData] = useState<any>({
     patientId: actualPatientId || '',
     consultationDate: new Date().toISOString().split('T')[0],
@@ -58,17 +58,17 @@ export default function ConsultationFormPage() {
       console.log('[ConsultationFormPage] Skipping fetch - creating new consultation');
       return;
     }
-    
+
     try {
       setLoading(true);
       setError('');
       console.log('[ConsultationFormPage] Fetching consultation with ID:', actualConsultationId);
-      
+
       const response = await api.get(`/consultations/${actualConsultationId}`);
       console.log('[ConsultationFormPage] Consultation response:', response.data);
-      
+
       const consultation = response.data.consultation;
-      
+
       if (!consultation) {
         console.error('[ConsultationFormPage] No consultation in response');
         setError('Konsultacja nie znaleziona');
@@ -104,8 +104,8 @@ export default function ConsultationFormPage() {
       jsonFields.forEach((field) => {
         if (parsedData[field]) {
           try {
-            parsedData[field] = typeof parsedData[field] === 'string' 
-              ? JSON.parse(parsedData[field]) 
+            parsedData[field] = typeof parsedData[field] === 'string'
+              ? JSON.parse(parsedData[field])
               : parsedData[field];
           } catch {
             parsedData[field] = [];
@@ -121,7 +121,7 @@ export default function ConsultationFormPage() {
         data: error.response?.data,
         message: error.message,
       });
-      
+
       // Only show error if we're actually trying to edit an existing consultation
       // (not when creating a new one)
       if (error.response?.status === 404 && actualConsultationId && !isNewConsultation) {
@@ -194,13 +194,13 @@ export default function ConsultationFormPage() {
       'alopeciaTypes',
       'alopeciaAffectedAreas',
     ];
-    
+
     const dataToSend: any = {};
-    
+
     // Copy only defined fields and handle conversions
     Object.keys(formData).forEach((key) => {
       const value = formData[key];
-      
+
       // Skip undefined, null, or empty strings (except for required fields)
       if (value === undefined || value === null || value === '') {
         // Only include empty strings for required fields (patientId, consultationDate)
@@ -212,7 +212,7 @@ export default function ConsultationFormPage() {
         // Skip other empty values
         return;
       }
-      
+
       // Handle JSON fields - convert arrays to JSON strings
       if (jsonFields.includes(key)) {
         if (Array.isArray(value)) {
@@ -233,14 +233,14 @@ export default function ConsultationFormPage() {
         dataToSend[key] = value;
       }
     });
-    
+
     // Remove undefined values
     Object.keys(dataToSend).forEach((key) => {
       if (dataToSend[key] === undefined) {
         delete dataToSend[key];
       }
     });
-    
+
     console.log('[ConsultationFormPage] Data to send keys:', Object.keys(dataToSend));
     console.log('[ConsultationFormPage] PatientId:', dataToSend.patientId);
 
@@ -259,17 +259,17 @@ export default function ConsultationFormPage() {
       console.error('Error response:', err.response);
       console.error('Error response data:', err.response?.data);
       console.error('Error message:', err.message);
-      
+
       if (err.response?.data) {
         const errorData = err.response.data;
-        
+
         // Show detailed error message
         let errorMessage = errorData.error || 'Błąd zapisywania konsultacji';
-        
+
         if (errorData.message) {
           errorMessage += `: ${errorData.message}`;
         }
-        
+
         if (errorData.details) {
           if (Array.isArray(errorData.details)) {
             // Validation errors
@@ -285,7 +285,7 @@ export default function ConsultationFormPage() {
             errorMessage += ` (${JSON.stringify(errorData.details)})`;
           }
         }
-        
+
         setError(errorMessage);
       } else {
         setError(err.message || 'Błąd zapisywania konsultacji');
@@ -297,10 +297,10 @@ export default function ConsultationFormPage() {
 
   return (
     <Box sx={{ width: '100%', maxWidth: '100%', overflow: 'hidden', px: { xs: 0, sm: 0 } }}>
-      <Typography 
-        variant="h4" 
+      <Typography
+        variant="h4"
         gutterBottom
-        sx={{ 
+        sx={{
           fontSize: { xs: '1.5rem', sm: '2rem' },
           mb: { xs: 2, sm: 3 },
           px: { xs: 1.5, sm: 0 },
@@ -322,9 +322,9 @@ export default function ConsultationFormPage() {
       )}
 
       <form onSubmit={handleSubmit}>
-        <Paper sx={{ p: { xs: 1.5, sm: 2, md: 3 }, mb: { xs: 1.5, sm: 2 } }}>
-          <Grid container spacing={{ xs: 1.5, sm: 2 }}>
-            <Grid item xs={12} md={6}>
+        <Paper sx={{ p: { xs: 2, sm: 3 }, mb: { xs: 2, sm: 3 }, borderRadius: 2 }}>
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label="Data konsultacji"
@@ -342,9 +342,9 @@ export default function ConsultationFormPage() {
           <AccordionSummary expandIcon={<ExpandMore />}>
             <Typography variant="h6">1. Wypadanie włosów</Typography>
           </AccordionSummary>
-          <AccordionDetails sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
-            <Grid container spacing={{ xs: 1.5, sm: 2 }}>
-              <Grid item xs={12} md={6}>
+          <AccordionDetails sx={{ p: { xs: 2, sm: 3 } }}>
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <FormControl fullWidth>
                   <InputLabel>Nasilenie</InputLabel>
                   <Select
@@ -361,7 +361,7 @@ export default function ConsultationFormPage() {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <FormControl fullWidth>
                   <InputLabel>Czas trwania</InputLabel>
                   <Select
@@ -377,7 +377,7 @@ export default function ConsultationFormPage() {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <MultiSelectCheckboxes
                   label="Lokalizacja"
                   options={[
@@ -395,7 +395,7 @@ export default function ConsultationFormPage() {
                   onChange={(value) => handleArrayChange('hairLossLocalization', value)}
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   fullWidth
                   label="Używane szampony"
@@ -414,9 +414,9 @@ export default function ConsultationFormPage() {
           <AccordionSummary expandIcon={<ExpandMore />}>
             <Typography variant="h6">2. Przetłuszczanie się włosów</Typography>
           </AccordionSummary>
-          <AccordionDetails sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
-            <Grid container spacing={{ xs: 1.5, sm: 2 }}>
-              <Grid item xs={12} md={6}>
+          <AccordionDetails sx={{ p: { xs: 2, sm: 3 } }}>
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <FormControl fullWidth>
                   <InputLabel>Nasilenie</InputLabel>
                   <Select
@@ -433,7 +433,7 @@ export default function ConsultationFormPage() {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <FormControl fullWidth>
                   <InputLabel>Częstotliwość mycia</InputLabel>
                   <Select
@@ -448,7 +448,7 @@ export default function ConsultationFormPage() {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <FormControl fullWidth>
                   <InputLabel>Czas trwania</InputLabel>
                   <Select
@@ -464,7 +464,7 @@ export default function ConsultationFormPage() {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   fullWidth
                   label="Używane szampony"
@@ -483,9 +483,9 @@ export default function ConsultationFormPage() {
           <AccordionSummary expandIcon={<ExpandMore />}>
             <Typography variant="h6">3. Łuszczenie skóry głowy</Typography>
           </AccordionSummary>
-          <AccordionDetails sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
-            <Grid container spacing={{ xs: 1.5, sm: 2 }}>
-              <Grid item xs={12} md={6}>
+          <AccordionDetails sx={{ p: { xs: 2, sm: 3 } }}>
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <FormControl fullWidth>
                   <InputLabel>Nasilenie</InputLabel>
                   <Select
@@ -502,7 +502,7 @@ export default function ConsultationFormPage() {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <FormControl fullWidth>
                   <InputLabel>Czas trwania</InputLabel>
                   <Select
@@ -518,7 +518,7 @@ export default function ConsultationFormPage() {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <MultiSelectCheckboxes
                   label="Rodzaj"
                   options={['suchy', 'tłusty', 'miejscowy', 'uogólniony']}
@@ -526,7 +526,7 @@ export default function ConsultationFormPage() {
                   onChange={(value) => handleArrayChange('scalingType', value)}
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   fullWidth
                   multiline
@@ -545,9 +545,9 @@ export default function ConsultationFormPage() {
           <AccordionSummary expandIcon={<ExpandMore />}>
             <Typography variant="h6">4. Wrażliwość skóry głowy</Typography>
           </AccordionSummary>
-          <AccordionDetails sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
-            <Grid container spacing={{ xs: 1.5, sm: 2 }}>
-              <Grid item xs={12} md={6}>
+          <AccordionDetails sx={{ p: { xs: 2, sm: 3 } }}>
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <FormControl fullWidth>
                   <InputLabel>Nasilenie</InputLabel>
                   <Select
@@ -564,7 +564,7 @@ export default function ConsultationFormPage() {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <FormControl fullWidth>
                   <InputLabel>Czas trwania</InputLabel>
                   <Select
@@ -580,7 +580,7 @@ export default function ConsultationFormPage() {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <MultiSelectCheckboxes
                   label="Rodzaj problemu"
                   options={['świąd', 'pieczenie', 'nadwrażliwość na preparaty', 'trichodynia']}
@@ -588,7 +588,7 @@ export default function ConsultationFormPage() {
                   onChange={(value) => handleArrayChange('sensitivityProblemType', value)}
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   fullWidth
                   multiline
@@ -605,18 +605,51 @@ export default function ConsultationFormPage() {
         {/* Inflammatory States */}
         <Accordion>
           <AccordionSummary expandIcon={<ExpandMore />}>
-            <Typography variant="h6">5. Stany zapalne / Grudki</Typography>
+            <Typography variant="h6">5. Stany zapalne (krostki, strupki)</Typography>
           </AccordionSummary>
-          <AccordionDetails sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
-            <Grid container spacing={{ xs: 1.5, sm: 2 }}>
-              <Grid item xs={12}>
+          <AccordionDetails sx={{ p: { xs: 2, sm: 3 } }}>
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <FormControl fullWidth>
+                  <InputLabel>Nasilenie</InputLabel>
+                  <Select
+                    value={formData.inflammatorySeverity || ''}
+                    onChange={(e) => handleChange('inflammatorySeverity', e.target.value)}
+                    label="Nasilenie"
+                  >
+                    <MenuItem value="">Brak</MenuItem>
+                    <MenuItem value="normie">W normie</MenuItem>
+                    <MenuItem value="nasilone">Nasilone</MenuItem>
+                    <MenuItem value="nadmierne">Nadmierne</MenuItem>
+                    <MenuItem value="okresowe">Okresowe</MenuItem>
+                    <MenuItem value="brak">Brak</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <FormControl fullWidth>
+                  <InputLabel>Czas trwania</InputLabel>
+                  <Select
+                    value={formData.inflammatoryDuration || ''}
+                    onChange={(e) => handleChange('inflammatoryDuration', e.target.value)}
+                    label="Czas trwania"
+                  >
+                    <MenuItem value="">Brak</MenuItem>
+                    <MenuItem value="0-6 m-cy">0-6 m-cy</MenuItem>
+                    <MenuItem value="6-12 m-cy">6-12 m-cy</MenuItem>
+                    <MenuItem value="12-24 m-cy">12-24 m-cy</MenuItem>
+                    <MenuItem value="powyżej roku">Powyżej roku</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   fullWidth
                   multiline
-                  rows={4}
-                  label="Stany zapalne / Grudki"
-                  value={formData.inflammatoryStates || ''}
-                  onChange={(e) => handleChange('inflammatoryStates', e.target.value)}
+                  rows={2}
+                  label="Inne"
+                  value={formData.inflammatoryOther || ''}
+                  onChange={(e) => handleChange('inflammatoryOther', e.target.value)}
                 />
               </Grid>
             </Grid>
@@ -628,362 +661,94 @@ export default function ConsultationFormPage() {
           <AccordionSummary expandIcon={<ExpandMore />}>
             <Typography variant="h6">6. Wywiad</Typography>
           </AccordionSummary>
-          <AccordionDetails sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
-            <Grid container spacing={{ xs: 1.5, sm: 2 }}>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Czy problem występuje u innych członków rodziny?</InputLabel>
-                  <Select
-                    value={formData.familyHistory || ''}
-                    onChange={(e) => handleChange('familyHistory', e.target.value)}
-                    label="Czy problem występuje u innych członków rodziny?"
-                  >
-                    <MenuItem value="">Brak</MenuItem>
-                    <MenuItem value="tak">Tak</MenuItem>
-                    <MenuItem value="nie">Nie</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Czy była konieczna wizyta u dermatologa?</InputLabel>
-                  <Select
-                    value={formData.dermatologyVisits || ''}
-                    onChange={(e) => handleChange('dermatologyVisits', e.target.value)}
-                    label="Czy była konieczna wizyta u dermatologa?"
-                  >
-                    <MenuItem value="">Brak</MenuItem>
-                    <MenuItem value="tak">Tak</MenuItem>
-                    <MenuItem value="nie">Nie</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              {formData.dermatologyVisits === 'tak' && (
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    multiline
-                    rows={2}
-                    label="Powód wizyty u dermatologa"
-                    value={formData.dermatologyVisitsReason || ''}
-                    onChange={(e) => handleChange('dermatologyVisitsReason', e.target.value)}
-                  />
-                </Grid>
-              )}
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Czy jest Pani w ciąży?</InputLabel>
-                  <Select
-                    value={formData.pregnancy || ''}
-                    onChange={(e) => handleChange('pregnancy', e.target.value)}
-                    label="Czy jest Pani w ciąży?"
-                  >
-                    <MenuItem value="">Brak</MenuItem>
-                    <MenuItem value="tak">Tak</MenuItem>
-                    <MenuItem value="nie">Nie</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Czy miesiączkuje regularnie?</InputLabel>
-                  <Select
-                    value={formData.menstruationRegularity || ''}
-                    onChange={(e) => handleChange('menstruationRegularity', e.target.value)}
-                    label="Czy miesiączkuje regularnie?"
-                  >
-                    <MenuItem value="">Brak</MenuItem>
-                    <MenuItem value="tak">Tak</MenuItem>
-                    <MenuItem value="nie">Nie</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12}>
+          <AccordionDetails sx={{ p: { xs: 2, sm: 3 } }}>
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
-                  multiline
-                  rows={2}
-                  label="Antykoncepcja hormonalna"
-                  value={formData.contraception || ''}
-                  onChange={(e) => handleChange('contraception', e.target.value)}
+                  label="Choroby tarczycy"
+                  value={formData.interviewThyroid || ''}
+                  onChange={(e) => handleChange('interviewThyroid', e.target.value)}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Czy zażywa Pan/Pani jakieś leki?</InputLabel>
-                  <Select
-                    value={formData.medications || ''}
-                    onChange={(e) => handleChange('medications', e.target.value)}
-                    label="Czy zażywa Pan/Pani jakieś leki?"
-                  >
-                    <MenuItem value="">Brak</MenuItem>
-                    <MenuItem value="tak">Tak</MenuItem>
-                    <MenuItem value="nie">Nie</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              {formData.medications === 'tak' && (
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    multiline
-                    rows={2}
-                    label="Jakie leki"
-                    value={formData.medicationsList || ''}
-                    onChange={(e) => handleChange('medicationsList', e.target.value)}
-                  />
-                </Grid>
-              )}
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
-                  multiline
-                  rows={2}
-                  label="Czy stosuje Pani/Pan suplementy?"
-                  value={formData.supplements || ''}
-                  onChange={(e) => handleChange('supplements', e.target.value)}
+                  label="Inne choroby"
+                  value={formData.interviewOtherDiseases || ''}
+                  onChange={(e) => handleChange('interviewOtherDiseases', e.target.value)}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Poziom stresu w życiu codziennym</InputLabel>
-                  <Select
-                    value={formData.stressLevel || ''}
-                    onChange={(e) => handleChange('stressLevel', e.target.value)}
-                    label="Poziom stresu w życiu codziennym"
-                  >
-                    <MenuItem value="">Brak</MenuItem>
-                    <MenuItem value="duży">Duży</MenuItem>
-                    <MenuItem value="mały">Mały</MenuItem>
-                    <MenuItem value="średni">Średni</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Czy w ostatnim czasie była Pani/Pan poddana narkozie?</InputLabel>
-                  <Select
-                    value={formData.anesthesia || ''}
-                    onChange={(e) => handleChange('anesthesia', e.target.value)}
-                    label="Czy w ostatnim czasie była Pani/Pan poddana narkozie?"
-                  >
-                    <MenuItem value="">Brak</MenuItem>
-                    <MenuItem value="tak">Tak</MenuItem>
-                    <MenuItem value="nie">Nie</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Czy w ostatnim czasie była Pani/Pan poddana chemioterapii?</InputLabel>
-                  <Select
-                    value={formData.chemotherapy || ''}
-                    onChange={(e) => handleChange('chemotherapy', e.target.value)}
-                    label="Czy w ostatnim czasie była Pani/Pan poddana chemioterapii?"
-                  >
-                    <MenuItem value="">Brak</MenuItem>
-                    <MenuItem value="tak">Tak</MenuItem>
-                    <MenuItem value="nie">Nie</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Czy w ostatnim czasie była Pani/Pan poddana radioterapii?</InputLabel>
-                  <Select
-                    value={formData.radiotherapy || ''}
-                    onChange={(e) => handleChange('radiotherapy', e.target.value)}
-                    label="Czy w ostatnim czasie była Pani/Pan poddana radioterapii?"
-                  >
-                    <MenuItem value="">Brak</MenuItem>
-                    <MenuItem value="tak">Tak</MenuItem>
-                    <MenuItem value="nie">Nie</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Czy w ostatnim czasie była Pani/Pan poddana szczepieniu?</InputLabel>
-                  <Select
-                    value={formData.vaccination || ''}
-                    onChange={(e) => handleChange('vaccination', e.target.value)}
-                    label="Czy w ostatnim czasie była Pani/Pan poddana szczepieniu?"
-                  >
-                    <MenuItem value="">Brak</MenuItem>
-                    <MenuItem value="tak">Tak</MenuItem>
-                    <MenuItem value="nie">Nie</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
-                  multiline
-                  rows={2}
-                  label="Antybiotyki"
-                  value={formData.antibiotics || ''}
-                  onChange={(e) => handleChange('antibiotics', e.target.value)}
+                  label="Leki (jeśli tak to jakie?)"
+                  value={formData.interviewMedications || ''}
+                  onChange={(e) => handleChange('interviewMedications', e.target.value)}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Czy choruje Pani/Pan na choroby przewlekłe?</InputLabel>
-                  <Select
-                    value={formData.chronicDiseases || ''}
-                    onChange={(e) => handleChange('chronicDiseases', e.target.value)}
-                    label="Czy choruje Pani/Pan na choroby przewlekłe?"
-                  >
-                    <MenuItem value="">Brak</MenuItem>
-                    <MenuItem value="tak">Tak</MenuItem>
-                    <MenuItem value="nie">Nie</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              {formData.chronicDiseases === 'tak' && (
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    multiline
-                    rows={2}
-                    label="Jakie choroby"
-                    value={formData.chronicDiseasesList || ''}
-                    onChange={(e) => handleChange('chronicDiseasesList', e.target.value)}
-                  />
-                </Grid>
-              )}
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Czy jest Pani/Pan pod opieką specjalisty?</InputLabel>
-                  <Select
-                    value={formData.specialists || ''}
-                    onChange={(e) => handleChange('specialists', e.target.value)}
-                    label="Czy jest Pani/Pan pod opieką specjalisty?"
-                  >
-                    <MenuItem value="">Brak</MenuItem>
-                    <MenuItem value="tak">Tak</MenuItem>
-                    <MenuItem value="nie">Nie</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              {formData.specialists === 'tak' && (
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    multiline
-                    rows={2}
-                    label="Jakiego specjalisty"
-                    value={formData.specialistsList || ''}
-                    onChange={(e) => handleChange('specialistsList', e.target.value)}
-                  />
-                </Grid>
-              )}
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Czy występują u Pani/Pana zaburzenia odżywiania/wchłaniania?</InputLabel>
-                  <Select
-                    value={formData.eatingDisorders || ''}
-                    onChange={(e) => handleChange('eatingDisorders', e.target.value)}
-                    label="Czy występują u Pani/Pana zaburzenia odżywiania/wchłaniania?"
-                  >
-                    <MenuItem value="">Brak</MenuItem>
-                    <MenuItem value="tak">Tak</MenuItem>
-                    <MenuItem value="nie">Nie</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
-                  multiline
-                  rows={2}
-                  label="Nietolerancje pokarmowe"
-                  value={formData.foodIntolerances || ''}
-                  onChange={(e) => handleChange('foodIntolerances', e.target.value)}
+                  label="Suplementy"
+                  value={formData.interviewSupplements || ''}
+                  onChange={(e) => handleChange('interviewSupplements', e.target.value)}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Czy w ostatnim czasie była Pani/Pan na diecie?</InputLabel>
-                  <Select
-                    value={formData.diet || ''}
-                    onChange={(e) => handleChange('diet', e.target.value)}
-                    label="Czy w ostatnim czasie była Pani/Pan na diecie?"
-                  >
-                    <MenuItem value="">Brak</MenuItem>
-                    <MenuItem value="tak">Tak</MenuItem>
-                    <MenuItem value="nie">Nie</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Czy występuje u Pani/Pana alergia lub uczulenie?</InputLabel>
-                  <Select
-                    value={formData.allergies || ''}
-                    onChange={(e) => handleChange('allergies', e.target.value)}
-                    label="Czy występuje u Pani/Pana alergia lub uczulenie?"
-                  >
-                    <MenuItem value="">Brak</MenuItem>
-                    <MenuItem value="tak">Tak</MenuItem>
-                    <MenuItem value="nie">Nie</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Czy ma Pani/Pan jakieś części metalowe w organizmie?</InputLabel>
-                  <Select
-                    value={formData.metalPartsInBody || ''}
-                    onChange={(e) => handleChange('metalPartsInBody', e.target.value)}
-                    label="Czy ma Pani/Pan jakieś części metalowe w organizmie?"
-                  >
-                    <MenuItem value="">Brak</MenuItem>
-                    <MenuItem value="tak">Tak</MenuItem>
-                    <MenuItem value="nie">Nie</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12}>
-                <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>Rutyna pielęgnacyjna:</Typography>
-              </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
-                  multiline
-                  rows={2}
-                  label="Szampon"
-                  value={formData.careRoutineShampoo || ''}
-                  onChange={(e) => handleChange('careRoutineShampoo', e.target.value)}
+                  label="Zaburzenia hormonalne"
+                  value={formData.interviewHormones || ''}
+                  onChange={(e) => handleChange('interviewHormones', e.target.value)}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
-                  multiline
-                  rows={2}
-                  label="Odżywka/Maska"
-                  value={formData.careRoutineConditioner || ''}
-                  onChange={(e) => handleChange('careRoutineConditioner', e.target.value)}
+                  label="Stres (w skali 1-10)"
+                  value={formData.interviewStress || ''}
+                  onChange={(e) => handleChange('interviewStress', e.target.value)}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
-                  multiline
-                  rows={2}
-                  label="Oleje/Lotiony"
-                  value={formData.careRoutineOils || ''}
-                  onChange={(e) => handleChange('careRoutineOils', e.target.value)}
+                  label="Używki"
+                  value={formData.interviewStimulants || ''}
+                  onChange={(e) => handleChange('interviewStimulants', e.target.value)}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
-                  multiline
-                  rows={2}
-                  label="Zabiegi chemiczne/Termiczne"
-                  value={formData.careRoutineChemical || ''}
-                  onChange={(e) => handleChange('careRoutineChemical', e.target.value)}
+                  label="Pielęgnacja domowa"
+                  value={formData.interviewHomeCare || ''}
+                  onChange={(e) => handleChange('interviewHomeCare', e.target.value)}
+                />
+              </Grid>
+              <Grid size={{ xs: 12 }}>
+                <MultiSelectCheckboxes
+                  label="Zabiegi fryzjerskie"
+                  options={['farbowanie', 'rozjaśnianie', 'trwała', 'keratyna', 'inne']}
+                  value={getArrayValue(formData.interviewHairTreatments)}
+                  onChange={(value) => handleArrayChange('interviewHairTreatments', value)}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField
+                  fullWidth
+                  label="Ostatnie badanie krwi"
+                  value={formData.interviewBloodTest || ''}
+                  onChange={(e) => handleChange('interviewBloodTest', e.target.value)}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <TextField
+                  fullWidth
+                  label="Przechorowania (np. COVID)"
+                  value={formData.interviewDiseasesLast6Months || ''}
+                  onChange={(e) => handleChange('interviewDiseasesLast6Months', e.target.value)}
                 />
               </Grid>
             </Grid>
@@ -995,9 +760,9 @@ export default function ConsultationFormPage() {
           <AccordionSummary expandIcon={<ExpandMore />}>
             <Typography variant="h6">7. Trichoskopia</Typography>
           </AccordionSummary>
-          <AccordionDetails sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
-            <Grid container spacing={{ xs: 1.5, sm: 2 }}>
-              <Grid item xs={12}>
+          <AccordionDetails sx={{ p: { xs: 2, sm: 3 } }}>
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12 }}>
                 <MultiSelectCheckboxes
                   label="Typ skóry głowy"
                   options={['sucha', 'tłusta', 'wrażliwa', 'nadreaktywna', 'z erytrodermią', 'normalna']}
@@ -1005,7 +770,7 @@ export default function ConsultationFormPage() {
                   onChange={(value) => handleArrayChange('scalpType', value)}
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <MultiSelectCheckboxes
                   label="Wygląd i objawy na skórze"
                   options={['zaczerwienie', 'świąd', 'pieczenie', 'ból', 'suchość', 'łojotok']}
@@ -1013,28 +778,24 @@ export default function ConsultationFormPage() {
                   onChange={(value) => handleArrayChange('scalpAppearance', value)}
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <MultiSelectCheckboxes
                   label="Wykwity skórne"
                   options={[
-                    'plama',
-                    'grudka',
-                    'krosta',
-                    'guzek',
-                    'blizna',
+                    'przeczosy',
                     'strup',
-                    'pęknięcie',
+                    'blizna',
+                    'krostki',
+                    'grudki',
                     'łuska',
-                    'przeczos',
-                    'złuszczanie płatowe',
-                    'złuszczanie otrębiaste',
-                    'obj. Kebnera',
+                    'nadżerka',
+                    'zanieczyszczenie ujść mieszkowych',
                   ]}
                   value={getArrayValue(formData.skinLesions)}
                   onChange={(value) => handleArrayChange('skinLesions', value)}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <FormControl fullWidth>
                   <InputLabel>Hiperhydroza</InputLabel>
                   <Select
@@ -1043,71 +804,66 @@ export default function ConsultationFormPage() {
                     label="Hiperhydroza"
                   >
                     <MenuItem value="">Brak</MenuItem>
-                    <MenuItem value="miejscowa">Miejscowa</MenuItem>
-                    <MenuItem value="uogólniona">Uogólniona</MenuItem>
-                    <MenuItem value="brak">Brak</MenuItem>
+                    <MenuItem value="tak">Tak</MenuItem>
+                    <MenuItem value="nie">Nie</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <FormControl fullWidth>
                   <InputLabel>Hiperkeratynizacja</InputLabel>
                   <Select
-                    value={formData.hyperkeratinization || ''}
-                    onChange={(e) => handleChange('hyperkeratinization', e.target.value)}
+                    value={formData.hyperkeratosis || ''}
+                    onChange={(e) => handleChange('hyperkeratosis', e.target.value)}
                     label="Hiperkeratynizacja"
                   >
                     <MenuItem value="">Brak</MenuItem>
-                    <MenuItem value="miejscowa">Miejscowa</MenuItem>
-                    <MenuItem value="uogólniona">Uogólniona</MenuItem>
                     <MenuItem value="okołomieszkowa">Okołomieszkowa</MenuItem>
-                    <MenuItem value="tubule">Tubule</MenuItem>
+                    <MenuItem value="uogólniona">Uogólniona</MenuItem>
                     <MenuItem value="brak">Brak</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <FormControl fullWidth>
                   <InputLabel>Wydzielina gruczołów łojowych</InputLabel>
                   <Select
-                    value={formData.sebaceousSecretion || ''}
-                    onChange={(e) => handleChange('sebaceousSecretion', e.target.value)}
+                    value={formData.sebumSecretion || ''}
+                    onChange={(e) => handleChange('sebumSecretion', e.target.value)}
                     label="Wydzielina gruczołów łojowych"
                   >
                     <MenuItem value="">Brak</MenuItem>
-                    <MenuItem value="oleista">Oleista</MenuItem>
-                    <MenuItem value="zalegająca">Zalegająca</MenuItem>
-                    <MenuItem value="brak">Brak</MenuItem>
+                    <MenuItem value="norma">Norma</MenuItem>
+                    <MenuItem value="nadmiar">Nadmiar</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <MultiSelectCheckboxes
                   label="Interpretacja rodzaju łojotoku"
                   options={[
-                    'Skóra sucha odwodniona/Cebulka tłusta',
-                    'Skóra tłusta/Cebulka tłusta',
-                    'Hiperhydroza/Cebulka tłusta',
-                    'Skóra tłusta/Cebulka dystroficzna',
-                    'Łojotok/Wypadanie włosów',
+                    'Łojotok płynny',
+                    'Łojotok gęsty',
+                    'Łojotok (mieszanina na czole gęsty na głowie płynny)',
+                    'Inne',
                   ]}
                   value={getArrayValue(formData.seborrheaType)}
                   onChange={(value) => handleArrayChange('seborrheaType', value)}
                 />
               </Grid>
               {getArrayValue(formData.seborrheaType).some((v: string) => v.includes('Inne')) && (
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <TextField
                     fullWidth
                     multiline
                     rows={2}
-                    label="Inne (interpretacja rodzaju łojotoku)"
-                    value={formData.seborrheaTypeOther || ''}
-                    onChange={(e) => handleChange('seborrheaTypeOther', e.target.value)}
+                    label="Inny rodzaj łojotoku"
+                    value={formData.seborrheaOther || ''}
+                    onChange={(e) => handleChange('seborrheaOther', e.target.value)}
                   />
                 </Grid>
               )}
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <MultiSelectCheckboxes
                   label="Łupież"
                   options={['Suchy', 'Tłusty', 'Kosmetyczny', 'miejscowy', 'uogólniony']}
@@ -1115,17 +871,17 @@ export default function ConsultationFormPage() {
                   onChange={(value) => handleArrayChange('dandruffType', value)}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
                   type="number"
-                  label="Wartość pH"
-                  value={formData.scalpPH || ''}
-                  onChange={(e) => handleChange('scalpPH', e.target.value)}
+                  label="pH skóry głowy"
+                  value={formData.scalpPh || ''}
+                  onChange={(e) => handleChange('scalpPh', e.target.value)}
                   inputProps={{ step: '0.1', min: '0', max: '14' }}
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <MultiSelectCheckboxes
                   label="Uszkodzenia włosa"
                   options={['naturalne', 'fizyczne', 'mechaniczne', 'chemiczne']}
@@ -1133,22 +889,22 @@ export default function ConsultationFormPage() {
                   onChange={(value) => handleArrayChange('hairDamage', value)}
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <MultiSelectCheckboxes
                   label="Powody uszkodzenia"
                   options={[
-                    'trwała',
-                    'trwałe prostowanie',
-                    'farby/rozjaśnianie',
-                    'lakier do włosów',
-                    'produkty do stylizacji',
-                    'prostownica/lokówka',
+                    'rozjaśnianie',
+                    'farbowanie',
+                    'prostowanie',
+                    'promieniowanie UV',
+                    'niedobory',
+                    'zła pielęgnacja',
                   ]}
                   value={getArrayValue(formData.hairDamageReason)}
                   onChange={(value) => handleArrayChange('hairDamageReason', value)}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <FormControl fullWidth>
                   <InputLabel>Jakość włosa</InputLabel>
                   <Select
@@ -1157,14 +913,13 @@ export default function ConsultationFormPage() {
                     label="Jakość włosa"
                   >
                     <MenuItem value="">Brak</MenuItem>
-                    <MenuItem value="zdrowe">Zdrowe</MenuItem>
-                    <MenuItem value="suche">Suche</MenuItem>
-                    <MenuItem value="przetłuszczone">Przetłuszczone</MenuItem>
-                    <MenuItem value="zniszczona łuska włosa">Zniszczona łuska włosa</MenuItem>
+                    <MenuItem value="cienkie">Cienkie</MenuItem>
+                    <MenuItem value="grube">Grube</MenuItem>
+                    <MenuItem value="normalne">Normalne</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <FormControl fullWidth>
                   <InputLabel>Kształt włosa</InputLabel>
                   <Select
@@ -1173,14 +928,13 @@ export default function ConsultationFormPage() {
                     label="Kształt włosa"
                   >
                     <MenuItem value="">Brak</MenuItem>
-                    <MenuItem value="prosty">Prosty</MenuItem>
-                    <MenuItem value="kręcony">Kręcony</MenuItem>
-                    <MenuItem value="falisty">Falisty</MenuItem>
-                    <MenuItem value="fil-fil">Fil-fil</MenuItem>
+                    <MenuItem value="proste">Proste</MenuItem>
+                    <MenuItem value="falowane">Falowane</MenuItem>
+                    <MenuItem value="kręcone">Kręcone</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <MultiSelectCheckboxes
                   label="Rodzaje włosów"
                   options={['urwane', 'kręte', 'paciorkowate', 'obrączkowate', 'tulipanowe', 'wykrzyknikowe']}
@@ -1188,57 +942,56 @@ export default function ConsultationFormPage() {
                   onChange={(value) => handleArrayChange('hairTypes', value)}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <FormControl fullWidth>
                   <InputLabel>Włosy następowe</InputLabel>
                   <Select
-                    value={formData.regrowingHairs || ''}
-                    onChange={(e) => handleChange('regrowingHairs', e.target.value)}
+                    value={formData.hairAnagen || ''}
+                    onChange={(e) => handleChange('hairAnagen', e.target.value)}
                     label="Włosy następowe"
                   >
                     <MenuItem value="">Brak</MenuItem>
                     <MenuItem value="dużo">Dużo</MenuItem>
-                    <MenuItem value="niewiele">Niewiele</MenuItem>
+                    <MenuItem value="mało">Mało</MenuItem>
+                    <MenuItem value="brak">Brak</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <MultiSelectCheckboxes
                   label="Włosy vellus/zminiaturyzowane"
                   options={['dużo', 'mało', 'uogólnione', 'miejscowo', 'brak']}
-                  value={getArrayValue(formData.vellusMiniaturizedHairs)}
-                  onChange={(value) => handleArrayChange('vellusMiniaturizedHairs', value)}
+                  value={getArrayValue(formData.hairVellus)}
+                  onChange={(value) => handleArrayChange('hairVellus', value)}
                 />
               </Grid>
             </Grid>
           </AccordionDetails>
         </Accordion>
 
-        {/* Diagnostics Section */}
+        {/* Diagnostyka */}
         <Accordion>
           <AccordionSummary expandIcon={<ExpandMore />}>
             <Typography variant="h6">8. Diagnostyka</Typography>
           </AccordionSummary>
-          <AccordionDetails sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
-            <Grid container spacing={{ xs: 1.5, sm: 2 }}>
-              <Grid item xs={12}>
+          <AccordionDetails sx={{ p: { xs: 2, sm: 3 } }}>
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12 }}>
                 <MultiSelectCheckboxes
                   label="Unaczynienie"
                   options={[
-                    'naczynia proste',
-                    'naczynia poskręcane',
-                    'naczynia drzewkowate',
-                    'wzorzec plastra miodu',
-                    'typ spinek',
-                    'okołomieszkowe',
-                    'miejscowe',
-                    'rozlane',
+                    'naczynia kropkowate',
+                    'naczynia liniowe',
+                    'naczynia arborystyczne',
+                    'naczynia siatkowate',
+                    'brak naczyń',
+                    'prawidłowe',
                   ]}
                   value={getArrayValue(formData.vascularPatterns)}
                   onChange={(value) => handleArrayChange('vascularPatterns', value)}
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <MultiSelectCheckboxes
                   label="Cechy okołomieszkowe"
                   options={['white dots', 'yellow dots', 'black dots', 'prawidłowe']}
@@ -1246,7 +999,7 @@ export default function ConsultationFormPage() {
                   onChange={(value) => handleArrayChange('perifollicularFeatures', value)}
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <MultiSelectCheckboxes
                   label="Choroby skóry głowy"
                   options={['ŁZS', 'LLP', 'AZS', 'grzybica', 'łuszczyca', 'zapalenia okołomieszkowe']}
@@ -1254,12 +1007,12 @@ export default function ConsultationFormPage() {
                   onChange={(value) => handleArrayChange('scalpDiseases', value)}
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <MultiSelectCheckboxes
                   label="Inne"
                   options={['trychodynia', 'plaster miodu', 'cofnięcie linii czołowej', 'trichokinesis']}
-                  value={getArrayValue(formData.otherDiagnostics)}
-                  onChange={(value) => handleArrayChange('otherDiagnostics', value)}
+                  value={getArrayValue(formData.scalpOther)}
+                  onChange={(value) => handleArrayChange('scalpOther', value)}
                 />
               </Grid>
             </Grid>
@@ -1271,9 +1024,9 @@ export default function ConsultationFormPage() {
           <AccordionSummary expandIcon={<ExpandMore />}>
             <Typography variant="h6">9. Diagnostyka łysienia</Typography>
           </AccordionSummary>
-          <AccordionDetails sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
-            <Grid container spacing={{ xs: 1.5, sm: 2 }}>
-              <Grid item xs={12}>
+          <AccordionDetails sx={{ p: { xs: 2, sm: 3 } }}>
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12 }}>
                 <MultiSelectCheckboxes
                   label="Łysienie"
                   options={[
@@ -1291,7 +1044,7 @@ export default function ConsultationFormPage() {
                   onChange={(value) => handleArrayChange('alopeciaTypes', value)}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <FormControl fullWidth>
                   <InputLabel>Stopień przerzedzenia</InputLabel>
                   <Select
@@ -1307,7 +1060,7 @@ export default function ConsultationFormPage() {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <FormControl fullWidth>
                   <InputLabel>Typ łysienia</InputLabel>
                   <Select
@@ -1323,7 +1076,7 @@ export default function ConsultationFormPage() {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <MultiSelectCheckboxes
                   label="Obszar wypadanie włosów"
                   options={['Hormonozależny', 'Tył głowy', 'Cały obszar głowy', 'Inne']}
@@ -1331,7 +1084,7 @@ export default function ConsultationFormPage() {
                   onChange={(value) => handleArrayChange('alopeciaAffectedAreas', value)}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <FormControl fullWidth>
                   <InputLabel>Cechy miniaturyzacji mieszków</InputLabel>
                   <Select
@@ -1345,7 +1098,7 @@ export default function ConsultationFormPage() {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <FormControl fullWidth>
                   <InputLabel>Zespoły mieszkowe</InputLabel>
                   <Select
@@ -1361,7 +1114,7 @@ export default function ConsultationFormPage() {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <FormControl fullWidth>
                   <InputLabel>"PULL TEST"</InputLabel>
                   <Select
@@ -1375,7 +1128,7 @@ export default function ConsultationFormPage() {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   fullWidth
                   multiline
@@ -1394,7 +1147,7 @@ export default function ConsultationFormPage() {
           <AccordionSummary expandIcon={<ExpandMore />}>
             <Typography variant="h6">10. Rozpoznanie</Typography>
           </AccordionSummary>
-          <AccordionDetails>
+          <AccordionDetails sx={{ p: { xs: 2, sm: 3 } }}>
             <TextField
               fullWidth
               multiline
@@ -1411,9 +1164,9 @@ export default function ConsultationFormPage() {
           <AccordionSummary expandIcon={<ExpandMore />}>
             <Typography variant="h6">11. Zalecenia</Typography>
           </AccordionSummary>
-          <AccordionDetails sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
-            <Grid container spacing={{ xs: 1.5, sm: 2 }}>
-              <Grid item xs={12}>
+          <AccordionDetails sx={{ p: { xs: 2, sm: 3 } }}>
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   fullWidth
                   multiline
@@ -1423,7 +1176,7 @@ export default function ConsultationFormPage() {
                   onChange={(e) => handleChange('careRecommendationsWashing', e.target.value)}
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   fullWidth
                   multiline
@@ -1433,7 +1186,7 @@ export default function ConsultationFormPage() {
                   onChange={(e) => handleChange('careRecommendationsTopical', e.target.value)}
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   fullWidth
                   multiline
@@ -1443,7 +1196,7 @@ export default function ConsultationFormPage() {
                   onChange={(e) => handleChange('careRecommendationsSupplement', e.target.value)}
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   fullWidth
                   multiline
@@ -1462,7 +1215,7 @@ export default function ConsultationFormPage() {
           <AccordionSummary expandIcon={<ExpandMore />}>
             <Typography variant="h6">12. Wizyty / Zabiegi</Typography>
           </AccordionSummary>
-          <AccordionDetails>
+          <AccordionDetails sx={{ p: { xs: 2, sm: 3 } }}>
             <TextField
               fullWidth
               multiline
@@ -1479,9 +1232,9 @@ export default function ConsultationFormPage() {
           <AccordionSummary expandIcon={<ExpandMore />}>
             <Typography variant="h6">13. Skale Norwood-Hamilton i Ludwig</Typography>
           </AccordionSummary>
-          <AccordionDetails sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
-            <Grid container spacing={{ xs: 1.5, sm: 2 }}>
-              <Grid item xs={12} md={6}>
+          <AccordionDetails sx={{ p: { xs: 2, sm: 3 } }}>
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
                   label="Stopień Norwood-Hamilton"
@@ -1489,7 +1242,7 @@ export default function ConsultationFormPage() {
                   onChange={(e) => handleChange('norwoodHamiltonStage', e.target.value)}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
                   multiline
@@ -1499,7 +1252,7 @@ export default function ConsultationFormPage() {
                   onChange={(e) => handleChange('norwoodHamiltonNotes', e.target.value)}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
                   label="Stopień Ludwig"
@@ -1507,7 +1260,7 @@ export default function ConsultationFormPage() {
                   onChange={(e) => handleChange('ludwigStage', e.target.value)}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
                   multiline
@@ -1526,7 +1279,7 @@ export default function ConsultationFormPage() {
           <AccordionSummary expandIcon={<ExpandMore />}>
             <Typography variant="h6">14. Uwagi ogólne</Typography>
           </AccordionSummary>
-          <AccordionDetails>
+          <AccordionDetails sx={{ p: { xs: 2, sm: 3 } }}>
             <TextField
               fullWidth
               multiline

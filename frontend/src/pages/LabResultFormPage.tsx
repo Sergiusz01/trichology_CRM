@@ -11,7 +11,23 @@ import {
   CircularProgress,
   useMediaQuery,
   useTheme,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Divider,
+  InputAdornment,
 } from '@mui/material';
+import {
+  ExpandMore,
+  Save,
+  Cancel,
+  Science,
+  Bloodtype,
+  Opacity,
+  Assignment,
+  MonitorHeart,
+  CalendarMonth
+} from '@mui/icons-material';
 import { api } from '../services/api';
 
 export default function LabResultFormPage() {
@@ -173,7 +189,7 @@ export default function LabResultFormPage() {
       setLoadingData(true);
       const response = await api.get(`/lab-results/${labResultId}`);
       const result = response.data.labResult;
-      
+
       setFormData({
         patientId: result.patientId || id || '',
         consultationId: result.consultationId || '',
@@ -246,34 +262,43 @@ export default function LabResultFormPage() {
 
   return (
     <Box sx={{ width: '100%', maxWidth: '100%', overflow: 'hidden', px: { xs: 0, sm: 0 } }}>
-      <Typography 
-        variant="h4" 
+      <Typography
+        variant="h4"
         gutterBottom
-        sx={{ 
-          fontSize: { xs: '1.5rem', sm: '2rem' },
-          mb: { xs: 2, sm: 3 },
-          px: { xs: 1.5, sm: 0 },
+        sx={{
+          fontSize: { xs: '1.75rem', sm: '2.25rem' },
+          fontWeight: 700,
+          mb: 4,
+          color: 'primary.main',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2
         }}
       >
-        {labResultId ? 'Edytuj wynik badania' : 'Dodaj wynik badania'}
+        <Science fontSize="large" />
+        {labResultId ? 'Edytuj wynik badania' : 'Nowy wynik badania'}
       </Typography>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
-          {error}
-        </Alert>
-      )}
+      {
+        error && (
+          <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }} onClose={() => setError('')}>
+            {error}
+          </Alert>
+        )
+      }
 
-      {success && (
-        <Alert severity="success" sx={{ mb: 2 }}>
-          Wynik zapisany pomyślnie!
-        </Alert>
-      )}
+      {
+        success && (
+          <Alert severity="success" sx={{ mb: 3, borderRadius: 2 }}>
+            Wynik zapisany pomyślnie!
+          </Alert>
+        )
+      }
 
-      <Paper sx={{ p: { xs: 1.5, sm: 2, md: 3 }, mb: { xs: 1.5, sm: 2 } }}>
-        <form onSubmit={handleSubmit}>
-          <Grid container spacing={{ xs: 1.5, sm: 2 }}>
-            <Grid item xs={12} sm={6}>
+      <form onSubmit={handleSubmit}>
+        <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3, borderRadius: 3, overflow: 'hidden', elevation: 2 }}>
+          <Grid container spacing={3}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <TextField
                 fullWidth
                 label="Data badania"
@@ -281,226 +306,217 @@ export default function LabResultFormPage() {
                 value={formData.date}
                 onChange={(e) => handleChange('date', e.target.value)}
                 InputLabelProps={{ shrink: true }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <CalendarMonth color="action" />
+                    </InputAdornment>
+                  ),
+                }}
               />
-            </Grid>
-
-            <Grid item xs={12}>
-              <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
-                Morfologia
-              </Typography>
-            </Grid>
-
-            <Grid item xs={12} sm={3}>
-              <TextField
-                fullWidth
-                label="HGB"
-                type="number"
-                value={formData.hgb}
-                onChange={(e) => handleChange('hgb', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={3}>
-              <TextField
-                fullWidth
-                label="Jednostka"
-                value={formData.hgbUnit}
-                onChange={(e) => handleChange('hgbUnit', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={3}>
-              <TextField
-                fullWidth
-                label="Ref. dolna"
-                type="number"
-                value={formData.hgbRefLow}
-                onChange={(e) => handleChange('hgbRefLow', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={3}>
-              <TextField
-                fullWidth
-                label="Ref. górna"
-                type="number"
-                value={formData.hgbRefHigh}
-                onChange={(e) => handleChange('hgbRefHigh', e.target.value)}
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
-                Ferrytyna
-              </Typography>
-            </Grid>
-
-            <Grid item xs={12} sm={3}>
-              <TextField
-                fullWidth
-                label="Ferrytyna"
-                type="number"
-                value={formData.ferritin}
-                onChange={(e) => handleChange('ferritin', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={3}>
-              <TextField
-                fullWidth
-                label="Jednostka"
-                value={formData.ferritinUnit}
-                onChange={(e) => handleChange('ferritinUnit', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={3}>
-              <TextField
-                fullWidth
-                label="Ref. dolna"
-                type="number"
-                value={formData.ferritinRefLow}
-                onChange={(e) => handleChange('ferritinRefLow', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={3}>
-              <TextField
-                fullWidth
-                label="Ref. górna"
-                type="number"
-                value={formData.ferritinRefHigh}
-                onChange={(e) => handleChange('ferritinRefHigh', e.target.value)}
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
-                Witamina D3
-              </Typography>
-            </Grid>
-
-            <Grid item xs={12} sm={3}>
-              <TextField
-                fullWidth
-                label="Witamina D3"
-                type="number"
-                value={formData.vitaminD3}
-                onChange={(e) => handleChange('vitaminD3', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={3}>
-              <TextField
-                fullWidth
-                label="Jednostka"
-                value={formData.vitaminD3Unit}
-                onChange={(e) => handleChange('vitaminD3Unit', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={3}>
-              <TextField
-                fullWidth
-                label="Ref. dolna"
-                type="number"
-                value={formData.vitaminD3RefLow}
-                onChange={(e) => handleChange('vitaminD3RefLow', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={3}>
-              <TextField
-                fullWidth
-                label="Ref. górna"
-                type="number"
-                value={formData.vitaminD3RefHigh}
-                onChange={(e) => handleChange('vitaminD3RefHigh', e.target.value)}
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
-                TSH
-              </Typography>
-            </Grid>
-
-            <Grid item xs={12} sm={3}>
-              <TextField
-                fullWidth
-                label="TSH"
-                type="number"
-                value={formData.tsh}
-                onChange={(e) => handleChange('tsh', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={3}>
-              <TextField
-                fullWidth
-                label="Jednostka"
-                value={formData.tshUnit}
-                onChange={(e) => handleChange('tshUnit', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={3}>
-              <TextField
-                fullWidth
-                label="Ref. dolna"
-                type="number"
-                value={formData.tshRefLow}
-                onChange={(e) => handleChange('tshRefLow', e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={3}>
-              <TextField
-                fullWidth
-                label="Ref. górna"
-                type="number"
-                value={formData.tshRefHigh}
-                onChange={(e) => handleChange('tshRefHigh', e.target.value)}
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                multiline
-                rows={4}
-                label="Uwagi"
-                value={formData.notes}
-                onChange={(e) => handleChange('notes', e.target.value)}
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <Box sx={{ 
-                display: 'flex', 
-                gap: { xs: 1, sm: 2 }, 
-                mt: { xs: 1.5, sm: 2 },
-                flexDirection: { xs: 'column-reverse', sm: 'row' },
-              }}>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  disabled={loading}
-                  fullWidth={isMobile}
-                  size={isMobile ? 'medium' : 'large'}
-                  sx={{ 
-                    fontSize: { xs: '0.875rem', sm: '1rem' },
-                    py: { xs: 1.25, sm: 1.5 },
-                  }}
-                >
-                  {loading ? <CircularProgress size={24} /> : (isMobile ? 'Zapisz' : 'Zapisz wynik')}
-                </Button>
-                <Button
-                  variant="outlined"
-                  onClick={() => navigate(`/patients/${id}`)}
-                  fullWidth={isMobile}
-                  size={isMobile ? 'medium' : 'large'}
-                  sx={{ 
-                    fontSize: { xs: '0.875rem', sm: '1rem' },
-                    py: { xs: 1.25, sm: 1.5 },
-                  }}
-                >
-                  Anuluj
-                </Button>
-              </Box>
             </Grid>
           </Grid>
-        </form>
-      </Paper>
+        </Paper>
+
+        {/* Categories */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {/* Morfologia */}
+          <Accordion defaultExpanded sx={{ borderRadius: 2, '&:before': { display: 'none' }, boxShadow: 1 }}>
+            <AccordionSummary expandIcon={<ExpandMore />}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Bloodtype color="error" />
+                <Typography variant="h6" fontWeight={600}>Morfologia</Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails sx={{ p: { xs: 2, sm: 3 } }}>
+              <Grid container spacing={3}>
+                {/* HGB Row */}
+                {renderLabRow('HGB', 'hgb')}
+                <Grid size={{ xs: 12 }}><Divider sx={{ my: 1, opacity: 0.6 }} /></Grid>
+                {/* RBC Row */}
+                {renderLabRow('RBC', 'rbc')}
+                <Grid size={{ xs: 12 }}><Divider sx={{ my: 1, opacity: 0.6 }} /></Grid>
+                {/* WBC Row */}
+                {renderLabRow('WBC', 'wbc')}
+                <Grid size={{ xs: 12 }}><Divider sx={{ my: 1, opacity: 0.6 }} /></Grid>
+                {/* PLT Row */}
+                {renderLabRow('PLT', 'plt')}
+              </Grid>
+            </AccordionDetails>
+          </Accordion>
+
+          {/* Żelazo / Ferrytyna */}
+          <Accordion sx={{ borderRadius: 2, '&:before': { display: 'none' }, boxShadow: 1 }}>
+            <AccordionSummary expandIcon={<ExpandMore />}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Opacity color="error" />
+                <Typography variant="h6" fontWeight={600}>Gospodarka żelazowa</Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails sx={{ p: { xs: 2, sm: 3 } }}>
+              <Grid container spacing={3}>
+                {renderLabRow('Ferrytyna', 'ferritin')}
+                <Grid size={{ xs: 12 }}><Divider sx={{ my: 1, opacity: 0.6 }} /></Grid>
+                {renderLabRow('Żelazo', 'iron')}
+              </Grid>
+            </AccordionDetails>
+          </Accordion>
+
+          {/* Witaminy */}
+          <Accordion sx={{ borderRadius: 2, '&:before': { display: 'none' }, boxShadow: 1 }}>
+            <AccordionSummary expandIcon={<ExpandMore />}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <MonitorHeart color="primary" />
+                <Typography variant="h6" fontWeight={600}>Witaminy</Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails sx={{ p: { xs: 2, sm: 3 } }}>
+              <Grid container spacing={3}>
+                {renderLabRow('Witamina D3', 'vitaminD3')}
+                <Grid size={{ xs: 12 }}><Divider sx={{ my: 1, opacity: 0.6 }} /></Grid>
+                {renderLabRow('Witamina B12', 'vitaminB12')}
+                <Grid size={{ xs: 12 }}><Divider sx={{ my: 1, opacity: 0.6 }} /></Grid>
+                {renderLabRow('Kwas foliowy', 'folicAcid')}
+              </Grid>
+            </AccordionDetails>
+          </Accordion>
+
+          {/* Tarczyca */}
+          <Accordion sx={{ borderRadius: 2, '&:before': { display: 'none' }, boxShadow: 1 }}>
+            <AccordionSummary expandIcon={<ExpandMore />}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Assignment color="info" />
+                <Typography variant="h6" fontWeight={600}>Tarczyca</Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails sx={{ p: { xs: 2, sm: 3 } }}>
+              <Grid container spacing={3}>
+                {renderLabRow('TSH', 'tsh')}
+                <Grid size={{ xs: 12 }}><Divider sx={{ my: 1, opacity: 0.6 }} /></Grid>
+                {renderLabRow('FT3', 'ft3')}
+                <Grid size={{ xs: 12 }}><Divider sx={{ my: 1, opacity: 0.6 }} /></Grid>
+                {renderLabRow('FT4', 'ft4')}
+              </Grid>
+            </AccordionDetails>
+          </Accordion>
+
+          {/* Uwagi */}
+          <Paper sx={{ p: { xs: 2, sm: 3 }, borderRadius: 2, mt: 1, boxShadow: 1 }}>
+            <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Assignment fontSize="small" color="action" />
+              Notatki i uwagi dodatkowe
+            </Typography>
+            <TextField
+              fullWidth
+              multiline
+              rows={4}
+              placeholder="Wpisz wszelkie dodatkowe informacje o wynikach lub samopoczuciu pacjenta..."
+              value={formData.notes}
+              onChange={(e) => handleChange('notes', e.target.value)}
+              sx={{ mt: 1 }}
+            />
+          </Paper>
+        </Box>
+
+        {/* Actions */}
+        <Box sx={{
+          display: 'flex',
+          gap: 2,
+          mt: 4,
+          mb: 4,
+          flexDirection: { xs: 'column-reverse', sm: 'row' },
+          justifyContent: 'flex-end'
+        }}>
+          <Button
+            variant="outlined"
+            onClick={() => navigate(`/patients/${id}`)}
+            fullWidth={isMobile}
+            disabled={loading}
+            startIcon={<Cancel />}
+            sx={{
+              px: 4,
+              py: 1.5,
+              borderRadius: 2,
+              fontWeight: 600
+            }}
+          >
+            Anuluj
+          </Button>
+          <Button
+            type="submit"
+            variant="contained"
+            disabled={loading}
+            fullWidth={isMobile}
+            startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <Save />}
+            sx={{
+              px: 6,
+              py: 1.5,
+              borderRadius: 2,
+              fontWeight: 600,
+              boxShadow: 3
+            }}
+          >
+            {loading ? 'Zapisywanie...' : (labResultId ? 'Zaktualizuj wynik' : 'Zapisz wynik')}
+          </Button>
+        </Box>
+      </form>
     </Box>
   );
+
+  // Helper function to render a lab row
+  function renderLabRow(label: string, field: string) {
+    const unitField = `${field}Unit` as keyof typeof formData;
+    const refLowField = `${field}RefLow` as keyof typeof formData;
+    const refHighField = `${field}RefHigh` as keyof typeof formData;
+
+    return (
+      <Grid container spacing={2} size={{ xs: 12 }} alignItems="center">
+        <Grid size={{ xs: 12, md: 3 }}>
+          <Typography variant="subtitle1" fontWeight={600} color="text.secondary">
+            {label}
+          </Typography>
+        </Grid>
+        <Grid size={{ xs: 6, sm: 4, md: 3 }}>
+          <TextField
+            fullWidth
+            label="Wynik"
+            type="number"
+            size="small"
+            value={formData[field as keyof typeof formData]}
+            onChange={(e) => handleChange(field, e.target.value)}
+          />
+        </Grid>
+        <Grid size={{ xs: 6, sm: 4, md: 2 }}>
+          <TextField
+            fullWidth
+            label="Jedn."
+            size="small"
+            value={formData[unitField]}
+            onChange={(e) => handleChange(unitField, e.target.value)}
+          />
+        </Grid>
+        <Grid size={{ xs: 6, sm: 2, md: 2 }}>
+          <TextField
+            fullWidth
+            label="Ref. dół"
+            type="number"
+            size="small"
+            value={formData[refLowField]}
+            onChange={(e) => handleChange(refLowField, e.target.value)}
+          />
+        </Grid>
+        <Grid size={{ xs: 6, sm: 2, md: 2 }}>
+          <TextField
+            fullWidth
+            label="Ref. góra"
+            type="number"
+            size="small"
+            value={formData[refHighField]}
+            onChange={(e) => handleChange(refHighField, e.target.value)}
+          />
+        </Grid>
+      </Grid>
+    );
+  }
 }
 

@@ -8,6 +8,9 @@ import {
   Container,
   Grid,
   Chip,
+  useMediaQuery,
+  useTheme,
+  alpha,
 } from '@mui/material';
 import { Edit, GetApp, ArrowBack } from '@mui/icons-material';
 import { api } from '../services/api';
@@ -60,9 +63,9 @@ const renderCheckboxInfo = (label: string, value: any) => {
   return (
     <Box sx={{ mb: 1, display: 'flex', alignItems: 'center', fontSize: '0.875rem' }}>
       <Box component="span" sx={{ mr: 1, fontSize: '0.75rem', color: '#333' }}>■</Box>
-      <Typography component="span" sx={{ 
-        fontWeight: 'bold', 
-        mr: 1, 
+      <Typography component="span" sx={{
+        fontWeight: 'bold',
+        mr: 1,
         minWidth: { xs: '100px', sm: '120px' },
         fontSize: { xs: '0.75rem', sm: '0.875rem' },
       }}>
@@ -79,8 +82,8 @@ const renderCheckboxInfo = (label: string, value: any) => {
 const renderFieldRow = (label: string, value: any) => {
   if (!value) return null;
   return (
-    <Box sx={{ 
-      display: 'flex', 
+    <Box sx={{
+      display: 'flex',
       borderBottom: '1px dotted #ccc',
       pb: 0.5,
       mb: 0.5,
@@ -99,6 +102,8 @@ export default function ConsultationViewPage() {
   const [consultation, setConsultation] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   useEffect(() => {
     if (id) {
@@ -155,26 +160,42 @@ export default function ConsultationViewPage() {
   return (
     <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 3 }, px: { xs: 1, sm: 2, md: 3 } }}>
       {/* Header with actions */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Box sx={{
+        display: 'flex',
+        flexDirection: { xs: 'column', sm: 'row' },
+        justifyContent: 'space-between',
+        alignItems: { xs: 'stretch', sm: 'center' },
+        gap: 2,
+        mb: 4
+      }}>
         <Button
           startIcon={<ArrowBack />}
           onClick={() => navigate(-1)}
-          sx={{ mb: 2 }}
+          sx={{
+            color: 'text.secondary',
+            textTransform: 'none',
+            fontWeight: 600,
+            '&:hover': { bgcolor: alpha('#000', 0.04) }
+          }}
         >
-          Powrót
+          Powrót do pacjenta
         </Button>
-        <Box sx={{ display: 'flex', gap: 2 }}>
+        <Box sx={{ display: 'flex', gap: 1.5, width: { xs: '100%', sm: 'auto' } }}>
           <Button
+            fullWidth={isMobile}
             variant="outlined"
             startIcon={<GetApp />}
             onClick={handleDownloadPDF}
+            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
           >
             Pobierz PDF
           </Button>
           <Button
+            fullWidth={isMobile}
             variant="contained"
             startIcon={<Edit />}
             onClick={() => navigate(`/consultations/${id}/edit`)}
+            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
           >
             Edytuj
           </Button>
@@ -182,28 +203,47 @@ export default function ConsultationViewPage() {
       </Box>
 
       {/* Main document - PDF-like layout */}
-      <Paper 
-        sx={{ 
+      <Paper
+        sx={{
           p: { xs: 2, sm: 3, md: 4 },
           backgroundColor: '#fff',
           boxShadow: 2,
         }}
       >
         {/* Header */}
-        <Box sx={{ 
-          textAlign: 'center', 
-          borderBottom: '2px solid #000',
-          mb: 3,
-          pb: 2
+        <Box sx={{
+          textAlign: 'center',
+          borderBottom: '2px solid',
+          borderColor: 'primary.main',
+          mb: 4,
+          pb: 3
         }}>
-          <Typography variant="h4" sx={{ fontWeight: 'bold', textTransform: 'uppercase', mb: 1 }}>
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 800,
+              textTransform: 'uppercase',
+              mb: 1,
+              letterSpacing: 1,
+              fontSize: { xs: '1.5rem', sm: '2.25rem' }
+            }}
+          >
             Karta Konsultacyjna
           </Typography>
-          <Typography variant="body2" sx={{ letterSpacing: 2, textTransform: 'uppercase' }}>
+          <Typography
+            variant="subtitle1"
+            sx={{
+              letterSpacing: 4,
+              textTransform: 'uppercase',
+              color: 'primary.main',
+              fontWeight: 700,
+              fontSize: { xs: '0.75rem', sm: '1rem' }
+            }}
+          >
             Rich Diagnostic
           </Typography>
-          <Box sx={{ mt: 2, textAlign: 'right', fontSize: '0.875rem' }}>
-            Data konsultacji: <strong>{formatDate(consultation.consultationDate)}</strong>
+          <Box sx={{ mt: 3, textAlign: 'right', fontSize: '0.875rem', color: 'text.secondary' }}>
+            Data: <strong style={{ color: '#000' }}>{formatDate(consultation.consultationDate)}</strong>
           </Box>
         </Box>
 
@@ -211,7 +251,7 @@ export default function ConsultationViewPage() {
         <Box sx={{ mb: 3, p: 2, backgroundColor: '#f9f9f9', borderRadius: 1 }}>
           <Typography variant="h6" sx={{ mb: 1, fontWeight: 'bold' }}>Dane pacjenta</Typography>
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Typography><strong>Imię i nazwisko:</strong> {consultation.patient.firstName} {consultation.patient.lastName}</Typography>
               {consultation.patient.age && (
                 <Typography><strong>Wiek:</strong> {consultation.patient.age} lat</Typography>
@@ -220,7 +260,7 @@ export default function ConsultationViewPage() {
                 <Typography><strong>Płeć:</strong> {consultation.patient.gender === 'MALE' ? 'Mężczyzna' : consultation.patient.gender === 'FEMALE' ? 'Kobieta' : 'Inna'}</Typography>
               )}
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               {consultation.patient.phone && (
                 <Typography><strong>Telefon:</strong> {consultation.patient.phone}</Typography>
               )}
@@ -235,7 +275,7 @@ export default function ConsultationViewPage() {
         {/* Section: Problems */}
         {(consultation.hairLossSeverity || consultation.oilyHairSeverity || consultation.scalingSeverity || consultation.sensitivitySeverity) && (
           <>
-            <Box sx={{ 
+            <Box sx={{
               backgroundColor: '#e0e0e0',
               fontWeight: 'bold',
               fontSize: '1rem',
@@ -249,7 +289,7 @@ export default function ConsultationViewPage() {
             </Box>
             <Grid container spacing={2} sx={{ mb: 2 }}>
               {(consultation.hairLossSeverity || consultation.hairLossLocalization) && (
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <Box sx={{ border: '1px solid #ccc', p: 1.5, borderRadius: 1, mb: 2 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, textDecoration: 'underline' }}>
                       1. WYPADANIE WŁOSÓW
@@ -262,7 +302,7 @@ export default function ConsultationViewPage() {
                 </Grid>
               )}
               {(consultation.oilyHairSeverity || consultation.oilyHairWashingFreq) && (
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <Box sx={{ border: '1px solid #ccc', p: 1.5, borderRadius: 1, mb: 2 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, textDecoration: 'underline' }}>
                       2. PRZETŁUSZCZANIE WŁOSÓW
@@ -276,7 +316,7 @@ export default function ConsultationViewPage() {
                 </Grid>
               )}
               {(consultation.scalingSeverity || consultation.scalingType) && (
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <Box sx={{ border: '1px solid #ccc', p: 1.5, borderRadius: 1, mb: 2 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, textDecoration: 'underline' }}>
                       3. ŁUSZCZENIE SKÓRY GŁOWY
@@ -289,7 +329,7 @@ export default function ConsultationViewPage() {
                 </Grid>
               )}
               {(consultation.sensitivitySeverity || consultation.sensitivityProblemType) && (
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <Box sx={{ border: '1px solid #ccc', p: 1.5, borderRadius: 1, mb: 2 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, textDecoration: 'underline' }}>
                       4. WRAŻLIWOŚĆ / INNE
@@ -309,7 +349,7 @@ export default function ConsultationViewPage() {
         {/* Section: Anamnesis */}
         {(consultation.familyHistory || consultation.medications || consultation.stressLevel) && (
           <>
-            <Box sx={{ 
+            <Box sx={{
               backgroundColor: '#e0e0e0',
               fontWeight: 'bold',
               fontSize: '1rem',
@@ -322,7 +362,7 @@ export default function ConsultationViewPage() {
               Wywiad (Anamneza)
             </Box>
             <Grid container spacing={2} sx={{ mb: 2, fontSize: '0.875rem' }}>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 {renderCheckboxInfo('Rodzina', consultation.familyHistory)}
                 {renderCheckboxInfo('Dermatolog', consultation.dermatologyVisits)}
                 {consultation.dermatologyVisitsReason && renderFieldRow('Powód', consultation.dermatologyVisitsReason)}
@@ -334,7 +374,7 @@ export default function ConsultationViewPage() {
                 {consultation.medicationsList && renderFieldRow('Lista leków', consultation.medicationsList)}
                 {consultation.supplements && renderFieldRow('Suplementy', consultation.supplements)}
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 {renderCheckboxInfo('Znieczulenie', consultation.anesthesia)}
                 {renderCheckboxInfo('Chemioterapia', consultation.chemotherapy)}
                 {renderCheckboxInfo('Radioterapia', consultation.radiotherapy)}
@@ -352,7 +392,7 @@ export default function ConsultationViewPage() {
               </Grid>
             </Grid>
             {(consultation.careRoutineShampoo || consultation.careRoutineConditioner || consultation.careRoutineOils || consultation.careRoutineChemical) && (
-              <Box sx={{ 
+              <Box sx={{
                 borderTop: '1px dashed #ccc',
                 mt: 2,
                 pt: 1,
@@ -372,7 +412,7 @@ export default function ConsultationViewPage() {
         {/* Section: Trichoscopy */}
         {(consultation.scalpType || consultation.hairQuality || consultation.seborrheaType) && (
           <>
-            <Box sx={{ 
+            <Box sx={{
               backgroundColor: '#e0e0e0',
               fontWeight: 'bold',
               fontSize: '1rem',
@@ -385,7 +425,7 @@ export default function ConsultationViewPage() {
               Trichoskopia - Badanie
             </Box>
             <Grid container spacing={2} sx={{ mb: 2 }}>
-              <Grid item xs={12} sm={4}>
+              <Grid size={{ xs: 12, sm: 4 }}>
                 <Box sx={{ border: '1px solid #ccc', p: 1.5, borderRadius: 1 }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, textDecoration: 'underline' }}>
                     SKÓRA GŁOWY
@@ -402,7 +442,7 @@ export default function ConsultationViewPage() {
                   {renderCheckboxInfo('pH', consultation.scalpPH)}
                 </Box>
               </Grid>
-              <Grid item xs={12} sm={4}>
+              <Grid size={{ xs: 12, sm: 4 }}>
                 <Box sx={{ border: '1px solid #ccc', p: 1.5, borderRadius: 1 }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, textDecoration: 'underline' }}>
                     STAN WŁOSÓW
@@ -416,7 +456,7 @@ export default function ConsultationViewPage() {
                   {renderCheckboxInfo('Vellus', consultation.vellusMiniaturizedHairs)}
                 </Box>
               </Grid>
-              <Grid item xs={12} sm={4}>
+              <Grid size={{ xs: 12, sm: 4 }}>
                 <Box sx={{ border: '1px solid #ccc', p: 1.5, borderRadius: 1 }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, textDecoration: 'underline' }}>
                     CECHY SPECYFICZNE
@@ -443,8 +483,8 @@ export default function ConsultationViewPage() {
 
         {/* Section: Diagnosis and Recommendations */}
         <Grid container spacing={2} sx={{ mt: 2 }}>
-          <Grid item xs={12} md={6}>
-            <Box sx={{ 
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Box sx={{
               backgroundColor: '#e0e0e0',
               fontWeight: 'bold',
               fontSize: '1rem',
@@ -497,14 +537,14 @@ export default function ConsultationViewPage() {
               )}
             </Box>
           </Grid>
-          <Grid item xs={12} md={6}>
-            <Box sx={{ 
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Box sx={{
               backgroundColor: '#f9f9f9',
               border: '1px solid #ddd',
               p: 2,
               borderRadius: 1
             }}>
-              <Box sx={{ 
+              <Box sx={{
                 fontWeight: 'bold',
                 fontSize: '1rem',
                 mb: 2,
@@ -545,7 +585,7 @@ export default function ConsultationViewPage() {
 
         {/* General Remarks */}
         {consultation.generalRemarks && (
-          <Box sx={{ 
+          <Box sx={{
             border: '1px solid #ccc',
             mt: 3,
             p: 2,
@@ -557,7 +597,7 @@ export default function ConsultationViewPage() {
         )}
 
         {/* Footer */}
-        <Box sx={{ 
+        <Box sx={{
           mt: 4,
           pt: 2,
           borderTop: '1px solid #ddd',

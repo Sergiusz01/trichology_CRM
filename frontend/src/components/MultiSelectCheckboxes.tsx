@@ -1,4 +1,4 @@
-import { FormControl, FormLabel, FormGroup, FormControlLabel, Checkbox } from '@mui/material';
+import { FormControl, FormLabel, FormGroup, FormControlLabel, Checkbox, Grid } from '@mui/material';
 
 interface MultiSelectCheckboxesProps {
   label: string;
@@ -21,23 +21,44 @@ export default function MultiSelectCheckboxes({
   };
 
   return (
-    <FormControl component="fieldset" fullWidth>
-      <FormLabel component="legend">{label}</FormLabel>
+    <FormControl component="fieldset" fullWidth sx={{ mb: 2 }}>
+      <FormLabel
+        component="legend"
+        sx={{
+          typography: 'subtitle2',
+          fontWeight: 600,
+          mb: 1,
+          color: 'text.primary'
+        }}
+      >
+        {label}
+      </FormLabel>
       <FormGroup>
-        {options.map((option) => (
-          <FormControlLabel
-            key={option}
-            control={
-              <Checkbox
-                checked={value.includes(option)}
-                onChange={() => handleChange(option)}
+        <Grid container spacing={0}>
+          {options.map((option) => (
+            <Grid key={option} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    size="small"
+                    checked={value.includes(option)}
+                    onChange={() => handleChange(option)}
+                  />
+                }
+                label={option}
+                sx={{
+                  '& .MuiFormControlLabel-label': {
+                    fontSize: '0.875rem',
+                  },
+                }}
               />
-            }
-            label={option}
-          />
-        ))}
+            </Grid>
+          ))}
+        </Grid>
+
       </FormGroup>
     </FormControl>
   );
 }
+
 

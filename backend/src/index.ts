@@ -33,7 +33,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Serve uploaded files (secure route - authentication required in routes)
-const uploadsPath = process.env.UPLOAD_DIR || path.join(__dirname, '../storage/uploads');
+const uploadsPath = path.resolve(__dirname, '..', process.env.UPLOAD_DIR || 'storage/uploads');
 app.use('/uploads', express.static(uploadsPath, {
   setHeaders: (res, filePath) => {
     // Set CORS headers for images

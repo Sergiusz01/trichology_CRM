@@ -26,7 +26,7 @@ import {
   Cancel,
   Delete,
 } from '@mui/icons-material';
-import { api } from '../services/api';
+import { api, BASE_URL } from '../services/api';
 
 interface Annotation {
   id: string;
@@ -96,7 +96,7 @@ export default function ScalpPhotoDetailPage() {
       const img = imageRef.current;
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
-      
+
       if (!ctx) return;
 
       // Use natural dimensions (browser handles EXIF orientation for img element)
@@ -121,23 +121,23 @@ export default function ScalpPhotoDetailPage() {
       canvas.width = drawWidth;
       canvas.height = drawHeight;
       setScale(drawWidth / imgWidth);
-      
+
       drawImageAndAnnotations();
     }
   };
 
   const drawImageAndAnnotations = () => {
     if (!imageRef.current || !canvasRef.current) return;
-    
+
     const img = imageRef.current;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
-    
+
     if (!ctx) return;
 
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
+
     // Draw image (browser handles EXIF orientation for img element, so we use it as-is)
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
@@ -148,7 +148,7 @@ export default function ScalpPhotoDetailPage() {
       ctx.lineWidth = 2;
 
       const coords = annotation.coordinates;
-      
+
       if (annotation.shapeType === 'RECT') {
         const x = coords.x * scale;
         const y = coords.y * scale;
@@ -156,7 +156,7 @@ export default function ScalpPhotoDetailPage() {
         const height = (coords.height || 100) * scale;
         ctx.fillRect(x, y, width, height);
         ctx.strokeRect(x, y, width, height);
-        
+
         // Draw label
         ctx.fillStyle = '#000';
         ctx.font = '14px Arial';
@@ -169,7 +169,7 @@ export default function ScalpPhotoDetailPage() {
         ctx.arc(x, y, radius, 0, 2 * Math.PI);
         ctx.fill();
         ctx.stroke();
-        
+
         // Draw label
         ctx.fillStyle = '#000';
         ctx.font = '14px Arial';
@@ -183,7 +183,7 @@ export default function ScalpPhotoDetailPage() {
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
-        
+
         // Draw label at first point
         if (coords.points.length > 0) {
           ctx.fillStyle = '#000';
@@ -198,7 +198,7 @@ export default function ScalpPhotoDetailPage() {
       ctx.strokeStyle = '#00ff00';
       ctx.fillStyle = 'rgba(0, 255, 0, 0.2)';
       ctx.lineWidth = 2;
-      
+
       if (selectedShapeType === 'RECT') {
         const x = Math.min(startPos.x, currentAnnotation.x);
         const y = Math.min(startPos.y, currentAnnotation.y);
@@ -208,7 +208,7 @@ export default function ScalpPhotoDetailPage() {
         ctx.strokeRect(x, y, width, height);
       } else if (selectedShapeType === 'CIRCLE') {
         const radius = Math.sqrt(
-          Math.pow(currentAnnotation.x - startPos.x, 2) + 
+          Math.pow(currentAnnotation.x - startPos.x, 2) +
           Math.pow(currentAnnotation.y - startPos.y, 2)
         );
         ctx.beginPath();
@@ -227,11 +227,11 @@ export default function ScalpPhotoDetailPage() {
 
   const handleCanvasMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current) return;
-    
+
     const rect = canvasRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    
+
     setStartPos({ x, y });
     setDrawing(true);
     setCurrentAnnotation({ x, y, shapeType: selectedShapeType });
@@ -239,32 +239,32 @@ export default function ScalpPhotoDetailPage() {
 
   const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!drawing || !canvasRef.current || !startPos) return;
-    
+
     const rect = canvasRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    
+
     setCurrentAnnotation({ x, y, shapeType: selectedShapeType });
   };
 
   const handleCanvasMouseUp = () => {
     if (!drawing || !startPos || !currentAnnotation) return;
-    
+
     // Check if annotation has minimum size
     const minSize = 10;
     const width = Math.abs(currentAnnotation.x - startPos.x);
     const height = Math.abs(currentAnnotation.y - startPos.y);
-    
+
     if (selectedShapeType === 'RECT' && (width < minSize || height < minSize)) {
       setDrawing(false);
       setStartPos(null);
       setCurrentAnnotation(null);
       return;
     }
-    
+
     if (selectedShapeType === 'CIRCLE') {
       const radius = Math.sqrt(
-        Math.pow(currentAnnotation.x - startPos.x, 2) + 
+        Math.pow(currentAnnotation.x - startPos.x, 2) +
         Math.pow(currentAnnotation.y - startPos.y, 2)
       );
       if (radius < minSize) {
@@ -274,7 +274,7 @@ export default function ScalpPhotoDetailPage() {
         return;
       }
     }
-    
+
     setDrawing(false);
     setAnnotationDialog(true);
   };
@@ -292,7 +292,7 @@ export default function ScalpPhotoDetailPage() {
 
     try {
       const coords: any = {};
-      
+
       if (selectedShapeType === 'RECT') {
         coords.x = Math.min(startPos.x, currentAnnotation.x) / scale;
         coords.y = Math.min(startPos.y, currentAnnotation.y) / scale;
@@ -302,7 +302,7 @@ export default function ScalpPhotoDetailPage() {
         coords.x = startPos.x / scale;
         coords.y = startPos.y / scale;
         coords.radius = Math.sqrt(
-          Math.pow(currentAnnotation.x - startPos.x, 2) + 
+          Math.pow(currentAnnotation.x - startPos.x, 2) +
           Math.pow(currentAnnotation.y - startPos.y, 2)
         ) / scale;
       }
@@ -358,7 +358,10 @@ export default function ScalpPhotoDetailPage() {
   return (
     <Box>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-        <IconButton onClick={() => navigate(`/patients/${id}`)} sx={{ mr: 1 }}>
+        <IconButton
+          onClick={() => navigate(id ? `/patients/${id}` : (photo?.patient?.id ? `/patients/${photo.patient.id}` : '/patients'))}
+          sx={{ mr: 1 }}
+        >
           <ArrowBack />
         </IconButton>
         <Typography variant="h4">Zdjęcie skóry głowy</Typography>
@@ -377,12 +380,12 @@ export default function ScalpPhotoDetailPage() {
       )}
 
       <Grid container spacing={2}>
-        <Grid item xs={12} md={8}>
+        <Grid size={{ xs: 12, md: 8 }}>
           <Paper sx={{ p: 2 }}>
             <Box sx={{ position: 'relative', display: 'inline-block', width: '100%' }}>
               <img
                 ref={imageRef}
-                src={`${photo.url || `/uploads/${photo.filePath?.split(/[/\\]/).pop()}`}`}
+                src={photo.url ? `${BASE_URL}${photo.url}` : `${BASE_URL}/uploads/${photo.filePath?.split(/[/\\]/).pop()}`}
                 alt={photo.originalFilename || 'Zdjęcie skóry głowy'}
                 onLoad={() => {
                   console.log('Obraz załadowany:', photo.url);
@@ -446,7 +449,7 @@ export default function ScalpPhotoDetailPage() {
           </Paper>
         </Grid>
 
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Paper sx={{ p: 2, mb: 2 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
               <Typography variant="h6">Uwagi</Typography>

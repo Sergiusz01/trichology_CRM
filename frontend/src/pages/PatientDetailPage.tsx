@@ -40,7 +40,7 @@ import {
   Work,
   CalendarToday,
 } from '@mui/icons-material';
-import { api } from '../services/api';
+import { api, BASE_URL } from '../services/api';
 
 interface Patient {
   id: string;
@@ -398,54 +398,59 @@ export default function PatientDetailPage() {
             borderColor: 'divider',
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: { xs: 2, md: 4 }, mb: 4 }}>
+          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: { xs: 'center', md: 'flex-start' }, gap: { xs: 2.5, md: 4 }, mb: 4, textAlign: { xs: 'center', md: 'left' } }}>
             <Avatar
               sx={{
-                bgcolor: '#007AFF',
-                width: { xs: 64, md: 96 },
-                height: { xs: 64, md: 96 },
-                fontSize: { xs: '1.5rem', md: '2.5rem' },
-                fontWeight: 600,
+                bgcolor: alpha('#007AFF', 0.1),
+                color: '#007AFF',
+                width: { xs: 80, md: 100 },
+                height: { xs: 80, md: 100 },
+                fontSize: { xs: '1.75rem', md: '2.5rem' },
+                fontWeight: 700,
+                border: '2px solid',
+                borderColor: alpha('#007AFF', 0.2),
               }}
             >
               {getInitials(patient.firstName, patient.lastName)}
             </Avatar>
-            <Box sx={{ flex: 1 }}>
+            <Box sx={{ flex: 1, width: '100%' }}>
               <Typography
                 variant="h3"
                 sx={{
-                  fontWeight: 700,
+                  fontWeight: 800,
                   color: '#1d1d1f',
                   mb: 2,
-                  fontSize: { xs: '1.75rem', md: '2.5rem' },
+                  fontSize: { xs: '1.75rem', md: '2.75rem' },
                   lineHeight: 1.2,
                 }}
               >
                 {patient.firstName} {patient.lastName}
               </Typography>
-              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+              <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', justifyContent: { xs: 'center', md: 'flex-start' }, alignItems: 'center' }}>
                 {patient.age && (
                   <Chip
-                    icon={<CalendarToday sx={{ fontSize: 16 }} />}
+                    icon={<CalendarToday sx={{ fontSize: '14px !important' }} />}
                     label={`${patient.age} lat`}
+                    size="small"
                     sx={{
-                      bgcolor: alpha('#007AFF', 0.1),
+                      bgcolor: alpha('#007AFF', 0.08),
                       color: '#007AFF',
                       border: 'none',
-                      fontWeight: 500,
+                      fontWeight: 600,
+                      px: 0.5,
                     }}
                   />
                 )}
                 {patient.gender && (
                   <Chip
                     label={patient.gender === 'MALE' ? 'Mężczyzna' : patient.gender === 'FEMALE' ? 'Kobieta' : 'Inna'}
+                    size="small"
                     sx={{
-                      bgcolor: alpha('#34C759', 0.1),
-                      color: '#34C759',
+                      bgcolor: patient.gender === 'MALE' ? alpha('#007AFF', 0.08) : alpha('#FF2D55', 0.08),
+                      color: patient.gender === 'MALE' ? '#007AFF' : '#FF2D55',
                       border: 'none',
-                      fontWeight: 500,
-                      height: 32,
-                      fontSize: '0.9rem',
+                      fontWeight: 600,
+                      px: 0.5,
                     }}
                   />
                 )}
@@ -454,128 +459,157 @@ export default function PatientDetailPage() {
           </Box>
 
           {/* Action Buttons */}
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <Button
-              variant="contained"
-              startIcon={<Add />}
-              onClick={() => navigate(`/patients/${id}/consultations/new`)}
-              sx={{
-                bgcolor: '#007AFF',
-                color: 'white',
-                textTransform: 'none',
-                fontWeight: 600,
-                py: 1.5,
-                borderRadius: 2,
-                boxShadow: 'none',
-                '&:hover': {
-                  bgcolor: '#0051D5',
-                  boxShadow: 'none',
-                },
-              }}
-            >
-              Nowa konsultacja
-            </Button>
-            <Button
-              variant="outlined"
-              startIcon={<Edit />}
-              onClick={() => navigate(`/patients/${id}/edit`)}
-              sx={{
-                borderColor: '#d2d2d7',
-                color: '#1d1d1f',
-                textTransform: 'none',
-                fontWeight: 600,
-                py: 1.5,
-                borderRadius: 2,
-                '&:hover': {
-                  borderColor: '#1d1d1f',
-                  bgcolor: alpha('#000', 0.02),
-                },
-              }}
-            >
-              Edytuj dane
-            </Button>
-            {patient.email && (
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <Button
-                variant="outlined"
-                startIcon={<Email />}
-                onClick={() => navigate(`/patients/${id}/email`)}
+                fullWidth
+                variant="contained"
+                startIcon={<Add />}
+                onClick={() => navigate(`/patients/${id}/consultations/new`)}
                 sx={{
-                  borderColor: '#d2d2d7',
+                  bgcolor: '#007AFF',
+                  color: 'white',
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  py: { xs: 1.2, sm: 1.5 },
+                  borderRadius: 2.5,
+                  boxShadow: `0 4px 14px ${alpha('#007AFF', 0.4)}`,
+                  '&:hover': {
+                    bgcolor: '#0051D5',
+                    boxShadow: `0 6px 20px ${alpha('#007AFF', 0.5)}`,
+                  },
+                }}
+              >
+                Nowa konsultacja
+              </Button>
+            </Grid>
+            <Grid size={{ xs: 12, sm: 4 }}>
+              <Button
+                fullWidth
+                variant="outlined"
+                startIcon={<Edit />}
+                onClick={() => navigate(`/patients/${id}/edit`)}
+                sx={{
+                  borderColor: alpha('#1d1d1f', 0.15),
                   color: '#1d1d1f',
                   textTransform: 'none',
                   fontWeight: 600,
-                  py: 1.5,
-                  borderRadius: 2,
+                  py: { xs: 1.2, sm: 1.5 },
+                  borderRadius: 2.5,
                   '&:hover': {
                     borderColor: '#1d1d1f',
                     bgcolor: alpha('#000', 0.02),
                   },
                 }}
               >
-                Wyślij email
+                Edytuj dane
               </Button>
+            </Grid>
+            {patient.email && (
+              <Grid size={{ xs: 12, sm: 4 }}>
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  startIcon={<Email />}
+                  onClick={() => navigate(`/patients/${id}/email`)}
+                  sx={{
+                    borderColor: alpha('#1d1d1f', 0.15),
+                    color: '#1d1d1f',
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    py: { xs: 1.2, sm: 1.5 },
+                    borderRadius: 2.5,
+                    '&:hover': {
+                      borderColor: '#1d1d1f',
+                      bgcolor: alpha('#000', 0.02),
+                    },
+                  }}
+                >
+                  Email
+                </Button>
+              </Grid>
             )}
-          </Stack>
+          </Grid>
         </Paper>
 
         {/* Stats Grid */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
-          {stats.map((stat, index) => (
-            <Grid key={index} size={{ xs: 6, md: 3 }}>
-              <Paper
-                elevation={0}
-                sx={{
-                  p: { xs: 2.5, md: 3.5 },
-                  borderRadius: 3,
-                  bgcolor: 'white',
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  transition: 'all 0.2s',
-                  '&:hover': {
-                    borderColor: stat.color,
-                    transform: 'translateY(-2px)',
-                  },
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                  <Box
+          {stats.map((stat, index) => {
+            const isActive = tabValue === (index + 1); // Stats correspond to tabs 1-4
+            return (
+              <Grid key={index} size={{ xs: 6, md: 3 }}>
+                <Paper
+                  elevation={0}
+                  onClick={() => setTabValue(index + 1)}
+                  sx={{
+                    p: { xs: 2, sm: 3 },
+                    borderRadius: 4,
+                    bgcolor: 'white',
+                    border: '1px solid',
+                    borderColor: isActive ? stat.color : 'divider',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: isActive ? `0 8px 24px ${alpha(stat.color, 0.15)}` : 'none',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    '&:hover': {
+                      borderColor: stat.color,
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 12px 30px ${alpha(stat.color, 0.12)}`,
+                    },
+                    '&::before': isActive ? {
+                      content: '""',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: 4,
+                      height: '100%',
+                      bgcolor: stat.color
+                    } : {}
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                    <Box
+                      sx={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: 2.5,
+                        bgcolor: alpha(stat.color, 0.1),
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <stat.icon sx={{ color: stat.color, fontSize: 24 }} />
+                    </Box>
+                  </Box>
+                  <Typography
+                    variant="h3"
                     sx={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 2,
-                      bgcolor: alpha(stat.color, 0.1),
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
+                      fontWeight: 800,
+                      color: '#1d1d1f',
+                      mb: 0.5,
+                      fontSize: { xs: '1.75rem', md: '2.25rem' },
                     }}
                   >
-                    <stat.icon sx={{ color: stat.color, fontSize: 20 }} />
-                  </Box>
-                </Box>
-                <Typography
-                  variant="h2"
-                  sx={{
-                    fontWeight: 700,
-                    color: '#1d1d1f',
-                    mb: 1,
-                    fontSize: { xs: '2rem', md: '2.5rem' },
-                  }}
-                >
-                  {stat.value}
-                </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: '#86868b',
-                    fontSize: '0.95rem',
-                    fontWeight: 500,
-                  }}
-                >
-                  {stat.label}
-                </Typography>
-              </Paper>
-            </Grid>
-          ))}
+                    {stat.value}
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: '#86868b',
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.02em'
+                    }}
+                  >
+                    {stat.label}
+                  </Typography>
+                </Paper>
+              </Grid>
+            );
+          })}
         </Grid>
 
         {/* Tabs */}
@@ -592,18 +626,22 @@ export default function PatientDetailPage() {
           <Tabs
             value={tabValue}
             onChange={(_, newValue) => setTabValue(newValue)}
+            variant="scrollable"
+            scrollButtons="auto"
+            allowScrollButtonsMobile
             sx={{
               borderBottom: '1px solid',
               borderColor: 'divider',
-              px: 2,
+              px: { xs: 1, sm: 2 },
               '& .MuiTab-root': {
                 textTransform: 'none',
-                fontWeight: 600,
-                fontSize: '1rem',
+                fontWeight: 700,
+                fontSize: { xs: '0.9rem', sm: '1rem' },
                 color: '#86868b',
-                minHeight: 64,
+                minHeight: { xs: 56, sm: 64 },
+                minWidth: { xs: 100, sm: 120 },
                 '&.Mui-selected': {
-                  color: '#1d1d1f',
+                  color: '#007AFF',
                 },
               },
               '& .MuiTabs-indicator': {
@@ -615,9 +653,9 @@ export default function PatientDetailPage() {
           >
             <Tab label="Przegląd" />
             <Tab label="Konsultacje" />
-            <Tab label="Wyniki badań" />
+            <Tab label="Wyniki" />
             <Tab label="Zdjęcia" />
-            <Tab label="Plany opieki" />
+            <Tab label="Plany" />
           </Tabs>
 
           {/* Tab Panel 0: Overview */}
@@ -1118,18 +1156,20 @@ export default function PatientDetailPage() {
                     <Paper
                       elevation={0}
                       sx={{
-                        borderRadius: 2,
+                        borderRadius: 3,
                         overflow: 'hidden',
                         border: '1px solid',
                         borderColor: 'divider',
-                        transition: 'all 0.2s',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                         '&:hover': {
                           borderColor: '#FF9500',
                           transform: 'translateY(-4px)',
+                          boxShadow: '0 12px 30px rgba(0,0,0,0.08)',
                         },
                       }}
                     >
                       <Box
+                        onClick={() => navigate(`/scalp-photos/${photo.id}`)}
                         sx={{
                           width: '100%',
                           height: 200,
@@ -1137,16 +1177,25 @@ export default function PatientDetailPage() {
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
+                          cursor: 'pointer',
+                          overflow: 'hidden'
                         }}
                       >
-                        {photo.photoUrl ? (
+                        {photo.url || photo.filePath ? (
                           <img
-                            src={photo.photoUrl}
+                            src={photo.url ? `${BASE_URL}${photo.url}` : `${BASE_URL}/uploads/${photo.filePath?.split(/[/\\]/).pop()}`}
                             alt="Zdjęcie skóry głowy"
                             style={{
                               width: '100%',
                               height: '100%',
                               objectFit: 'cover',
+                              transition: 'transform 0.5s ease',
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
+                            onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                            onError={(e) => {
+                              const img = e.target as HTMLImageElement;
+                              img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23ddd" width="200" height="200"/%3E%3Ctext fill="%23999" font-family="sans-serif" font-size="14" dy="10.5" font-weight="bold" x="50%25" y="50%25" text-anchor="middle"%3EBrak zdj%26%23381%3Bcia%3C/text%3E%3C/svg%3E';
                             }}
                           />
                         ) : (
@@ -1154,21 +1203,25 @@ export default function PatientDetailPage() {
                         )}
                       </Box>
                       <Box sx={{ p: 2 }}>
-                        <Typography variant="body2" sx={{ color: '#86868b', mb: 1 }}>
-                          {new Date(photo.photoDate).toLocaleDateString('pl-PL')}
+                        <Typography variant="body2" sx={{ color: '#86868b', mb: 1.5, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <CalendarToday sx={{ fontSize: 14 }} />
+                          {(() => {
+                            const d = photo.date || photo.createdAt || photo.photoDate;
+                            return d ? new Date(d).toLocaleDateString('pl-PL') : 'Brak daty';
+                          })()}
                         </Typography>
                         <Stack direction="row" spacing={1}>
                           <Button
                             size="small"
                             variant="outlined"
+                            fullWidth
                             onClick={() => navigate(`/scalp-photos/${photo.id}`)}
                             sx={{
                               borderColor: '#d2d2d7',
                               color: '#1d1d1f',
                               textTransform: 'none',
-                              fontWeight: 600,
+                              fontWeight: 700,
                               borderRadius: 1.5,
-                              flex: 1,
                               '&:hover': {
                                 borderColor: '#1d1d1f',
                                 bgcolor: alpha('#000', 0.02),
@@ -1180,7 +1233,11 @@ export default function PatientDetailPage() {
                           <IconButton
                             size="small"
                             onClick={() => handleDeleteClick('scalpPhoto', photo.id, 'Zdjęcie')}
-                            sx={{ color: '#FF3B30' }}
+                            sx={{
+                              color: '#FF3B30',
+                              bgcolor: alpha('#FF3B30', 0.05),
+                              '&:hover': { bgcolor: alpha('#FF3B30', 0.1) }
+                            }}
                           >
                             <Delete />
                           </IconButton>

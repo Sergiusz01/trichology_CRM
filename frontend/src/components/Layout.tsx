@@ -100,7 +100,9 @@ export default function Layout() {
       <Box sx={{ flex: 1, overflow: 'auto', py: 1 }}>
         <List>
           {menuItems.map((item) => {
-            const active = location.pathname.startsWith(item.path);
+            const active = item.path === '/'
+              ? location.pathname === '/'
+              : location.pathname.startsWith(item.path);
             return (
               <ListItem key={item.text} disablePadding>
                 <ListItemButton
@@ -207,6 +209,7 @@ export default function Layout() {
         sx={{
           zIndex: (theme) => theme.zIndex.drawer + 1,
           display: { md: 'none' },
+          borderRadius: 0,
         }}
       >
         <Toolbar>

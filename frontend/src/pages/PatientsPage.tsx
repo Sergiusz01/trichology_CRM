@@ -29,9 +29,11 @@ import {
   Chip,
   CircularProgress,
   Avatar,
+  Stack,
+  alpha,
   Container,
 } from '@mui/material';
-import { Add, Visibility, Delete, Search, Person, Download, Restore, DeleteForever, Archive } from '@mui/icons-material';
+import { Add, Visibility, Delete, Search, Person, Download, Restore, DeleteForever, Archive, Phone, Email } from '@mui/icons-material';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -187,7 +189,7 @@ export default function PatientsPage() {
     try {
       setExporting(true);
       setError('');
-      
+
       const response = await api.get('/export/patients/zip', {
         responseType: 'blob',
       });
@@ -220,37 +222,40 @@ export default function PatientsPage() {
   return (
     <Container maxWidth="xl" sx={{ px: { xs: 1, sm: 2, md: 3 } }}>
       <Box sx={{ mb: { xs: 2, sm: 3 } }}>
-        <Box sx={{ 
-          display: 'flex', 
-          flexDirection: { xs: 'column', sm: 'row' }, 
-          justifyContent: 'space-between', 
-          alignItems: { xs: 'flex-start', sm: 'center' }, 
-          mb: { xs: 1.5, sm: 2 }, 
+        <Box sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', sm: 'row' },
+          justifyContent: 'space-between',
+          alignItems: { xs: 'flex-start', sm: 'center' },
+          mb: { xs: 1.5, sm: 2 },
           gap: { xs: 1.5, sm: 2 },
         }}>
           <Box sx={{ width: { xs: '100%', sm: 'auto' } }}>
-            <Typography 
-              variant="h4" 
-              component="h1" 
-              sx={{ 
-                fontWeight: 'bold', 
-                mb: 0.5,
-                fontSize: { xs: '1.5rem', sm: '2rem' },
+            <Typography
+              variant="h4"
+              component="h1"
+              sx={{
+                fontWeight: 800,
+                mb: 1,
+                fontSize: { xs: '1.75rem', sm: '2.5rem' },
+                background: 'linear-gradient(135deg, #007AFF 0%, #00C7BE 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
               }}
             >
               Pacjenci
             </Typography>
-            <Typography 
-              variant="body2" 
+            <Typography
+              variant="body1"
               color="text.secondary"
-              sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+              sx={{ fontSize: { xs: '0.875rem', sm: '1rem' }, fontWeight: 500 }}
             >
-              Zarządzaj danymi pacjentów i ich konsultacjami
+              Zarządzaj bazą pacjentów i ich historią medyczną
             </Typography>
           </Box>
-          <Box sx={{ 
-            display: 'flex', 
-            gap: { xs: 1, sm: 2 }, 
+          <Box sx={{
+            display: 'flex',
+            gap: { xs: 1, sm: 2 },
             flexWrap: 'wrap',
             width: { xs: '100%', sm: 'auto' },
             '& > *': {
@@ -265,8 +270,8 @@ export default function PatientsPage() {
                 setShowArchived(!showArchived);
                 setPage(0);
               }}
-              sx={{ 
-                textTransform: 'none', 
+              sx={{
+                textTransform: 'none',
                 fontWeight: 600,
                 fontSize: { xs: '0.75rem', sm: '0.875rem' },
                 px: { xs: 1.5, sm: 2 },
@@ -281,8 +286,8 @@ export default function PatientsPage() {
                 startIcon={exporting ? <CircularProgress size={20} /> : <Download />}
                 onClick={handleExport}
                 disabled={exporting}
-                sx={{ 
-                  textTransform: 'none', 
+                sx={{
+                  textTransform: 'none',
                   fontWeight: 600,
                   fontSize: { xs: '0.75rem', sm: '0.875rem' },
                   px: { xs: 1.5, sm: 2 },
@@ -297,16 +302,18 @@ export default function PatientsPage() {
                 variant="contained"
                 startIcon={<Add />}
                 onClick={() => navigate('/patients/new')}
-                sx={{ 
-                  textTransform: 'none', 
-                  fontWeight: 600,
-                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                  px: { xs: 1.5, sm: 2 },
+                sx={{
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  borderRadius: 2,
+                  fontSize: { xs: '0.8125rem', sm: '0.875rem' },
+                  px: { xs: 2, sm: 3 },
+                  py: 1.2,
                 }}
-                size={isMobile ? 'small' : 'medium'}
+                size={isMobile ? 'medium' : 'medium'}
                 fullWidth={isMobile}
               >
-                {isMobile ? 'NOWY' : 'NOWY PACJENT'}
+                {isMobile ? 'NOWY PACJENT' : 'NOWY PACJENT'}
               </Button>
             )}
           </Box>
@@ -324,10 +331,19 @@ export default function PatientsPage() {
           </Alert>
         )}
 
-        <Paper sx={{ p: { xs: 1.5, sm: 2 }, mb: { xs: 1.5, sm: 2 } }}>
+        <Paper
+          sx={{
+            p: { xs: 1, sm: 2 },
+            mb: 4,
+            borderRadius: 3,
+            border: '1px solid',
+            borderColor: 'divider',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+          }}
+        >
           <TextField
             fullWidth
-            placeholder={isMobile ? "Szukaj..." : "Szukaj (imię, nazwisko, telefon, email)..."}
+            placeholder={isMobile ? "Szukaj pacjenta..." : "Szukaj po imieniu, nazwisku, nr telefonu lub emailu..."}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -337,9 +353,10 @@ export default function PatientsPage() {
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <Search fontSize={isMobile ? 'small' : 'medium'} />
+                  <Search sx={{ color: 'primary.main' }} fontSize={isMobile ? 'small' : 'medium'} />
                 </InputAdornment>
               ),
+              sx: { borderRadius: 2.5 }
             }}
           />
         </Paper>
@@ -347,13 +364,13 @@ export default function PatientsPage() {
         {isMobile ? (
           <Grid container spacing={2}>
             {loading ? (
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
                   <CircularProgress />
                 </Box>
               </Grid>
             ) : patients.length === 0 ? (
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Card>
                   <CardContent>
                     <Box sx={{ textAlign: 'center', py: 4 }}>
@@ -365,112 +382,86 @@ export default function PatientsPage() {
               </Grid>
             ) : (
               patients.map((patient) => (
-                <Grid item xs={12} sm={6} key={patient.id}>
+                <Grid size={{ xs: 12 }} key={patient.id}>
                   <Card
                     sx={{
-                      cursor: 'pointer',
-                      '&:hover': { boxShadow: 4 },
-                      transition: 'box-shadow 0.2s',
+                      borderRadius: 3,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                      transition: 'all 0.2s ease-in-out',
+                      '&:active': { transform: 'scale(0.98)' },
                     }}
                     onClick={() => navigate(`/patients/${patient.id}`)}
                   >
-                    <CardContent>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                    <CardContent sx={{ p: 2.5 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                          <Avatar sx={{ bgcolor: 'primary.main', fontWeight: 'bold' }}>
+                          <Avatar
+                            sx={{
+                              width: 50,
+                              height: 50,
+                              bgcolor: alpha(theme.palette.primary.main, 0.1),
+                              color: 'primary.main',
+                              fontWeight: 700,
+                              fontSize: '1.2rem',
+                              border: `2px solid ${alpha(theme.palette.primary.main, 0.2)}`
+                            }}
+                          >
                             {getInitials(patient.firstName, patient.lastName)}
                           </Avatar>
                           <Box>
-                            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
                               {patient.firstName} {patient.lastName}
                             </Typography>
-                            {patient.age && (
-                              <Typography variant="body2" color="text.secondary">
-                                {patient.age} lat
-                              </Typography>
-                            )}
+                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
+                              {patient.age ? `${patient.age} lat` : 'Wiek nieznany'} • {patient.gender === 'MALE' ? 'Mężczyzna' : 'Kobieta'}
+                            </Typography>
                           </Box>
                         </Box>
-                        <Box>
+                        <Box sx={{ display: 'flex' }}>
                           <IconButton
                             size="small"
                             onClick={(e) => {
                               e.stopPropagation();
                               navigate(`/patients/${patient.id}`);
                             }}
+                            sx={{ color: 'primary.main', bgcolor: alpha(theme.palette.primary.main, 0.05), mr: 0.5 }}
                           >
-                            <Visibility />
+                            <Visibility fontSize="small" />
                           </IconButton>
-                          {showArchived ? (
-                            <>
-                              <IconButton
-                                size="small"
-                                color="success"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleRestoreClick(
-                                    patient.id,
-                                    `${patient.firstName} ${patient.lastName}`
-                                  );
-                                }}
-                                title="Przywróć pacjenta"
-                              >
-                                <Restore />
-                              </IconButton>
-                              {isAdmin && (
-                                <IconButton
-                                  size="small"
-                                  color="error"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handlePermanentDeleteClick(
-                                      patient.id,
-                                      `${patient.firstName} ${patient.lastName}`
-                                    );
-                                  }}
-                                  title="Trwale usuń (RODO)"
-                                >
-                                  <DeleteForever />
-                                </IconButton>
-                              )}
-                            </>
-                          ) : (
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteClick(
-                                  patient.id,
-                                  `${patient.firstName} ${patient.lastName}`
-                                );
-                              }}
-                            >
-                              <Delete />
-                            </IconButton>
-                          )}
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteClick(patient.id, `${patient.firstName} ${patient.lastName}`);
+                            }}
+                            sx={{ bgcolor: alpha(theme.palette.error.main, 0.05) }}
+                          >
+                            <Delete fontSize="small" />
+                          </IconButton>
                         </Box>
                       </Box>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                        {patient.gender && (
-                          <Chip
-                            label={patient.gender === 'MALE' ? 'Mężczyzna' : patient.gender === 'FEMALE' ? 'Kobieta' : '-'}
-                            size="small"
-                            color={patient.gender === 'MALE' ? 'primary' : 'secondary'}
-                            sx={{ width: 'fit-content' }}
-                          />
-                        )}
+
+                      <Stack spacing={1}>
                         {patient.phone && (
-                          <Typography variant="body2" color="text.secondary">
-                            📞 {patient.phone}
-                          </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Phone sx={{ fontSize: 16, color: 'text.secondary' }} />
+                            <Typography variant="body2" color="text.primary" sx={{ fontWeight: 500 }}>
+                              {patient.phone}
+                            </Typography>
+                          </Box>
                         )}
                         {patient.email && (
-                          <Typography variant="body2" color="text.secondary" noWrap>
-                            ✉️ {patient.email}
-                          </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Email sx={{ fontSize: 16, color: 'text.secondary' }} />
+                            <Typography noWrap variant="body2" color="text.primary" sx={{ fontWeight: 500 }}>
+                              {patient.email}
+                            </Typography>
+                          </Box>
                         )}
-                      </Box>
+                      </Stack>
                     </CardContent>
                   </Card>
                 </Grid>
@@ -478,7 +469,7 @@ export default function PatientsPage() {
             )}
           </Grid>
         ) : (
-          <TableContainer 
+          <TableContainer
             component={Paper}
             sx={{
               overflowX: 'auto',
@@ -488,40 +479,40 @@ export default function PatientsPage() {
             <Table sx={{ minWidth: 650 }}>
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ 
+                  <TableCell sx={{
                     fontSize: { xs: '0.75rem', sm: '0.875rem' },
                     fontWeight: 600,
                     whiteSpace: 'nowrap',
                   }}>
                     Imię i nazwisko
                   </TableCell>
-                  <TableCell sx={{ 
+                  <TableCell sx={{
                     fontSize: { xs: '0.75rem', sm: '0.875rem' },
                     whiteSpace: 'nowrap',
                   }}>
                     Wiek
                   </TableCell>
-                  <TableCell sx={{ 
+                  <TableCell sx={{
                     fontSize: { xs: '0.75rem', sm: '0.875rem' },
                     whiteSpace: 'nowrap',
                   }}>
                     Płeć
                   </TableCell>
-                  <TableCell sx={{ 
+                  <TableCell sx={{
                     fontSize: { xs: '0.75rem', sm: '0.875rem' },
                     whiteSpace: 'nowrap',
                     display: { xs: 'none', md: 'table-cell' },
                   }}>
                     Telefon
                   </TableCell>
-                  <TableCell sx={{ 
+                  <TableCell sx={{
                     fontSize: { xs: '0.75rem', sm: '0.875rem' },
                     whiteSpace: 'nowrap',
                     display: { xs: 'none', lg: 'table-cell' },
                   }}>
                     Email
                   </TableCell>
-                  <TableCell align="right" sx={{ 
+                  <TableCell align="right" sx={{
                     fontSize: { xs: '0.75rem', sm: '0.875rem' },
                     whiteSpace: 'nowrap',
                   }}>
@@ -561,12 +552,12 @@ export default function PatientsPage() {
                           </Typography>
                         </Box>
                       </TableCell>
-                      <TableCell sx={{ 
+                      <TableCell sx={{
                         fontSize: { xs: '0.75rem', sm: '0.875rem' },
                       }}>
                         {patient.age || '-'}
                       </TableCell>
-                      <TableCell sx={{ 
+                      <TableCell sx={{
                         fontSize: { xs: '0.75rem', sm: '0.875rem' },
                       }}>
                         {patient.gender && (
@@ -574,20 +565,20 @@ export default function PatientsPage() {
                             label={patient.gender === 'MALE' ? 'M' : patient.gender === 'FEMALE' ? 'K' : '-'}
                             size="small"
                             color={patient.gender === 'MALE' ? 'primary' : 'secondary'}
-                            sx={{ 
+                            sx={{
                               fontSize: { xs: '0.65rem', sm: '0.75rem' },
                               height: { xs: 20, sm: 24 },
                             }}
                           />
                         )}
                       </TableCell>
-                      <TableCell sx={{ 
+                      <TableCell sx={{
                         fontSize: { xs: '0.75rem', sm: '0.875rem' },
                         display: { xs: 'none', md: 'table-cell' },
                       }}>
                         {patient.phone || '-'}
                       </TableCell>
-                      <TableCell sx={{ 
+                      <TableCell sx={{
                         fontSize: { xs: '0.75rem', sm: '0.875rem' },
                         display: { xs: 'none', lg: 'table-cell' },
                         maxWidth: { lg: 200 },
@@ -682,8 +673,8 @@ export default function PatientsPage() {
           </TableContainer>
         )}
 
-        <Dialog 
-          open={deleteDialog.open} 
+        <Dialog
+          open={deleteDialog.open}
           onClose={handleDeleteCancel}
           fullWidth
           maxWidth="sm"
@@ -700,13 +691,13 @@ export default function PatientsPage() {
           <DialogContent>
             <DialogContentText sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
               Czy na pewno chcesz zarchiwizować pacjenta <strong>{deleteDialog.patientName}</strong>?
-              <Typography 
-                variant="body2" 
-                color="warning.main" 
-                sx={{ 
-                  mt: 2, 
-                  p: { xs: 1.5, sm: 2 }, 
-                  bgcolor: 'warning.50', 
+              <Typography
+                variant="body2"
+                color="warning.main"
+                sx={{
+                  mt: 2,
+                  p: { xs: 1.5, sm: 2 },
+                  bgcolor: 'warning.50',
                   borderRadius: 1,
                   fontSize: { xs: '0.75rem', sm: '0.875rem' },
                 }}
@@ -716,15 +707,15 @@ export default function PatientsPage() {
             </DialogContentText>
           </DialogContent>
           <DialogActions sx={{ px: { xs: 2, sm: 3 }, pb: { xs: 2, sm: 3 } }}>
-            <Button 
+            <Button
               onClick={handleDeleteCancel}
               size={isMobile ? 'small' : 'medium'}
             >
               Anuluj
             </Button>
-            <Button 
-              onClick={handleDeleteConfirm} 
-              color="error" 
+            <Button
+              onClick={handleDeleteConfirm}
+              color="error"
               variant="contained"
               size={isMobile ? 'small' : 'medium'}
             >
@@ -733,8 +724,8 @@ export default function PatientsPage() {
           </DialogActions>
         </Dialog>
 
-        <Dialog 
-          open={restoreDialog.open} 
+        <Dialog
+          open={restoreDialog.open}
           onClose={handleRestoreCancel}
           fullWidth
           maxWidth="sm"
@@ -755,15 +746,15 @@ export default function PatientsPage() {
             </DialogContentText>
           </DialogContent>
           <DialogActions sx={{ px: { xs: 2, sm: 3 }, pb: { xs: 2, sm: 3 } }}>
-            <Button 
+            <Button
               onClick={handleRestoreCancel}
               size={isMobile ? 'small' : 'medium'}
             >
               Anuluj
             </Button>
-            <Button 
-              onClick={handleRestoreConfirm} 
-              color="success" 
+            <Button
+              onClick={handleRestoreConfirm}
+              color="success"
               variant="contained"
               size={isMobile ? 'small' : 'medium'}
             >
@@ -772,8 +763,8 @@ export default function PatientsPage() {
           </DialogActions>
         </Dialog>
 
-        <Dialog 
-          open={permanentDeleteDialog.open} 
+        <Dialog
+          open={permanentDeleteDialog.open}
           onClose={handlePermanentDeleteCancel}
           fullWidth
           maxWidth="sm"
@@ -794,7 +785,7 @@ export default function PatientsPage() {
               Czy na pewno chcesz trwale usunąć pacjenta <strong>{permanentDeleteDialog.patientName}</strong> i wszystkie powiązane dane?
               <br /><br />
               Zostaną usunięte:
-              <ul style={{ 
+              <ul style={{
                 marginLeft: isMobile ? '16px' : '20px',
                 paddingLeft: isMobile ? '8px' : '12px',
                 fontSize: isMobile ? '0.875rem' : '1rem',
@@ -810,15 +801,15 @@ export default function PatientsPage() {
             </DialogContentText>
           </DialogContent>
           <DialogActions sx={{ px: { xs: 2, sm: 3 }, pb: { xs: 2, sm: 3 } }}>
-            <Button 
+            <Button
               onClick={handlePermanentDeleteCancel}
               size={isMobile ? 'small' : 'medium'}
             >
               Anuluj
             </Button>
-            <Button 
-              onClick={handlePermanentDeleteConfirm} 
-              color="error" 
+            <Button
+              onClick={handlePermanentDeleteConfirm}
+              color="error"
               variant="contained"
               size={isMobile ? 'small' : 'medium'}
             >
