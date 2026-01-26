@@ -25,6 +25,9 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
+// Trust proxy (required for rate limiting behind Nginx)
+app.set('trust proxy', true);
+
 // Middleware
 app.use(cors({
   origin: FRONTEND_URL,
