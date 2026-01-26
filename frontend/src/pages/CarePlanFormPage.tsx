@@ -79,7 +79,7 @@ export default function CarePlanFormPage() {
       setLoadingData(true);
       const response = await api.get(`/care-plans/${carePlanId}`);
       const plan = response.data.carePlan;
-      
+
       setFormData({
         patientId: plan.patientId || id || '',
         consultationId: plan.consultationId || '',
@@ -157,15 +157,15 @@ export default function CarePlanFormPage() {
     try {
       const dataToSend = {
         ...formData,
-        consultationId: formData.consultationId && formData.consultationId.trim() !== '' 
-          ? formData.consultationId 
+        consultationId: formData.consultationId && formData.consultationId.trim() !== ''
+          ? formData.consultationId
           : undefined,
-        weeks: weeks.filter(week => 
-          week.description || 
-          week.washingRoutine || 
-          week.topicalProducts || 
-          week.supplements || 
-          week.inClinicProcedures || 
+        weeks: weeks.filter(week =>
+          week.description ||
+          week.washingRoutine ||
+          week.topicalProducts ||
+          week.supplements ||
+          week.inClinicProcedures ||
           week.remarks
         ),
       };
@@ -198,10 +198,10 @@ export default function CarePlanFormPage() {
 
   return (
     <Box sx={{ width: '100%', maxWidth: '100%', overflow: 'hidden', px: { xs: 0, sm: 0 } }}>
-      <Typography 
-        variant="h4" 
+      <Typography
+        variant="h4"
         gutterBottom
-        sx={{ 
+        sx={{
           fontSize: { xs: '1.5rem', sm: '2rem' },
           mb: { xs: 2, sm: 3 },
           px: { xs: 1.5, sm: 0 },
@@ -225,7 +225,7 @@ export default function CarePlanFormPage() {
       <Paper sx={{ p: { xs: 1.5, sm: 2, md: 3 }, mb: { xs: 1.5, sm: 2 } }}>
         <form onSubmit={handleSubmit}>
           <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }}>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 fullWidth
                 label="Tytuł planu"
@@ -235,7 +235,7 @@ export default function CarePlanFormPage() {
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Czas trwania (tygodnie)"
@@ -247,7 +247,7 @@ export default function CarePlanFormPage() {
               />
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 fullWidth
                 label="Uwagi ogólne"
@@ -258,7 +258,7 @@ export default function CarePlanFormPage() {
               />
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h6">Tygodnie planu</Typography>
                 <Button
@@ -288,7 +288,7 @@ export default function CarePlanFormPage() {
                     </Box>
 
                     <Grid container spacing={{ xs: 1.5, sm: 2 }}>
-                      <Grid item xs={12}>
+                      <Grid size={{ xs: 12 }}>
                         <TextField
                           fullWidth
                           label="Opis"
@@ -299,7 +299,7 @@ export default function CarePlanFormPage() {
                         />
                       </Grid>
 
-                      <Grid item xs={12} sm={6}>
+                      <Grid size={{ xs: 12, sm: 6 }}>
                         <TextField
                           fullWidth
                           label="Rutyna mycia"
@@ -310,7 +310,7 @@ export default function CarePlanFormPage() {
                         />
                       </Grid>
 
-                      <Grid item xs={12} sm={6}>
+                      <Grid size={{ xs: 12, sm: 6 }}>
                         <TextField
                           fullWidth
                           label="Produkty miejscowe"
@@ -321,7 +321,7 @@ export default function CarePlanFormPage() {
                         />
                       </Grid>
 
-                      <Grid item xs={12} sm={6}>
+                      <Grid size={{ xs: 12, sm: 6 }}>
                         <TextField
                           fullWidth
                           label="Suplementacja"
@@ -332,7 +332,7 @@ export default function CarePlanFormPage() {
                         />
                       </Grid>
 
-                      <Grid item xs={12} sm={6}>
+                      <Grid size={{ xs: 12, sm: 6 }}>
                         <TextField
                           fullWidth
                           label="Zabiegi w klinice"
@@ -343,7 +343,7 @@ export default function CarePlanFormPage() {
                         />
                       </Grid>
 
-                      <Grid item xs={12}>
+                      <Grid size={{ xs: 12 }}>
                         <TextField
                           fullWidth
                           label="Uwagi"
@@ -359,10 +359,10 @@ export default function CarePlanFormPage() {
               ))}
             </Grid>
 
-            <Grid item xs={12}>
-              <Box sx={{ 
-                display: 'flex', 
-                gap: { xs: 1, sm: 2 }, 
+            <Grid size={{ xs: 12 }}>
+              <Box sx={{
+                display: 'flex',
+                gap: { xs: 1, sm: 2 },
                 justifyContent: 'flex-end',
                 flexDirection: { xs: 'column-reverse', sm: 'row' },
                 mt: { xs: 1.5, sm: 2 },
@@ -373,7 +373,7 @@ export default function CarePlanFormPage() {
                   disabled={loading}
                   fullWidth={isMobile}
                   size={isMobile ? 'medium' : 'large'}
-                  sx={{ 
+                  sx={{
                     fontSize: { xs: '0.875rem', sm: '1rem' },
                     py: { xs: 1.25, sm: 1.5 },
                   }}
@@ -386,7 +386,7 @@ export default function CarePlanFormPage() {
                   disabled={loading}
                   fullWidth={isMobile}
                   size={isMobile ? 'medium' : 'large'}
-                  sx={{ 
+                  sx={{
                     fontSize: { xs: '0.875rem', sm: '1rem' },
                     py: { xs: 1.25, sm: 1.5 },
                   }}

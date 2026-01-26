@@ -35,9 +35,7 @@ const patientSchema = z.object({
     .max(150, 'Wiek nie może przekraczać 150 lat')
     .optional()
     .or(z.literal('')),
-  gender: z.enum(['MALE', 'FEMALE', 'OTHER', ''], {
-    errorMap: () => ({ message: 'Wybierz płeć' })
-  }).optional(),
+  gender: z.enum(['MALE', 'FEMALE', 'OTHER', '']).optional(),
   phone: z.string()
     .regex(/^[0-9\s\-\+\(\)]*$/, 'Nieprawidłowy format telefonu')
     .optional()
@@ -71,7 +69,7 @@ export default function PatientFormPage() {
     reset,
     formState: { errors, isSubmitting },
   } = useForm<PatientFormData>({
-    resolver: zodResolver(patientSchema),
+    resolver: zodResolver(patientSchema) as any,
     defaultValues: {
       firstName: '',
       lastName: '',
@@ -151,7 +149,7 @@ export default function PatientFormPage() {
       <Paper sx={{ p: 3 }}>
         <form onSubmit={handleSubmit(onSubmit)}>
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Controller
                 name="firstName"
                 control={control}
@@ -167,7 +165,7 @@ export default function PatientFormPage() {
                 )}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Controller
                 name="lastName"
                 control={control}
@@ -183,7 +181,7 @@ export default function PatientFormPage() {
                 )}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Controller
                 name="age"
                 control={control}
@@ -200,7 +198,7 @@ export default function PatientFormPage() {
                 )}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Controller
                 name="gender"
                 control={control}
@@ -221,7 +219,7 @@ export default function PatientFormPage() {
                 )}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Controller
                 name="phone"
                 control={control}
@@ -237,7 +235,7 @@ export default function PatientFormPage() {
                 )}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Controller
                 name="email"
                 control={control}
@@ -254,7 +252,7 @@ export default function PatientFormPage() {
                 )}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Controller
                 name="occupation"
                 control={control}
@@ -269,7 +267,7 @@ export default function PatientFormPage() {
                 )}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Controller
                 name="address"
                 control={control}
@@ -286,7 +284,7 @@ export default function PatientFormPage() {
                 )}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Box
                 sx={{
                   display: 'flex',

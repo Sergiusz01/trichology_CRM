@@ -159,10 +159,10 @@ export const generateLabResultPDF = async (labResult: any, patient: any): Promis
       </div>
 
       <div class="lab-results">
-        ${(labResult.hgb !== null && labResult.hgb !== undefined) || 
-          (labResult.rbc !== null && labResult.rbc !== undefined) || 
-          (labResult.wbc !== null && labResult.wbc !== undefined) || 
-          (labResult.plt !== null && labResult.plt !== undefined) ? `
+        ${(labResult.hgb !== null && labResult.hgb !== undefined) ||
+      (labResult.rbc !== null && labResult.rbc !== undefined) ||
+      (labResult.wbc !== null && labResult.wbc !== undefined) ||
+      (labResult.plt !== null && labResult.plt !== undefined) ? `
         <div class="section-title">MORFOLOGIA KRWI</div>
         <table>
           <thead>
@@ -182,8 +182,8 @@ export const generateLabResultPDF = async (labResult: any, patient: any): Promis
         </table>
         ` : ''}
 
-        ${(labResult.ferritin !== null && labResult.ferritin !== undefined) || 
-          (labResult.iron !== null && labResult.iron !== undefined) ? `
+        ${(labResult.ferritin !== null && labResult.ferritin !== undefined) ||
+      (labResult.iron !== null && labResult.iron !== undefined) ? `
         <div class="section-title">ŻELAZO</div>
         <table>
           <thead>
@@ -201,9 +201,9 @@ export const generateLabResultPDF = async (labResult: any, patient: any): Promis
         </table>
         ` : ''}
 
-        ${(labResult.vitaminD3 !== null && labResult.vitaminD3 !== undefined) || 
-          (labResult.vitaminB12 !== null && labResult.vitaminB12 !== undefined) || 
-          (labResult.folicAcid !== null && labResult.folicAcid !== undefined) ? `
+        ${(labResult.vitaminD3 !== null && labResult.vitaminD3 !== undefined) ||
+      (labResult.vitaminB12 !== null && labResult.vitaminB12 !== undefined) ||
+      (labResult.folicAcid !== null && labResult.folicAcid !== undefined) ? `
         <div class="section-title">WITAMINY</div>
         <table>
           <thead>
@@ -222,9 +222,9 @@ export const generateLabResultPDF = async (labResult: any, patient: any): Promis
         </table>
         ` : ''}
 
-        ${(labResult.tsh !== null && labResult.tsh !== undefined) || 
-          (labResult.ft3 !== null && labResult.ft3 !== undefined) || 
-          (labResult.ft4 !== null && labResult.ft4 !== undefined) ? `
+        ${(labResult.tsh !== null && labResult.tsh !== undefined) ||
+      (labResult.ft3 !== null && labResult.ft3 !== undefined) ||
+      (labResult.ft4 !== null && labResult.ft4 !== undefined) ? `
         <div class="section-title">FUNKCJA TARCZYCY</div>
         <table>
           <thead>
@@ -260,6 +260,7 @@ export const generateLabResultPDF = async (labResult: any, patient: any): Promis
 
   const browser = await puppeteer.launch({
     headless: true,
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
   });
 
@@ -366,6 +367,7 @@ export const generatePatientInfoPDF = async (patient: any): Promise<Buffer> => {
 
   const browser = await puppeteer.launch({
     headless: true,
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
   });
 
