@@ -31,31 +31,59 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } else {
       setLoading(false);
     }
-  }, []);
+
+    // Listen for auth logout events from API interceptor
+    const handleAuthLogout = () => {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      delete api.defaults.headers.common['Authorization'];
+      setUser(null);
+      navigate('/login');
+    };
+
+    window.addEventListener('auth:logout', handleAuthLogout);
+
+    return () => {
+      window.removeEventListener('auth:logout', handleAuthLogout);
+    };
+  }, [navigate]);
 
   const fetchUser = async () => {
     try {
       const response = await api.get('/auth/me');
       setUser(response.data.user);
-    } catch (error) {
+    } catch (error: any) {
+      // Clear tokens on auth error
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       delete api.defaults.headers.common['Authorization'];
+      setUser(null);
+      // Don't navigate here - let App.tsx handle routing based on user state
     } finally {
       setLoading(false);
     }
   };
 
   const login = async (email: string, password: string) => {
-    const response = await api.post('/auth/login', { email, password });
-    const { accessToken, refreshToken, user } = response.data;
+    try {
+      const response = await api.post('/auth/login', { email, password });
+      const { accessToken, refreshToken, user } = response.data;
 
-    localStorage.setItem('accessToken', accessToken);
-    localStorage.setItem('refreshToken', refreshToken);
-    api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
+      localStorage.setItem('accessToken', accessToken);
+      localStorage.setItem('refreshToken', refreshToken);
+      api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
 
-    setUser(user);
-    navigate('/');
+      setUser(user);
+      navigate('/');
+    } catch (error: any) {
+      // Clear any existing tokens on login error
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      delete api.defaults.headers.common['Authorization'];
+      
+      // Re-throw error so LoginPage can handle it
+      throw error;
+    }
   };
 
   const logout = () => {

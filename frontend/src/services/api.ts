@@ -60,10 +60,15 @@ api.interceptors.response.use(
           return api(originalRequest);
         }
       } catch (refreshError) {
+        // Clear tokens on refresh failure
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
         delete api.defaults.headers.common['Authorization'];
-        window.location.href = '/login';
+        
+        // Dispatch custom event for AuthContext to handle navigation
+        // This avoids using window.location.href which causes full page reload
+        window.dispatchEvent(new CustomEvent('auth:logout', { detail: { reason: 'token_refresh_failed' } }));
+        
         return Promise.reject(refreshError);
       }
     }
