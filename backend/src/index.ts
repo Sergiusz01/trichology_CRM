@@ -13,6 +13,7 @@ import emailRoutes from './routes/email';
 import emailTemplateRoutes from './routes/emailTemplates';
 import userProfileRoutes from './routes/userProfile';
 import exportRoutes from './routes/export';
+import visitRoutes from './routes/visits';
 import { errorHandler } from './middleware/errorHandler';
 import { startReminderWorker } from './services/reminderWorker';
 
@@ -60,6 +61,7 @@ app.use('/api/email', emailRoutes);
 app.use('/api/email-templates', emailTemplateRoutes);
 app.use('/api/user-profile', userProfileRoutes);
 app.use('/api/export', exportRoutes);
+app.use('/api/visits', visitRoutes);
 
 // Error handler
 app.use(errorHandler);

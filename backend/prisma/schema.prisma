@@ -47,11 +47,38 @@ model Patient {
   reminders     EmailReminder[]
   labResults    LabResult[]
   scalpPhotos   ScalpPhoto[]
+  visits        Visit[]
 
   @@index([firstName, lastName])
   @@index([phone])
   @@index([email])
   @@index([isArchived])
+}
+
+model Visit {
+  id            String      @id @default(cuid())
+  patientId     String
+  data          DateTime
+  rodzajZabiegu String
+  notatki       String?
+  status        VisitStatus @default(ZAPLANOWANA)
+  numerWSerii   Int?
+  liczbaSerii   Int?
+  cena          Decimal?    @db.Decimal(10, 2)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  patient       Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId])
+  @@index([data])
+  @@index([status])
+}
+
+enum VisitStatus {
+  ZAPLANOWANA
+  ODBYTA
+  NIEOBECNOSC
+  ANULOWANA
 }
 
 model Consultation {

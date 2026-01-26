@@ -21,6 +21,19 @@ import {
   CircularProgress,
   Stack,
   alpha,
+  TextField,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  InputAdornment,
+  Tooltip,
 } from '@mui/material';
 import {
   Add,
@@ -39,6 +52,7 @@ import {
   LocationOn,
   Work,
   CalendarToday,
+  EventAvailable,
 } from '@mui/icons-material';
 import { api, BASE_URL } from '../services/api';
 
@@ -53,6 +67,36 @@ interface Patient {
   occupation?: string;
   address?: string;
 }
+
+interface Visit {
+  id: string;
+  patientId: string;
+  data: string;
+  rodzajZabiegu: string;
+  notatki?: string;
+  status: 'ZAPLANOWANA' | 'ODBYTA' | 'NIEOBECNOSC' | 'ANULOWANA';
+  numerWSerii?: number;
+  liczbaSerii?: number;
+  cena?: number;
+}
+
+const visitStatusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
+  ZAPLANOWANA: { label: 'Zaplanowana', color: '#FF9500', bgColor: 'rgba(255, 149, 0, 0.1)' },
+  ODBYTA: { label: 'Odbyta', color: '#34C759', bgColor: 'rgba(52, 199, 89, 0.1)' },
+  NIEOBECNOSC: { label: 'Nieobecność', color: '#FF3B30', bgColor: 'rgba(255, 59, 48, 0.1)' },
+  ANULOWANA: { label: 'Anulowana', color: '#8E8E93', bgColor: 'rgba(142, 142, 147, 0.1)' },
+};
+
+// Helper function to format date for datetime-local input (preserves local time)
+const formatDateTimeLocal = (dateString: string): string => {
+  const date = new Date(dateString);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -86,9 +130,33 @@ export default function PatientDetailPage() {
   const [labResults, setLabResults] = useState<any[]>([]);
   const [scalpPhotos, setScalpPhotos] = useState<any[]>([]);
   const [carePlans, setCarePlans] = useState<any[]>([]);
+  const [visits, setVisits] = useState<Visit[]>([]);
+  const [visitDialog, setVisitDialog] = useState<{
+    open: boolean;
+    mode: 'add' | 'edit';
+    id: string | null;
+    data: string;
+    rodzajZabiegu: string;
+    notatki: string;
+    status: 'ZAPLANOWANA' | 'ODBYTA' | 'NIEOBECNOSC' | 'ANULOWANA';
+    numerWSerii: string;
+    liczbaSerii: string;
+    cena: string;
+  }>({
+    open: false,
+    mode: 'add',
+    id: null,
+    data: '',
+    rodzajZabiegu: '',
+    notatki: '',
+    status: 'ZAPLANOWANA',
+    numerWSerii: '',
+    liczbaSerii: '',
+    cena: '',
+  });
   const [deleteDialog, setDeleteDialog] = useState<{
     open: boolean;
-    type: 'patient' | 'consultation' | 'labResult' | 'scalpPhoto' | 'carePlan' | null;
+    type: 'patient' | 'consultation' | 'labResult' | 'scalpPhoto' | 'carePlan' | 'visit' | null;
     id: string | null;
     name: string;
   }>({ open: false, type: null, id: null, name: '' });
@@ -146,6 +214,9 @@ export default function PatientDetailPage() {
         params: { archived: showArchived.carePlans ? 'true' : 'false' },
       });
       setCarePlans(carePlansResponse.data.carePlans || []);
+
+      const visitsResponse = await api.get(`/visits/patient/${id}`);
+      setVisits(visitsResponse.data.visits || []);
     } catch (error) {
       console.error('Błąd pobierania pacjenta:', error);
     } finally {
@@ -154,7 +225,7 @@ export default function PatientDetailPage() {
   };
 
   const handleDeleteClick = (
-    type: 'patient' | 'consultation' | 'labResult' | 'scalpPhoto' | 'carePlan',
+    type: 'patient' | 'consultation' | 'labResult' | 'scalpPhoto' | 'carePlan' | 'visit',
     id: string,
     name: string
   ) => {
@@ -192,6 +263,11 @@ export default function PatientDetailPage() {
         case 'carePlan':
           await api.delete(`/care-plans/${deleteDialog.id}`);
           setSuccess('Plan opieki został usunięty');
+          fetchPatient();
+          break;
+        case 'visit':
+          await api.delete(`/visits/${deleteDialog.id}`);
+          setSuccess('Wizyta została usunięta');
           fetchPatient();
           break;
       }
@@ -319,6 +395,98 @@ export default function PatientDetailPage() {
     }
   };
 
+  const openAddVisitDialog = () => {
+    // Set default date to now in local time format
+    const now = new Date();
+    const localDateTime = formatDateTimeLocal(now.toISOString());
+    
+    setVisitDialog({
+      open: true,
+      mode: 'add',
+      id: null,
+      data: localDateTime,
+      rodzajZabiegu: '',
+      notatki: '',
+      status: 'ZAPLANOWANA',
+      numerWSerii: '',
+      liczbaSerii: '',
+      cena: '',
+    });
+  };
+
+  const openEditVisitDialog = (visit: Visit) => {
+    setVisitDialog({
+      open: true,
+      mode: 'edit',
+      id: visit.id,
+      data: formatDateTimeLocal(visit.data),
+      rodzajZabiegu: visit.rodzajZabiegu,
+      notatki: visit.notatki || '',
+      status: visit.status,
+      numerWSerii: visit.numerWSerii?.toString() || '',
+      liczbaSerii: visit.liczbaSerii?.toString() || '',
+      cena: visit.cena?.toString() || '',
+    });
+  };
+
+  const handleVisitSubmit = async () => {
+    if (!visitDialog.data || !visitDialog.rodzajZabiegu) {
+      setError('Wypełnij wymagane pola: Data i Rodzaj zabiegu');
+      return;
+    }
+
+    try {
+      setError('');
+      setSuccess('');
+
+      const visitData = {
+        patientId: id,
+        data: visitDialog.data,
+        rodzajZabiegu: visitDialog.rodzajZabiegu,
+        notatki: visitDialog.notatki || null,
+        status: visitDialog.status,
+        numerWSerii: visitDialog.numerWSerii ? parseInt(visitDialog.numerWSerii) : null,
+        liczbaSerii: visitDialog.liczbaSerii ? parseInt(visitDialog.liczbaSerii) : null,
+        cena: visitDialog.cena ? parseFloat(visitDialog.cena) : null,
+      };
+
+      if (visitDialog.mode === 'edit' && visitDialog.id) {
+        await api.put(`/visits/${visitDialog.id}`, visitData);
+        setSuccess('Wizyta została zaktualizowana');
+      } else {
+        await api.post('/visits', visitData);
+        setSuccess('Wizyta została dodana');
+      }
+
+      setVisitDialog({
+        open: false,
+        mode: 'add',
+        id: null,
+        data: '',
+        rodzajZabiegu: '',
+        notatki: '',
+        status: 'ZAPLANOWANA',
+        numerWSerii: '',
+        liczbaSerii: '',
+        cena: '',
+      });
+      fetchPatient();
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Błąd podczas zapisywania wizyty');
+    }
+  };
+
+  const handleStatusChange = async (visitId: string, newStatus: string) => {
+    try {
+      setError('');
+      await api.patch(`/visits/${visitId}/status`, { status: newStatus });
+      setSuccess('Status wizyty został zmieniony');
+      fetchPatient();
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Błąd zmiany statusu');
+    }
+  };
+
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
@@ -349,6 +517,7 @@ export default function PatientDetailPage() {
     { label: 'Wyniki badań', value: labResults.length, icon: Science, color: '#34C759' },
     { label: 'Zdjęcia', value: scalpPhotos.length, icon: PhotoCamera, color: '#FF9500' },
     { label: 'Plany opieki', value: carePlans.length, icon: LocalHospital, color: '#FF3B30' },
+    { label: 'Wizyty', value: visits.length, icon: EventAvailable, color: '#AF52DE' },
   ];
 
   return (
@@ -656,6 +825,7 @@ export default function PatientDetailPage() {
             <Tab label="Wyniki" />
             <Tab label="Zdjęcia" />
             <Tab label="Plany" />
+            <Tab label="Wizyty" />
           </Tabs>
 
           {/* Tab Panel 0: Overview */}
@@ -1407,8 +1577,296 @@ export default function PatientDetailPage() {
               </Stack>
             )}
           </TabPanel>
+
+          {/* Tab Panel 5: Visits */}
+          <TabPanel value={tabValue} index={5}>
+            <Box sx={{ mb: 3 }}>
+              <Button
+                variant="contained"
+                startIcon={<Add />}
+                onClick={openAddVisitDialog}
+                sx={{
+                  bgcolor: '#AF52DE',
+                  color: 'white',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  borderRadius: 2,
+                  boxShadow: 'none',
+                  '&:hover': {
+                    bgcolor: '#9B30D9',
+                    boxShadow: 'none',
+                  },
+                }}
+              >
+                Dodaj wizytę / zabieg
+              </Button>
+            </Box>
+            {visits.length === 0 ? (
+              <Box sx={{ textAlign: 'center', py: 8 }}>
+                <EventAvailable sx={{ fontSize: 64, color: '#d2d2d7', mb: 2 }} />
+                <Typography variant="h6" sx={{ color: '#86868b', fontWeight: 500 }}>
+                  Brak wizyt i zabiegów
+                </Typography>
+              </Box>
+            ) : (
+              <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+                <Table>
+                  <TableHead>
+                    <TableRow sx={{ bgcolor: alpha('#000', 0.02) }}>
+                      <TableCell sx={{ fontWeight: 700, color: '#1d1d1f' }}>Data i godzina</TableCell>
+                      <TableCell sx={{ fontWeight: 700, color: '#1d1d1f' }}>Rodzaj zabiegu</TableCell>
+                      <TableCell sx={{ fontWeight: 700, color: '#1d1d1f' }}>Status</TableCell>
+                      <TableCell sx={{ fontWeight: 700, color: '#1d1d1f' }}>Seria</TableCell>
+                      <TableCell sx={{ fontWeight: 700, color: '#1d1d1f' }}>Cena</TableCell>
+                      <TableCell sx={{ fontWeight: 700, color: '#1d1d1f' }}>Notatki</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700, color: '#1d1d1f' }}>Akcje</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {visits.map((visit) => {
+                      const statusConfig = visitStatusConfig[visit.status] || visitStatusConfig.ZAPLANOWANA;
+                      return (
+                        <TableRow key={visit.id} hover>
+                          <TableCell>
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                              {new Date(visit.data).toLocaleDateString('pl-PL', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                              })}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: '#86868b' }}>
+                              {new Date(visit.data).toLocaleTimeString('pl-PL', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {visit.rodzajZabiegu}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <FormControl size="small" sx={{ minWidth: 130 }}>
+                              <Select
+                                value={visit.status}
+                                onChange={(e) => handleStatusChange(visit.id, e.target.value)}
+                                sx={{
+                                  bgcolor: statusConfig.bgColor,
+                                  color: statusConfig.color,
+                                  fontWeight: 600,
+                                  fontSize: '0.85rem',
+                                  '& .MuiOutlinedInput-notchedOutline': {
+                                    borderColor: statusConfig.color,
+                                  },
+                                  '&:hover .MuiOutlinedInput-notchedOutline': {
+                                    borderColor: statusConfig.color,
+                                  },
+                                }}
+                              >
+                                <MenuItem value="ZAPLANOWANA">Zaplanowana</MenuItem>
+                                <MenuItem value="ODBYTA">Odbyta</MenuItem>
+                                <MenuItem value="NIEOBECNOSC">Nieobecność</MenuItem>
+                                <MenuItem value="ANULOWANA">Anulowana</MenuItem>
+                              </Select>
+                            </FormControl>
+                          </TableCell>
+                          <TableCell>
+                            {visit.numerWSerii && visit.liczbaSerii ? (
+                              <Chip
+                                label={`${visit.numerWSerii} z ${visit.liczbaSerii}`}
+                                size="small"
+                                sx={{
+                                  bgcolor: alpha('#007AFF', 0.1),
+                                  color: '#007AFF',
+                                  fontWeight: 600,
+                                }}
+                              />
+                            ) : (
+                              <Typography variant="body2" sx={{ color: '#86868b' }}>-</Typography>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {visit.cena ? (
+                              <Typography variant="body2" sx={{ fontWeight: 600, color: '#34C759' }}>
+                                {Number(visit.cena).toFixed(2)} zł
+                              </Typography>
+                            ) : (
+                              <Typography variant="body2" sx={{ color: '#86868b' }}>-</Typography>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {visit.notatki ? (
+                              <Tooltip title={visit.notatki} arrow>
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    maxWidth: 150,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    color: '#86868b',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  {visit.notatki}
+                                </Typography>
+                              </Tooltip>
+                            ) : (
+                              <Typography variant="body2" sx={{ color: '#86868b' }}>-</Typography>
+                            )}
+                          </TableCell>
+                          <TableCell align="right">
+                            <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                              <IconButton
+                                size="small"
+                                onClick={() => openEditVisitDialog(visit)}
+                                sx={{ color: '#007AFF' }}
+                              >
+                                <Edit fontSize="small" />
+                              </IconButton>
+                              <IconButton
+                                size="small"
+                                onClick={() => handleDeleteClick('visit', visit.id, visit.rodzajZabiegu)}
+                                sx={{ color: '#FF3B30' }}
+                              >
+                                <Delete fontSize="small" />
+                              </IconButton>
+                            </Stack>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </TabPanel>
         </Paper>
       </Container>
+
+      {/* Visit Dialog */}
+      <Dialog
+        open={visitDialog.open}
+        onClose={() => setVisitDialog({ ...visitDialog, open: false })}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            p: 1,
+          },
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 700, color: '#1d1d1f' }}>
+          {visitDialog.mode === 'edit' ? 'Edytuj wizytę / zabieg' : 'Dodaj nową wizytę / zabieg'}
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={3} sx={{ mt: 1 }}>
+            <TextField
+              label="Data i godzina wizyty"
+              type="datetime-local"
+              value={visitDialog.data}
+              onChange={(e) => setVisitDialog({ ...visitDialog, data: e.target.value })}
+              fullWidth
+              required
+              InputLabelProps={{ shrink: true }}
+            />
+            <TextField
+              label="Rodzaj zabiegu"
+              value={visitDialog.rodzajZabiegu}
+              onChange={(e) => setVisitDialog({ ...visitDialog, rodzajZabiegu: e.target.value })}
+              fullWidth
+              required
+              placeholder="np. Mezoterapia, PRP, Konsultacja kontrolna"
+            />
+            <FormControl fullWidth>
+              <InputLabel>Status</InputLabel>
+              <Select
+                value={visitDialog.status}
+                label="Status"
+                onChange={(e) => setVisitDialog({ ...visitDialog, status: e.target.value as any })}
+              >
+                <MenuItem value="ZAPLANOWANA">Zaplanowana</MenuItem>
+                <MenuItem value="ODBYTA">Odbyta</MenuItem>
+                <MenuItem value="NIEOBECNOSC">Nieobecność</MenuItem>
+                <MenuItem value="ANULOWANA">Anulowana</MenuItem>
+              </Select>
+            </FormControl>
+            <TextField
+              label="Cena (PLN)"
+              type="number"
+              value={visitDialog.cena}
+              onChange={(e) => setVisitDialog({ ...visitDialog, cena: e.target.value })}
+              fullWidth
+              InputProps={{
+                startAdornment: <InputAdornment position="start">PLN</InputAdornment>,
+              }}
+            />
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <TextField
+                label="Numer w serii"
+                type="number"
+                value={visitDialog.numerWSerii}
+                onChange={(e) => setVisitDialog({ ...visitDialog, numerWSerii: e.target.value })}
+                fullWidth
+                placeholder="np. 3"
+              />
+              <TextField
+                label="Liczba zabiegów w serii"
+                type="number"
+                value={visitDialog.liczbaSerii}
+                onChange={(e) => setVisitDialog({ ...visitDialog, liczbaSerii: e.target.value })}
+                fullWidth
+                placeholder="np. 6"
+              />
+            </Box>
+            {visitDialog.numerWSerii && visitDialog.liczbaSerii && (
+              <Alert severity="info" sx={{ borderRadius: 2 }}>
+                Zabieg {visitDialog.numerWSerii} z {visitDialog.liczbaSerii}
+              </Alert>
+            )}
+            <TextField
+              label="Notatki"
+              value={visitDialog.notatki}
+              onChange={(e) => setVisitDialog({ ...visitDialog, notatki: e.target.value })}
+              fullWidth
+              multiline
+              rows={3}
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={() => setVisitDialog({ ...visitDialog, open: false })}
+            sx={{
+              color: '#1d1d1f',
+              textTransform: 'none',
+              fontWeight: 600,
+            }}
+          >
+            Anuluj
+          </Button>
+          <Button
+            onClick={handleVisitSubmit}
+            variant="contained"
+            sx={{
+              bgcolor: '#AF52DE',
+              color: 'white',
+              textTransform: 'none',
+              fontWeight: 600,
+              boxShadow: 'none',
+              '&:hover': {
+                bgcolor: '#9B30D9',
+                boxShadow: 'none',
+              },
+            }}
+          >
+            {visitDialog.mode === 'edit' ? 'Zapisz zmiany' : 'Dodaj wizytę'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Delete Dialog */}
       <Dialog

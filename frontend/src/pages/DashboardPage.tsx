@@ -32,6 +32,8 @@ import {
     Search,
     Warning,
     Assessment,
+    EventAvailable,
+    AttachMoney,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
@@ -56,6 +58,40 @@ interface RecentActivity {
     link: string;
 }
 
+interface UpcomingVisit {
+    id: string;
+    data: string;
+    rodzajZabiegu: string;
+    status: string;
+    numerWSerii?: number;
+    liczbaSerii?: number;
+    cena?: number;
+    patient: {
+        id: string;
+        firstName: string;
+        lastName: string;
+    };
+}
+
+interface WeeklyRevenue {
+    plannedRevenue: number;
+    completedRevenue: number;
+    totalExpectedRevenue: number;
+    visitsThisWeek: {
+        zaplanowana: number;
+        odbyta: number;
+        nieobecnosc: number;
+        anulowana: number;
+    };
+}
+
+const visitStatusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
+    ZAPLANOWANA: { label: 'Zaplanowana', color: '#FF9500', bgColor: 'rgba(255, 149, 0, 0.1)' },
+    ODBYTA: { label: 'Odbyta', color: '#34C759', bgColor: 'rgba(52, 199, 89, 0.1)' },
+    NIEOBECNOSC: { label: 'Nieobecność', color: '#FF3B30', bgColor: 'rgba(255, 59, 48, 0.1)' },
+    ANULOWANA: { label: 'Anulowana', color: '#8E8E93', bgColor: 'rgba(142, 142, 147, 0.1)' },
+};
+
 export default function DashboardPage() {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -74,16 +110,35 @@ export default function DashboardPage() {
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [patientsNeedingAttention, setPatientsNeedingAttention] = useState<any[]>([]);
     const [inactivePatientsList, setInactivePatientsList] = useState<any[]>([]);
+    const [upcomingVisits, setUpcomingVisits] = useState<UpcomingVisit[]>([]);
+    const [weeklyRevenue, setWeeklyRevenue] = useState<WeeklyRevenue>({
+        plannedRevenue: 0,
+        completedRevenue: 0,
+        totalExpectedRevenue: 0,
+        visitsThisWeek: { zaplanowana: 0, odbyta: 0, nieobecnosc: 0, anulowana: 0 },
+    });
 
 
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
-                const [patientsRes, consultationsRes, emailsRes] = await Promise.all([
+                const [patientsRes, consultationsRes, emailsRes, upcomingVisitsRes, weeklyRevenueRes] = await Promise.all([
                     api.get('/patients'),
                     api.get('/consultations'),
                     api.get('/email/history', { params: { limit: 10 } }),
+                    api.get('/visits/upcoming').catch(() => ({ data: { visits: [] } })),
+                    api.get('/visits/stats/weekly-revenue').catch(() => ({
+                        data: {
+                            plannedRevenue: 0,
+                            completedRevenue: 0,
+                            totalExpectedRevenue: 0,
+                            visitsThisWeek: { zaplanowana: 0, odbyta: 0, nieobecnosc: 0, anulowana: 0 },
+                        },
+                    })),
                 ]);
+
+                setUpcomingVisits(upcomingVisitsRes.data.visits || []);
+                setWeeklyRevenue(weeklyRevenueRes.data);
 
                 const patients = patientsRes.data.patients || [];
                 const consultations = consultationsRes.data.consultations || [];
@@ -510,6 +565,175 @@ export default function DashboardPage() {
                     )}
                 </Grid>
             )}
+
+            {/* Upcoming Visits and Weekly Revenue */}
+            <Grid container spacing={3} sx={{ mb: 4, px: { xs: 1, sm: 0 } }}>
+                {/* Upcoming Visits */}
+                <Grid size={{ xs: 12, md: 8 }}>
+                    <Paper
+                        sx={{
+                            p: { xs: 2, sm: 3 },
+                            background: 'white',
+                            borderRadius: 3,
+                            border: '1px solid',
+                            borderColor: alpha('#AF52DE', 0.3),
+                            boxShadow: `0 8px 24px ${alpha('#AF52DE', 0.1)}`,
+                            height: '100%',
+                        }}
+                    >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                            <EventAvailable sx={{ color: '#AF52DE', fontSize: { xs: 24, sm: 32 } }} />
+                            <Box>
+                                <Typography variant="h6" sx={{ fontWeight: 700, color: '#AF52DE', fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+                                    Nadchodzące wizyty i zabiegi
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                    Najbliższe zaplanowane wizyty
+                                </Typography>
+                            </Box>
+                        </Box>
+                        {upcomingVisits.length === 0 ? (
+                            <Box sx={{ textAlign: 'center', py: 4 }}>
+                                <EventAvailable sx={{ fontSize: 48, color: '#d2d2d7', mb: 1 }} />
+                                <Typography variant="body1" color="text.secondary">
+                                    Brak nadchodzących wizyt
+                                </Typography>
+                            </Box>
+                        ) : (
+                            <List sx={{ p: 0 }}>
+                                {upcomingVisits.map((visit, index) => {
+                                    const statusConfig = visitStatusConfig[visit.status] || visitStatusConfig.ZAPLANOWANA;
+                                    return (
+                                        <React.Fragment key={visit.id}>
+                                            {index > 0 && <Divider sx={{ my: 1 }} />}
+                                            <ListItemButton
+                                                onClick={() => navigate(`/patients/${visit.patient.id}`)}
+                                                sx={{
+                                                    borderRadius: 2,
+                                                    '&:hover': {
+                                                        bgcolor: alpha('#AF52DE', 0.05),
+                                                    },
+                                                }}
+                                            >
+                                                <ListItemAvatar>
+                                                    <Avatar sx={{ bgcolor: alpha('#AF52DE', 0.1), color: '#AF52DE', fontWeight: 600 }}>
+                                                        {visit.patient.firstName[0]}{visit.patient.lastName[0]}
+                                                    </Avatar>
+                                                </ListItemAvatar>
+                                                <ListItemText
+                                                    primary={
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                                                            <Typography variant="body1" sx={{ fontWeight: 600 }}>
+                                                                {visit.patient.firstName} {visit.patient.lastName}
+                                                            </Typography>
+                                                            <Box
+                                                                sx={{
+                                                                    width: 8,
+                                                                    height: 8,
+                                                                    borderRadius: '50%',
+                                                                    bgcolor: statusConfig.color,
+                                                                }}
+                                                            />
+                                                        </Box>
+                                                    }
+                                                    secondary={
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mt: 0.5 }}>
+                                                            <Typography variant="body2" color="text.secondary">
+                                                                {visit.rodzajZabiegu}
+                                                            </Typography>
+                                                            <Typography variant="caption" sx={{ color: '#AF52DE', fontWeight: 600 }}>
+                                                                {format(new Date(visit.data), 'dd MMM, HH:mm', { locale: pl })}
+                                                            </Typography>
+                                                            {visit.numerWSerii && visit.liczbaSerii && (
+                                                                <Typography variant="caption" sx={{ bgcolor: alpha('#007AFF', 0.1), color: '#007AFF', px: 1, borderRadius: 1, fontWeight: 600 }}>
+                                                                    {visit.numerWSerii}/{visit.liczbaSerii}
+                                                                </Typography>
+                                                            )}
+                                                            {visit.cena && (
+                                                                <Typography variant="caption" sx={{ bgcolor: alpha('#34C759', 0.1), color: '#34C759', px: 1, borderRadius: 1, fontWeight: 600 }}>
+                                                                    {Number(visit.cena).toFixed(0)} zł
+                                                                </Typography>
+                                                            )}
+                                                        </Box>
+                                                    }
+                                                />
+                                                <ArrowForward sx={{ color: '#AF52DE', opacity: 0.5 }} />
+                                            </ListItemButton>
+                                        </React.Fragment>
+                                    );
+                                })}
+                            </List>
+                        )}
+                    </Paper>
+                </Grid>
+
+                {/* Weekly Revenue */}
+                <Grid size={{ xs: 12, md: 4 }}>
+                    <Paper
+                        sx={{
+                            p: { xs: 2.5, sm: 4 },
+                            height: '100%',
+                            borderRadius: 3,
+                            background: 'linear-gradient(135deg, #34C759 0%, #30D158 100%)',
+                            color: 'white',
+                            boxShadow: `0 8px 24px ${alpha('#34C759', 0.25)}`,
+                        }}
+                    >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                            <AttachMoney sx={{ fontSize: 32 }} />
+                            <Typography variant="h6" sx={{ fontWeight: 700, color: 'white' }}>
+                                Przychody w tym tygodniu
+                            </Typography>
+                        </Box>
+                        <Box sx={{ mb: 3 }}>
+                            <Typography variant="h3" sx={{ fontWeight: 800, mb: 0.5 }}>
+                                {weeklyRevenue.totalExpectedRevenue.toFixed(0)} zł
+                            </Typography>
+                            <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                                Oczekiwany przychód
+                            </Typography>
+                        </Box>
+                        <Divider sx={{ bgcolor: 'rgba(255,255,255,0.2)', my: 2 }} />
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                            <Box>
+                                <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                                    {weeklyRevenue.completedRevenue.toFixed(0)} zł
+                                </Typography>
+                                <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                                    Zrealizowane
+                                </Typography>
+                            </Box>
+                            <Box sx={{ textAlign: 'right' }}>
+                                <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                                    {weeklyRevenue.plannedRevenue.toFixed(0)} zł
+                                </Typography>
+                                <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                                    Zaplanowane
+                                </Typography>
+                            </Box>
+                        </Box>
+                        <Divider sx={{ bgcolor: 'rgba(255,255,255,0.2)', my: 2 }} />
+                        <Box sx={{ display: 'flex', justifyContent: 'space-around' }}>
+                            <Box sx={{ textAlign: 'center' }}>
+                                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                                    {weeklyRevenue.visitsThisWeek.odbyta}
+                                </Typography>
+                                <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                                    Odbyte
+                                </Typography>
+                            </Box>
+                            <Box sx={{ textAlign: 'center' }}>
+                                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                                    {weeklyRevenue.visitsThisWeek.zaplanowana}
+                                </Typography>
+                                <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                                    Zaplanowane
+                                </Typography>
+                            </Box>
+                        </Box>
+                    </Paper>
+                </Grid>
+            </Grid>
 
             {/* Stats Cards */}
             <Grid container spacing={3} sx={{ mb: 4, px: { xs: 1, sm: 0 } }}>
