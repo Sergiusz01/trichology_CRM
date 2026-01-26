@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
 import { initializeDefaultTemplates } from '../utils/initializeDefaultTemplates';
-
-const prisma = new PrismaClient();
+import { prisma } from '../prisma';
 
 async function main() {
   console.log('📧 Inicjalizacja domyślnych szablonów emaili...');

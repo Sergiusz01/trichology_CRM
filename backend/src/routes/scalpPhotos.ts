@@ -1,13 +1,12 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { prisma } from '../prisma';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // Configure multer for file uploads
 const uploadDir = process.env.UPLOAD_DIR || './storage/uploads';
@@ -92,10 +91,10 @@ router.post('/patient/:patientId', authenticate, upload.single('photo'), async (
       },
     });
 
-    // Add URL field for frontend
+    // Add URL field for frontend (use secured route)
     const photoWithUrl = {
       ...scalpPhoto,
-      url: `/uploads/${path.basename(scalpPhoto.filePath)}`,
+      url: `/api/scalp-photos/${scalpPhoto.id}/file`,
     };
 
     res.status(201).json({ scalpPhoto: photoWithUrl });
@@ -128,16 +127,52 @@ router.get('/patient/:patientId', authenticate, async (req: AuthRequest, res, ne
       },
     });
 
-    // Convert file paths to URLs
-    const photosWithUrls = scalpPhotos.map(photo => {
-      const filename = path.basename(photo.filePath);
-      return {
-        ...photo,
-        url: `/uploads/${filename}`,
-      };
-    });
+    // Convert file paths to URLs (use secured route)
+    const photosWithUrls = scalpPhotos.map(photo => ({
+      ...photo,
+      url: `/api/scalp-photos/${photo.id}/file`,
+    }));
 
     res.json({ scalpPhotos: photosWithUrls });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get scalp photo file (secured route)
+router.get('/:id/file', authenticate, async (req: AuthRequest, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // Get scalp photo and verify it exists
+    const scalpPhoto = await prisma.scalpPhoto.findUnique({
+      where: { id },
+      include: {
+        patient: {
+          select: { id: true, firstName: true, lastName: true },
+        },
+      },
+    });
+
+    if (!scalpPhoto) {
+      return res.status(404).json({ error: 'Zdjęcie nie znalezione' });
+    }
+
+    // Verify file exists on disk
+    if (!fs.existsSync(scalpPhoto.filePath)) {
+      return res.status(404).json({ error: 'Plik nie istnieje na serwerze' });
+    }
+
+    // All authenticated users can access patient photos in this system
+    // (If role-based access is needed, add check here: e.g., requireRole('DOCTOR', 'ADMIN'))
+
+    // Set appropriate headers
+    res.setHeader('Content-Type', scalpPhoto.mimeType);
+    res.setHeader('Content-Disposition', `inline; filename="${scalpPhoto.originalFilename}"`);
+    res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 1 day
+
+    // Send file
+    res.sendFile(path.resolve(scalpPhoto.filePath));
   } catch (error) {
     next(error);
   }
@@ -167,9 +202,10 @@ router.get('/:id', authenticate, async (req: AuthRequest, res, next) => {
       return res.status(404).json({ error: 'Zdjęcie nie znalezione' });
     }
 
+    // Use secured file route instead of /uploads
     const photoWithUrl = {
       ...scalpPhoto,
-      url: `/uploads/${path.basename(scalpPhoto.filePath)}`,
+      url: `/api/scalp-photos/${scalpPhoto.id}/file`,
     };
 
     res.json({ scalpPhoto: photoWithUrl });
@@ -204,7 +240,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res, next) => {
 
     const photoWithUrl = {
       ...scalpPhoto,
-      url: `/uploads/${path.basename(scalpPhoto.filePath)}`,
+      url: `/api/scalp-photos/${scalpPhoto.id}/file`,
     };
 
     res.json({ scalpPhoto: photoWithUrl });

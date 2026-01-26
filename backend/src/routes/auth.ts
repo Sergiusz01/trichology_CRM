@@ -1,12 +1,12 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { hashPassword, comparePassword } from '../utils/password';
 import { generateAccessToken, generateRefreshToken } from '../utils/jwt';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
+import { prisma } from '../prisma';
+import { authLimiter, refreshLimiter } from '../middleware/rateLimit';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 const registerSchema = z.object({
   name: z.string().min(1, 'Imię jest wymagane'),
@@ -21,7 +21,7 @@ const loginSchema = z.object({
 });
 
 // Register (admin only)
-router.post('/register', authenticate, requireRole('ADMIN'), async (req, res, next) => {
+router.post('/register', authLimiter, authenticate, requireRole('ADMIN'), async (req, res, next) => {
   try {
     const data = registerSchema.parse(req.body);
     const { name, email, password, role } = data;
@@ -59,7 +59,7 @@ router.post('/register', authenticate, requireRole('ADMIN'), async (req, res, ne
 });
 
 // Login
-router.post('/login', async (req, res, next) => {
+router.post('/login', authLimiter, async (req, res, next) => {
   try {
     const data = loginSchema.parse(req.body);
     const { email, password } = data;
@@ -103,7 +103,7 @@ router.post('/login', async (req, res, next) => {
 });
 
 // Refresh token
-router.post('/refresh', async (req, res, next) => {
+router.post('/refresh', refreshLimiter, async (req, res, next) => {
   try {
     const { refreshToken } = req.body;
 

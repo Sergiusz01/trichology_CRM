@@ -1,13 +1,12 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
+import { generateConsultationPDF, generateCarePlanPDF, generateLabResultPDF, generatePatientInfoPDF } from '../services/pdfService';
+import { prisma } from '../prisma';
 import archiver from 'archiver';
 import path from 'path';
 import fs from 'fs';
-import { generateConsultationPDF, generateCarePlanPDF, generateLabResultPDF, generatePatientInfoPDF } from '../services/pdfService';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // Export all patients data to ZIP
 // Only ADMIN and DOCTOR can export data

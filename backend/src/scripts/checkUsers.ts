@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
 import { comparePassword } from '../utils/password';
-
-const prisma = new PrismaClient();
+import { prisma } from '../prisma';
 
 async function main() {
   console.log('🔍 Sprawdzanie użytkowników w bazie danych...\n');

@@ -1,8 +1,6 @@
-import { PrismaClient } from '@prisma/client';
 import { sendEmail } from './emailService';
 import { generateCarePlanPDF } from './pdfService';
-
-const prisma = new PrismaClient();
+import { prisma } from '../prisma';
 
 const checkAndSendReminders = async () => {
   try {

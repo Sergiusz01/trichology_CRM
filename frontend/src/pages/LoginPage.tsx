@@ -151,18 +151,20 @@ export default function LoginPage() {
             </Button>
           </Box>
 
-          <Typography 
-            variant="caption" 
-            color="text.secondary" 
-            sx={{ 
-              mt: 2,
-              fontSize: { xs: '0.65rem', sm: '0.75rem' },
-              textAlign: 'center',
-              px: 1,
-            }}
-          >
-            Domyślne dane: admin@example.com / admin123
-          </Typography>
+          {import.meta.env.DEV && (
+            <Typography 
+              variant="caption" 
+              color="text.secondary" 
+              sx={{ 
+                mt: 2,
+                fontSize: { xs: '0.65rem', sm: '0.75rem' },
+                textAlign: 'center',
+                px: 1,
+              }}
+            >
+              Domyślne dane: admin@example.com / admin123
+            </Typography>
+          )}
         </Paper>
       </Container>
     </Box>

@@ -1,10 +1,10 @@
 import express from 'express';
-import { PrismaClient, VisitStatus } from '@prisma/client';
+import { VisitStatus } from '@prisma/client';
 import { z } from 'zod';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { prisma } from '../prisma';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 const visitStatusValues = ['ZAPLANOWANA', 'ODBYTA', 'NIEOBECNOSC', 'ANULOWANA'] as const;
 

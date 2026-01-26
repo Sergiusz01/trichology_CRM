@@ -1,11 +1,10 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 import { generateConsultationPDF } from '../services/pdfService';
+import { prisma } from '../prisma';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // Large schema for consultation - all fields from the form
 const consultationSchema = z.object({

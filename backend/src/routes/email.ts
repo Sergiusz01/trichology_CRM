@@ -1,16 +1,15 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { sendEmail } from '../services/emailService';
 import { generateConsultationPDF, generateCarePlanPDF } from '../services/pdfService';
 import { renderEmailTemplate, TemplateVariables } from '../utils/emailTemplateRenderer';
+import { prisma } from '../prisma';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // Configure multer for file uploads
 const uploadDir = path.join(__dirname, '../../storage/email-attachments');

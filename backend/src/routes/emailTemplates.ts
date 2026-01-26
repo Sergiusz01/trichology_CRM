@@ -1,11 +1,10 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 import { initializeDefaultTemplates } from '../utils/initializeDefaultTemplates';
+import { prisma } from '../prisma';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 const emailTemplateSchema = z.object({
   name: z.string().min(1, 'Nazwa szablonu jest wymagana'),

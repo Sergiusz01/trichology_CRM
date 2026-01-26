@@ -1,8 +1,6 @@
-import { PrismaClient } from '@prisma/client';
 import { hashPassword } from '../utils/password';
 import { initializeDefaultTemplates } from '../utils/initializeDefaultTemplates';
-
-const prisma = new PrismaClient();
+import { prisma } from '../prisma';
 
 async function main() {
   console.log('🌱 Rozpoczynam seedowanie bazy danych...');

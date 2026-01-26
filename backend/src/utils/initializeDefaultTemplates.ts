@@ -1,12 +1,11 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma as defaultPrisma } from '../prisma';
 
 /**
  * Initialize default email templates if they don't exist
  * This function ensures that default templates are always available in the database
  */
-export async function initializeDefaultTemplates(adminUserId: string, prisma?: PrismaClient) {
-  const db = prisma || new PrismaClient();
-  let shouldDisconnect = !prisma;
+export async function initializeDefaultTemplates(adminUserId: string, prisma = defaultPrisma) {
+  const db = prisma;
   
   try {
     // Check if default templates already exist
@@ -118,10 +117,6 @@ export async function initializeDefaultTemplates(adminUserId: string, prisma?: P
   } catch (error) {
     console.error('❌ Błąd podczas inicjalizacji domyślnych szablonów:', error);
     throw error;
-  } finally {
-    if (shouldDisconnect) {
-      await db.$disconnect();
-    }
   }
 }
 

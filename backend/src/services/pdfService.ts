@@ -1,7 +1,5 @@
 import puppeteer from 'puppeteer';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../prisma';
 
 // Export helper functions for use in other modules
 export const formatDate = (date: Date): string => {

@@ -2,7 +2,6 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
-import { PrismaClient } from '@prisma/client';
 import authRoutes from './routes/auth';
 import patientRoutes from './routes/patients';
 import consultationRoutes from './routes/consultations';
@@ -16,11 +15,12 @@ import exportRoutes from './routes/export';
 import visitRoutes from './routes/visits';
 import { errorHandler } from './middleware/errorHandler';
 import { startReminderWorker } from './services/reminderWorker';
+import { prisma } from './prisma';
+import { apiLimiter, authLimiter, refreshLimiter } from './middleware/rateLimit';
 
 dotenv.config();
 
 const app = express();
-const prisma = new PrismaClient();
 
 const PORT = process.env.PORT || 3001;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
@@ -33,24 +33,16 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve uploaded files (secure route - authentication required in routes)
-const uploadsPath = path.resolve(__dirname, '..', process.env.UPLOAD_DIR || 'storage/uploads');
-app.use('/uploads', express.static(uploadsPath, {
-  setHeaders: (res, filePath) => {
-    // Set CORS headers for images
-    res.setHeader('Access-Control-Allow-Origin', FRONTEND_URL);
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    // Cache images for 1 day
-    res.setHeader('Cache-Control', 'public, max-age=86400');
-  }
-}));
+// Rate limiting - apply to all API routes
+app.use('/api', apiLimiter);
 
-// Health check
+// Health check (no rate limit)
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // Routes
+// Auth routes with specific rate limiting
 app.use('/api/auth', authRoutes);
 app.use('/api/patients', patientRoutes);
 app.use('/api/consultations', consultationRoutes);

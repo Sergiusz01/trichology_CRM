@@ -1,12 +1,11 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import path from 'path';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
+import { prisma } from '../prisma';
 import fs from 'fs';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 const patientSchema = z.object({
   firstName: z.string().min(1, 'Imię jest wymagane'),
@@ -99,12 +98,12 @@ router.get('/:id', authenticate, async (req: AuthRequest, res, next) => {
       return res.status(404).json({ error: 'Pacjent nie znaleziony' });
     }
 
-    // Add URL field to scalp photos
+    // Add URL field to scalp photos (use secured route)
     const patientWithUrls = {
       ...patient,
       scalpPhotos: patient.scalpPhotos.map((photo: any) => ({
         ...photo,
-        url: `/uploads/${path.basename(photo.filePath)}`,
+        url: `/api/scalp-photos/${photo.id}/file`,
       })),
     };
 
