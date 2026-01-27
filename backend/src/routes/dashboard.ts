@@ -42,7 +42,7 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
         },
         orderBy: { sentAt: 'desc' },
         take: 10,
-      }),
+      }) as Promise<any[]>,
       prisma.visit.findMany({
         where: {
           data: {
@@ -142,26 +142,30 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
 
-    const patientsThisWeek = patients.filter(p => {
+    const patientsThisWeek = patients.filter((p: any) => {
       const createdAt = p.createdAt instanceof Date ? p.createdAt : new Date(p.createdAt);
       return createdAt > weekAgo;
     }).length;
-    const consultationsThisWeek = consultations.filter(c => {
+    const consultationsThisWeek = consultations.filter((c: any) => {
       const consultationDate = c.consultationDate instanceof Date ? c.consultationDate : new Date(c.consultationDate);
       return consultationDate > weekAgo;
     }).length;
-    const patientsWithoutConsultation = patients.filter(p =>
-      !consultations.some(c => c.patientId === p.id)
+    const patientsWithoutConsultation = patients.filter((p: any) =>
+      !consultations.some((c: any) => c.patientId === p.id)
     ).length;
 
     // Build recent activities
     const activities: any[] = [];
 
     const sortedPatients = [...patients]
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .sort((a: any, b: any) => {
+        const dateA = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
+        const dateB = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
+        return dateB.getTime() - dateA.getTime();
+      })
       .slice(0, 3);
 
-    sortedPatients.forEach(patient => {
+    sortedPatients.forEach((patient: any) => {
       const createdAt = patient.createdAt instanceof Date ? patient.createdAt : new Date(patient.createdAt);
       activities.push({
         id: `patient-${patient.id}`,
@@ -177,8 +181,8 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
       .sort((a, b) => new Date(b.consultationDate).getTime() - new Date(a.consultationDate).getTime())
       .slice(0, 3);
 
-    sortedConsultations.forEach(consultation => {
-      const patient = patients.find(p => p.id === consultation.patientId);
+    sortedConsultations.forEach((consultation: any) => {
+      const patient = patients.find((p: any) => p.id === consultation.patientId);
       const consultationDate = consultation.consultationDate instanceof Date 
         ? consultation.consultationDate 
         : new Date(consultation.consultationDate);
@@ -192,7 +196,7 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
       });
     });
 
-    emails.slice(0, 3).forEach((email: any) => {
+    (emails as any[]).slice(0, 3).forEach((email: any) => {
       activities.push({
         id: `email-${email.id}`,
         type: 'EMAIL',
@@ -208,10 +212,10 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
     // Find patients needing attention
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const inactivePatients = patients.filter(p => {
+    const inactivePatients = patients.filter((p: any) => {
       const lastConsultation = consultations
-        .filter(c => c.patientId === p.id)
-        .sort((a, b) => {
+        .filter((c: any) => c.patientId === p.id)
+        .sort((a: any, b: any) => {
           const dateA = a.consultationDate instanceof Date ? a.consultationDate : new Date(a.consultationDate);
           const dateB = b.consultationDate instanceof Date ? b.consultationDate : new Date(b.consultationDate);
           return dateB.getTime() - dateA.getTime();
@@ -223,8 +227,8 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
       return lastDate < thirtyDaysAgo;
     });
 
-    const patientsWithoutConsultations = patients.filter(p =>
-      !consultations.some(c => c.patientId === p.id)
+    const patientsWithoutConsultations = patients.filter((p: any) =>
+      !consultations.some((c: any) => c.patientId === p.id)
     );
 
     res.json({
@@ -237,19 +241,19 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
         patientsWithoutConsultation,
       },
       recentActivities: activities.slice(0, 8),
-      patientsNeedingAttention: patientsWithoutConsultations.slice(0, 5).map(p => ({
+      patientsNeedingAttention: patientsWithoutConsultations.slice(0, 5).map((p: any) => ({
         id: p.id,
         firstName: p.firstName,
         lastName: p.lastName,
         createdAt: (p.createdAt instanceof Date ? p.createdAt : new Date(p.createdAt)).toISOString(),
       })),
-      inactivePatients: inactivePatients.slice(0, 5).map(p => ({
+      inactivePatients: inactivePatients.slice(0, 5).map((p: any) => ({
         id: p.id,
         firstName: p.firstName,
         lastName: p.lastName,
         createdAt: (p.createdAt instanceof Date ? p.createdAt : new Date(p.createdAt)).toISOString(),
       })),
-      upcomingVisits: upcomingVisits.map(v => ({
+      upcomingVisits: upcomingVisits.map((v: any) => ({
         id: v.id,
         data: (v.data instanceof Date ? v.data : new Date(v.data)).toISOString(),
         rodzajZabiegu: v.rodzajZabiegu,
