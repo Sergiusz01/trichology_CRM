@@ -1352,7 +1352,7 @@ export default function PatientDetailPage() {
                       >
                         {photo.url || photo.filePath ? (
                           <img
-                            src={photo.url ? `${BASE_URL}${photo.url}` : `${BASE_URL}/uploads/${photo.filePath?.split(/[/\\]/).pop()}`}
+                            src={photo.url || (photo.filePath ? `/uploads/${photo.filePath.split(/[/\\]/).pop()}` : '')}
                             alt="Zdjęcie skóry głowy"
                             style={{
                               width: '100%',
@@ -1364,6 +1364,11 @@ export default function PatientDetailPage() {
                             onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
                             onError={(e) => {
                               const img = e.target as HTMLImageElement;
+                              console.error('Błąd ładowania obrazu:', {
+                                src: img.src,
+                                photoUrl: photo.url,
+                                filePath: photo.filePath
+                              });
                               img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23ddd" width="200" height="200"/%3E%3Ctext fill="%23999" font-family="sans-serif" font-size="14" dy="10.5" font-weight="bold" x="50%25" y="50%25" text-anchor="middle"%3EBrak zdj%26%23381%3Bcia%3C/text%3E%3C/svg%3E';
                             }}
                           />

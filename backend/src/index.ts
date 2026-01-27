@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import authRoutes from './routes/auth';
 import patientRoutes from './routes/patients';
 import consultationRoutes from './routes/consultations';
@@ -35,6 +36,26 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve static files from uploads directory
+const uploadDir = process.env.UPLOAD_DIR || './storage/uploads';
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+app.use('/uploads', express.static(uploadDir, {
+  setHeaders: (res, filePath) => {
+    // Set appropriate content type for images
+    if (filePath.endsWith('.jpg') || filePath.endsWith('.jpeg')) {
+      res.setHeader('Content-Type', 'image/jpeg');
+    } else if (filePath.endsWith('.png')) {
+      res.setHeader('Content-Type', 'image/png');
+    } else if (filePath.endsWith('.webp')) {
+      res.setHeader('Content-Type', 'image/webp');
+    }
+    // Cache control for uploaded files
+    res.setHeader('Cache-Control', 'public, max-age=31536000');
+  },
+}));
 
 // Rate limiting - apply to all API routes
 app.use('/api', apiLimiter);

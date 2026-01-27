@@ -26,7 +26,7 @@ import {
   Cancel,
   Delete,
 } from '@mui/icons-material';
-import { api, BASE_URL } from '../services/api';
+import { api } from '../services/api';
 
 interface Annotation {
   id: string;
@@ -385,18 +385,18 @@ export default function ScalpPhotoDetailPage() {
             <Box sx={{ position: 'relative', display: 'inline-block', width: '100%' }}>
               <img
                 ref={imageRef}
-                src={photo.url ? `${BASE_URL}${photo.url}` : `${BASE_URL}/uploads/${photo.filePath?.split(/[/\\]/).pop()}`}
+                src={photo.url || (photo.filePath ? `/uploads/${photo.filePath.split(/[/\\]/).pop()}` : '')}
                 alt={photo.originalFilename || 'Zdjęcie skóry głowy'}
                 onLoad={() => {
-                  console.log('Obraz załadowany:', photo.url);
+                  console.log('Obraz załadowany:', photo.url || photo.filePath);
                   handleImageLoad();
                 }}
                 onError={(e) => {
                   const img = e.target as HTMLImageElement;
                   console.error('Błąd ładowania obrazu:', {
+                    src: img.src,
                     url: photo.url,
                     filePath: photo.filePath,
-                    fullUrl: img.src,
                     photo: photo
                   });
                   setError(`Nie można załadować obrazu: ${photo.url || photo.filePath}`);
