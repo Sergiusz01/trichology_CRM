@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { Box, CircularProgress, Typography } from '@mui/material';
 import { useAuth } from './contexts/AuthContext';
 import LoginPage from './pages/LoginPage';
 import Layout from './components/Layout';
@@ -27,7 +28,23 @@ function App() {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <div>Ładowanie...</div>;
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '100vh',
+          gap: 2,
+        }}
+      >
+        <CircularProgress size={48} />
+        <Typography variant="body1" color="text.secondary">
+          Ładowanie...
+        </Typography>
+      </Box>
+    );
   }
 
   return (

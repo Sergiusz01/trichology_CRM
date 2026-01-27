@@ -35,12 +35,65 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Response interceptor for token refresh
+// Global error handler function - will be set by setupApiErrorHandler
+let globalErrorHandler: ((message: string, variant: 'error' | 'warning' | 'info') => void) | null = null;
+
+export const setupApiErrorHandler = (errorHandler: (message: string, variant: 'error' | 'warning' | 'info') => void) => {
+  globalErrorHandler = errorHandler;
+};
+
+// Helper function to format error messages
+const formatErrorMessage = (error: any): string => {
+  if (!error.response) {
+    return 'Brak połączenia z serwerem. Sprawdź połączenie internetowe.';
+  }
+
+  const { status, data } = error.response;
+
+  // Handle validation errors
+  if (status === 400 && data?.details && Array.isArray(data.details)) {
+    const firstError = data.details[0];
+    if (firstError?.field && firstError?.message) {
+      return `${firstError.field}: ${firstError.message}`;
+    }
+    return data.message || 'Błąd walidacji danych';
+  }
+
+  // Handle specific error messages
+  if (data?.message) {
+    return data.message;
+  }
+
+  if (data?.error) {
+    return data.error;
+  }
+
+  // Handle status codes
+  switch (status) {
+    case 400:
+      return 'Nieprawidłowe żądanie';
+    case 401:
+      return 'Brak autoryzacji';
+    case 403:
+      return 'Brak uprawnień';
+    case 404:
+      return 'Nie znaleziono';
+    case 409:
+      return 'Konflikt danych';
+    case 500:
+      return 'Wewnętrzny błąd serwera';
+    default:
+      return `Błąd ${status}`;
+  }
+};
+
+// Response interceptor for token refresh and error handling
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
+    // Handle 401 - token refresh
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
@@ -66,11 +119,18 @@ api.interceptors.response.use(
         delete api.defaults.headers.common['Authorization'];
         
         // Dispatch custom event for AuthContext to handle navigation
-        // This avoids using window.location.href which causes full page reload
         window.dispatchEvent(new CustomEvent('auth:logout', { detail: { reason: 'token_refresh_failed' } }));
         
         return Promise.reject(refreshError);
       }
+    }
+
+    // Show error toast for non-401 errors (401 is handled above or will trigger logout)
+    // Skip showing toast for requests that explicitly disable it
+    if (error.response && !originalRequest._skipErrorToast && globalErrorHandler) {
+      const message = formatErrorMessage(error);
+      const variant = error.response.status >= 500 ? 'error' : error.response.status === 404 ? 'warning' : 'error';
+      globalErrorHandler(message, variant);
     }
 
     return Promise.reject(error);

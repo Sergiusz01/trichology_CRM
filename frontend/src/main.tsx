@@ -6,6 +6,7 @@ import App from './App';
 import { theme } from './theme';
 import { SnackbarProvider } from 'notistack';
 import { AuthProvider } from './contexts/AuthContext';
+import { ApiErrorHandler } from './components/ApiErrorHandler';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './index.css';
 
@@ -15,6 +16,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <SnackbarProvider maxSnack={3} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
+          <ApiErrorHandler />
           <AuthProvider>
             <App />
           </AuthProvider>
