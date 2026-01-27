@@ -1,5 +1,6 @@
 import puppeteer from 'puppeteer';
 import { prisma } from '../prisma';
+import { getLogoHTMLForPDF } from '../utils/logo';
 
 // Export helper functions for use in other modules
 export const formatDate = (date: Date): string => {
@@ -148,6 +149,7 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
     </head>
     <body>
 
+      ${getLogoHTMLForPDF('small')}
       <div class="header-main">
         <div class="header-title">Karta Konsultacyjna</div>
         <div class="header-sub">Rich Diagnostic</div>
@@ -420,6 +422,7 @@ export const generateCarePlanPDF = async (carePlan: any): Promise<Buffer> => {
       </style>
     </head>
     <body>
+      ${getLogoHTMLForPDF('small')}
       <div class="header">
         <h1>PLAN OPIEKI TRYCHOLOGICZNEJ</h1>
         <p><strong>${carePlan.title}</strong></p>

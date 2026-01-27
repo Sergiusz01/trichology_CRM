@@ -1,5 +1,6 @@
 import { sendEmail } from './emailService';
 import { generateCarePlanPDF } from './pdfService';
+import { getLogoHTML } from '../utils/logo';
 import { prisma } from '../prisma';
 
 const checkAndSendReminders = async () => {
@@ -37,6 +38,7 @@ const checkAndSendReminders = async () => {
           case 'CARE_PLAN_REMINDER':
             if (reminder.carePlan) {
               emailHtml = `
+                ${getLogoHTML()}
                 <h2>Przypomnienie o planie opieki</h2>
                 <p>Dzień dobry ${reminder.patient.firstName},</p>
                 <p>Przypominamy o kontynuowaniu planu opieki trychologicznej: <strong>${reminder.carePlan.title}</strong></p>
@@ -56,6 +58,7 @@ const checkAndSendReminders = async () => {
 
           case 'FOLLOW_UP_VISIT':
             emailHtml = `
+              ${getLogoHTML()}
               <h2>Przypomnienie o wizycie kontrolnej</h2>
               <p>Dzień dobry ${reminder.patient.firstName},</p>
               <p>Przypominamy o zaplanowanej wizycie kontrolnej.</p>
@@ -66,6 +69,7 @@ const checkAndSendReminders = async () => {
 
           case 'LAB_RESULTS_REMINDER':
             emailHtml = `
+              ${getLogoHTML()}
               <h2>Przypomnienie o wynikach badań</h2>
               <p>Dzień dobry ${reminder.patient.firstName},</p>
               <p>Przypominamy o konieczności wykonania badań laboratoryjnych.</p>

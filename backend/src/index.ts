@@ -58,6 +58,22 @@ app.use('/uploads', express.static(uploadDir, {
   },
 }));
 
+// Serve static files from public directory (for logo and other assets)
+const publicDir = path.join(__dirname, '../public');
+if (!fs.existsSync(publicDir)) {
+  fs.mkdirSync(publicDir, { recursive: true });
+}
+app.use('/public', express.static(publicDir, {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.png')) {
+      res.setHeader('Content-Type', 'image/png');
+    } else if (filePath.endsWith('.jpg') || filePath.endsWith('.jpeg')) {
+      res.setHeader('Content-Type', 'image/jpeg');
+    }
+    res.setHeader('Cache-Control', 'public, max-age=31536000');
+  },
+}));
+
 // Rate limiting - apply to all API routes
 app.use('/api', apiLimiter);
 

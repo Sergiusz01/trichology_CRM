@@ -6,6 +6,7 @@ import { prisma } from '../prisma';
 import { writeAuditLog } from '../services/auditService';
 import { sendEmail } from '../services/emailService';
 import { generateVisitICS, generateGoogleCalendarURL, generateOutlookCalendarURL } from '../utils/icalendar';
+import { getLogoHTML } from '../utils/logo';
 
 const router = express.Router();
 
@@ -557,6 +558,7 @@ router.post('/:id/reminder', authenticate, async (req: AuthRequest, res, next) =
       </head>
       <body>
         <div class="container">
+          ${getLogoHTML()}
           <div class="header">
             <h1>Przypomnienie o wizycie</h1>
           </div>
