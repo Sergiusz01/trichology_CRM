@@ -1245,7 +1245,7 @@ export default function DashboardPage() {
                                                         ? '#1976d2'
                                                         : activity.type === 'CONSULTATION'
                                                             ? '#d32f2f'
-                                                            : 'linear-gradient(135deg, #1976d2 0%, #00f2fe 100%)',
+                                                            : '#1976d2',
                                                 }}
                                             >
                                                 {activity.type === 'PATIENT' ? <PersonAdd /> :
