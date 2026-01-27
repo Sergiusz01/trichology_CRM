@@ -15,8 +15,9 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  alpha,
 } from '@mui/material';
-import { ExpandMore, Save } from '@mui/icons-material';
+import { ExpandMore, Save, EventAvailable } from '@mui/icons-material';
 import { api } from '../services/api';
 import MultiSelectCheckboxes from '../components/MultiSelectCheckboxes';
 
@@ -297,17 +298,36 @@ export default function ConsultationFormPage() {
 
   return (
     <Box sx={{ width: '100%', maxWidth: '100%', overflow: 'hidden', px: { xs: 0, sm: 0 } }}>
-      <Typography
-        variant="h4"
-        gutterBottom
-        sx={{
-          fontSize: { xs: '1.5rem', sm: '2rem' },
-          mb: { xs: 2, sm: 3 },
-          px: { xs: 1.5, sm: 0 },
-        }}
-      >
-        {isNewConsultation ? 'Nowa konsultacja' : 'Edycja konsultacji'}
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: { xs: 2, sm: 3 }, px: { xs: 1.5, sm: 0 } }}>
+        <Typography
+          variant="h4"
+          sx={{
+            fontSize: { xs: '1.5rem', sm: '2rem' },
+            fontWeight: 600,
+          }}
+        >
+          {isNewConsultation ? 'Nowa konsultacja' : 'Edycja konsultacji'}
+        </Typography>
+        {actualPatientId && (
+          <Button
+            variant="outlined"
+            startIcon={<EventAvailable />}
+            onClick={() => navigate(`/patients/${actualPatientId}/visits/new`)}
+            sx={{
+              textTransform: 'none',
+              fontWeight: 500,
+              borderColor: '#1976d2',
+              color: '#1976d2',
+              '&:hover': {
+                borderColor: '#1565c0',
+                bgcolor: alpha('#1976d2', 0.05),
+              },
+            }}
+          >
+            Dodaj wizytę
+          </Button>
+        )}
+      </Box>
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>

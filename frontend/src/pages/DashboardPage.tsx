@@ -609,7 +609,7 @@ export default function DashboardPage() {
                                 <ArrowForward sx={{ color: 'text.secondary', opacity: 0.5 }} />
                             </ListItemButton>
                             <ListItemButton
-                                onClick={() => navigate('/consultations/new')}
+                                onClick={() => navigate('/visits/new')}
                                 sx={{
                                     mb: 1,
                                     borderRadius: 2,
@@ -623,10 +623,10 @@ export default function DashboardPage() {
                                 }}
                             >
                                 <ListItemIcon>
-                                    <EventNote sx={{ color: '#1976d2' }} />
+                                    <CalendarToday sx={{ color: '#1976d2' }} />
                                 </ListItemIcon>
                                 <ListItemText
-                                    primary="Dodaj konsultację"
+                                    primary="Nowa wizyta"
                                     primaryTypographyProps={{
                                         fontWeight: 500,
                                         color: 'text.primary',
