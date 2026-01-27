@@ -339,7 +339,13 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
 
   try {
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
+    // Set a longer timeout for page content loading
+    await page.setDefaultNavigationTimeout(30000);
+    await page.setContent(html, { waitUntil: 'networkidle0', timeout: 30000 });
+    
+    // Wait a bit for images to load
+    await page.waitForTimeout(1000);
+    
     const pdf = await page.pdf({
       format: 'A4',
       printBackground: true,
@@ -347,9 +353,10 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
       margin: { top: '0', right: '0', bottom: '0', left: '0' },
     });
     return Buffer.from(pdf);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Błąd generowania PDF konsultacji:', error);
-    throw error;
+    console.error('Error details:', error.message, error.stack);
+    throw new Error(`Błąd generowania PDF: ${error.message || 'Nieznany błąd'}`);
   } finally {
     await browser.close();
   }
@@ -506,7 +513,13 @@ export const generateCarePlanPDF = async (carePlan: any): Promise<Buffer> => {
 
   try {
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
+    // Set a longer timeout for page content loading
+    await page.setDefaultNavigationTimeout(30000);
+    await page.setContent(html, { waitUntil: 'networkidle0', timeout: 30000 });
+    
+    // Wait a bit for images to load
+    await page.waitForTimeout(1000);
+    
     const pdf = await page.pdf({
       format: 'A4',
       printBackground: true,
@@ -518,6 +531,10 @@ export const generateCarePlanPDF = async (carePlan: any): Promise<Buffer> => {
       },
     });
     return Buffer.from(pdf);
+  } catch (error: any) {
+    console.error('Błąd generowania PDF planu opieki:', error);
+    console.error('Error details:', error.message, error.stack);
+    throw new Error(`Błąd generowania PDF: ${error.message || 'Nieznany błąd'}`);
   } finally {
     await browser.close();
   }
