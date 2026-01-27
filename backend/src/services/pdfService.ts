@@ -347,6 +347,9 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
       margin: { top: '0', right: '0', bottom: '0', left: '0' },
     });
     return Buffer.from(pdf);
+  } catch (error) {
+    console.error('Błąd generowania PDF konsultacji:', error);
+    throw error;
   } finally {
     await browser.close();
   }

@@ -6,11 +6,20 @@ import path from 'path';
  */
 export function getLogoBase64(): string {
   try {
-    const logoPath = path.join(__dirname, '../../public/assets/logo.png');
-    if (fs.existsSync(logoPath)) {
-      const logoBuffer = fs.readFileSync(logoPath);
-      const base64 = logoBuffer.toString('base64');
-      return `data:image/png;base64,${base64}`;
+    // Try multiple possible paths (for both development and production builds)
+    const possiblePaths = [
+      path.join(__dirname, '../../public/assets/logo.png'), // From dist/utils/logo.js
+      path.join(__dirname, '../../../public/assets/logo.png'), // Alternative path
+      path.join(process.cwd(), 'public/assets/logo.png'), // From project root
+      path.join(process.cwd(), 'backend/public/assets/logo.png'), // From workspace root
+    ];
+
+    for (const logoPath of possiblePaths) {
+      if (fs.existsSync(logoPath)) {
+        const logoBuffer = fs.readFileSync(logoPath);
+        const base64 = logoBuffer.toString('base64');
+        return `data:image/png;base64,${base64}`;
+      }
     }
   } catch (error) {
     console.error('Błąd wczytywania logo:', error);
