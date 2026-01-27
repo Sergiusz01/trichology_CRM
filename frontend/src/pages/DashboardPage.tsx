@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     Box,
     Grid,
@@ -110,6 +110,7 @@ export default function DashboardPage() {
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [searchLoading, setSearchLoading] = useState(false);
     const [isFetching, setIsFetching] = useState(false);
+    const isFetchingRef = useRef(false);
     const [stats, setStats] = useState<DashboardStats>({
         patientsCount: 0,
         consultationsCount: 0,
@@ -132,12 +133,13 @@ export default function DashboardPage() {
     });
 
     const fetchDashboardData = useCallback(async (isRefresh = false) => {
-        // Zapobiegaj wielokrotnym wywołaniom
-        if (isFetching && !isRefresh) {
+        // Zapobiegaj wielokrotnym wywołaniom używając ref
+        if (isFetchingRef.current && !isRefresh) {
             return;
         }
 
         try {
+            isFetchingRef.current = true;
             setIsFetching(true);
             if (isRefresh) {
                 setRefreshing(true);
@@ -202,7 +204,7 @@ export default function DashboardPage() {
                 showError(errorMessage);
                 // Automatyczne ponowienie po czasie retry
                 setTimeout(() => {
-                    if (!isFetching) {
+                    if (!isFetchingRef.current) {
                         fetchDashboardData(true);
                     }
                 }, retryAfter * 1000);
@@ -216,8 +218,9 @@ export default function DashboardPage() {
             setLoading(false);
             setRefreshing(false);
             setIsFetching(false);
+            isFetchingRef.current = false;
         }
-    }, [showError, isFetching]);
+    }, [showError]);
 
     useEffect(() => {
         // Wywołaj tylko raz przy montowaniu komponentu
@@ -287,8 +290,7 @@ export default function DashboardPage() {
             value: stats.patientsCount,
             subtitle: `+${stats.patientsThisWeek} w tym tygodniu`,
             icon: PersonAdd,
-            color: '#667eea',
-            gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: '#1976d2',
             progress: stats.patientsThisWeek > 0 && stats.patientsCount > 0 ? (stats.patientsThisWeek / stats.patientsCount) * 100 : 0,
             link: '/patients',
         },
@@ -297,8 +299,7 @@ export default function DashboardPage() {
             value: stats.consultationsCount,
             subtitle: `+${stats.consultationsThisWeek} w tym tygodniu`,
             icon: EventNote,
-            color: '#f5576c',
-            gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+            color: '#1976d2',
             progress: stats.consultationsThisWeek > 0 && stats.consultationsCount > 0 ? (stats.consultationsThisWeek / stats.consultationsCount) * 100 : 0,
             link: '/consultations',
         },
@@ -307,8 +308,7 @@ export default function DashboardPage() {
             value: todayVisits.length,
             subtitle: `${tomorrowVisits.length} jutro`,
             icon: CalendarToday,
-            color: '#AF52DE',
-            gradient: 'linear-gradient(135deg, #AF52DE 0%, #9B30D9 100%)',
+            color: '#1976d2',
             progress: 0,
             link: '#visits',
         },
@@ -317,8 +317,7 @@ export default function DashboardPage() {
             value: stats.patientsWithoutConsultation,
             subtitle: 'Wymaga uwagi',
             icon: Warning,
-            color: '#fee140',
-            gradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+            color: '#d32f2f',
             progress: stats.patientsWithoutConsultation > 0 && stats.patientsCount > 0 ? (stats.patientsWithoutConsultation / stats.patientsCount) * 100 : 0,
             link: '#attention',
         },
@@ -340,12 +339,9 @@ export default function DashboardPage() {
                     <Typography
                         variant="h4"
                         sx={{
-                            fontWeight: 800,
-                            fontSize: { xs: '1.75rem', sm: '2.5rem' },
-                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                            backgroundClip: 'text',
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
+                            fontWeight: 600,
+                            fontSize: { xs: '1.75rem', sm: '2rem' },
+                            color: 'text.primary',
                             mb: 1,
                         }}
                     >
@@ -361,12 +357,12 @@ export default function DashboardPage() {
                             onClick={() => fetchDashboardData(true)}
                             disabled={refreshing}
                             sx={{
-                                bgcolor: alpha('#667eea', 0.1),
-                                '&:hover': { bgcolor: alpha('#667eea', 0.2) },
+                                bgcolor: alpha('#1976d2', 0.08),
+                                '&:hover': { bgcolor: alpha('#1976d2', 0.12) },
                             }}
                         >
                             <Refresh sx={{ 
-                                color: '#667eea',
+                                color: '#1976d2',
                                 animation: refreshing ? 'spin 1s linear infinite' : 'none',
                                 '@keyframes spin': {
                                     '0%': { transform: 'rotate(0deg)' },
@@ -380,14 +376,14 @@ export default function DashboardPage() {
                         startIcon={<Add />}
                         onClick={() => navigate('/patients/new')}
                         sx={{
-                            bgcolor: '#667eea',
+                            bgcolor: '#1976d2',
                             color: 'white',
                             textTransform: 'none',
-                            fontWeight: 600,
+                            fontWeight: 500,
                             borderRadius: 2,
                             boxShadow: 'none',
                             '&:hover': {
-                                bgcolor: '#5568d3',
+                                bgcolor: '#1565c0',
                                 boxShadow: 'none',
                             },
                         }}
@@ -428,7 +424,7 @@ export default function DashboardPage() {
                                 {searchLoading ? (
                                     <CircularProgress size={20} />
                                 ) : (
-                                    <Search sx={{ color: '#667eea' }} />
+                                    <Search sx={{ color: 'text.secondary' }} />
                                 )}
                             </InputAdornment>
                         ),
@@ -453,12 +449,12 @@ export default function DashboardPage() {
                                     borderRadius: 3,
                                     mb: 1,
                                     '&:hover': {
-                                        bgcolor: alpha('#667eea', 0.05),
+                                        bgcolor: alpha('#1976d2', 0.05),
                                     },
                                 }}
                             >
                                 <ListItemAvatar>
-                                    <Avatar sx={{ bgcolor: alpha('#667eea', 0.1), color: '#667eea', fontWeight: 700 }}>
+                                    <Avatar sx={{ bgcolor: alpha('#1976d2', 0.1), color: '#1976d2', fontWeight: 600 }}>
                                         {patient.firstName[0]}{patient.lastName[0]}
                                     </Avatar>
                                 </ListItemAvatar>
@@ -467,7 +463,7 @@ export default function DashboardPage() {
                                     primaryTypographyProps={{ fontWeight: 600 }}
                                     secondary={patient.email || patient.phone}
                                 />
-                                <ArrowForward sx={{ color: '#667eea', opacity: 0.5 }} />
+                                <ArrowForward sx={{ color: 'text.secondary', opacity: 0.5 }} />
                             </ListItemButton>
                         ))}
                     </List>
@@ -501,8 +497,8 @@ export default function DashboardPage() {
                                     top: 0,
                                     left: 0,
                                     right: 0,
-                                    height: '6px',
-                                    background: stat.gradient,
+                                    height: '3px',
+                                    background: stat.color,
                                     borderRadius: '16px 16px 0 0',
                                 },
                             }}
@@ -513,27 +509,23 @@ export default function DashboardPage() {
                                         sx={{
                                             width: 48,
                                             height: 48,
-                                            borderRadius: '12px',
-                                            background: stat.gradient,
+                                            borderRadius: '8px',
+                                            background: alpha(stat.color, 0.1),
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
-                                            boxShadow: `0 8px 16px ${alpha(stat.color, 0.3)}`,
                                         }}
                                     >
-                                        <stat.icon sx={{ color: 'white', fontSize: 24 }} />
+                                        <stat.icon sx={{ color: stat.color, fontSize: 24 }} />
                                     </Box>
                                 </Box>
                                 <Typography
                                     variant="h3"
                                     sx={{
-                                        fontWeight: 800,
+                                        fontWeight: 600,
                                         mb: 0.5,
                                         fontSize: { xs: '2rem', sm: '2.5rem' },
-                                        background: stat.gradient,
-                                        backgroundClip: 'text',
-                                        WebkitBackgroundClip: 'text',
-                                        WebkitTextFillColor: 'transparent',
+                                        color: 'text.primary',
                                     }}
                                 >
                                     {stat.value}
@@ -554,7 +546,7 @@ export default function DashboardPage() {
                                             borderRadius: 4,
                                             bgcolor: alpha(stat.color, 0.1),
                                             '& .MuiLinearProgress-bar': {
-                                                background: stat.gradient,
+                                                background: stat.color,
                                                 borderRadius: 4,
                                             },
                                         }}
@@ -575,94 +567,92 @@ export default function DashboardPage() {
                             p: { xs: 2.5, sm: 3 },
                             height: '100%',
                             borderRadius: 3,
-                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                            color: 'white',
-                            boxShadow: `0 8px 24px ${alpha('#667eea', 0.25)}`,
+                            background: 'white',
+                            border: '1px solid',
+                            borderColor: 'divider',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
                         }}
                     >
-                        <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, color: 'white' }}>
+                        <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: 'text.primary' }}>
                             Szybkie akcje
                         </Typography>
                         <List sx={{ p: 0 }}>
                             <ListItemButton
                                 onClick={() => navigate('/patients/new')}
                                 sx={{
-                                    mb: 1.5,
-                                    bgcolor: 'rgba(255, 255, 255, 0.15)',
-                                    backdropFilter: 'blur(10px)',
+                                    mb: 1,
                                     borderRadius: 2,
-                                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                                    border: '1px solid',
+                                    borderColor: 'divider',
                                     transition: 'all 0.2s',
                                     '&:hover': {
-                                        bgcolor: 'rgba(255, 255, 255, 0.25)',
-                                        transform: 'translateY(-2px)',
+                                        bgcolor: alpha('#1976d2', 0.05),
+                                        borderColor: '#1976d2',
                                     },
                                 }}
                             >
                                 <ListItemIcon>
-                                    <PersonAdd sx={{ color: 'white' }} />
+                                    <PersonAdd sx={{ color: '#1976d2' }} />
                                 </ListItemIcon>
                                 <ListItemText
                                     primary="Dodaj pacjenta"
                                     primaryTypographyProps={{
-                                        fontWeight: 600,
-                                        color: 'white',
+                                        fontWeight: 500,
+                                        color: 'text.primary',
                                     }}
                                 />
-                                <ArrowForward sx={{ color: 'white', opacity: 0.7 }} />
+                                <ArrowForward sx={{ color: 'text.secondary', opacity: 0.5 }} />
                             </ListItemButton>
                             <ListItemButton
                                 onClick={() => navigate('/consultations/new')}
                                 sx={{
-                                    mb: 1.5,
-                                    bgcolor: 'rgba(255, 255, 255, 0.15)',
-                                    backdropFilter: 'blur(10px)',
+                                    mb: 1,
                                     borderRadius: 2,
-                                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                                    border: '1px solid',
+                                    borderColor: 'divider',
                                     transition: 'all 0.2s',
                                     '&:hover': {
-                                        bgcolor: 'rgba(255, 255, 255, 0.25)',
-                                        transform: 'translateY(-2px)',
+                                        bgcolor: alpha('#1976d2', 0.05),
+                                        borderColor: '#1976d2',
                                     },
                                 }}
                             >
                                 <ListItemIcon>
-                                    <EventNote sx={{ color: 'white' }} />
+                                    <EventNote sx={{ color: '#1976d2' }} />
                                 </ListItemIcon>
                                 <ListItemText
                                     primary="Dodaj konsultację"
                                     primaryTypographyProps={{
-                                        fontWeight: 600,
-                                        color: 'white',
+                                        fontWeight: 500,
+                                        color: 'text.primary',
                                     }}
                                 />
-                                <ArrowForward sx={{ color: 'white', opacity: 0.7 }} />
+                                <ArrowForward sx={{ color: 'text.secondary', opacity: 0.5 }} />
                             </ListItemButton>
                             <ListItemButton
                                 onClick={() => navigate('/patients')}
                                 sx={{
-                                    bgcolor: 'rgba(255, 255, 255, 0.15)',
-                                    backdropFilter: 'blur(10px)',
                                     borderRadius: 2,
-                                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                                    border: '1px solid',
+                                    borderColor: 'divider',
                                     transition: 'all 0.2s',
                                     '&:hover': {
-                                        bgcolor: 'rgba(255, 255, 255, 0.25)',
-                                        transform: 'translateY(-2px)',
+                                        bgcolor: alpha('#1976d2', 0.05),
+                                        borderColor: '#1976d2',
                                     },
                                 }}
                             >
                                 <ListItemIcon>
-                                    <Assessment sx={{ color: 'white' }} />
+                                    <Assessment sx={{ color: '#1976d2' }} />
                                 </ListItemIcon>
                                 <ListItemText
                                     primary="Lista pacjentów"
                                     primaryTypographyProps={{
-                                        fontWeight: 600,
-                                        color: 'white',
+                                        fontWeight: 500,
+                                        color: 'text.primary',
                                     }}
                                 />
-                                <ArrowForward sx={{ color: 'white', opacity: 0.7 }} />
+                                <ArrowForward sx={{ color: 'text.secondary', opacity: 0.5 }} />
                             </ListItemButton>
                         </List>
                     </Paper>
@@ -675,68 +665,69 @@ export default function DashboardPage() {
                             p: { xs: 2.5, sm: 4 },
                             height: '100%',
                             borderRadius: 3,
-                            background: 'linear-gradient(135deg, #34C759 0%, #30D158 100%)',
-                            color: 'white',
-                            boxShadow: `0 8px 24px ${alpha('#34C759', 0.25)}`,
+                            background: 'white',
+                            border: '1px solid',
+                            borderColor: 'divider',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
                         }}
                     >
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                            <AttachMoney sx={{ fontSize: 32 }} />
+                            <AttachMoney sx={{ fontSize: 32, color: '#1976d2' }} />
                             <Box>
-                                <Typography variant="h6" sx={{ fontWeight: 700, color: 'white' }}>
+                                <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
                                     Przychody w tym tygodniu
                                 </Typography>
-                                <Typography variant="caption" sx={{ opacity: 0.9 }}>
+                                <Typography variant="caption" color="text.secondary">
                                     {format(new Date(), 'dd MMM', { locale: pl })} - {format(new Date(Date.now() + 6 * 24 * 60 * 60 * 1000), 'dd MMM', { locale: pl })}
                                 </Typography>
                             </Box>
                         </Box>
                         <Box sx={{ mb: 3 }}>
-                            <Typography variant="h3" sx={{ fontWeight: 800, mb: 0.5 }}>
+                            <Typography variant="h3" sx={{ fontWeight: 600, mb: 0.5, color: 'text.primary' }}>
                                 {weeklyRevenue.totalExpectedRevenue.toFixed(0)} zł
                             </Typography>
-                            <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                            <Typography variant="body2" color="text.secondary">
                                 Oczekiwany przychód
                             </Typography>
                         </Box>
-                        <Divider sx={{ bgcolor: 'rgba(255,255,255,0.2)', my: 2 }} />
+                        <Divider sx={{ my: 2 }} />
                         <Grid container spacing={2}>
                             <Grid size={{ xs: 6 }}>
                                 <Box>
-                                    <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                                    <Typography variant="h5" sx={{ fontWeight: 600, color: 'text.primary' }}>
                                         {weeklyRevenue.completedRevenue.toFixed(0)} zł
                                     </Typography>
-                                    <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                                    <Typography variant="caption" color="text.secondary">
                                         Zrealizowane
                                     </Typography>
                                 </Box>
                             </Grid>
                             <Grid size={{ xs: 6 }}>
                                 <Box>
-                                    <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                                    <Typography variant="h5" sx={{ fontWeight: 600, color: 'text.primary' }}>
                                         {weeklyRevenue.plannedRevenue.toFixed(0)} zł
                                     </Typography>
-                                    <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                                    <Typography variant="caption" color="text.secondary">
                                         Zaplanowane
                                     </Typography>
                                 </Box>
                             </Grid>
                             <Grid size={{ xs: 6 }}>
                                 <Box>
-                                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                                    <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
                                         {weeklyRevenue.visitsThisWeek.odbyta}
                                     </Typography>
-                                    <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                                    <Typography variant="caption" color="text.secondary">
                                         Odbyte
                                     </Typography>
                                 </Box>
                             </Grid>
                             <Grid size={{ xs: 6 }}>
                                 <Box>
-                                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                                    <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
                                         {weeklyRevenue.visitsThisWeek.zaplanowana}
                                     </Typography>
-                                    <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                                    <Typography variant="caption" color="text.secondary">
                                         Zaplanowane
                                     </Typography>
                                 </Box>
@@ -776,14 +767,14 @@ export default function DashboardPage() {
                                         background: 'white',
                                         borderRadius: 3,
                                         border: '2px solid',
-                                        borderColor: '#AF52DE',
-                                        boxShadow: `0 8px 24px ${alpha('#AF52DE', 0.15)}`,
+                                        borderColor: '#1976d2',
+                                        boxShadow: `0 8px 24px ${alpha('#1976d2', 0.15)}`,
                                     }}
                                 >
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
-                                        <Today sx={{ color: '#AF52DE', fontSize: 28 }} />
+                                        <Today sx={{ color: '#1976d2', fontSize: 28 }} />
                                         <Box>
-                                            <Typography variant="h6" sx={{ fontWeight: 700, color: '#AF52DE' }}>
+                                            <Typography variant="h6" sx={{ fontWeight: 700, color: '#1976d2' }}>
                                                 Dzisiaj
                                             </Typography>
                                             <Typography variant="caption" color="text.secondary">
@@ -802,12 +793,12 @@ export default function DashboardPage() {
                                                         sx={{
                                                             borderRadius: 2,
                                                             '&:hover': {
-                                                                bgcolor: alpha('#AF52DE', 0.05),
+                                                                bgcolor: alpha('#1976d2', 0.05),
                                                             },
                                                         }}
                                                     >
                                                         <ListItemAvatar>
-                                                            <Avatar sx={{ bgcolor: alpha('#AF52DE', 0.1), color: '#AF52DE', fontWeight: 600 }}>
+                                                            <Avatar sx={{ bgcolor: alpha('#1976d2', 0.1), color: '#1976d2', fontWeight: 600 }}>
                                                                 {visit.patient.firstName[0]}{visit.patient.lastName[0]}
                                                             </Avatar>
                                                         </ListItemAvatar>
@@ -835,7 +826,7 @@ export default function DashboardPage() {
                                                                     <Typography variant="body2" color="text.secondary">
                                                                         {visit.rodzajZabiegu}
                                                                     </Typography>
-                                                                    <Typography variant="caption" sx={{ color: '#AF52DE', fontWeight: 600 }}>
+                                                                    <Typography variant="caption" sx={{ color: '#1976d2', fontWeight: 600 }}>
                                                                         {formatVisitTime(visit.data)}
                                                                     </Typography>
                                                                     {visit.cena && (
@@ -846,7 +837,7 @@ export default function DashboardPage() {
                                                                 </Box>
                                                             }
                                                         />
-                                                        <ArrowForward sx={{ color: '#AF52DE', opacity: 0.5 }} />
+                                                        <ArrowForward sx={{ color: '#1976d2', opacity: 0.5 }} />
                                                     </ListItemButton>
                                                 </React.Fragment>
                                             );
@@ -863,14 +854,14 @@ export default function DashboardPage() {
                                         background: 'white',
                                         borderRadius: 3,
                                         border: '1px solid',
-                                        borderColor: alpha('#AF52DE', 0.3),
-                                        boxShadow: `0 8px 24px ${alpha('#AF52DE', 0.1)}`,
+                                        borderColor: alpha('#1976d2', 0.3),
+                                        boxShadow: `0 8px 24px ${alpha('#1976d2', 0.1)}`,
                                     }}
                                 >
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
-                                        <Schedule sx={{ color: '#AF52DE', fontSize: 28 }} />
+                                        <Schedule sx={{ color: '#1976d2', fontSize: 28 }} />
                                         <Box>
-                                            <Typography variant="h6" sx={{ fontWeight: 700, color: '#AF52DE' }}>
+                                            <Typography variant="h6" sx={{ fontWeight: 700, color: '#1976d2' }}>
                                                 Jutro
                                             </Typography>
                                             <Typography variant="caption" color="text.secondary">
@@ -889,12 +880,12 @@ export default function DashboardPage() {
                                                         sx={{
                                                             borderRadius: 2,
                                                             '&:hover': {
-                                                                bgcolor: alpha('#AF52DE', 0.05),
+                                                                bgcolor: alpha('#1976d2', 0.05),
                                                             },
                                                         }}
                                                     >
                                                         <ListItemAvatar>
-                                                            <Avatar sx={{ bgcolor: alpha('#AF52DE', 0.1), color: '#AF52DE', fontWeight: 600 }}>
+                                                            <Avatar sx={{ bgcolor: alpha('#1976d2', 0.1), color: '#1976d2', fontWeight: 600 }}>
                                                                 {visit.patient.firstName[0]}{visit.patient.lastName[0]}
                                                             </Avatar>
                                                         </ListItemAvatar>
@@ -922,7 +913,7 @@ export default function DashboardPage() {
                                                                     <Typography variant="body2" color="text.secondary">
                                                                         {visit.rodzajZabiegu}
                                                                     </Typography>
-                                                                    <Typography variant="caption" sx={{ color: '#AF52DE', fontWeight: 600 }}>
+                                                                    <Typography variant="caption" sx={{ color: '#1976d2', fontWeight: 600 }}>
                                                                         {formatVisitDate(visit.data)}, {formatVisitTime(visit.data)}
                                                                     </Typography>
                                                                     {visit.cena && (
@@ -933,7 +924,7 @@ export default function DashboardPage() {
                                                                 </Box>
                                                             }
                                                         />
-                                                        <ArrowForward sx={{ color: '#AF52DE', opacity: 0.5 }} />
+                                                        <ArrowForward sx={{ color: '#1976d2', opacity: 0.5 }} />
                                                     </ListItemButton>
                                                 </React.Fragment>
                                             );
@@ -950,14 +941,14 @@ export default function DashboardPage() {
                                         background: 'white',
                                         borderRadius: 3,
                                         border: '1px solid',
-                                        borderColor: alpha('#AF52DE', 0.3),
-                                        boxShadow: `0 8px 24px ${alpha('#AF52DE', 0.1)}`,
+                                        borderColor: alpha('#1976d2', 0.3),
+                                        boxShadow: `0 8px 24px ${alpha('#1976d2', 0.1)}`,
                                     }}
                                 >
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                                        <EventAvailable sx={{ color: '#AF52DE', fontSize: { xs: 24, sm: 32 } }} />
+                                        <EventAvailable sx={{ color: '#1976d2', fontSize: { xs: 24, sm: 32 } }} />
                                         <Box>
-                                            <Typography variant="h6" sx={{ fontWeight: 700, color: '#AF52DE', fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+                                            <Typography variant="h6" sx={{ fontWeight: 700, color: '#1976d2', fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                                                 Nadchodzące wizyty i zabiegi
                                             </Typography>
                                             <Typography variant="body2" color="text.secondary">
@@ -976,12 +967,12 @@ export default function DashboardPage() {
                                                         sx={{
                                                             borderRadius: 2,
                                                             '&:hover': {
-                                                                bgcolor: alpha('#AF52DE', 0.05),
+                                                                bgcolor: alpha('#1976d2', 0.05),
                                                             },
                                                         }}
                                                     >
                                                         <ListItemAvatar>
-                                                            <Avatar sx={{ bgcolor: alpha('#AF52DE', 0.1), color: '#AF52DE', fontWeight: 600 }}>
+                                                            <Avatar sx={{ bgcolor: alpha('#1976d2', 0.1), color: '#1976d2', fontWeight: 600 }}>
                                                                 {visit.patient.firstName[0]}{visit.patient.lastName[0]}
                                                             </Avatar>
                                                         </ListItemAvatar>
@@ -1009,7 +1000,7 @@ export default function DashboardPage() {
                                                                     <Typography variant="body2" color="text.secondary">
                                                                         {visit.rodzajZabiegu}
                                                                     </Typography>
-                                                                    <Typography variant="caption" sx={{ color: '#AF52DE', fontWeight: 600 }}>
+                                                                    <Typography variant="caption" sx={{ color: '#1976d2', fontWeight: 600 }}>
                                                                         {formatVisitDate(visit.data)}, {formatVisitTime(visit.data)}
                                                                     </Typography>
                                                                     {visit.numerWSerii && visit.liczbaSerii && (
@@ -1025,7 +1016,7 @@ export default function DashboardPage() {
                                                                 </Box>
                                                             }
                                                         />
-                                                        <ArrowForward sx={{ color: '#AF52DE', opacity: 0.5 }} />
+                                                        <ArrowForward sx={{ color: '#1976d2', opacity: 0.5 }} />
                                                     </ListItemButton>
                                                 </React.Fragment>
                                             );
@@ -1050,14 +1041,14 @@ export default function DashboardPage() {
                                         background: 'white',
                                         borderRadius: 3,
                                         border: '1px solid',
-                                        borderColor: alpha('#fa709a', 0.3),
-                                        boxShadow: `0 8px 24px ${alpha('#fa709a', 0.1)}`,
+                                        borderColor: alpha('#d32f2f', 0.3),
+                                        boxShadow: `0 8px 24px ${alpha('#d32f2f', 0.1)}`,
                                     }}
                                 >
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                                        <Warning sx={{ color: '#fa709a', fontSize: { xs: 24, sm: 32 } }} />
+                                        <Warning sx={{ color: '#d32f2f', fontSize: { xs: 24, sm: 32 } }} />
                                         <Box>
-                                            <Typography variant="h6" sx={{ fontWeight: 700, color: '#fa709a', fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+                                            <Typography variant="h6" sx={{ fontWeight: 700, color: '#d32f2f', fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                                                 Pacjenci bez konsultacji
                                             </Typography>
                                             <Typography variant="body2" color="text.secondary">
@@ -1074,12 +1065,12 @@ export default function DashboardPage() {
                                                         borderRadius: 2,
                                                         mb: 0.5,
                                                         '&:hover': {
-                                                            bgcolor: alpha('#fa709a', 0.05),
+                                                            bgcolor: alpha('#d32f2f', 0.05),
                                                         },
                                                     }}
                                                 >
                                                     <ListItemAvatar>
-                                                        <Avatar sx={{ bgcolor: alpha('#fa709a', 0.1), color: '#fa709a', fontWeight: 600 }}>
+                                                        <Avatar sx={{ bgcolor: alpha('#d32f2f', 0.1), color: '#d32f2f', fontWeight: 600 }}>
                                                             {patient.firstName[0]}{patient.lastName[0]}
                                                         </Avatar>
                                                     </ListItemAvatar>
@@ -1095,7 +1086,7 @@ export default function DashboardPage() {
                                                             </Typography>
                                                         }
                                                     />
-                                                    <ArrowForward sx={{ color: '#fa709a', opacity: 0.5 }} />
+                                                    <ArrowForward sx={{ color: '#d32f2f', opacity: 0.5 }} />
                                                 </ListItemButton>
                                             </React.Fragment>
                                         ))}
@@ -1109,11 +1100,11 @@ export default function DashboardPage() {
                                             borderRadius: 2,
                                             textTransform: 'none',
                                             fontWeight: 600,
-                                            borderColor: '#fa709a',
-                                            color: '#fa709a',
+                                            borderColor: '#d32f2f',
+                                            color: '#d32f2f',
                                             '&:hover': {
-                                                borderColor: '#fa709a',
-                                                bgcolor: alpha('#fa709a', 0.05),
+                                                borderColor: '#d32f2f',
+                                                bgcolor: alpha('#d32f2f', 0.05),
                                             },
                                         }}
                                     >
@@ -1131,14 +1122,14 @@ export default function DashboardPage() {
                                         background: 'white',
                                         borderRadius: 3,
                                         border: '1px solid',
-                                        borderColor: alpha('#4facfe', 0.3),
-                                        boxShadow: `0 8px 24px ${alpha('#4facfe', 0.1)}`,
+                                        borderColor: alpha('#1976d2', 0.3),
+                                        boxShadow: `0 8px 24px ${alpha('#1976d2', 0.1)}`,
                                     }}
                                 >
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                                        <Assessment sx={{ color: '#4facfe', fontSize: { xs: 24, sm: 32 } }} />
+                                        <Assessment sx={{ color: '#1976d2', fontSize: { xs: 24, sm: 32 } }} />
                                         <Box>
-                                            <Typography variant="h6" sx={{ fontWeight: 700, color: '#4facfe', fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+                                            <Typography variant="h6" sx={{ fontWeight: 700, color: '#1976d2', fontSize: { xs: '1rem', sm: '1.25rem' } }}>
                                                 Pacjenci nieaktywni
                                             </Typography>
                                             <Typography variant="body2" color="text.secondary">
@@ -1155,12 +1146,12 @@ export default function DashboardPage() {
                                                         borderRadius: 2,
                                                         mb: 0.5,
                                                         '&:hover': {
-                                                            bgcolor: alpha('#4facfe', 0.05),
+                                                            bgcolor: alpha('#1976d2', 0.05),
                                                         },
                                                     }}
                                                 >
                                                     <ListItemAvatar>
-                                                        <Avatar sx={{ bgcolor: alpha('#4facfe', 0.1), color: '#4facfe', fontWeight: 600 }}>
+                                                        <Avatar sx={{ bgcolor: alpha('#1976d2', 0.1), color: '#1976d2', fontWeight: 600 }}>
                                                             {patient.firstName[0]}{patient.lastName[0]}
                                                         </Avatar>
                                                     </ListItemAvatar>
@@ -1176,7 +1167,7 @@ export default function DashboardPage() {
                                                             </Typography>
                                                         }
                                                     />
-                                                    <ArrowForward sx={{ color: '#4facfe', opacity: 0.5 }} />
+                                                    <ArrowForward sx={{ color: '#1976d2', opacity: 0.5 }} />
                                                 </ListItemButton>
                                             </React.Fragment>
                                         ))}
@@ -1219,10 +1210,10 @@ export default function DashboardPage() {
                                     borderRadius: 2,
                                     textTransform: 'none',
                                     fontWeight: 600,
-                                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                    background: '#1976d2',
                                     boxShadow: `0 4px 12px ${alpha('#667eea', 0.2)}`,
                                     '&:hover': {
-                                        background: 'linear-gradient(135deg, #764ba2 0%, #667eea 100%)',
+                                        background: '#1565c0',
                                     },
                                 }}
                             >
@@ -1251,10 +1242,10 @@ export default function DashboardPage() {
                                                     width: 48,
                                                     height: 48,
                                                     background: activity.type === 'PATIENT'
-                                                        ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                                                        ? '#1976d2'
                                                         : activity.type === 'CONSULTATION'
-                                                            ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
-                                                            : 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                                                            ? '#d32f2f'
+                                                            : 'linear-gradient(135deg, #1976d2 0%, #00f2fe 100%)',
                                                 }}
                                             >
                                                 {activity.type === 'PATIENT' ? <PersonAdd /> :

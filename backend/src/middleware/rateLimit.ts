@@ -14,7 +14,7 @@ export const apiLimiter = rateLimit({
 export const authLimiter = rateLimit({
   ...standard,
   windowMs: 15 * 60 * 1000,
-  limit: 30,
+  limit: 100, // Zwiększony limit dla logowania
 });
 
 export const refreshLimiter = rateLimit({
