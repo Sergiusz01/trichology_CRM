@@ -26,6 +26,10 @@ import {
     Chip,
     Alert,
     Tooltip,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
 } from '@mui/material';
 import {
     PersonAdd,
@@ -135,6 +139,72 @@ export default function DashboardPage() {
         totalExpectedRevenue: 0,
         visitsThisWeek: { zaplanowana: 0, odbyta: 0, nieobecnosc: 0, anulowana: 0 },
     });
+    const [reminderDialog, setReminderDialog] = useState<{
+        open: boolean;
+        visitId: string | null;
+        visitData: string;
+        rodzajZabiegu: string;
+        patientName: string;
+        patientEmail: string;
+        customMessage: string;
+        recipientEmail: string;
+    }>({
+        open: false,
+        visitId: null,
+        visitData: '',
+        rodzajZabiegu: '',
+        patientName: '',
+        patientEmail: '',
+        customMessage: '',
+        recipientEmail: '',
+    });
+    const [sendingReminder, setSendingReminder] = useState(false);
+
+    const handleSendVisitReminder = async () => {
+        if (!reminderDialog.visitId) return;
+        
+        if (!reminderDialog.recipientEmail) {
+            showError('Podaj adres email odbiorcy');
+            return;
+        }
+
+        try {
+            setSendingReminder(true);
+            await api.post(`/visits/${reminderDialog.visitId}/reminder`, {
+                recipientEmail: reminderDialog.recipientEmail,
+                customMessage: reminderDialog.customMessage || undefined,
+            });
+            showSuccess('Przypomnienie wysłane pomyślnie!');
+            setReminderDialog({
+                open: false,
+                visitId: null,
+                visitData: '',
+                rodzajZabiegu: '',
+                patientName: '',
+                patientEmail: '',
+                customMessage: '',
+                recipientEmail: '',
+            });
+            fetchDashboardData(true);
+        } catch (err: any) {
+            showError(err.response?.data?.error || 'Błąd wysyłania przypomnienia');
+        } finally {
+            setSendingReminder(false);
+        }
+    };
+
+    const openReminderDialog = (visit: UpcomingVisit) => {
+        setReminderDialog({
+            open: true,
+            visitId: visit.id,
+            visitData: visit.data,
+            rodzajZabiegu: visit.rodzajZabiegu,
+            patientName: `${visit.patient.firstName} ${visit.patient.lastName}`,
+            patientEmail: '', // We'll need to fetch this or add to UpcomingVisit interface
+            customMessage: '',
+            recipientEmail: '',
+        });
+    };
 
     const fetchDashboardData = useCallback(async (isRefresh = false) => {
         // Zapobiegaj wielokrotnym wywołaniom używając ref
@@ -1025,18 +1095,33 @@ export default function DashboardPage() {
                                                                 </Box>
                                                             }
                                                         />
-                                                        <ArrowForward sx={{ color: '#1976d2', opacity: 0.5 }} />
-                                                    </ListItemButton>
-                                                </React.Fragment>
-                                            );
-                                        })}
-                                    </List>
-                                </Paper>
-                            </Grid>
+                                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                                        <IconButton
+                                                                            size="small"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                openReminderDialog(visit);
+                                                                            }}
+                                                                            sx={{ 
+                                                                                color: '#FF9500',
+                                                                                '&:hover': { bgcolor: alpha('#FF9500', 0.1) }
+                                                                            }}
+                                                                        >
+                                                                            <Notifications fontSize="small" />
+                                                                        </IconButton>
+                                                                        <ArrowForward sx={{ color: '#1976d2', opacity: 0.5 }} />
+                                                                    </Box>
+                                                                </ListItemButton>
+                                                            </React.Fragment>
+                                                        );
+                                                    })}
+                                                </List>
+                                            </Paper>
+                                        </Grid>
+                                    )}
+                                </Grid>
+                            </Box>
                         )}
-                    </Grid>
-                </Box>
-            )}
 
             {/* Patients Needing Attention */}
             {(patientsNeedingAttention.length > 0 || inactivePatientsList.length > 0) && (
@@ -1315,6 +1400,96 @@ export default function DashboardPage() {
                     </Paper>
                 </Box>
             )}
+
+            {/* Reminder Dialog */}
+            <Dialog
+                open={reminderDialog.open}
+                onClose={() => setReminderDialog({ ...reminderDialog, open: false })}
+                maxWidth="sm"
+                fullWidth
+                PaperProps={{
+                    sx: {
+                        borderRadius: 3,
+                        p: 1,
+                    },
+                }}
+            >
+                <DialogTitle sx={{ fontWeight: 600, pb: 2 }}>
+                    Wyślij przypomnienie o wizycie
+                </DialogTitle>
+                <DialogContent>
+                    <Box sx={{ mb: 2 }}>
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                            Pacjent:
+                        </Typography>
+                        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                            {reminderDialog.patientName}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                            Wizyta:
+                        </Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 500, mb: 1 }}>
+                            {reminderDialog.rodzajZabiegu}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                            {reminderDialog.visitData ? new Date(reminderDialog.visitData).toLocaleString('pl-PL', {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                            }) : ''}
+                        </Typography>
+                    </Box>
+
+                    <TextField
+                        fullWidth
+                        label="Adres email odbiorcy"
+                        type="email"
+                        value={reminderDialog.recipientEmail}
+                        onChange={(e) => setReminderDialog({ ...reminderDialog, recipientEmail: e.target.value })}
+                        required
+                        sx={{ mb: 2 }}
+                        helperText="Email pacjenta (jeśli dostępny)"
+                    />
+
+                    <TextField
+                        fullWidth
+                        label="Dodatkowa wiadomość (opcjonalnie)"
+                        multiline
+                        rows={4}
+                        value={reminderDialog.customMessage}
+                        onChange={(e) => setReminderDialog({ ...reminderDialog, customMessage: e.target.value })}
+                        placeholder="Dodaj dodatkową wiadomość do przypomnienia..."
+                        sx={{ mb: 2 }}
+                    />
+
+                    <Alert severity="info" sx={{ mt: 2 }}>
+                        Pacjent otrzyma email z przypomnieniem oraz możliwością zapisania wizyty do kalendarza (Google Calendar, Outlook, lub plik .ics).
+                    </Alert>
+                </DialogContent>
+                <DialogActions sx={{ p: 2, pt: 1 }}>
+                    <Button
+                        onClick={() => setReminderDialog({ ...reminderDialog, open: false })}
+                        disabled={sendingReminder}
+                    >
+                        Anuluj
+                    </Button>
+                    <Button
+                        onClick={handleSendVisitReminder}
+                        variant="contained"
+                        startIcon={sendingReminder ? <CircularProgress size={20} /> : <Notifications />}
+                        disabled={sendingReminder || !reminderDialog.recipientEmail}
+                        sx={{
+                            bgcolor: '#FF9500',
+                            '&:hover': { bgcolor: '#E68900' },
+                        }}
+                    >
+                        {sendingReminder ? 'Wysyłanie...' : 'Wyślij przypomnienie'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Box>
     );
 }

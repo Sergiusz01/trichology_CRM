@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { authenticate, requireWriteAccess, AuthRequest } from '../middleware/auth';
 import { prisma } from '../prisma';
 import { writeAuditLog } from '../services/auditService';
+import { sendEmail } from '../services/emailService';
+import { generateVisitICS, generateGoogleCalendarURL, generateOutlookCalendarURL } from '../utils/icalendar';
 
 const router = express.Router();
 
@@ -483,6 +485,166 @@ router.delete('/:id', authenticate, requireWriteAccess(), async (req: AuthReques
 
     res.json({ message: 'Wizyta została usunięta' });
   } catch (error) {
+    next(error);
+  }
+});
+
+// Send visit reminder email
+router.post('/:id/reminder', authenticate, async (req: AuthRequest, res, next) => {
+  try {
+    const { id } = req.params;
+    const { recipientEmail, customMessage } = req.body;
+
+    const visit = await prisma.visit.findUnique({
+      where: { id },
+      include: {
+        patient: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    if (!visit) {
+      return res.status(404).json({ error: 'Wizyta nie znaleziona' });
+    }
+
+    if (visit.status !== 'ZAPLANOWANA') {
+      return res.status(400).json({ error: 'Można wysłać przypomnienie tylko dla wizyt zaplanowanych' });
+    }
+
+    const emailTo = recipientEmail || visit.patient.email;
+    if (!emailTo) {
+      return res.status(400).json({ error: 'Pacjent nie ma zapisanego adresu email' });
+    }
+
+    const visitDate = new Date(visit.data);
+    const visitDateFormatted = visitDate.toLocaleDateString('pl-PL', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    // Generate calendar links
+    const googleCalendarURL = generateGoogleCalendarURL(visit);
+    const outlookCalendarURL = generateOutlookCalendarURL(visit);
+    const icsContent = generateVisitICS(visit);
+
+    // Create email HTML
+    const emailHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background-color: #1976d2; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+          .content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 5px 5px; }
+          .visit-info { background-color: white; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #1976d2; }
+          .calendar-buttons { margin: 30px 0; text-align: center; }
+          .calendar-button { display: inline-block; margin: 10px; padding: 12px 24px; background-color: #1976d2; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; }
+          .calendar-button:hover { background-color: #1565c0; }
+          .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666; text-align: center; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Przypomnienie o wizycie</h1>
+          </div>
+          <div class="content">
+            <p>Dzień dobry ${visit.patient.firstName},</p>
+            <p>Przypominamy o zaplanowanej wizycie:</p>
+            
+            <div class="visit-info">
+              <h2 style="margin-top: 0; color: #1976d2;">${visit.rodzajZabiegu}</h2>
+              <p><strong>Data i godzina:</strong> ${visitDateFormatted}</p>
+              ${visit.notatki ? `<p><strong>Notatki:</strong> ${visit.notatki}</p>` : ''}
+            </div>
+
+            ${customMessage ? `<p style="background-color: #fff3cd; padding: 15px; border-radius: 5px; border-left: 4px solid #ffc107;"><strong>Wiadomość:</strong><br>${customMessage}</p>` : ''}
+
+            <div class="calendar-buttons">
+              <p style="font-weight: bold; margin-bottom: 15px;">Zapisz do kalendarza:</p>
+              <a href="${googleCalendarURL}" class="calendar-button" target="_blank">📅 Google Calendar</a>
+              <a href="${outlookCalendarURL}" class="calendar-button" target="_blank">📅 Outlook Calendar</a>
+              <a href="data:text/calendar;charset=utf8;base64,${Buffer.from(icsContent).toString('base64')}" download="wizyta-${visit.id}.ics" class="calendar-button">📥 Pobierz .ics</a>
+            </div>
+
+            <p>Prosimy o potwierdzenie obecności lub kontakt w przypadku potrzeby zmiany terminu.</p>
+            
+            <div class="footer">
+              <p>Pozdrawiamy,<br>Zespół Kliniki</p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const subject = `Przypomnienie o wizycie - ${visitDateFormatted}`;
+
+    try {
+      await sendEmail({
+        to: emailTo,
+        subject,
+        html: emailHtml,
+        attachments: [
+          {
+            filename: `wizyta-${visit.id}.ics`,
+            content: Buffer.from(icsContent),
+          },
+        ],
+      });
+
+      // Save to email history
+      await prisma.emailHistory.create({
+        data: {
+          patientId: visit.patientId,
+          sentByUserId: req.user!.id,
+          recipientEmail: emailTo,
+          subject,
+          message: customMessage || `Przypomnienie o wizycie: ${visit.rodzajZabiegu} - ${visitDateFormatted}`,
+          attachmentCount: 1,
+          attachmentNames: ['Wizyta (ICS)'],
+          status: 'SENT',
+        },
+      });
+
+      res.json({ 
+        message: 'Przypomnienie wysłane pomyślnie',
+        googleCalendarURL,
+        outlookCalendarURL,
+      });
+    } catch (emailError: any) {
+      console.error('Błąd wysyłania przypomnienia:', emailError);
+      
+      // Save failed email to history
+      await prisma.emailHistory.create({
+        data: {
+          patientId: visit.patientId,
+          sentByUserId: req.user!.id,
+          recipientEmail: emailTo,
+          subject,
+          message: customMessage || `Przypomnienie o wizycie: ${visit.rodzajZabiegu} - ${visitDateFormatted}`,
+          status: 'FAILED',
+        },
+      });
+
+      return res.status(500).json({ 
+        error: 'Błąd wysyłania emaila',
+        details: emailError.message,
+      });
+    }
+  } catch (error: any) {
     next(error);
   }
 });

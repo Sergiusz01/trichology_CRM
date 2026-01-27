@@ -53,6 +53,8 @@ import {
   Work,
   CalendarToday,
   EventAvailable,
+  Notifications,
+  Send,
 } from '@mui/icons-material';
 import { api, BASE_URL } from '../services/api';
 import { useNotification } from '../hooks/useNotification';
@@ -162,6 +164,22 @@ export default function PatientDetailPage() {
     id: string | null;
     name: string;
   }>({ open: false, type: null, id: null, name: '' });
+  const [reminderDialog, setReminderDialog] = useState<{
+    open: boolean;
+    visitId: string | null;
+    visitData: string;
+    rodzajZabiegu: string;
+    customMessage: string;
+    recipientEmail: string;
+  }>({
+    open: false,
+    visitId: null,
+    visitData: '',
+    rodzajZabiegu: '',
+    customMessage: '',
+    recipientEmail: '',
+  });
+  const [sendingReminder, setSendingReminder] = useState(false);
   const [restoreDialog, setRestoreDialog] = useState<{
     open: boolean;
     type: 'consultation' | 'labResult' | 'carePlan' | null;
@@ -358,6 +376,47 @@ export default function PatientDetailPage() {
     } catch (err: any) {
       showError(err.response?.data?.error || 'Błąd podczas trwałego usuwania');
     }
+  };
+
+  const handleSendVisitReminder = async () => {
+    if (!reminderDialog.visitId) return;
+    
+    if (!reminderDialog.recipientEmail) {
+      showError('Podaj adres email odbiorcy');
+      return;
+    }
+
+    try {
+      setSendingReminder(true);
+      await api.post(`/visits/${reminderDialog.visitId}/reminder`, {
+        recipientEmail: reminderDialog.recipientEmail,
+        customMessage: reminderDialog.customMessage || undefined,
+      });
+      showSuccess('Przypomnienie wysłane pomyślnie!');
+      setReminderDialog({
+        open: false,
+        visitId: null,
+        visitData: '',
+        rodzajZabiegu: '',
+        customMessage: '',
+        recipientEmail: '',
+      });
+    } catch (err: any) {
+      showError(err.response?.data?.error || 'Błąd wysyłania przypomnienia');
+    } finally {
+      setSendingReminder(false);
+    }
+  };
+
+  const openReminderDialog = (visit: any) => {
+    setReminderDialog({
+      open: true,
+      visitId: visit.id,
+      visitData: visit.data,
+      rodzajZabiegu: visit.rodzajZabiegu,
+      customMessage: '',
+      recipientEmail: patient?.email || '',
+    });
   };
 
   const handleSendEmail = async (
@@ -1739,6 +1798,17 @@ export default function PatientDetailPage() {
                           </TableCell>
                           <TableCell align="right">
                             <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                              {visit.status === 'ZAPLANOWANA' && patient?.email && (
+                                <Tooltip title="Wyślij przypomnienie">
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => openReminderDialog(visit)}
+                                    sx={{ color: '#FF9500' }}
+                                  >
+                                    <Notifications fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              )}
                               <IconButton
                                 size="small"
                                 onClick={() => openEditVisitDialog(visit)}
@@ -2034,6 +2104,90 @@ export default function PatientDetailPage() {
             }}
           >
             Usuń trwale
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Reminder Dialog */}
+      <Dialog
+        open={reminderDialog.open}
+        onClose={() => setReminderDialog({ ...reminderDialog, open: false })}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            p: 1,
+          },
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 600, pb: 2 }}>
+          Wyślij przypomnienie o wizycie
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Wizyta:
+            </Typography>
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+              {reminderDialog.rodzajZabiegu}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {reminderDialog.visitData ? new Date(reminderDialog.visitData).toLocaleString('pl-PL', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              }) : ''}
+            </Typography>
+          </Box>
+
+          <TextField
+            fullWidth
+            label="Adres email odbiorcy"
+            type="email"
+            value={reminderDialog.recipientEmail}
+            onChange={(e) => setReminderDialog({ ...reminderDialog, recipientEmail: e.target.value })}
+            required
+            sx={{ mb: 2 }}
+            helperText={!patient?.email && 'Pacjent nie ma zapisanego adresu email'}
+          />
+
+          <TextField
+            fullWidth
+            label="Dodatkowa wiadomość (opcjonalnie)"
+            multiline
+            rows={4}
+            value={reminderDialog.customMessage}
+            onChange={(e) => setReminderDialog({ ...reminderDialog, customMessage: e.target.value })}
+            placeholder="Dodaj dodatkową wiadomość do przypomnienia..."
+            sx={{ mb: 2 }}
+          />
+
+          <Alert severity="info" sx={{ mt: 2 }}>
+            Pacjent otrzyma email z przypomnieniem oraz możliwością zapisania wizyty do kalendarza (Google Calendar, Outlook, lub plik .ics).
+          </Alert>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, pt: 1 }}>
+          <Button
+            onClick={() => setReminderDialog({ ...reminderDialog, open: false })}
+            disabled={sendingReminder}
+          >
+            Anuluj
+          </Button>
+          <Button
+            onClick={handleSendVisitReminder}
+            variant="contained"
+            startIcon={sendingReminder ? <CircularProgress size={20} /> : <Send />}
+            disabled={sendingReminder || !reminderDialog.recipientEmail}
+            sx={{
+              bgcolor: '#FF9500',
+              '&:hover': { bgcolor: '#E68900' },
+            }}
+          >
+            {sendingReminder ? 'Wysyłanie...' : 'Wyślij przypomnienie'}
           </Button>
         </DialogActions>
       </Dialog>
