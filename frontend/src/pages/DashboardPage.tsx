@@ -916,7 +916,22 @@ export default function DashboardPage() {
                                                                 </Box>
                                                             }
                                                         />
-                                                        <ArrowForward sx={{ color: '#1976d2', opacity: 0.5 }} />
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                            <IconButton
+                                                                size="small"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    openReminderDialog(visit);
+                                                                }}
+                                                                sx={{ 
+                                                                    color: '#FF9500',
+                                                                    '&:hover': { bgcolor: alpha('#FF9500', 0.1) }
+                                                                }}
+                                                            >
+                                                                <Notifications fontSize="small" />
+                                                            </IconButton>
+                                                            <ArrowForward sx={{ color: '#1976d2', opacity: 0.5 }} />
+                                                        </Box>
                                                     </ListItemButton>
                                                 </React.Fragment>
                                             );
@@ -1003,7 +1018,22 @@ export default function DashboardPage() {
                                                                 </Box>
                                                             }
                                                         />
-                                                        <ArrowForward sx={{ color: '#1976d2', opacity: 0.5 }} />
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                            <IconButton
+                                                                size="small"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    openReminderDialog(visit);
+                                                                }}
+                                                                sx={{ 
+                                                                    color: '#FF9500',
+                                                                    '&:hover': { bgcolor: alpha('#FF9500', 0.1) }
+                                                                }}
+                                                            >
+                                                                <Notifications fontSize="small" />
+                                                            </IconButton>
+                                                            <ArrowForward sx={{ color: '#1976d2', opacity: 0.5 }} />
+                                                        </Box>
                                                     </ListItemButton>
                                                 </React.Fragment>
                                             );
