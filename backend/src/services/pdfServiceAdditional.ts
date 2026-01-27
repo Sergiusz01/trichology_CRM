@@ -258,15 +258,40 @@ export const generateLabResultPDF = async (labResult: any, patient: any): Promis
     </html>
   `;
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  });
+  // Try to find system Chromium first, then use Puppeteer's bundled Chrome
+  const fs = require('fs');
+  let executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+  if (!executablePath) {
+    const possiblePaths = [
+      '/usr/bin/chromium-browser',
+      '/usr/bin/chromium',
+      '/snap/bin/chromium',
+      '/usr/bin/google-chrome',
+      '/usr/bin/google-chrome-stable',
+    ];
+    for (const path of possiblePaths) {
+      if (fs.existsSync(path)) {
+        executablePath = path;
+        break;
+      }
+    }
+  }
 
+  let browser;
   try {
+    browser = await puppeteer.launch({
+      headless: true,
+      executablePath: executablePath || undefined,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+    });
+
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
+    await page.setDefaultNavigationTimeout(60000);
+    await page.setContent(html, { 
+      waitUntil: 'domcontentloaded', 
+      timeout: 60000 
+    });
+    await new Promise(resolve => setTimeout(resolve, 1000));
     const pdf = await page.pdf({
       format: 'A4',
       printBackground: true,
@@ -278,8 +303,15 @@ export const generateLabResultPDF = async (labResult: any, patient: any): Promis
       },
     });
     return Buffer.from(pdf);
+  } catch (error: any) {
+    console.error('Błąd generowania PDF wyniku badania:', error);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    throw error;
   } finally {
-    await browser.close();
+    if (browser) {
+      await browser.close();
+    }
   }
 };
 
@@ -365,15 +397,40 @@ export const generatePatientInfoPDF = async (patient: any): Promise<Buffer> => {
     </html>
   `;
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  });
+  // Try to find system Chromium first, then use Puppeteer's bundled Chrome
+  const fs = require('fs');
+  let executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+  if (!executablePath) {
+    const possiblePaths = [
+      '/usr/bin/chromium-browser',
+      '/usr/bin/chromium',
+      '/snap/bin/chromium',
+      '/usr/bin/google-chrome',
+      '/usr/bin/google-chrome-stable',
+    ];
+    for (const path of possiblePaths) {
+      if (fs.existsSync(path)) {
+        executablePath = path;
+        break;
+      }
+    }
+  }
 
+  let browser;
   try {
+    browser = await puppeteer.launch({
+      headless: true,
+      executablePath: executablePath || undefined,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+    });
+
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
+    await page.setDefaultNavigationTimeout(60000);
+    await page.setContent(html, { 
+      waitUntil: 'domcontentloaded', 
+      timeout: 60000 
+    });
+    await new Promise(resolve => setTimeout(resolve, 1000));
     const pdf = await page.pdf({
       format: 'A4',
       printBackground: true,
@@ -385,8 +442,15 @@ export const generatePatientInfoPDF = async (patient: any): Promise<Buffer> => {
       },
     });
     return Buffer.from(pdf);
+  } catch (error: any) {
+    console.error('Błąd generowania PDF informacji o pacjencie:', error);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    throw error;
   } finally {
-    await browser.close();
+    if (browser) {
+      await browser.close();
+    }
   }
 };
 
