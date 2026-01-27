@@ -94,7 +94,7 @@ router.post('/patient/:patientId', authenticate, upload.single('photo'), async (
     // Add URL field for frontend (use secured route)
     const photoWithUrl = {
       ...scalpPhoto,
-      url: `/api/scalp-photos/${scalpPhoto.id}/file`,
+      url: `/uploads/${path.basename(scalpPhoto.filePath)}`,
     };
 
     res.status(201).json({ scalpPhoto: photoWithUrl });
@@ -130,7 +130,7 @@ router.get('/patient/:patientId', authenticate, async (req: AuthRequest, res, ne
     // Convert file paths to URLs (use secured route)
     const photosWithUrls = scalpPhotos.map(photo => ({
       ...photo,
-      url: `/api/scalp-photos/${photo.id}/file`,
+      url: `/uploads/${path.basename(photo.filePath)}`,
     }));
 
     res.json({ scalpPhotos: photosWithUrls });
@@ -205,7 +205,7 @@ router.get('/:id', authenticate, async (req: AuthRequest, res, next) => {
     // Use secured file route instead of /uploads
     const photoWithUrl = {
       ...scalpPhoto,
-      url: `/api/scalp-photos/${scalpPhoto.id}/file`,
+      url: `/uploads/${path.basename(scalpPhoto.filePath)}`,
     };
 
     res.json({ scalpPhoto: photoWithUrl });
@@ -240,7 +240,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res, next) => {
 
     const photoWithUrl = {
       ...scalpPhoto,
-      url: `/api/scalp-photos/${scalpPhoto.id}/file`,
+      url: `/uploads/${path.basename(scalpPhoto.filePath)}`,
     };
 
     res.json({ scalpPhoto: photoWithUrl });
