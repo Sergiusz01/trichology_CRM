@@ -55,6 +55,8 @@ import {
   EventAvailable,
 } from '@mui/icons-material';
 import { api, BASE_URL } from '../services/api';
+import { useNotification } from '../hooks/useNotification';
+import { ErrorRetry } from '../components/ErrorRetry';
 
 interface Patient {
   id: string;
@@ -123,6 +125,7 @@ export default function PatientDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const { success: showSuccess, error: showError } = useNotification();
   const [patient, setPatient] = useState<Patient | null>(null);
   const [loading, setLoading] = useState(true);
   const [tabValue, setTabValue] = useState(0);
@@ -179,6 +182,7 @@ export default function PatientDetailPage() {
   }>({ consultations: false, labResults: false, carePlans: false });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -196,29 +200,34 @@ export default function PatientDetailPage() {
   const fetchPatient = async () => {
     try {
       setLoading(true);
-      const response = await api.get(`/patients/${id}`);
+      setLoadError(null);
+      const response = await api.get(`/patients/${id}`, { _skipErrorToast: true });
       setPatient(response.data.patient);
       setScalpPhotos(response.data.patient.scalpPhotos || []);
 
       const consultationsResponse = await api.get(`/consultations/patient/${id}`, {
         params: { archived: showArchived.consultations ? 'true' : 'false' },
+        _skipErrorToast: true,
       });
       setConsultations(consultationsResponse.data.consultations || []);
 
       const labResultsResponse = await api.get(`/lab-results/patient/${id}`, {
         params: { archived: showArchived.labResults ? 'true' : 'false' },
+        _skipErrorToast: true,
       });
       setLabResults(labResultsResponse.data.labResults || []);
 
       const carePlansResponse = await api.get(`/care-plans/patient/${id}`, {
         params: { archived: showArchived.carePlans ? 'true' : 'false' },
+        _skipErrorToast: true,
       });
       setCarePlans(carePlansResponse.data.carePlans || []);
 
-      const visitsResponse = await api.get(`/visits/patient/${id}`);
+      const visitsResponse = await api.get(`/visits/patient/${id}`, { _skipErrorToast: true });
       setVisits(visitsResponse.data.visits || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Błąd pobierania pacjenta:', error);
+      setLoadError(error.response?.data?.error || 'Nie udało się załadować danych pacjenta');
     } finally {
       setLoading(false);
     }
@@ -242,39 +251,39 @@ export default function PatientDetailPage() {
       switch (deleteDialog.type) {
         case 'patient':
           await api.delete(`/patients/${deleteDialog.id}`);
-          setSuccess('Pacjent został zarchiwizowany');
+          showSuccess('Pacjent został zarchiwizowany');
           setTimeout(() => navigate('/patients'), 1500);
           break;
         case 'consultation':
           await api.delete(`/consultations/${deleteDialog.id}`);
-          setSuccess('Konsultacja została zarchiwizowana');
+          showSuccess('Konsultacja została zarchiwizowana');
           fetchPatient();
           break;
         case 'labResult':
           await api.delete(`/lab-results/${deleteDialog.id}`);
-          setSuccess('Wynik badania został usunięty');
+          showSuccess('Wynik badania został usunięty');
           fetchPatient();
           break;
         case 'scalpPhoto':
           await api.delete(`/scalp-photos/${deleteDialog.id}`);
-          setSuccess('Zdjęcie zostało usunięte');
+          showSuccess('Zdjęcie zostało usunięte');
           fetchPatient();
           break;
         case 'carePlan':
           await api.delete(`/care-plans/${deleteDialog.id}`);
-          setSuccess('Plan opieki został usunięty');
+          showSuccess('Plan opieki został usunięty');
           fetchPatient();
           break;
         case 'visit':
           await api.delete(`/visits/${deleteDialog.id}`);
-          setSuccess('Wizyta została usunięta');
+          showSuccess('Wizyta została usunięta');
           fetchPatient();
           break;
       }
 
       setDeleteDialog({ open: false, type: null, id: null, name: '' });
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Błąd podczas usuwania');
+      showError(err.response?.data?.error || 'Błąd podczas usuwania');
     }
   };
 
@@ -299,21 +308,21 @@ export default function PatientDetailPage() {
       switch (restoreDialog.type) {
         case 'consultation':
           await api.post(`/consultations/${restoreDialog.id}/restore`);
-          setSuccess('Konsultacja została przywrócona');
+          showSuccess('Konsultacja została przywrócona');
           break;
         case 'labResult':
           await api.post(`/lab-results/${restoreDialog.id}/restore`);
-          setSuccess('Wynik badania został przywrócony');
+          showSuccess('Wynik badania został przywrócony');
           break;
         case 'carePlan':
           await api.post(`/care-plans/${restoreDialog.id}/restore`);
-          setSuccess('Plan opieki został przywrócony');
+          showSuccess('Plan opieki został przywrócony');
           break;
       }
       setRestoreDialog({ open: false, type: null, id: null, name: '' });
       fetchPatient();
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Błąd podczas przywracania');
+      showError(err.response?.data?.error || 'Błąd podczas przywracania');
     }
   };
 
@@ -334,21 +343,21 @@ export default function PatientDetailPage() {
       switch (permanentDeleteDialog.type) {
         case 'consultation':
           await api.delete(`/consultations/${permanentDeleteDialog.id}/permanent`);
-          setSuccess('Konsultacja została trwale usunięta zgodnie z RODO');
+          showSuccess('Konsultacja została trwale usunięta zgodnie z RODO');
           break;
         case 'labResult':
           await api.delete(`/lab-results/${permanentDeleteDialog.id}/permanent`);
-          setSuccess('Wynik badania został trwale usunięty zgodnie z RODO');
+          showSuccess('Wynik badania został trwale usunięty zgodnie z RODO');
           break;
         case 'carePlan':
           await api.delete(`/care-plans/${permanentDeleteDialog.id}/permanent`);
-          setSuccess('Plan opieki został trwale usunięty zgodnie z RODO');
+          showSuccess('Plan opieki został trwale usunięty zgodnie z RODO');
           break;
       }
       setPermanentDeleteDialog({ open: false, type: null, id: null, name: '' });
       fetchPatient();
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Błąd podczas trwałego usuwania');
+      showError(err.response?.data?.error || 'Błąd podczas trwałego usuwania');
     }
   };
 
@@ -358,13 +367,11 @@ export default function PatientDetailPage() {
     itemName: string
   ) => {
     if (!patient?.email) {
-      setError('Pacjent nie ma zapisanego adresu email');
+      showError('Pacjent nie ma zapisanego adresu email');
       return;
     }
 
     try {
-      setError('');
-      setSuccess('');
       setLoading(true);
 
       let endpoint = '';
@@ -387,9 +394,9 @@ export default function PatientDetailPage() {
         recipientEmail: patient.email,
       });
 
-      setSuccess(`${itemName} wysłane na email pacjenta`);
+      showSuccess(`${itemName} wysłane na email pacjenta`);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Błąd wysyłania emaila');
+      showError(err.response?.data?.error || 'Błąd wysyłania emaila');
     } finally {
       setLoading(false);
     }
@@ -431,13 +438,11 @@ export default function PatientDetailPage() {
 
   const handleVisitSubmit = async () => {
     if (!visitDialog.data || !visitDialog.rodzajZabiegu) {
-      setError('Wypełnij wymagane pola: Data i Rodzaj zabiegu');
+      showError('Wypełnij wymagane pola: Data i Rodzaj zabiegu');
       return;
     }
 
     try {
-      setError('');
-      setSuccess('');
 
       const visitData = {
         patientId: id,
@@ -452,10 +457,10 @@ export default function PatientDetailPage() {
 
       if (visitDialog.mode === 'edit' && visitDialog.id) {
         await api.put(`/visits/${visitDialog.id}`, visitData);
-        setSuccess('Wizyta została zaktualizowana');
+        showSuccess('Wizyta została zaktualizowana');
       } else {
         await api.post('/visits', visitData);
-        setSuccess('Wizyta została dodana');
+        showSuccess('Wizyta została dodana');
       }
 
       setVisitDialog({
@@ -472,18 +477,17 @@ export default function PatientDetailPage() {
       });
       fetchPatient();
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Błąd podczas zapisywania wizyty');
+      showError(err.response?.data?.error || 'Błąd podczas zapisywania wizyty');
     }
   };
 
   const handleStatusChange = async (visitId: string, newStatus: string) => {
     try {
-      setError('');
       await api.patch(`/visits/${visitId}/status`, { status: newStatus });
-      setSuccess('Status wizyty został zmieniony');
+      showSuccess('Status wizyty został zmieniony');
       fetchPatient();
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Błąd zmiany statusu');
+      showError(err.response?.data?.error || 'Błąd zmiany statusu');
     }
   };
 
@@ -504,7 +508,15 @@ export default function PatientDetailPage() {
     );
   }
 
-  if (!patient) {
+  if (!patient && !loading && loadError) {
+    return (
+      <Container maxWidth="lg" sx={{ pt: 3 }}>
+        <ErrorRetry message={loadError} onRetry={fetchPatient} />
+      </Container>
+    );
+  }
+
+  if (!patient && !loading) {
     return (
       <Container maxWidth="lg">
         <Alert severity="error">Pacjent nie znaleziony</Alert>
@@ -542,17 +554,9 @@ export default function PatientDetailPage() {
           Powrót do listy pacjentów
         </Button>
 
-        {/* Alerts */}
-        {error && (
-          <Alert severity="error" sx={{ mb: 4, borderRadius: 2 }} onClose={() => setError('')}>
-            {error}
-          </Alert>
-        )}
-
-        {success && (
-          <Alert severity="success" sx={{ mb: 4, borderRadius: 2 }} onClose={() => setSuccess('')}>
-            {success}
-          </Alert>
+        {/* Loading Error with Retry */}
+        {loadError && (
+          <ErrorRetry message={loadError} onRetry={fetchPatient} onClose={() => setLoadError(null)} />
         )}
 
         {/* Header Card */}

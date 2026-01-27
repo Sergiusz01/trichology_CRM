@@ -36,6 +36,8 @@ import {
 import { Add, Visibility, Delete, Search, Person, Download, Restore, DeleteForever, Archive, Phone, Email } from '@mui/icons-material';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotification } from '../hooks/useNotification';
+import { ErrorRetry } from '../components/ErrorRetry';
 
 interface Patient {
   id: string;
@@ -75,6 +77,8 @@ export default function PatientsPage() {
   }>({ open: false, patientId: null, patientName: '' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const { success: showSuccess, error: showError } = useNotification();
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -90,6 +94,7 @@ export default function PatientsPage() {
   const fetchPatients = async () => {
     try {
       setLoading(true);
+      setLoadError(null);
       const response = await api.get('/patients', {
         params: {
           page: page + 1,
@@ -97,11 +102,13 @@ export default function PatientsPage() {
           search,
           archived: showArchived,
         },
+        _skipErrorToast: true,
       });
       setPatients(response.data.patients);
       setTotal(response.data.pagination.total);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Błąd pobierania pacjentów:', error);
+      setLoadError(error.response?.data?.error || 'Nie udało się załadować listy pacjentów');
     } finally {
       setLoading(false);
     }
@@ -124,14 +131,12 @@ export default function PatientsPage() {
     if (!deleteDialog.patientId) return;
 
     try {
-      setError('');
-      setSuccess('');
       await api.delete(`/patients/${deleteDialog.patientId}`);
-      setSuccess('Pacjent został zarchiwizowany');
+      showSuccess('Pacjent został zarchiwizowany');
       setDeleteDialog({ open: false, patientId: null, patientName: '' });
       fetchPatients();
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Błąd podczas usuwania pacjenta');
+      showError(err.response?.data?.error || 'Błąd podczas usuwania pacjenta');
     }
   };
 
@@ -147,14 +152,12 @@ export default function PatientsPage() {
     if (!restoreDialog.patientId) return;
 
     try {
-      setError('');
-      setSuccess('');
       await api.post(`/patients/${restoreDialog.patientId}/restore`);
-      setSuccess('Pacjent został przywrócony');
+      showSuccess('Pacjent został przywrócony');
       setRestoreDialog({ open: false, patientId: null, patientName: '' });
       fetchPatients();
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Błąd podczas przywracania pacjenta');
+      showError(err.response?.data?.error || 'Błąd podczas przywracania pacjenta');
     }
   };
 
@@ -170,14 +173,12 @@ export default function PatientsPage() {
     if (!permanentDeleteDialog.patientId) return;
 
     try {
-      setError('');
-      setSuccess('');
       await api.delete(`/patients/${permanentDeleteDialog.patientId}/permanent`);
-      setSuccess('Pacjent i wszystkie dane zostały trwale usunięte zgodnie z RODO');
+      showSuccess('Pacjent i wszystkie dane zostały trwale usunięte zgodnie z RODO');
       setPermanentDeleteDialog({ open: false, patientId: null, patientName: '' });
       fetchPatients();
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Błąd podczas trwałego usuwania pacjenta');
+      showError(err.response?.data?.error || 'Błąd podczas trwałego usuwania pacjenta');
     }
   };
 
@@ -205,11 +206,10 @@ export default function PatientsPage() {
       link.remove();
       window.URL.revokeObjectURL(url);
 
-      setSuccess('Eksport zakończony pomyślnie');
-      setTimeout(() => setSuccess(''), 5000);
+      showSuccess('Eksport zakończony pomyślnie');
     } catch (err: any) {
       console.error('Błąd eksportu:', err);
-      setError(err.response?.data?.error || 'Błąd podczas eksportu danych');
+      showError(err.response?.data?.error || 'Błąd podczas eksportu danych');
     } finally {
       setExporting(false);
     }
@@ -319,16 +319,8 @@ export default function PatientsPage() {
           </Box>
         </Box>
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
-            {error}
-          </Alert>
-        )}
-
-        {success && (
-          <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>
-            {success}
-          </Alert>
+        {loadError && (
+          <ErrorRetry message={loadError} onRetry={fetchPatients} onClose={() => setLoadError(null)} />
         )}
 
         <Paper

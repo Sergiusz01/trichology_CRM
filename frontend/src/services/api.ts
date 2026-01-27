@@ -126,8 +126,9 @@ api.interceptors.response.use(
     }
 
     // Show error toast for non-401 errors (401 is handled above or will trigger logout)
-    // Skip showing toast for requests that explicitly disable it
-    if (error.response && !originalRequest._skipErrorToast && globalErrorHandler) {
+    // Skip showing toast for requests that explicitly disable it via custom config
+    const skipToast = (originalRequest as any)._skipErrorToast;
+    if (error.response && !skipToast && globalErrorHandler) {
       const message = formatErrorMessage(error);
       const variant = error.response.status >= 500 ? 'error' : error.response.status === 404 ? 'warning' : 'error';
       globalErrorHandler(message, variant);
