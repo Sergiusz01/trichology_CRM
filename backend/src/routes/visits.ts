@@ -211,8 +211,20 @@ router.post('/', authenticate, async (req: AuthRequest, res, next) => {
       return res.status(404).json({ error: 'Pacjent nie znaleziony' });
     }
 
-    // Parse the date - the frontend sends a local datetime string
-    const visitDate = new Date(data.data);
+    // Parse the date - the frontend sends a local datetime string (YYYY-MM-DDTHH:mm)
+    // We need to parse it as local time, not UTC
+    let visitDate: Date;
+    if (data.data.includes('T')) {
+      // Format: YYYY-MM-DDTHH:mm (datetime-local format)
+      // Parse as local time to avoid timezone issues
+      const [datePart, timePart] = data.data.split('T');
+      const [year, month, day] = datePart.split('-').map(Number);
+      const [hours, minutes] = timePart.split(':').map(Number);
+      visitDate = new Date(year, month - 1, day, hours, minutes, 0, 0);
+    } else {
+      visitDate = new Date(data.data);
+    }
+
     const now = new Date();
     now.setSeconds(0, 0); // Remove seconds and milliseconds for comparison
 
@@ -222,6 +234,24 @@ router.post('/', authenticate, async (req: AuthRequest, res, next) => {
       return res.status(400).json({
         error: 'Błąd walidacji',
         message: 'Wizyta ze statusem "Zaplanowana" nie może być w przeszłości',
+      });
+    }
+
+    // Check for duplicate visit (same date and time for the same patient)
+    const existingVisit = await prisma.visit.findFirst({
+      where: {
+        patientId: data.patientId,
+        data: visitDate,
+        status: {
+          not: 'ANULOWANA', // Allow duplicates if one is cancelled
+        },
+      },
+    });
+
+    if (existingVisit) {
+      return res.status(409).json({
+        error: 'Błąd walidacji',
+        message: 'Na tę datę i godzinę już istnieje wizyta dla tego pacjenta',
       });
     }
 
@@ -278,7 +308,20 @@ router.put('/:id', authenticate, requireWriteAccess(), async (req: AuthRequest, 
     // Parse date if provided
     const updateData: any = {};
     if (data.data) {
-      const visitDate = new Date(data.data);
+      // Parse the date - the frontend sends a local datetime string (YYYY-MM-DDTHH:mm)
+      // We need to parse it as local time, not UTC
+      let visitDate: Date;
+      if (data.data.includes('T')) {
+        // Format: YYYY-MM-DDTHH:mm (datetime-local format)
+        // Parse as local time to avoid timezone issues
+        const [datePart, timePart] = data.data.split('T');
+        const [year, month, day] = datePart.split('-').map(Number);
+        const [hours, minutes] = timePart.split(':').map(Number);
+        visitDate = new Date(year, month - 1, day, hours, minutes, 0, 0);
+      } else {
+        visitDate = new Date(data.data);
+      }
+
       const now = new Date();
       now.setSeconds(0, 0); // Remove seconds and milliseconds for comparison
 
@@ -288,6 +331,25 @@ router.put('/:id', authenticate, requireWriteAccess(), async (req: AuthRequest, 
         return res.status(400).json({
           error: 'Błąd walidacji',
           message: 'Wizyta ze statusem "Zaplanowana" nie może być w przeszłości',
+        });
+      }
+
+      // Check for duplicate visit (same date and time for the same patient, excluding current visit)
+      const duplicateVisit = await prisma.visit.findFirst({
+        where: {
+          patientId: existingVisit.patientId,
+          data: visitDate,
+          id: { not: id }, // Exclude current visit
+          status: {
+            not: 'ANULOWANA', // Allow duplicates if one is cancelled
+          },
+        },
+      });
+
+      if (duplicateVisit) {
+        return res.status(409).json({
+          error: 'Błąd walidacji',
+          message: 'Na tę datę i godzinę już istnieje wizyta dla tego pacjenta',
         });
       }
 
