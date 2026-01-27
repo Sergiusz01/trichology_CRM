@@ -358,10 +358,29 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
 
   let browser;
   try {
+    // Try to find system Chromium first, then use Puppeteer's bundled Chrome
+    const fs = require('fs');
+    let executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+    if (!executablePath) {
+      const possiblePaths = [
+        '/usr/bin/chromium-browser',
+        '/usr/bin/chromium',
+        '/snap/bin/chromium',
+        '/usr/bin/google-chrome',
+        '/usr/bin/google-chrome-stable',
+      ];
+      for (const path of possiblePaths) {
+        if (fs.existsSync(path)) {
+          executablePath = path;
+          break;
+        }
+      }
+    }
+
     browser = await puppeteer.launch({
       headless: true,
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+      executablePath: executablePath || undefined,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
     });
 
     const page = await browser.newPage();
@@ -375,7 +394,7 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
         timeout: 60000 
       });
       // Wait a bit for images to load
-      await page.waitForTimeout(2000);
+      await new Promise(resolve => setTimeout(resolve, 2000));
     } catch (contentError: any) {
       console.warn('Błąd ładowania zawartości HTML z logo:', contentError.message);
       // Try without logo if base64 image causes issues
@@ -384,7 +403,7 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
         waitUntil: 'domcontentloaded', 
         timeout: 60000 
       });
-      await page.waitForTimeout(1000);
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
     
     const pdf = await page.pdf({
@@ -404,7 +423,7 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
         const page = await browser.newPage();
         const htmlWithoutLogo = html.replace(/<img[^>]*src="data:image[^"]*"[^>]*>/gi, '');
         await page.setContent(htmlWithoutLogo, { waitUntil: 'domcontentloaded', timeout: 30000 });
-        await page.waitForTimeout(1000);
+        await new Promise(resolve => setTimeout(resolve, 1000));
         const pdf = await page.pdf({
           format: 'A4',
           printBackground: true,
@@ -602,16 +621,16 @@ export const generateCarePlanPDF = async (carePlan: any): Promise<Buffer> => {
     
     // Try to load HTML with logo, but if it fails, use fallback
     try {
-      await page.setContent(html, { waitUntil: 'networkidle0', timeout: 30000 });
+      await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 30000 });
     } catch (contentError: any) {
       console.warn('Błąd ładowania zawartości HTML, próba bez logo:', contentError.message);
       // Try without logo if base64 image causes issues
       const htmlWithoutLogo = html.replace(/<img[^>]*src="data:image[^"]*"[^>]*>/gi, '');
-      await page.setContent(htmlWithoutLogo, { waitUntil: 'networkidle0', timeout: 30000 });
+      await page.setContent(htmlWithoutLogo, { waitUntil: 'domcontentloaded', timeout: 30000 });
     }
     
     // Wait a bit for images to load
-    await page.waitForTimeout(1000);
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
     const pdf = await page.pdf({
       format: 'A4',
