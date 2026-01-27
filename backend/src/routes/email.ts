@@ -820,10 +820,15 @@ router.post('/lab-result/:id', authenticate, async (req: AuthRequest, res, next)
         '</p>',
         `</p><pre style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; font-family: monospace; white-space: pre-wrap;">${labSummary}</pre>`
       );
+      // Add logo to template body if it doesn't already have it
+      if (!htmlBody.includes('data:image/png;base64') && !htmlBody.includes('trichdiagnostic')) {
+        htmlBody = getLogoHTML() + htmlBody;
+      }
     } else {
       // Fallback to default
       subject = `Wyniki badań laboratoryjnych - ${labResult.patient.firstName} ${labResult.patient.lastName}`;
       htmlBody = `
+        ${getLogoHTML()}
         <h2>Wyniki badań laboratoryjnych</h2>
         <p>Dzień dobry,</p>
         <p>W załączeniu przesyłamy wyniki badań laboratoryjnych z dnia ${labResultDate}.</p>
@@ -919,7 +924,6 @@ router.post('/scalp-photo/:id', authenticate, async (req: AuthRequest, res, next
         to: recipientEmail,
         subject,
         html: `
-          ${getLogoHTML()}
           <h2>Zdjęcie skóry głowy</h2>
           <p>Dzień dobry,</p>
           <p>W załączeniu przesyłamy zdjęcie skóry głowy z dnia ${new Date(scalpPhoto.createdAt).toLocaleDateString('pl-PL')}.</p>
