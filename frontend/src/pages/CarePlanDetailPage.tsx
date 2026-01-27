@@ -10,9 +10,12 @@ import {
   CardContent,
   useMediaQuery,
   useTheme,
+  CircularProgress,
+  Alert,
 } from '@mui/material';
 import { Edit, GetApp, ArrowBack } from '@mui/icons-material';
 import { api } from '../services/api';
+import { useNotification } from '../hooks/useNotification';
 
 // Helper function to format date and time
 const formatDateTime = (date: Date | string): string => {
@@ -29,22 +32,33 @@ export default function CarePlanDetailPage() {
   const { id, carePlanId } = useParams<{ id?: string; carePlanId?: string }>();
   const [carePlan, setCarePlan] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [downloadingPDF, setDownloadingPDF] = useState(false);
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { error: showError, success: showSuccess } = useNotification();
 
   useEffect(() => {
     if (carePlanId) {
       fetchCarePlan();
+    } else {
+      setError('Brak ID planu opieki');
+      setLoading(false);
     }
   }, [carePlanId]);
 
   const fetchCarePlan = async () => {
     try {
+      setLoading(true);
+      setError(null);
       const response = await api.get(`/care-plans/${carePlanId}`);
-      setCarePlan(response.data.carePlan);
-    } catch (error) {
+      setCarePlan(response.data.carePlan || response.data);
+    } catch (error: any) {
       console.error('Błąd pobierania planu:', error);
+      const errorMessage = error.response?.data?.error || 'Błąd pobierania planu opieki';
+      setError(errorMessage);
+      showError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -52,6 +66,7 @@ export default function CarePlanDetailPage() {
 
   const handleDownloadPDF = async () => {
     try {
+      setDownloadingPDF(true);
       const response = await api.get(`/care-plans/${carePlanId}/pdf`, {
         responseType: 'blob',
       });
@@ -62,25 +77,39 @@ export default function CarePlanDetailPage() {
       document.body.appendChild(link);
       link.click();
       link.remove();
-    } catch (error) {
+      window.URL.revokeObjectURL(url);
+      showSuccess('PDF pobrany pomyślnie');
+    } catch (error: any) {
       console.error('Błąd pobierania PDF:', error);
+      const errorMessage = error.response?.data?.error || 'Błąd pobierania PDF';
+      showError(errorMessage);
+    } finally {
+      setDownloadingPDF(false);
     }
   };
 
   if (loading) {
     return (
       <Container maxWidth="lg">
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-          <Typography>Ładowanie...</Typography>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 8, gap: 2 }}>
+          <CircularProgress size={48} />
+          <Typography variant="body1" color="text.secondary">Ładowanie planu opieki...</Typography>
         </Box>
       </Container>
     );
   }
 
-  if (!carePlan) {
+  if (error || !carePlan) {
     return (
       <Container maxWidth="lg">
-        <Typography>Plan opieki nie znaleziony</Typography>
+        <Box sx={{ py: 4 }}>
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error || 'Plan opieki nie znaleziony'}
+          </Alert>
+          <Button onClick={() => navigate(-1)} startIcon={<ArrowBack />}>
+            Powrót
+          </Button>
+        </Box>
       </Container>
     );
   }
