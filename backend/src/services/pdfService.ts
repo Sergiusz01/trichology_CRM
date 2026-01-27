@@ -3,23 +3,36 @@ import { prisma } from '../prisma';
 import { getLogoHTMLForPDF } from '../utils/logo';
 
 // Export helper functions for use in other modules
-export const formatDate = (date: Date): string => {
+export const formatDate = (date: Date | string | null | undefined): string => {
   if (!date) return '-';
-  return new Date(date).toLocaleDateString('pl-PL', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
+  try {
+    const dateObj = date instanceof Date ? date : new Date(date);
+    if (isNaN(dateObj.getTime())) return '-';
+    return dateObj.toLocaleDateString('pl-PL', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  } catch {
+    return '-';
+  }
 };
 
-export const formatDateTime = (date: Date): string => {
-  return new Date(date).toLocaleString('pl-PL', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+export const formatDateTime = (date: Date | string | null | undefined): string => {
+  if (!date) return '-';
+  try {
+    const dateObj = date instanceof Date ? date : new Date(date);
+    if (isNaN(dateObj.getTime())) return '-';
+    return dateObj.toLocaleString('pl-PL', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return '-';
+  }
 };
 
 // Helper functions are now exported above
@@ -341,20 +354,26 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
 
     const page = await browser.newPage();
     // Set a longer timeout for page content loading
-    await page.setDefaultNavigationTimeout(30000);
+    await page.setDefaultNavigationTimeout(60000);
     
     // Try to load HTML with logo, but if it fails, use fallback
     try {
-      await page.setContent(html, { waitUntil: 'networkidle0', timeout: 30000 });
+      await page.setContent(html, { 
+        waitUntil: 'domcontentloaded', 
+        timeout: 60000 
+      });
+      // Wait a bit for images to load
+      await page.waitForTimeout(2000);
     } catch (contentError: any) {
-      console.warn('Błąd ładowania zawartości HTML, próba bez logo:', contentError.message);
+      console.warn('Błąd ładowania zawartości HTML z logo:', contentError.message);
       // Try without logo if base64 image causes issues
       const htmlWithoutLogo = html.replace(/<img[^>]*src="data:image[^"]*"[^>]*>/gi, '');
-      await page.setContent(htmlWithoutLogo, { waitUntil: 'networkidle0', timeout: 30000 });
+      await page.setContent(htmlWithoutLogo, { 
+        waitUntil: 'domcontentloaded', 
+        timeout: 60000 
+      });
+      await page.waitForTimeout(1000);
     }
-    
-    // Wait a bit for images to load
-    await page.waitForTimeout(1000);
     
     const pdf = await page.pdf({
       format: 'A4',
@@ -365,7 +384,28 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
     return Buffer.from(pdf);
   } catch (error: any) {
     console.error('Błąd generowania PDF konsultacji:', error);
-    console.error('Error details:', error.message, error.stack);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    // Try to generate PDF without logo as last resort
+    try {
+      if (browser) {
+        const page = await browser.newPage();
+        const htmlWithoutLogo = html.replace(/<img[^>]*src="data:image[^"]*"[^>]*>/gi, '');
+        await page.setContent(htmlWithoutLogo, { waitUntil: 'domcontentloaded', timeout: 30000 });
+        await page.waitForTimeout(1000);
+        const pdf = await page.pdf({
+          format: 'A4',
+          printBackground: true,
+          margin: { top: '0', right: '0', bottom: '0', left: '0' },
+        });
+        await browser.close();
+        return Buffer.from(pdf);
+      }
+    } catch (fallbackError: any) {
+      console.error('Błąd fallback PDF:', fallbackError);
+      if (browser) await browser.close();
+      throw new Error(`Błąd generowania PDF: ${error.message || 'Nieznany błąd'}`);
+    }
     throw new Error(`Błąd generowania PDF: ${error.message || 'Nieznany błąd'}`);
   } finally {
     if (browser) {

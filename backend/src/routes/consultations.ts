@@ -182,12 +182,17 @@ router.get('/:id/pdf', authenticate, async (req: AuthRequest, res, next) => {
       return res.status(404).json({ error: 'Konsultacja nie znaleziona' });
     }
 
+    console.log(`Generowanie PDF dla konsultacji ${id}...`);
     const pdfBuffer = await generateConsultationPDF(consultation);
+    console.log(`PDF wygenerowany pomyślnie dla konsultacji ${id}, rozmiar: ${pdfBuffer.length} bajtów`);
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="konsultacja-${id}.pdf"`);
     res.send(pdfBuffer);
-  } catch (error) {
+  } catch (error: any) {
+    console.error('Błąd w endpoint PDF konsultacji:', error);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
     next(error);
   }
 });
