@@ -193,16 +193,25 @@ export default function DashboardPage() {
         }
     };
 
-    const openReminderDialog = (visit: UpcomingVisit) => {
+    const openReminderDialog = async (visit: UpcomingVisit) => {
+        // Try to fetch patient email if not available
+        let patientEmail = '';
+        try {
+            const patientRes = await api.get(`/patients/${visit.patient.id}`);
+            patientEmail = patientRes.data.patient?.email || '';
+        } catch (err) {
+            console.error('Błąd pobierania email pacjenta:', err);
+        }
+
         setReminderDialog({
             open: true,
             visitId: visit.id,
             visitData: visit.data,
             rodzajZabiegu: visit.rodzajZabiegu,
             patientName: `${visit.patient.firstName} ${visit.patient.lastName}`,
-            patientEmail: '', // We'll need to fetch this or add to UpcomingVisit interface
+            patientEmail: patientEmail,
             customMessage: '',
-            recipientEmail: '',
+            recipientEmail: patientEmail,
         });
     };
 
@@ -1481,7 +1490,7 @@ export default function DashboardPage() {
                         onChange={(e) => setReminderDialog({ ...reminderDialog, recipientEmail: e.target.value })}
                         required
                         sx={{ mb: 2 }}
-                        helperText="Email pacjenta (jeśli dostępny)"
+                        helperText={!reminderDialog.patientEmail ? 'Pacjent nie ma zapisanego adresu email' : 'Email pacjenta'}
                     />
 
                     <TextField
