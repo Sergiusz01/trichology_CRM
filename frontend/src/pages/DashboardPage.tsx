@@ -52,6 +52,7 @@ import {
     Science,
     PhotoCamera,
     Assignment,
+    Notifications,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
