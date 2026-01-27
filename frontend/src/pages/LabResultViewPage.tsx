@@ -13,9 +13,12 @@ import {
   TableHead,
   TableRow,
   Chip,
+  CircularProgress,
+  Alert,
 } from '@mui/material';
 import { Edit, GetApp, ArrowBack } from '@mui/icons-material';
 import { api } from '../services/api';
+import { useNotification } from '../hooks/useNotification';
 
 // Helper function to format date
 const formatDate = (date: Date | string): string => {
@@ -101,20 +104,30 @@ export default function LabResultViewPage() {
   const { id, labResultId } = useParams<{ id?: string; labResultId?: string }>();
   const [labResult, setLabResult] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { error: showError } = useNotification();
 
   useEffect(() => {
     if (labResultId) {
       fetchLabResult();
+    } else {
+      setError('Brak ID wyniku badania');
+      setLoading(false);
     }
   }, [labResultId]);
 
   const fetchLabResult = async () => {
     try {
+      setLoading(true);
+      setError(null);
       const response = await api.get(`/lab-results/${labResultId}`);
-      setLabResult(response.data.labResult);
-    } catch (error) {
+      setLabResult(response.data.labResult || response.data);
+    } catch (error: any) {
       console.error('Błąd pobierania wyniku:', error);
+      const errorMessage = error.response?.data?.error || 'Błąd pobierania wyniku badania';
+      setError(errorMessage);
+      showError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -140,17 +153,25 @@ export default function LabResultViewPage() {
   if (loading) {
     return (
       <Container maxWidth="lg">
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-          <Typography>Ładowanie...</Typography>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 8, gap: 2 }}>
+          <CircularProgress size={48} />
+          <Typography variant="body1" color="text.secondary">Ładowanie wyniku badania...</Typography>
         </Box>
       </Container>
     );
   }
 
-  if (!labResult) {
+  if (error || !labResult) {
     return (
       <Container maxWidth="lg">
-        <Typography>Wynik badania nie znaleziony</Typography>
+        <Box sx={{ py: 4 }}>
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error || 'Wynik badania nie znaleziony'}
+          </Alert>
+          <Button onClick={() => navigate(-1)} startIcon={<ArrowBack />}>
+            Powrót
+          </Button>
+        </Box>
       </Container>
     );
   }

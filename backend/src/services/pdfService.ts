@@ -331,17 +331,27 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
     </html>
   `;
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  });
-
+  let browser;
   try {
+    browser = await puppeteer.launch({
+      headless: true,
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    });
+
     const page = await browser.newPage();
     // Set a longer timeout for page content loading
     await page.setDefaultNavigationTimeout(30000);
-    await page.setContent(html, { waitUntil: 'networkidle0', timeout: 30000 });
+    
+    // Try to load HTML with logo, but if it fails, use fallback
+    try {
+      await page.setContent(html, { waitUntil: 'networkidle0', timeout: 30000 });
+    } catch (contentError: any) {
+      console.warn('Błąd ładowania zawartości HTML, próba bez logo:', contentError.message);
+      // Try without logo if base64 image causes issues
+      const htmlWithoutLogo = html.replace(/<img[^>]*src="data:image[^"]*"[^>]*>/gi, '');
+      await page.setContent(htmlWithoutLogo, { waitUntil: 'networkidle0', timeout: 30000 });
+    }
     
     // Wait a bit for images to load
     await page.waitForTimeout(1000);
@@ -358,7 +368,9 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
     console.error('Error details:', error.message, error.stack);
     throw new Error(`Błąd generowania PDF: ${error.message || 'Nieznany błąd'}`);
   } finally {
-    await browser.close();
+    if (browser) {
+      await browser.close();
+    }
   }
 };
 
@@ -505,17 +517,27 @@ export const generateCarePlanPDF = async (carePlan: any): Promise<Buffer> => {
     </html>
   `;
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  });
-
+  let browser;
   try {
+    browser = await puppeteer.launch({
+      headless: true,
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    });
+
     const page = await browser.newPage();
     // Set a longer timeout for page content loading
     await page.setDefaultNavigationTimeout(30000);
-    await page.setContent(html, { waitUntil: 'networkidle0', timeout: 30000 });
+    
+    // Try to load HTML with logo, but if it fails, use fallback
+    try {
+      await page.setContent(html, { waitUntil: 'networkidle0', timeout: 30000 });
+    } catch (contentError: any) {
+      console.warn('Błąd ładowania zawartości HTML, próba bez logo:', contentError.message);
+      // Try without logo if base64 image causes issues
+      const htmlWithoutLogo = html.replace(/<img[^>]*src="data:image[^"]*"[^>]*>/gi, '');
+      await page.setContent(htmlWithoutLogo, { waitUntil: 'networkidle0', timeout: 30000 });
+    }
     
     // Wait a bit for images to load
     await page.waitForTimeout(1000);
@@ -536,7 +558,9 @@ export const generateCarePlanPDF = async (carePlan: any): Promise<Buffer> => {
     console.error('Error details:', error.message, error.stack);
     throw new Error(`Błąd generowania PDF: ${error.message || 'Nieznany błąd'}`);
   } finally {
-    await browser.close();
+    if (browser) {
+      await browser.close();
+    }
   }
 };
 

@@ -10,7 +10,6 @@ import {
   CardContent,
   useMediaQuery,
   useTheme,
-  CircularProgress,
 } from '@mui/material';
 import { Edit, GetApp, ArrowBack } from '@mui/icons-material';
 import { api } from '../services/api';
@@ -73,16 +72,23 @@ export default function CarePlanDetailPage() {
       <Container maxWidth="lg">
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 8, gap: 2 }}>
           <CircularProgress size={48} />
-          <Typography variant="body1" color="text.secondary">Ładowanie...</Typography>
+          <Typography variant="body1" color="text.secondary">Ładowanie planu opieki...</Typography>
         </Box>
       </Container>
     );
   }
 
-  if (!carePlan) {
+  if (error || !carePlan) {
     return (
       <Container maxWidth="lg">
-        <Typography>Plan opieki nie znaleziony</Typography>
+        <Box sx={{ py: 4 }}>
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error || 'Plan opieki nie znaleziony'}
+          </Alert>
+          <Button onClick={() => navigate(-1)} startIcon={<ArrowBack />}>
+            Powrót
+          </Button>
+        </Box>
       </Container>
     );
   }

@@ -12,9 +12,11 @@ import {
   useTheme,
   alpha,
   CircularProgress,
+  Alert,
 } from '@mui/material';
 import { Edit, GetApp, ArrowBack } from '@mui/icons-material';
 import { api } from '../services/api';
+import { useNotification } from '../hooks/useNotification';
 
 // Helper function to format JSON fields (arrays)
 const formatJsonField = (value: any): string => {
@@ -102,22 +104,33 @@ export default function ConsultationViewPage() {
   const { id } = useParams<{ id: string }>();
   const [consultation, setConsultation] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [downloadingPDF, setDownloadingPDF] = useState(false);
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { error: showError, success: showSuccess } = useNotification();
 
   useEffect(() => {
     if (id) {
       fetchConsultation();
+    } else {
+      setError('Brak ID konsultacji');
+      setLoading(false);
     }
   }, [id]);
 
   const fetchConsultation = async () => {
     try {
+      setLoading(true);
+      setError(null);
       const response = await api.get(`/consultations/${id}`);
-      setConsultation(response.data.consultation);
-    } catch (error) {
+      setConsultation(response.data.consultation || response.data);
+    } catch (error: any) {
       console.error('Błąd pobierania konsultacji:', error);
+      const errorMessage = error.response?.data?.error || 'Błąd pobierania konsultacji';
+      setError(errorMessage);
+      showError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -125,6 +138,7 @@ export default function ConsultationViewPage() {
 
   const handleDownloadPDF = async () => {
     try {
+      setDownloadingPDF(true);
       const response = await api.get(`/consultations/${id}/pdf`, {
         responseType: 'blob',
       });
@@ -135,8 +149,14 @@ export default function ConsultationViewPage() {
       document.body.appendChild(link);
       link.click();
       link.remove();
-    } catch (error) {
+      window.URL.revokeObjectURL(url);
+      showSuccess('PDF pobrany pomyślnie');
+    } catch (error: any) {
       console.error('Błąd pobierania PDF:', error);
+      const errorMessage = error.response?.data?.error || 'Błąd pobierania PDF';
+      showError(errorMessage);
+    } finally {
+      setDownloadingPDF(false);
     }
   };
 
@@ -145,16 +165,23 @@ export default function ConsultationViewPage() {
       <Container maxWidth="lg">
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 8, gap: 2 }}>
           <CircularProgress size={48} />
-          <Typography variant="body1" color="text.secondary">Ładowanie...</Typography>
+          <Typography variant="body1" color="text.secondary">Ładowanie konsultacji...</Typography>
         </Box>
       </Container>
     );
   }
 
-  if (!consultation) {
+  if (error || !consultation) {
     return (
       <Container maxWidth="lg">
-        <Typography>Konsultacja nie znaleziona</Typography>
+        <Box sx={{ py: 4 }}>
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error || 'Konsultacja nie znaleziona'}
+          </Alert>
+          <Button onClick={() => navigate(-1)} startIcon={<ArrowBack />}>
+            Powrót
+          </Button>
+        </Box>
       </Container>
     );
   }
@@ -186,11 +213,12 @@ export default function ConsultationViewPage() {
           <Button
             fullWidth={isMobile}
             variant="outlined"
-            startIcon={<GetApp />}
+            startIcon={downloadingPDF ? <CircularProgress size={20} /> : <GetApp />}
             onClick={handleDownloadPDF}
+            disabled={downloadingPDF}
             sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
           >
-            Pobierz PDF
+            {downloadingPDF ? 'Pobieranie...' : 'Pobierz PDF'}
           </Button>
           <Button
             fullWidth={isMobile}
