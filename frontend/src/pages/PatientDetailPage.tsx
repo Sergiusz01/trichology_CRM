@@ -1643,17 +1643,23 @@ export default function PatientDetailPage() {
                         <TableRow key={visit.id} hover>
                           <TableCell>
                             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                              {new Date(visit.data).toLocaleDateString('pl-PL', {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric',
-                              })}
+                              {(() => {
+                                const date = new Date(visit.data);
+                                return date.toLocaleDateString('pl-PL', {
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric',
+                                });
+                              })()}
                             </Typography>
                             <Typography variant="caption" sx={{ color: '#86868b' }}>
-                              {new Date(visit.data).toLocaleTimeString('pl-PL', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
+                              {(() => {
+                                const date = new Date(visit.data);
+                                // Use UTC hours/minutes to preserve the exact time stored
+                                const hours = String(date.getUTCHours()).padStart(2, '0');
+                                const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+                                return `${hours}:${minutes}`;
+                              })()}
                             </Typography>
                           </TableCell>
                           <TableCell>

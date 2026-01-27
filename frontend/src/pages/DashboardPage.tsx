@@ -637,7 +637,15 @@ export default function DashboardPage() {
                                                                 {visit.rodzajZabiegu}
                                                             </Typography>
                                                             <Typography variant="caption" sx={{ color: '#AF52DE', fontWeight: 600 }}>
-                                                                {format(new Date(visit.data), 'dd MMM, HH:mm', { locale: pl })}
+                                                                {(() => {
+                                                                  const date = new Date(visit.data);
+                                                                  // Use UTC to preserve the exact time stored
+                                                                  const day = String(date.getUTCDate()).padStart(2, '0');
+                                                                  const month = format(date, 'MMM', { locale: pl });
+                                                                  const hours = String(date.getUTCHours()).padStart(2, '0');
+                                                                  const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+                                                                  return `${day} ${month}, ${hours}:${minutes}`;
+                                                                })()}
                                                             </Typography>
                                                             {visit.numerWSerii && visit.liczbaSerii && (
                                                                 <Typography variant="caption" sx={{ bgcolor: alpha('#007AFF', 0.1), color: '#007AFF', px: 1, borderRadius: 1, fontWeight: 600 }}>
