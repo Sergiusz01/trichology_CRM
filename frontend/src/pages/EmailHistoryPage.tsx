@@ -140,8 +140,8 @@ export default function EmailHistoryPage() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={7} align="center">
-                  Ładowanie...
+                <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                  <CircularProgress size={32} />
                 </TableCell>
               </TableRow>
             ) : emails.length === 0 ? (

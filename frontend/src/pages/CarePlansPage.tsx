@@ -13,6 +13,7 @@ import {
   Avatar,
   IconButton,
   Paper,
+  CircularProgress,
 } from '@mui/material';
 import {
   Add,
@@ -26,6 +27,7 @@ import { api } from '../services/api';
 export default function CarePlansPage() {
   const { id } = useParams<{ id: string }>();
   const [carePlans, setCarePlans] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -38,10 +40,13 @@ export default function CarePlansPage() {
 
   const fetchCarePlans = async () => {
     try {
+      setLoading(true);
       const response = await api.get(`/care-plans/patient/${id}`);
       setCarePlans(response.data.carePlans);
     } catch (error) {
       console.error('Błąd pobierania planów:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -93,7 +98,11 @@ export default function CarePlansPage() {
         </Button>
       </Box>
 
-      {carePlans.length === 0 ? (
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+          <CircularProgress />
+        </Box>
+      ) : carePlans.length === 0 ? (
         <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 4, bgcolor: alpha(theme.palette.secondary.main, 0.02) }}>
           <LocalHospital sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
           <Typography variant="h6" color="text.secondary" gutterBottom>Brak planów opieki</Typography>

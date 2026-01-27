@@ -39,6 +39,20 @@ export const theme = createTheme({
       secondary: '#64748b',
     },
   },
+  // Custom colors used across the app
+  customColors: {
+    darkText: '#1d1d1f',
+    lightGray: '#f5f5f7',
+    borderGray: '#d2d2d7',
+    textGray: '#86868b',
+    blue: '#007AFF',
+    indigo: '#667eea',
+    teal: '#00C7BE',
+    green: '#34C759',
+    orange: '#FF9500',
+    red: '#FF3B30',
+    gray: '#8E8E93',
+  },
   typography: {
     fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
     h4: {

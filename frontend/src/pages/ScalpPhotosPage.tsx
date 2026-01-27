@@ -13,6 +13,7 @@ import {
   Paper,
   Avatar,
   CardActionArea,
+  CircularProgress,
 } from '@mui/material';
 import {
   Add,
@@ -26,6 +27,7 @@ export default function ScalpPhotosPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [photos, setPhotos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -37,10 +39,13 @@ export default function ScalpPhotosPage() {
 
   const fetchPhotos = async () => {
     try {
+      setLoading(true);
       const response = await api.get(`/scalp-photos/patient/${id}`);
       setPhotos(response.data.scalpPhotos);
     } catch (error) {
       console.error('Błąd pobierania zdjęć:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -91,8 +96,13 @@ export default function ScalpPhotosPage() {
         </Button>
       </Box>
 
-      <Grid container spacing={3}>
-        {photos.length === 0 ? (
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+          <CircularProgress />
+        </Box>
+      ) : (
+        <Grid container spacing={3}>
+          {photos.length === 0 ? (
           <Grid size={{ xs: 12 }}>
             <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 4, bgcolor: alpha(theme.palette.primary.main, 0.02) }}>
               <ImageIcon sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
@@ -175,7 +185,8 @@ export default function ScalpPhotosPage() {
             </Grid>
           ))
         )}
-      </Grid>
+        </Grid>
+      )}
     </Box>
   );
 }
