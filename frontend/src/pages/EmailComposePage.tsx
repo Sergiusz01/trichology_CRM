@@ -376,7 +376,7 @@ export default function EmailComposePage() {
                           }
                           secondary={
                             <Typography variant="caption" color="text.secondary">
-                              ${(file.size / 1024).toFixed(2)} KB
+                              {(file.size / 1024).toFixed(2)} KB
                             </Typography>
                           }
                         />
