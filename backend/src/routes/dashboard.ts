@@ -25,7 +25,7 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
           consultationDate: true,
         },
       }),
-      prisma.email.findMany({
+      prisma.emailHistory.findMany({
         where: { status: 'SENT' },
         select: {
           id: true,
@@ -42,7 +42,7 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
         },
         orderBy: { sentAt: 'desc' },
         take: 10,
-      }) as Promise<any[]>,
+      }),
       prisma.visit.findMany({
         where: {
           data: {
