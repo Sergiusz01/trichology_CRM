@@ -261,7 +261,15 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
       })),
       weeklyRevenue,
     });
-  } catch (error) {
+  } catch (error: any) {
+    console.error('[Dashboard] Error fetching dashboard data:', error);
+    // Zwróć bardziej szczegółowy błąd
+    if (error.code === 'P2002') {
+      return res.status(400).json({
+        error: 'Błąd bazy danych',
+        message: 'Wystąpił problem z dostępem do danych',
+      });
+    }
     next(error);
   }
 });

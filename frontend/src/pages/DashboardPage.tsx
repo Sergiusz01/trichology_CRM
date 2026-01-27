@@ -209,11 +209,16 @@ export default function DashboardPage() {
                     }
                 }, retryAfter * 1000);
             } else {
-                const errorMessage = error?.response?.data?.message || 'Nie udało się załadować danych dashboardu';
+                const errorMessage = error?.response?.data?.message || error?.response?.data?.error || error?.message || 'Nie udało się załadować danych dashboardu';
                 setError(errorMessage);
                 showError(errorMessage);
+                console.error('Failed to fetch dashboard data:', {
+                    status: error?.response?.status,
+                    statusText: error?.response?.statusText,
+                    data: error?.response?.data,
+                    message: error?.message,
+                });
             }
-            console.error('Failed to fetch dashboard data', error);
         } finally {
             setLoading(false);
             setRefreshing(false);
