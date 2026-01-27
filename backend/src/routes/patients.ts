@@ -1,8 +1,9 @@
 import express from 'express';
 import { z } from 'zod';
 import path from 'path';
-import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
+import { authenticate, requireRole, requireWriteAccess, AuthRequest } from '../middleware/auth';
 import { prisma } from '../prisma';
+import { writeAuditLog } from '../services/auditService';
 import fs from 'fs';
 
 const router = express.Router();
@@ -113,8 +114,8 @@ router.get('/:id', authenticate, async (req: AuthRequest, res, next) => {
   }
 });
 
-// Create patient
-router.post('/', authenticate, async (req: AuthRequest, res, next) => {
+// Create patient (DOCTOR/ADMIN only - ASSISTANT cannot create patients)
+router.post('/', authenticate, requireWriteAccess(), async (req: AuthRequest, res, next) => {
   try {
     const data = patientSchema.parse(req.body);
 
@@ -125,14 +126,21 @@ router.post('/', authenticate, async (req: AuthRequest, res, next) => {
       },
     });
 
+    // Audit log
+    await writeAuditLog(req, {
+      action: 'CREATE_PATIENT',
+      entity: 'Patient',
+      entityId: patient.id,
+    });
+
     res.status(201).json({ patient });
   } catch (error) {
     next(error);
   }
 });
 
-// Update patient
-router.put('/:id', authenticate, async (req: AuthRequest, res, next) => {
+// Update patient (DOCTOR/ADMIN only - ASSISTANT cannot update patients)
+router.put('/:id', authenticate, requireWriteAccess(), async (req: AuthRequest, res, next) => {
   try {
     const { id } = req.params;
     const data = patientSchema.parse(req.body);
@@ -145,20 +153,11 @@ router.put('/:id', authenticate, async (req: AuthRequest, res, next) => {
       },
     });
 
-    res.json({ patient });
-  } catch (error) {
-    next(error);
-  }
-});
-
-// Archive patient (soft delete)
-router.delete('/:id', authenticate, async (req: AuthRequest, res, next) => {
-  try {
-    const { id } = req.params;
-
-    const patient = await prisma.patient.update({
-      where: { id },
-      data: { isArchived: true },
+    // Audit log
+    await writeAuditLog(req, {
+      action: 'UPDATE_PATIENT',
+      entity: 'Patient',
+      entityId: patient.id,
     });
 
     res.json({ patient });
@@ -167,8 +166,31 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res, next) => {
   }
 });
 
-// Restore archived patient
-router.post('/:id/restore', authenticate, async (req: AuthRequest, res, next) => {
+// Archive patient (soft delete) (DOCTOR/ADMIN only - ASSISTANT cannot archive patients)
+router.delete('/:id', authenticate, requireWriteAccess(), async (req: AuthRequest, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const patient = await prisma.patient.update({
+      where: { id },
+      data: { isArchived: true },
+    });
+
+    // Audit log
+    await writeAuditLog(req, {
+      action: 'ARCHIVE_PATIENT',
+      entity: 'Patient',
+      entityId: patient.id,
+    });
+
+    res.json({ patient });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Restore archived patient (DOCTOR/ADMIN only)
+router.post('/:id/restore', authenticate, requireWriteAccess(), async (req: AuthRequest, res, next) => {
   try {
     const { id } = req.params;
 
@@ -187,6 +209,13 @@ router.post('/:id/restore', authenticate, async (req: AuthRequest, res, next) =>
     const restoredPatient = await prisma.patient.update({
       where: { id },
       data: { isArchived: false },
+    });
+
+    // Audit log
+    await writeAuditLog(req, {
+      action: 'RESTORE_PATIENT',
+      entity: 'Patient',
+      entityId: restoredPatient.id,
     });
 
     res.json({ patient: restoredPatient, message: 'Pacjent został przywrócony' });
@@ -234,6 +263,13 @@ router.delete('/:id/permanent', authenticate, requireRole('ADMIN'), async (req: 
     // - emailHistory (onDelete: Cascade)
     await prisma.patient.delete({
       where: { id },
+    });
+
+    // Audit log
+    await writeAuditLog(req, {
+      action: 'PERMANENT_DELETE_PATIENT',
+      entity: 'Patient',
+      entityId: patient.id,
     });
 
     res.json({ 

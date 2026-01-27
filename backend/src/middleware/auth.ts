@@ -76,4 +76,12 @@ export const requireRole = (...roles: string[]) => {
   };
 };
 
+/**
+ * Helper to check if user can perform write operations (not ASSISTANT)
+ * ASSISTANT role can only read data, not create/update/delete
+ */
+export const requireWriteAccess = () => {
+  return requireRole('ADMIN', 'DOCTOR');
+};
+
 

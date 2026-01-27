@@ -1,8 +1,9 @@
 import express from 'express';
 import { VisitStatus } from '@prisma/client';
 import { z } from 'zod';
-import { authenticate, AuthRequest } from '../middleware/auth';
+import { authenticate, requireWriteAccess, AuthRequest } from '../middleware/auth';
 import { prisma } from '../prisma';
+import { writeAuditLog } from '../services/auditService';
 
 const router = express.Router();
 
@@ -183,7 +184,7 @@ router.get('/:id', authenticate, async (req: AuthRequest, res, next) => {
   }
 });
 
-// Create new visit
+// Create new visit (all authenticated users can create visits)
 router.post('/', authenticate, async (req: AuthRequest, res, next) => {
   try {
     const data = visitSchema.parse(req.body);
@@ -199,6 +200,17 @@ router.post('/', authenticate, async (req: AuthRequest, res, next) => {
 
     // Parse the date - the frontend sends a local datetime string
     const visitDate = new Date(data.data);
+    const now = new Date();
+    now.setSeconds(0, 0); // Remove seconds and milliseconds for comparison
+
+    // Validate: Planned visits cannot be in the past
+    const status = (data.status || 'ZAPLANOWANA') as VisitStatus;
+    if (status === 'ZAPLANOWANA' && visitDate < now) {
+      return res.status(400).json({
+        error: 'Błąd walidacji',
+        message: 'Wizyta ze statusem "Zaplanowana" nie może być w przeszłości',
+      });
+    }
 
     const visit = await prisma.visit.create({
       data: {
@@ -223,13 +235,20 @@ router.post('/', authenticate, async (req: AuthRequest, res, next) => {
     });
 
     res.status(201).json({ visit });
+
+    // Audit log
+    await writeAuditLog(req, {
+      action: 'CREATE_VISIT',
+      entity: 'Visit',
+      entityId: visit.id,
+    });
   } catch (error) {
     next(error);
   }
 });
 
-// Update visit
-router.put('/:id', authenticate, async (req: AuthRequest, res, next) => {
+// Update visit (DOCTOR/ADMIN only - ASSISTANT can only create)
+router.put('/:id', authenticate, requireWriteAccess(), async (req: AuthRequest, res, next) => {
   try {
     const { id } = req.params;
     const data = updateVisitSchema.parse(req.body);
@@ -246,11 +265,38 @@ router.put('/:id', authenticate, async (req: AuthRequest, res, next) => {
     // Parse date if provided
     const updateData: any = {};
     if (data.data) {
-      updateData.data = new Date(data.data);
+      const visitDate = new Date(data.data);
+      const now = new Date();
+      now.setSeconds(0, 0); // Remove seconds and milliseconds for comparison
+
+      // Validate: Planned visits cannot be in the past
+      const newStatus = (data.status || existingVisit.status) as VisitStatus;
+      if (newStatus === 'ZAPLANOWANA' && visitDate < now) {
+        return res.status(400).json({
+          error: 'Błąd walidacji',
+          message: 'Wizyta ze statusem "Zaplanowana" nie może być w przeszłości',
+        });
+      }
+
+      updateData.data = visitDate;
     }
     if (data.rodzajZabiegu) updateData.rodzajZabiegu = data.rodzajZabiegu;
     if (data.notatki !== undefined) updateData.notatki = data.notatki;
-    if (data.status) updateData.status = data.status as VisitStatus;
+    if (data.status) {
+      // Validate status change: if changing to ZAPLANOWANA, check date
+      if (data.status === 'ZAPLANOWANA') {
+        const visitDate = updateData.data ? new Date(updateData.data) : existingVisit.data;
+        const now = new Date();
+        now.setSeconds(0, 0);
+        if (visitDate < now) {
+          return res.status(400).json({
+            error: 'Błąd walidacji',
+            message: 'Wizyta ze statusem "Zaplanowana" nie może być w przeszłości',
+          });
+        }
+      }
+      updateData.status = data.status as VisitStatus;
+    }
     if (data.numerWSerii !== undefined) updateData.numerWSerii = data.numerWSerii;
     if (data.liczbaSerii !== undefined) updateData.liczbaSerii = data.liczbaSerii;
     if (data.cena !== undefined) updateData.cena = data.cena;
@@ -270,12 +316,19 @@ router.put('/:id', authenticate, async (req: AuthRequest, res, next) => {
     });
 
     res.json({ visit });
+
+    // Audit log
+    await writeAuditLog(req, {
+      action: 'UPDATE_VISIT',
+      entity: 'Visit',
+      entityId: visit.id,
+    });
   } catch (error) {
     next(error);
   }
 });
 
-// Quick status update
+// Quick status update (all authenticated users can update status)
 router.patch('/:id/status', authenticate, async (req: AuthRequest, res, next) => {
   try {
     const { id } = req.params;
@@ -308,13 +361,20 @@ router.patch('/:id/status', authenticate, async (req: AuthRequest, res, next) =>
     });
 
     res.json({ visit });
+
+    // Audit log
+    await writeAuditLog(req, {
+      action: 'UPDATE_VISIT_STATUS',
+      entity: 'Visit',
+      entityId: visit.id,
+    });
   } catch (error) {
     next(error);
   }
 });
 
-// Delete visit
-router.delete('/:id', authenticate, async (req: AuthRequest, res, next) => {
+// Delete visit (DOCTOR/ADMIN only - ASSISTANT cannot delete visits)
+router.delete('/:id', authenticate, requireWriteAccess(), async (req: AuthRequest, res, next) => {
   try {
     const { id } = req.params;
 
@@ -328,6 +388,13 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res, next) => {
 
     await prisma.visit.delete({
       where: { id },
+    });
+
+    // Audit log
+    await writeAuditLog(req, {
+      action: 'DELETE_VISIT',
+      entity: 'Visit',
+      entityId: id,
     });
 
     res.json({ message: 'Wizyta została usunięta' });

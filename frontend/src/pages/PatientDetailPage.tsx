@@ -82,12 +82,7 @@ interface Visit {
   cena?: number;
 }
 
-const visitStatusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
-  ZAPLANOWANA: { label: 'Zaplanowana', color: '#FF9500', bgColor: 'rgba(255, 149, 0, 0.1)' },
-  ODBYTA: { label: 'Odbyta', color: '#34C759', bgColor: 'rgba(52, 199, 89, 0.1)' },
-  NIEOBECNOSC: { label: 'Nieobecność', color: '#FF3B30', bgColor: 'rgba(255, 59, 48, 0.1)' },
-  ANULOWANA: { label: 'Anulowana', color: '#8E8E93', bgColor: 'rgba(142, 142, 147, 0.1)' },
-};
+import { VISIT_STATUS_CONFIG } from '../constants/visitStatus';
 
 // Helper function to format date for datetime-local input (preserves local time)
 const formatDateTimeLocal = (dateString: string): string => {
@@ -1628,7 +1623,7 @@ export default function PatientDetailPage() {
                   </TableHead>
                   <TableBody>
                     {visits.map((visit) => {
-                      const statusConfig = visitStatusConfig[visit.status] || visitStatusConfig.ZAPLANOWANA;
+                      const statusConfig = VISIT_STATUS_CONFIG[visit.status] || VISIT_STATUS_CONFIG.ZAPLANOWANA;
                       return (
                         <TableRow key={visit.id} hover>
                           <TableCell>
