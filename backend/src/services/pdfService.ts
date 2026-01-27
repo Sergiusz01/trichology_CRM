@@ -37,34 +37,46 @@ export const formatDateTime = (date: Date | string | null | undefined): string =
 
 // Helper functions are now exported above
 
+// Helper to escape HTML special characters
+const escapeHtml = (text: any): string => {
+  if (text === null || text === undefined) return '';
+  const str = String(text);
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+};
+
 // Pomocnik do formatowania pól JSON (tablice)
 const formatJsonField = (value: any): string => {
   if (!value) return '';
   if (Array.isArray(value)) {
-    return value.join(', ');
+    return escapeHtml(value.join(', '));
   }
   if (typeof value === 'string') {
     try {
       const parsed = JSON.parse(value);
       if (Array.isArray(parsed)) {
-        return parsed.join(', ');
+        return escapeHtml(parsed.join(', '));
       }
-      return value;
+      return escapeHtml(value);
     } catch {
-      return value;
+      return escapeHtml(value);
     }
   }
-  return String(value);
+  return escapeHtml(String(value));
 };
 
 // Pomocnik do renderowania "checkboxa" (wizualna reprezentacja wyboru)
 const renderCheckboxInfo = (label: string, value: any, isBoolean = false) => {
-  if (!value) return '';
+  if (!value && value !== false && value !== 0) return '';
   const displayValue = isBoolean ? (value ? 'TAK' : 'NIE') : formatJsonField(value);
   return `
     <div class="checkbox-item">
       <span class="cb-box">■</span>
-      <span class="cb-label">${label}:</span>
+      <span class="cb-label">${escapeHtml(label)}:</span>
       <span class="cb-value">${displayValue}</span>
     </div>
   `;
@@ -174,12 +186,12 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
       <div class="section-header">Dane Pacjenta</div>
       <div class="row">
         <div class="col-2">
-           <div class="field-row"><span class="field-label">Pacjent:</span><span class="field-value">${consultation.patient.firstName} ${consultation.patient.lastName}</span></div>
-           <div class="field-row"><span class="field-label">Wiek/Płeć:</span><span class="field-value">${consultation.patient.age || '-'} lat / ${consultation.patient.gender === 'MALE' ? 'M' : consultation.patient.gender === 'FEMALE' ? 'K' : '-'}</span></div>
+           <div class="field-row"><span class="field-label">Pacjent:</span><span class="field-value">${escapeHtml(consultation.patient?.firstName || '')} ${escapeHtml(consultation.patient?.lastName || '')}</span></div>
+           <div class="field-row"><span class="field-label">Wiek/Płeć:</span><span class="field-value">${consultation.patient?.age || '-'} lat / ${consultation.patient?.gender === 'MALE' ? 'M' : consultation.patient?.gender === 'FEMALE' ? 'K' : '-'}</span></div>
         </div>
         <div class="col-2">
-           <div class="field-row"><span class="field-label">Telefon:</span><span class="field-value">${consultation.patient.phone || '-'}</span></div>
-           <div class="field-row"><span class="field-label">Email:</span><span class="field-value">${consultation.patient.email || '-'}</span></div>
+           <div class="field-row"><span class="field-label">Telefon:</span><span class="field-value">${escapeHtml(consultation.patient?.phone || '-')}</span></div>
+           <div class="field-row"><span class="field-label">Email:</span><span class="field-value">${escapeHtml(consultation.patient?.email || '-')}</span></div>
         </div>
       </div>
 
@@ -190,7 +202,7 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
             ${consultation.hairLossSeverity ? renderCheckboxInfo('Nasilenie', consultation.hairLossSeverity) : ''}
             ${consultation.hairLossLocalization ? renderCheckboxInfo('Lokalizacja', consultation.hairLossLocalization) : ''}
             ${consultation.hairLossDuration ? renderCheckboxInfo('Czas trwania', consultation.hairLossDuration) : ''}
-            ${consultation.hairLossShampoos ? `<div class="field-row"><span style="font-size:8pt">Szampon: ${consultation.hairLossShampoos}</span></div>` : ''}
+            ${consultation.hairLossShampoos ? `<div class="field-row"><span style="font-size:8pt">Szampon: ${escapeHtml(consultation.hairLossShampoos)}</span></div>` : ''}
         </div>
 
         <div class="col-2 boxed-section">
@@ -198,8 +210,8 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
             ${consultation.oilyHairSeverity ? renderCheckboxInfo('Nasilenie', consultation.oilyHairSeverity) : ''}
             ${consultation.oilyHairWashingFreq ? renderCheckboxInfo('Mycie', consultation.oilyHairWashingFreq) : ''}
             ${consultation.oilyHairDuration ? renderCheckboxInfo('Trwanie', consultation.oilyHairDuration) : ''}
-            ${consultation.oilyHairShampoos ? `<div class="field-row"><span style="font-size:8pt">Szampon: ${consultation.oilyHairShampoos}</span></div>` : ''}
-            ${consultation.oilyHairNotes ? `<div class="field-row"><span style="font-size:8pt">Uwagi: ${consultation.oilyHairNotes}</span></div>` : ''}
+            ${consultation.oilyHairShampoos ? `<div class="field-row"><span style="font-size:8pt">Szampon: ${escapeHtml(consultation.oilyHairShampoos)}</span></div>` : ''}
+            ${consultation.oilyHairNotes ? `<div class="field-row"><span style="font-size:8pt">Uwagi: ${escapeHtml(consultation.oilyHairNotes)}</span></div>` : ''}
         </div>
       </div>
       
@@ -209,14 +221,14 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
             ${consultation.scalingType ? renderCheckboxInfo('Rodzaj', consultation.scalingType) : ''}
             ${consultation.scalingSeverity ? renderCheckboxInfo('Nasilenie', consultation.scalingSeverity) : ''}
             ${consultation.scalingDuration ? renderCheckboxInfo('Czas trwania', consultation.scalingDuration) : ''}
-            ${consultation.scalingOther ? `<div class="field-row"><span style="font-size:8pt">Inne: ${consultation.scalingOther}</span></div>` : ''}
+            ${consultation.scalingOther ? `<div class="field-row"><span style="font-size:8pt">Inne: ${escapeHtml(consultation.scalingOther)}</span></div>` : ''}
         </div>
          <div class="col-2 boxed-section">
             <div class="sub-header">4. WRAŻLIWOŚĆ / INNE</div>
             ${consultation.sensitivityProblemType ? renderCheckboxInfo('Problem', consultation.sensitivityProblemType) : ''}
             ${consultation.sensitivitySeverity ? renderCheckboxInfo('Nasilenie', consultation.sensitivitySeverity) : ''}
             ${consultation.sensitivityDuration ? renderCheckboxInfo('Czas trwania', consultation.sensitivityDuration) : ''}
-            ${consultation.sensitivityOther ? `<div class="field-row"><span style="font-size:8pt">Inne: ${consultation.sensitivityOther}</span></div>` : ''}
+            ${consultation.sensitivityOther ? `<div class="field-row"><span style="font-size:8pt">Inne: ${escapeHtml(consultation.sensitivityOther)}</span></div>` : ''}
             ${consultation.inflammatoryStates ? renderCheckboxInfo('Stany zapalne', consultation.inflammatoryStates) : ''}
         </div>
       </div>
@@ -226,27 +238,27 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
         <div class="col-2">
             ${renderCheckboxInfo('Rodzina', consultation.familyHistory)}
             ${renderCheckboxInfo('Dermatolog', consultation.dermatologyVisits)}
-            ${consultation.dermatologyVisitsReason ? `<div class="field-row"><span class="field-label">Powód:</span><span class="field-value">${consultation.dermatologyVisitsReason}</span></div>` : ''}
+            ${consultation.dermatologyVisitsReason ? `<div class="field-row"><span class="field-label">Powód:</span><span class="field-value">${escapeHtml(consultation.dermatologyVisitsReason)}</span></div>` : ''}
             ${renderCheckboxInfo('Ciąża', consultation.pregnancy)}
             ${renderCheckboxInfo('Miesiączki', consultation.menstruationRegularity)}
-            ${consultation.contraception ? `<div class="field-row"><span class="field-label">Hormony:</span><span class="field-value">${consultation.contraception}</span></div>` : ''}
+            ${consultation.contraception ? `<div class="field-row"><span class="field-label">Hormony:</span><span class="field-value">${escapeHtml(consultation.contraception)}</span></div>` : ''}
             ${renderCheckboxInfo('Stres', consultation.stressLevel)}
             ${renderCheckboxInfo('Leki', consultation.medications)}
-            ${consultation.medicationsList ? `<div class="field-row"><span class="field-label">Lista leków:</span><span class="field-value">${consultation.medicationsList}</span></div>` : ''}
-            ${consultation.supplements ? `<div class="field-row"><span class="field-label">Suplementy:</span><span class="field-value">${consultation.supplements}</span></div>` : ''}
+            ${consultation.medicationsList ? `<div class="field-row"><span class="field-label">Lista leków:</span><span class="field-value">${escapeHtml(consultation.medicationsList)}</span></div>` : ''}
+            ${consultation.supplements ? `<div class="field-row"><span class="field-label">Suplementy:</span><span class="field-value">${escapeHtml(consultation.supplements)}</span></div>` : ''}
         </div>
         <div class="col-2">
              ${renderCheckboxInfo('Znieczulenie', consultation.anesthesia)}
              ${renderCheckboxInfo('Chemioterapia', consultation.chemotherapy)}
              ${renderCheckboxInfo('Radioterapia', consultation.radiotherapy)}
              ${renderCheckboxInfo('Szczepienia', consultation.vaccination)}
-             ${consultation.antibiotics ? `<div class="field-row"><span class="field-label">Antybiotyki:</span><span class="field-value">${consultation.antibiotics}</span></div>` : ''}
+             ${consultation.antibiotics ? `<div class="field-row"><span class="field-label">Antybiotyki:</span><span class="field-value">${escapeHtml(consultation.antibiotics)}</span></div>` : ''}
              ${renderCheckboxInfo('Choroby', consultation.chronicDiseases)}
-             ${consultation.chronicDiseasesList ? `<div class="field-row"><span class="field-label">Lista chorób:</span><span class="field-value">${consultation.chronicDiseasesList}</span></div>` : ''}
+             ${consultation.chronicDiseasesList ? `<div class="field-row"><span class="field-label">Lista chorób:</span><span class="field-value">${escapeHtml(consultation.chronicDiseasesList)}</span></div>` : ''}
              ${renderCheckboxInfo('Specjaliści', consultation.specialists)}
-             ${consultation.specialistsList ? `<div class="field-row"><span class="field-label">Jakiego:</span><span class="field-value">${consultation.specialistsList}</span></div>` : ''}
+             ${consultation.specialistsList ? `<div class="field-row"><span class="field-label">Jakiego:</span><span class="field-value">${escapeHtml(consultation.specialistsList)}</span></div>` : ''}
              ${renderCheckboxInfo('Zab. odżywiania', consultation.eatingDisorders)}
-             ${consultation.foodIntolerances ? `<div class="field-row"><span class="field-label">Nietolerancje:</span><span class="field-value">${consultation.foodIntolerances}</span></div>` : ''}
+             ${consultation.foodIntolerances ? `<div class="field-row"><span class="field-label">Nietolerancje:</span><span class="field-value">${escapeHtml(consultation.foodIntolerances)}</span></div>` : ''}
              ${renderCheckboxInfo('Dieta', consultation.diet)}
              ${renderCheckboxInfo('Alergie', consultation.allergies)}
              ${renderCheckboxInfo('Metal w ciele', consultation.metalPartsInBody)}
@@ -256,10 +268,10 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
       ${(consultation.careRoutineShampoo || consultation.careRoutineConditioner || consultation.careRoutineOils || consultation.careRoutineChemical) ? `
       <div style="border-top: 1px dashed #ccc; margin-top: 5px; padding-top:2px; font-size: 8pt;">
          <strong>Aktualna pielęgnacja:</strong> 
-         ${consultation.careRoutineShampoo ? `Szampon: ${consultation.careRoutineShampoo}, ` : ''}
-         ${consultation.careRoutineConditioner ? `Odżywka: ${consultation.careRoutineConditioner}, ` : ''}
-         ${consultation.careRoutineOils ? `Wcierki: ${consultation.careRoutineOils}, ` : ''}
-         ${consultation.careRoutineChemical ? `Zabiegi: ${consultation.careRoutineChemical}` : ''}
+         ${consultation.careRoutineShampoo ? `Szampon: ${escapeHtml(consultation.careRoutineShampoo)}, ` : ''}
+         ${consultation.careRoutineConditioner ? `Odżywka: ${escapeHtml(consultation.careRoutineConditioner)}, ` : ''}
+         ${consultation.careRoutineOils ? `Wcierki: ${escapeHtml(consultation.careRoutineOils)}, ` : ''}
+         ${consultation.careRoutineChemical ? `Zabiegi: ${escapeHtml(consultation.careRoutineChemical)}` : ''}
       </div>` : ''}
 
       <div class="section-header">Trichoskopia - Badanie</div>
@@ -273,7 +285,7 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
             ${consultation.hyperkeratinization ? renderCheckboxInfo('Hiperkeratynizacja', consultation.hyperkeratinization) : ''}
             ${consultation.sebaceousSecretion ? renderCheckboxInfo('Wydzielina', consultation.sebaceousSecretion) : ''}
             ${consultation.seborrheaType ? renderCheckboxInfo('Łojotok', consultation.seborrheaType) : ''}
-            ${consultation.seborrheaTypeOther ? `<div class="field-row"><span style="font-size:8pt">Inne: ${consultation.seborrheaTypeOther}</span></div>` : ''}
+            ${consultation.seborrheaTypeOther ? `<div class="field-row"><span style="font-size:8pt">Inne: ${escapeHtml(consultation.seborrheaTypeOther)}</span></div>` : ''}
             ${consultation.dandruffType ? renderCheckboxInfo('Złuszczanie', consultation.dandruffType) : ''}
             ${consultation.scalpPH ? renderCheckboxInfo('pH', consultation.scalpPH) : ''}
         </div>
@@ -304,40 +316,40 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
          <div class="col-2">
             <div class="section-header">Rozpoznanie (Diagnoza)</div>
             <div style="font-weight:bold; font-size: 10pt; margin: 5px 0;">
-                ${consultation.diagnosis || 'Brak wpisu'}
+                ${escapeHtml(consultation.diagnosis || 'Brak wpisu')}
             </div>
             ${consultation.alopeciaTypes ? `<div style="font-size: 8.5pt;">Typ: ${formatJsonField(consultation.alopeciaTypes)}</div>` : ''}
-            ${consultation.alopeciaType ? `<div style="font-size: 8.5pt;">Klasyfikacja: ${consultation.alopeciaType}</div>` : ''}
-            ${consultation.degreeOfThinning ? `<div style="font-size: 8.5pt;">Przerzedzenie: ${consultation.degreeOfThinning}</div>` : ''}
+            ${consultation.alopeciaType ? `<div style="font-size: 8.5pt;">Klasyfikacja: ${escapeHtml(consultation.alopeciaType)}</div>` : ''}
+            ${consultation.degreeOfThinning ? `<div style="font-size: 8.5pt;">Przerzedzenie: ${escapeHtml(consultation.degreeOfThinning)}</div>` : ''}
             ${consultation.alopeciaAffectedAreas ? `<div style="font-size: 8.5pt;">Obszary: ${formatJsonField(consultation.alopeciaAffectedAreas)}</div>` : ''}
-            ${consultation.miniaturization ? `<div style="font-size: 8.5pt;">Miniaturyzacja: ${consultation.miniaturization}</div>` : ''}
-            ${consultation.follicularUnits ? `<div style="font-size: 8.5pt;">Jednostki: ${consultation.follicularUnits}</div>` : ''}
-            ${consultation.pullTest ? `<div style="font-size: 8.5pt;">Pull Test: ${consultation.pullTest}</div>` : ''}
-            ${consultation.alopeciaOther ? `<div style="font-size: 8.5pt;">Inne: ${consultation.alopeciaOther}</div>` : ''}
-            ${consultation.norwoodHamiltonStage ? `<div style="font-size: 8.5pt; margin-top: 5px;">Norwood-Hamilton: ${consultation.norwoodHamiltonStage}${consultation.norwoodHamiltonNotes ? ` (${consultation.norwoodHamiltonNotes})` : ''}</div>` : ''}
-            ${consultation.ludwigStage ? `<div style="font-size: 8.5pt;">Ludwig: ${consultation.ludwigStage}${consultation.ludwigNotes ? ` (${consultation.ludwigNotes})` : ''}</div>` : ''}
+            ${consultation.miniaturization ? `<div style="font-size: 8.5pt;">Miniaturyzacja: ${escapeHtml(consultation.miniaturization)}</div>` : ''}
+            ${consultation.follicularUnits ? `<div style="font-size: 8.5pt;">Jednostki: ${escapeHtml(consultation.follicularUnits)}</div>` : ''}
+            ${consultation.pullTest ? `<div style="font-size: 8.5pt;">Pull Test: ${escapeHtml(consultation.pullTest)}</div>` : ''}
+            ${consultation.alopeciaOther ? `<div style="font-size: 8.5pt;">Inne: ${escapeHtml(consultation.alopeciaOther)}</div>` : ''}
+            ${consultation.norwoodHamiltonStage ? `<div style="font-size: 8.5pt; margin-top: 5px;">Norwood-Hamilton: ${escapeHtml(consultation.norwoodHamiltonStage)}${consultation.norwoodHamiltonNotes ? ` (${escapeHtml(consultation.norwoodHamiltonNotes)})` : ''}</div>` : ''}
+            ${consultation.ludwigStage ? `<div style="font-size: 8.5pt;">Ludwig: ${escapeHtml(consultation.ludwigStage)}${consultation.ludwigNotes ? ` (${escapeHtml(consultation.ludwigNotes)})` : ''}</div>` : ''}
          </div>
          
          <div class="col-2" style="background-color: #f9f9f9; border: 1px solid #ddd; padding: 5px;">
             <div class="section-header" style="background:none; border:none; padding:0; margin:0;">Zalecenia Domowe</div>
             <div style="font-size: 8.5pt;">
-                ${consultation.careRecommendationsWashing ? `<div><strong>Mycie:</strong> ${consultation.careRecommendationsWashing}</div>` : ''}
-                ${consultation.careRecommendationsTopical ? `<div><strong>Wcierki:</strong> ${consultation.careRecommendationsTopical}</div>` : ''}
-                ${consultation.careRecommendationsSupplement ? `<div><strong>Suplementy:</strong> ${consultation.careRecommendationsSupplement}</div>` : ''}
-                ${consultation.careRecommendationsBehavior ? `<div><strong>Zachowanie:</strong> ${consultation.careRecommendationsBehavior}</div>` : ''}
-                ${consultation.visitsProcedures ? `<div><strong>Gabinet:</strong> ${consultation.visitsProcedures}</div>` : ''}
+                ${consultation.careRecommendationsWashing ? `<div><strong>Mycie:</strong> ${escapeHtml(consultation.careRecommendationsWashing)}</div>` : ''}
+                ${consultation.careRecommendationsTopical ? `<div><strong>Wcierki:</strong> ${escapeHtml(consultation.careRecommendationsTopical)}</div>` : ''}
+                ${consultation.careRecommendationsSupplement ? `<div><strong>Suplementy:</strong> ${escapeHtml(consultation.careRecommendationsSupplement)}</div>` : ''}
+                ${consultation.careRecommendationsBehavior ? `<div><strong>Zachowanie:</strong> ${escapeHtml(consultation.careRecommendationsBehavior)}</div>` : ''}
+                ${consultation.visitsProcedures ? `<div><strong>Gabinet:</strong> ${escapeHtml(consultation.visitsProcedures)}</div>` : ''}
             </div>
          </div>
       </div>
       
       ${consultation.generalRemarks ? `
        <div class="boxed-section" style="margin-top: 5px; background: #fffbe6;">
-         <strong>Uwagi dodatkowe:</strong> ${consultation.generalRemarks}
+         <strong>Uwagi dodatkowe:</strong> ${escapeHtml(consultation.generalRemarks)}
        </div>
       ` : ''}
 
       <div class="footer">
-        Dokument wygenerowany elektronicznie. Lekarz prowadzący: ${consultation.doctor.name} | Data wydruku: ${formatDateTime(new Date())}
+        Dokument wygenerowany elektronicznie. Lekarz prowadzący: ${escapeHtml(consultation.doctor?.name || 'Nieznany')} | Data wydruku: ${formatDateTime(new Date())}
       </div>
 
     </body>
