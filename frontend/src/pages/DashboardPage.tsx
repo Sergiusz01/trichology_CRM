@@ -44,6 +44,10 @@ import {
     Schedule,
     TrendingUp,
     LocalHospital,
+    Edit,
+    Science,
+    PhotoCamera,
+    Assignment,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
@@ -62,7 +66,7 @@ interface DashboardStats {
 
 interface RecentActivity {
     id: string;
-    type: 'PATIENT' | 'CONSULTATION' | 'EMAIL';
+    type: 'PATIENT' | 'PATIENT_EDIT' | 'CONSULTATION' | 'CONSULTATION_EDIT' | 'VISIT' | 'VISIT_EDIT' | 'LAB_RESULT' | 'LAB_RESULT_EDIT' | 'SCALP_PHOTO' | 'CARE_PLAN' | 'CARE_PLAN_EDIT' | 'EMAIL';
     title: string;
     subtitle: string;
     date: string;
@@ -1246,15 +1250,33 @@ export default function DashboardPage() {
                                                 sx={{
                                                     width: 48,
                                                     height: 48,
-                                                    background: activity.type === 'PATIENT'
+                                                    background: activity.type === 'PATIENT' || activity.type === 'PATIENT_EDIT'
                                                         ? '#1976d2'
-                                                        : activity.type === 'CONSULTATION'
+                                                        : activity.type === 'CONSULTATION' || activity.type === 'CONSULTATION_EDIT'
                                                             ? '#d32f2f'
-                                                            : '#1976d2',
+                                                            : activity.type === 'VISIT' || activity.type === 'VISIT_EDIT'
+                                                                ? '#34C759'
+                                                                : activity.type === 'LAB_RESULT' || activity.type === 'LAB_RESULT_EDIT'
+                                                                    ? '#FF9500'
+                                                                    : activity.type === 'SCALP_PHOTO'
+                                                                        ? '#AF52DE'
+                                                                        : activity.type === 'CARE_PLAN' || activity.type === 'CARE_PLAN_EDIT'
+                                                                            ? '#007AFF'
+                                                                            : '#1976d2',
                                                 }}
                                             >
                                                 {activity.type === 'PATIENT' ? <PersonAdd /> :
-                                                    activity.type === 'CONSULTATION' ? <EventNote /> : <Email />}
+                                                    activity.type === 'PATIENT_EDIT' ? <Edit /> :
+                                                    activity.type === 'CONSULTATION' ? <EventNote /> :
+                                                    activity.type === 'CONSULTATION_EDIT' ? <Edit /> :
+                                                    activity.type === 'VISIT' ? <CalendarToday /> :
+                                                    activity.type === 'VISIT_EDIT' ? <Edit /> :
+                                                    activity.type === 'LAB_RESULT' ? <Science /> :
+                                                    activity.type === 'LAB_RESULT_EDIT' ? <Edit /> :
+                                                    activity.type === 'SCALP_PHOTO' ? <PhotoCamera /> :
+                                                    activity.type === 'CARE_PLAN' ? <Assignment /> :
+                                                    activity.type === 'CARE_PLAN_EDIT' ? <Edit /> :
+                                                    <Email />}
                                             </Avatar>
                                         </ListItemAvatar>
                                         <ListItemText
