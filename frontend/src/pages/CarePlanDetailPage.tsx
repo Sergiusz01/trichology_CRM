@@ -70,25 +70,17 @@ export default function CarePlanDetailPage() {
   if (loading) {
     return (
       <Container maxWidth="lg">
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 8, gap: 2 }}>
-          <CircularProgress size={48} />
-          <Typography variant="body1" color="text.secondary">Ładowanie planu opieki...</Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+          <Typography>Ładowanie...</Typography>
         </Box>
       </Container>
     );
   }
 
-  if (error || !carePlan) {
+  if (!carePlan) {
     return (
       <Container maxWidth="lg">
-        <Box sx={{ py: 4 }}>
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error || 'Plan opieki nie znaleziony'}
-          </Alert>
-          <Button onClick={() => navigate(-1)} startIcon={<ArrowBack />}>
-            Powrót
-          </Button>
-        </Box>
+        <Typography>Plan opieki nie znaleziony</Typography>
       </Container>
     );
   }
@@ -122,10 +114,11 @@ export default function CarePlanDetailPage() {
         }}>
           <Button
             variant="outlined"
-            startIcon={<GetApp />}
+            startIcon={downloadingPDF ? <CircularProgress size={20} /> : <GetApp />}
             onClick={handleDownloadPDF}
+            disabled={downloadingPDF}
           >
-            Pobierz PDF
+            {downloadingPDF ? 'Pobieranie...' : 'Pobierz PDF'}
           </Button>
           <Button
             variant="contained"

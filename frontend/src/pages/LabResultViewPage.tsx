@@ -105,8 +105,9 @@ export default function LabResultViewPage() {
   const [labResult, setLabResult] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [downloadingPDF, setDownloadingPDF] = useState(false);
   const navigate = useNavigate();
-  const { error: showError } = useNotification();
+  const { error: showError, success: showSuccess } = useNotification();
 
   useEffect(() => {
     if (labResultId) {
@@ -133,8 +134,12 @@ export default function LabResultViewPage() {
     }
   };
 
+  const [downloadingPDF, setDownloadingPDF] = useState(false);
+  const { success: showSuccess } = useNotification();
+
   const handleDownloadPDF = async () => {
     try {
+      setDownloadingPDF(true);
       const response = await api.get(`/lab-results/${labResultId}/pdf`, {
         responseType: 'blob',
       });
@@ -145,8 +150,14 @@ export default function LabResultViewPage() {
       document.body.appendChild(link);
       link.click();
       link.remove();
-    } catch (error) {
+      window.URL.revokeObjectURL(url);
+      showSuccess('PDF pobrany pomyślnie');
+    } catch (error: any) {
       console.error('Błąd pobierania PDF:', error);
+      const errorMessage = error.response?.data?.error || 'Błąd pobierania PDF';
+      showError(errorMessage);
+    } finally {
+      setDownloadingPDF(false);
     }
   };
 
@@ -192,10 +203,11 @@ export default function LabResultViewPage() {
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Button
             variant="outlined"
-            startIcon={<GetApp />}
+            startIcon={downloadingPDF ? <CircularProgress size={20} /> : <GetApp />}
             onClick={handleDownloadPDF}
+            disabled={downloadingPDF}
           >
-            Pobierz PDF
+            {downloadingPDF ? 'Pobieranie...' : 'Pobierz PDF'}
           </Button>
           <Button
             variant="contained"
