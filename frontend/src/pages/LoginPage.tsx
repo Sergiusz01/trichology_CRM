@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import {
   Container,
   Paper,
@@ -12,24 +14,39 @@ import {
 } from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
 
+// Schemat walidacji Zod
+const loginSchema = z.object({
+  email: z.string()
+    .min(1, 'Adres email jest wymagany')
+    .email('Nieprawidłowy adres email'),
+  password: z.string()
+    .min(1, 'Hasło jest wymagane')
+    .min(6, 'Hasło musi mieć minimum 6 znaków'),
+});
+
+type LoginFormData = z.infer<typeof loginSchema>;
+
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
   const { login } = useAuth();
+  const {
+    control,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    setError: setFormError,
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-
+  const onSubmit = async (data: LoginFormData) => {
     try {
-      await login(email, password);
+      await login(data.email, data.password);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Błąd logowania');
-    } finally {
-      setLoading(false);
+      const errorMessage = err.response?.data?.error || 'Błąd logowania';
+      setFormError('root', { message: errorMessage });
     }
   };
 
@@ -92,48 +109,60 @@ export default function LoginPage() {
             System Zarządzania Konsultacjami Trychologicznymi
           </Typography>
 
-          {error && (
-            <Alert severity="error" sx={{ width: '100%', mb: 2 }} onClose={() => setError('')}>
-              {error}
+          {errors.root && (
+            <Alert severity="error" sx={{ width: '100%', mb: 2 }} onClose={() => {}}>
+              {errors.root.message}
             </Alert>
           )}
 
-          <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%', mt: 1 }}>
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="email"
-              label="Adres email"
+          <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ width: '100%', mt: 1 }}>
+            <Controller
               name="email"
-              autoComplete="email"
-              autoFocus
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              size="medium"
-              sx={{
-                '& .MuiInputBase-root': {
-                  fontSize: { xs: '0.875rem', sm: '1rem' },
-                },
-              }}
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  margin="normal"
+                  required
+                  fullWidth
+                  id="email"
+                  label="Adres email"
+                  autoComplete="email"
+                  autoFocus
+                  error={!!errors.email}
+                  helperText={errors.email?.message}
+                  size="medium"
+                  sx={{
+                    '& .MuiInputBase-root': {
+                      fontSize: { xs: '0.875rem', sm: '1rem' },
+                    },
+                  }}
+                />
+              )}
             />
-            <TextField
-              margin="normal"
-              required
-              fullWidth
+            <Controller
               name="password"
-              label="Hasło"
-              type="password"
-              id="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              size="medium"
-              sx={{
-                '& .MuiInputBase-root': {
-                  fontSize: { xs: '0.875rem', sm: '1rem' },
-                },
-              }}
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  margin="normal"
+                  required
+                  fullWidth
+                  label="Hasło"
+                  type="password"
+                  id="password"
+                  autoComplete="current-password"
+                  error={!!errors.password}
+                  helperText={errors.password?.message}
+                  size="medium"
+                  sx={{
+                    '& .MuiInputBase-root': {
+                      fontSize: { xs: '0.875rem', sm: '1rem' },
+                    },
+                  }}
+                />
+              )}
             />
             <Button
               type="submit"
@@ -145,9 +174,9 @@ export default function LoginPage() {
                 py: { xs: 1.25, sm: 1.5 },
                 fontSize: { xs: '0.875rem', sm: '1rem' },
               }}
-              disabled={loading}
+              disabled={isSubmitting}
             >
-              {loading ? <CircularProgress size={24} color="inherit" /> : 'Zaloguj się'}
+              {isSubmitting ? <CircularProgress size={24} color="inherit" /> : 'Zaloguj się'}
             </Button>
           </Box>
 

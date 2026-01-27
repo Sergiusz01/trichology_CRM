@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import {
   Box,
   Paper,
@@ -12,40 +15,46 @@ import {
   Container,
   alpha,
 } from '@mui/material';
+import { useSnackbar } from 'notistack';
 import { api } from '../services/api';
+
+// Schemat walidacji Zod
+const scalpPhotoSchema = z.object({
+  photo: z.instanceof(File, { message: 'Proszę wybrać plik' })
+    .refine((file) => file.size <= 10 * 1024 * 1024, 'Plik nie może być większy niż 10MB')
+    .refine((file) => file.type.startsWith('image/'), 'Plik musi być obrazem'),
+  notes: z.string().max(1000, 'Notatki mogą mieć maksymalnie 1000 znaków').optional().or(z.literal('')),
+});
+
+type ScalpPhotoFormData = z.infer<typeof scalpPhotoSchema>;
 
 export default function ScalpPhotoFormPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const { enqueueSnackbar } = useSnackbar();
   const [success, setSuccess] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [notes, setNotes] = useState('');
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]);
-    }
-  };
+  const {
+    control,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    watch,
+  } = useForm<ScalpPhotoFormData>({
+    resolver: zodResolver(scalpPhotoSchema),
+    defaultValues: {
+      photo: undefined as any,
+      notes: '',
+    },
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const selectedFile = watch('photo');
 
-    if (!selectedFile) {
-      setError('Proszę wybrać plik');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    setSuccess(false);
-
+  const onSubmit = async (data: ScalpPhotoFormData) => {
     try {
       const formData = new FormData();
-      formData.append('photo', selectedFile);
-      if (notes) {
-        formData.append('notes', notes);
+      formData.append('photo', data.photo);
+      if (data.notes) {
+        formData.append('notes', data.notes);
       }
 
       await api.post(`/scalp-photos/patient/${id}`, formData, {
@@ -55,14 +64,16 @@ export default function ScalpPhotoFormPage() {
       });
 
       setSuccess(true);
+      enqueueSnackbar('Zdjęcie przesłane pomyślnie!', { variant: 'success' });
       setTimeout(() => {
         navigate(`/patients/${id}`, { state: { refresh: true } });
       }, 1500);
     } catch (err: any) {
       console.error('Błąd przesyłania zdjęcia:', err);
-      setError(err.response?.data?.error || err.message || 'Błąd przesyłania zdjęcia');
-    } finally {
-      setLoading(false);
+      enqueueSnackbar(
+        err.response?.data?.error || err.message || 'Błąd przesyłania zdjęcia',
+        { variant: 'error' }
+      );
     }
   };
 
@@ -74,9 +85,9 @@ export default function ScalpPhotoFormPage() {
         </Typography>
       </Box>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }} onClose={() => setError('')}>
-          {error}
+      {errors.root && (
+        <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
+          {errors.root.message}
         </Alert>
       )}
 
@@ -96,54 +107,73 @@ export default function ScalpPhotoFormPage() {
           bgcolor: 'white'
         }}
       >
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit(onSubmit)}>
           <Grid container spacing={4}>
             <Grid size={{ xs: 12 }}>
-              <input
-                accept="image/*"
-                style={{ display: 'none' }}
-                id="photo-upload"
-                type="file"
-                onChange={handleFileChange}
+              <Controller
+                name="photo"
+                control={control}
+                render={({ field: { onChange, value, ...field } }) => (
+                  <>
+                    <input
+                      {...field}
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      id="photo-upload"
+                      type="file"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          onChange(file);
+                        }
+                      }}
+                    />
+                    <label htmlFor="photo-upload" style={{ width: '100%' }}>
+                      <Box
+                        sx={{
+                          border: '2px dashed',
+                          borderColor: errors.photo ? 'error.main' : (selectedFile ? '#34C759' : '#d2d2d7'),
+                          borderRadius: 3,
+                          p: 4,
+                          textAlign: 'center',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          bgcolor: selectedFile ? alpha('#34C759', 0.02) : alpha('#f5f5f7', 0.5),
+                          '&:hover': {
+                            borderColor: '#007AFF',
+                            bgcolor: alpha('#007AFF', 0.02),
+                          }
+                        }}
+                      >
+                        <Typography variant="h6" sx={{ color: '#1d1d1f', mb: 1, fontWeight: 700 }}>
+                          {selectedFile ? 'Zmieniono plik' : 'Wybierz zdjęcie lub przeciągnij'}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {selectedFile ? selectedFile.name : 'Dozwolone formaty: JPG, PNG (max 10MB)'}
+                        </Typography>
+                        <Button
+                          variant="contained"
+                          component="span"
+                          sx={{
+                            mt: 3,
+                            bgcolor: '#007AFF',
+                            textTransform: 'none',
+                            fontWeight: 600,
+                            borderRadius: 2
+                          }}
+                        >
+                          Wybierz z dysku
+                        </Button>
+                      </Box>
+                    </label>
+                    {errors.photo && (
+                      <Typography variant="caption" color="error" sx={{ mt: 1, display: 'block' }}>
+                        {errors.photo.message}
+                      </Typography>
+                    )}
+                  </>
+                )}
               />
-              <label htmlFor="photo-upload" style={{ width: '100%' }}>
-                <Box
-                  sx={{
-                    border: '2px dashed',
-                    borderColor: selectedFile ? '#34C759' : '#d2d2d7',
-                    borderRadius: 3,
-                    p: 4,
-                    textAlign: 'center',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    bgcolor: selectedFile ? alpha('#34C759', 0.02) : alpha('#f5f5f7', 0.5),
-                    '&:hover': {
-                      borderColor: '#007AFF',
-                      bgcolor: alpha('#007AFF', 0.02),
-                    }
-                  }}
-                >
-                  <Typography variant="h6" sx={{ color: '#1d1d1f', mb: 1, fontWeight: 700 }}>
-                    {selectedFile ? 'Zmieniono plik' : 'Wybierz zdjęcie lub przeciągnij'}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {selectedFile ? selectedFile.name : 'Dozwolone formaty: JPG, PNG (max 10MB)'}
-                  </Typography>
-                  <Button
-                    variant="contained"
-                    component="span"
-                    sx={{
-                      mt: 3,
-                      bgcolor: '#007AFF',
-                      textTransform: 'none',
-                      fontWeight: 600,
-                      borderRadius: 2
-                    }}
-                  >
-                    Wybierz z dysku
-                  </Button>
-                </Box>
-              </label>
 
               {selectedFile && (
                 <Box sx={{ mt: 3, width: '100%', position: 'relative', borderRadius: 3, overflow: 'hidden', border: '1px solid #d2d2d7' }}>
@@ -163,20 +193,27 @@ export default function ScalpPhotoFormPage() {
             </Grid>
 
             <Grid size={{ xs: 12 }}>
-              <TextField
-                fullWidth
-                multiline
-                rows={4}
-                label="Uwagi i opis zdjęcia"
-                placeholder="Np. widoczne zaczerwienienie w okolicach skroni..."
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                variant="outlined"
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 3,
-                  }
-                }}
+              <Controller
+                name="notes"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    fullWidth
+                    multiline
+                    rows={4}
+                    label="Uwagi i opis zdjęcia"
+                    placeholder="Np. widoczne zaczerwienienie w okolicach skroni..."
+                    error={!!errors.notes}
+                    helperText={errors.notes?.message}
+                    variant="outlined"
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 3,
+                      }
+                    }}
+                  />
+                )}
               />
             </Grid>
 
@@ -185,7 +222,7 @@ export default function ScalpPhotoFormPage() {
                 <Button
                   type="submit"
                   variant="contained"
-                  disabled={loading || !selectedFile}
+                  disabled={isSubmitting || !selectedFile}
                   sx={{
                     flex: 1,
                     py: 1.5,
@@ -204,7 +241,7 @@ export default function ScalpPhotoFormPage() {
                     }
                   }}
                 >
-                  {loading ? <CircularProgress size={24} sx={{ color: 'white' }} /> : 'Zapisz zdjęcie w dokumentacji'}
+                  {isSubmitting ? <CircularProgress size={24} sx={{ color: 'white' }} /> : 'Zapisz zdjęcie w dokumentacji'}
                 </Button>
                 <Button
                   variant="outlined"
