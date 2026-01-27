@@ -134,9 +134,6 @@ export default function LabResultViewPage() {
     }
   };
 
-  const [downloadingPDF, setDownloadingPDF] = useState(false);
-  const { success: showSuccess } = useNotification();
-
   const handleDownloadPDF = async () => {
     try {
       setDownloadingPDF(true);
