@@ -110,7 +110,7 @@ export default function DashboardPage() {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const navigate = useNavigate();
-    const { error: showError } = useNotification();
+    const { error: showError, success: showSuccess } = useNotification();
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
