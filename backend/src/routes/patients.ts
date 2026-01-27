@@ -113,12 +113,12 @@ router.get('/:id', authenticate, async (req: AuthRequest, res, next) => {
       return res.status(404).json({ error: 'Pacjent nie znaleziony' });
     }
 
-    // Add URL field to scalp photos (use secured route)
+    // Add URL field to scalp photos
     const patientWithUrls = {
       ...patient,
       scalpPhotos: patient.scalpPhotos.map((photo: any) => ({
         ...photo,
-        url: `/api/scalp-photos/${photo.id}/file`,
+        url: `/uploads/${path.basename(photo.filePath)}`,
       })),
     };
 
