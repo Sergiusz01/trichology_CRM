@@ -84,14 +84,18 @@ interface Visit {
 
 import { VISIT_STATUS_CONFIG } from '../constants/visitStatus';
 
-// Helper function to format date for datetime-local input (preserves local time)
+// Helper function to format date for datetime-local input
+// Backend stores dates as UTC but representing the exact hour/minute entered
+// We need to extract UTC hours/minutes to preserve the exact time
 const formatDateTimeLocal = (dateString: string): string => {
   const date = new Date(dateString);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
+  // Use UTC methods to get the exact hour/minute that was stored
+  // This preserves the time the user originally entered
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  const hours = String(date.getUTCHours()).padStart(2, '0');
+  const minutes = String(date.getUTCMinutes()).padStart(2, '0');
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
 
@@ -399,8 +403,14 @@ export default function PatientDetailPage() {
 
   const openAddVisitDialog = () => {
     // Set default date to now in local time format
+    // Use local time for the default, but it will be stored as UTC preserving the hour/minute
     const now = new Date();
-    const localDateTime = formatDateTimeLocal(now.toISOString());
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const localDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
     
     setVisitDialog({
       open: true,

@@ -212,15 +212,20 @@ router.post('/', authenticate, async (req: AuthRequest, res, next) => {
     }
 
     // Parse the date - the frontend sends a local datetime string (YYYY-MM-DDTHH:mm)
-    // We need to parse it as local time, not UTC
+    // The datetime-local input gives us local time without timezone info
+    // We need to treat it as UTC to preserve the exact hour/minute the user selected
+    // This way, when displayed back, it will show the same hour/minute
     let visitDate: Date;
     if (data.data.includes('T')) {
       // Format: YYYY-MM-DDTHH:mm (datetime-local format)
-      // Parse as local time to avoid timezone issues
+      // Parse as UTC to preserve the exact time the user entered
       const [datePart, timePart] = data.data.split('T');
       const [year, month, day] = datePart.split('-').map(Number);
       const [hours, minutes] = timePart.split(':').map(Number);
-      visitDate = new Date(year, month - 1, day, hours, minutes, 0, 0);
+      
+      // Create date as UTC to preserve the exact hour/minute
+      // This ensures that when read back and displayed, it shows the same time
+      visitDate = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0, 0));
     } else {
       visitDate = new Date(data.data);
     }
@@ -309,15 +314,19 @@ router.put('/:id', authenticate, requireWriteAccess(), async (req: AuthRequest, 
     const updateData: any = {};
     if (data.data) {
       // Parse the date - the frontend sends a local datetime string (YYYY-MM-DDTHH:mm)
-      // We need to parse it as local time, not UTC
+      // The datetime-local input gives us local time without timezone info
+      // We need to treat it as UTC to preserve the exact hour/minute the user selected
       let visitDate: Date;
       if (data.data.includes('T')) {
         // Format: YYYY-MM-DDTHH:mm (datetime-local format)
-        // Parse as local time to avoid timezone issues
+        // Parse as UTC to preserve the exact time the user entered
         const [datePart, timePart] = data.data.split('T');
         const [year, month, day] = datePart.split('-').map(Number);
         const [hours, minutes] = timePart.split(':').map(Number);
-        visitDate = new Date(year, month - 1, day, hours, minutes, 0, 0);
+        
+        // Create date as UTC to preserve the exact hour/minute
+        // This ensures that when read back and displayed, it shows the same time
+        visitDate = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0, 0));
       } else {
         visitDate = new Date(data.data);
       }
