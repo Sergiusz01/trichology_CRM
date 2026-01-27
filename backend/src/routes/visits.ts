@@ -38,6 +38,19 @@ router.get('/patient/:id', authenticate, async (req: AuthRequest, res, next) => 
     const visits = await prisma.visit.findMany({
       where: { patientId: id },
       orderBy: { data: 'desc' },
+      select: {
+        id: true,
+        patientId: true,
+        data: true,
+        rodzajZabiegu: true,
+        notatki: true,
+        status: true,
+        numerWSerii: true,
+        liczbaSerii: true,
+        cena: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
 
     res.json({ visits });
