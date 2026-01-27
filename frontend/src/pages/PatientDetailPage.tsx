@@ -55,6 +55,8 @@ import {
   EventAvailable,
   Notifications,
   Send,
+  GetApp,
+  Visibility
 } from '@mui/icons-material';
 import { api, BASE_URL } from '../services/api';
 import { useNotification } from '../hooks/useNotification';
@@ -1291,15 +1293,93 @@ export default function PatientDetailPage() {
                     }}
                   >
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2 }}>
-                      <Box sx={{ flex: 1 }}>
-                        <Typography variant="h6" sx={{ fontWeight: 700, color: '#1d1d1f', mb: 1 }}>
+                      <Box sx={{ flex: 1, cursor: 'pointer' }} onClick={() => navigate(`/patients/${id}/lab-results/${result.id}`)}>
+                        <Typography variant="h6" sx={{ fontWeight: 700, color: '#1d1d1f', mb: 1, fontSize: '1.15rem' }}>
                           {result.testName || 'Wynik badania'}
                         </Typography>
-                        <Typography variant="body2" sx={{ color: '#86868b' }}>
-                          {new Date(result.testDate).toLocaleDateString('pl-PL')}
+                        <Typography variant="body2" sx={{ color: '#86868b', fontSize: '0.95rem' }}>
+                          {new Date(result.date || result.testDate).toLocaleDateString('pl-PL', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                          })}
                         </Typography>
                       </Box>
                       <Stack direction="row" spacing={1}>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<Visibility />}
+                          onClick={() => navigate(`/patients/${id}/lab-results/${result.id}`)}
+                          sx={{
+                            borderColor: '#d2d2d7',
+                            color: '#1d1d1f',
+                            textTransform: 'none',
+                            fontWeight: 600,
+                            borderRadius: 1.5,
+                            '&:hover': {
+                              borderColor: '#1d1d1f',
+                              bgcolor: alpha('#000', 0.02),
+                            },
+                          }}
+                        >
+                          Zobacz
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<Edit />}
+                          onClick={() => navigate(`/patients/${id}/lab-results/${result.id}/edit`)}
+                          sx={{
+                            borderColor: '#d2d2d7',
+                            color: '#1d1d1f',
+                            textTransform: 'none',
+                            fontWeight: 600,
+                            borderRadius: 1.5,
+                            '&:hover': {
+                              borderColor: '#1d1d1f',
+                              bgcolor: alpha('#000', 0.02),
+                            },
+                          }}
+                        >
+                          Edytuj
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<GetApp />}
+                          onClick={async () => {
+                            try {
+                              const response = await api.get(`/lab-results/${result.id}/pdf`, {
+                                responseType: 'blob',
+                              });
+                              const url = window.URL.createObjectURL(new Blob([response.data]));
+                              const link = document.createElement('a');
+                              link.href = url;
+                              link.setAttribute('download', `wynik-badan-${result.id}.pdf`);
+                              document.body.appendChild(link);
+                              link.click();
+                              link.remove();
+                              window.URL.revokeObjectURL(url);
+                              showSuccess('PDF pobrany pomyślnie');
+                            } catch (error: any) {
+                              showError(error.response?.data?.error || 'Błąd pobierania PDF');
+                            }
+                          }}
+                          sx={{
+                            borderColor: '#d2d2d7',
+                            color: '#1d1d1f',
+                            textTransform: 'none',
+                            fontWeight: 600,
+                            borderRadius: 1.5,
+                            '&:hover': {
+                              borderColor: '#1d1d1f',
+                              bgcolor: alpha('#000', 0.02),
+                            },
+                          }}
+                        >
+                          PDF
+                        </Button>
                         {patient.email && (
                           <Button
                             size="small"
@@ -1575,11 +1655,12 @@ export default function PatientDetailPage() {
                           </Typography>
                         )}
                       </Box>
-                      <Stack direction="row" spacing={1}>
+                      <Stack direction="row" spacing={1} flexWrap="wrap">
                         <Button
                           size="small"
                           variant="outlined"
-                          onClick={() => navigate(`/care-plans/${plan.id}`)}
+                          startIcon={<Visibility />}
+                          onClick={() => navigate(`/patients/${id}/care-plans/${plan.id}`)}
                           sx={{
                             borderColor: '#d2d2d7',
                             color: '#1d1d1f',
@@ -1593,6 +1674,61 @@ export default function PatientDetailPage() {
                           }}
                         >
                           Zobacz
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<Edit />}
+                          onClick={() => navigate(`/patients/${id}/care-plans/${plan.id}/edit`)}
+                          sx={{
+                            borderColor: '#d2d2d7',
+                            color: '#1d1d1f',
+                            textTransform: 'none',
+                            fontWeight: 600,
+                            borderRadius: 1.5,
+                            '&:hover': {
+                              borderColor: '#1d1d1f',
+                              bgcolor: alpha('#000', 0.02),
+                            },
+                          }}
+                        >
+                          Edytuj
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<GetApp />}
+                          onClick={async () => {
+                            try {
+                              const response = await api.get(`/care-plans/${plan.id}/pdf`, {
+                                responseType: 'blob',
+                              });
+                              const url = window.URL.createObjectURL(new Blob([response.data]));
+                              const link = document.createElement('a');
+                              link.href = url;
+                              link.setAttribute('download', `plan-opieki-${plan.id}.pdf`);
+                              document.body.appendChild(link);
+                              link.click();
+                              link.remove();
+                              window.URL.revokeObjectURL(url);
+                              showSuccess('PDF pobrany pomyślnie');
+                            } catch (error: any) {
+                              showError(error.response?.data?.error || 'Błąd pobierania PDF');
+                            }
+                          }}
+                          sx={{
+                            borderColor: '#d2d2d7',
+                            color: '#1d1d1f',
+                            textTransform: 'none',
+                            fontWeight: 600,
+                            borderRadius: 1.5,
+                            '&:hover': {
+                              borderColor: '#1d1d1f',
+                              bgcolor: alpha('#000', 0.02),
+                            },
+                          }}
+                        >
+                          PDF
                         </Button>
                         {patient.email && (
                           <Button
