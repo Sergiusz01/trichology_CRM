@@ -14,6 +14,7 @@ import emailTemplateRoutes from './routes/emailTemplates';
 import userProfileRoutes from './routes/userProfile';
 import exportRoutes from './routes/export';
 import visitRoutes from './routes/visits';
+import dashboardRoutes from './routes/dashboard';
 import { errorHandler } from './middleware/errorHandler';
 import { startReminderWorker } from './services/reminderWorker';
 import { prisma } from './prisma';
@@ -78,6 +79,7 @@ app.use('/api/email-templates', emailTemplateRoutes);
 app.use('/api/user-profile', userProfileRoutes);
 app.use('/api/export', exportRoutes);
 app.use('/api/visits', visitRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Error handler
 app.use(errorHandler);

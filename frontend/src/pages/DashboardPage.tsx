@@ -109,6 +109,7 @@ export default function DashboardPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [searchLoading, setSearchLoading] = useState(false);
+    const [isFetching, setIsFetching] = useState(false);
     const [stats, setStats] = useState<DashboardStats>({
         patientsCount: 0,
         consultationsCount: 0,
@@ -131,7 +132,13 @@ export default function DashboardPage() {
     });
 
     const fetchDashboardData = useCallback(async (isRefresh = false) => {
+        // Zapobiegaj wielokrotnym wywołaniom
+        if (isFetching && !isRefresh) {
+            return;
+        }
+
         try {
+            setIsFetching(true);
             if (isRefresh) {
                 setRefreshing(true);
             } else {
@@ -139,24 +146,18 @@ export default function DashboardPage() {
             }
             setError(null);
 
-            const [patientsRes, consultationsRes, emailsRes, upcomingVisitsRes, weeklyRevenueRes] = await Promise.all([
-                api.get('/patients'),
-                api.get('/consultations'),
-                api.get('/email/history', { params: { limit: 10 } }),
-                api.get('/visits/upcoming').catch(() => ({ data: { visits: [] } })),
-                api.get('/visits/stats/weekly-revenue').catch(() => ({
-                    data: {
-                        plannedRevenue: 0,
-                        completedRevenue: 0,
-                        totalExpectedRevenue: 0,
-                        visitsThisWeek: { zaplanowana: 0, odbyta: 0, nieobecnosc: 0, anulowana: 0 },
-                    },
-                })),
-            ]);
+            // Użyj jednego endpointu zamiast wielu równoległych zapytań
+            const dashboardRes = await api.get('/dashboard');
+            const dashboardData = dashboardRes.data;
 
-            const visits = upcomingVisitsRes.data.visits || [];
+            const visits = dashboardData.upcomingVisits || [];
             setUpcomingVisits(visits);
-            setWeeklyRevenue(weeklyRevenueRes.data);
+            setWeeklyRevenue(dashboardData.weeklyRevenue || {
+                plannedRevenue: 0,
+                completedRevenue: 0,
+                totalExpectedRevenue: 0,
+                visitsThisWeek: { zaplanowana: 0, odbyta: 0, nieobecnosc: 0, anulowana: 0 },
+            });
 
             // Podziel wizyty na dzisiejsze i jutrzejsze
             const now = new Date();
@@ -179,128 +180,50 @@ export default function DashboardPage() {
             setTodayVisits(todayVisitsList);
             setTomorrowVisits(tomorrowVisitsList);
 
-            const patients = patientsRes.data.patients || [];
-            const consultations = consultationsRes.data.consultations || [];
-            const emails = emailsRes.data.emails || [];
-
-            // Oblicz statystyki
-            const weekAgo = new Date();
-            weekAgo.setDate(weekAgo.getDate() - 7);
-
-            const patientsThisWeek = patients.filter((p: any) =>
-                new Date(p.createdAt) > weekAgo
-            ).length;
-
-            const consultationsThisWeek = consultations.filter((c: any) =>
-                new Date(c.consultationDate) > weekAgo
-            ).length;
-
-            const patientsWithoutConsultation = patients.filter((p: any) =>
-                !consultations.some((c: any) => c.patientId === p.id)
-            ).length;
-
-            const sentEmailsCount = emails.filter((e: any) => e.status === 'SENT').length;
-
-            setStats({
-                patientsCount: patients.length,
-                consultationsCount: consultations.length,
-                emailsSentCount: sentEmailsCount,
-                patientsThisWeek,
-                consultationsThisWeek,
-                patientsWithoutConsultation,
+            // Użyj danych z endpointu dashboard
+            setStats(dashboardData.stats || {
+                patientsCount: 0,
+                consultationsCount: 0,
+                emailsSentCount: 0,
+                patientsThisWeek: 0,
+                consultationsThisWeek: 0,
+                patientsWithoutConsultation: 0,
             });
 
-            // Sprawdź pacjentów bez aktywności przez 30 dni
-            const thirtyDaysAgo = new Date();
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-            const inactivePatients = patients.filter((p: any) => {
-                const lastConsultation = consultations
-                    .filter((c: any) => c.patientId === p.id)
-                    .sort((a: any, b: any) => new Date(b.consultationDate).getTime() - new Date(a.consultationDate).getTime())[0];
-
-                return lastConsultation && new Date(lastConsultation.consultationDate) < thirtyDaysAgo;
-            });
-
-            // Zapisz pacjentów wymagających uwagi
-            const patientsWithoutConsultations = patients.filter((p: any) =>
-                !consultations.some((c: any) => c.patientId === p.id)
-            );
-            setPatientsNeedingAttention(patientsWithoutConsultations.slice(0, 5));
-            setInactivePatientsList(inactivePatients.slice(0, 5));
-
-            // Budowanie ostatniej aktywności
-            const activities: RecentActivity[] = [];
-
-            // Dodaj ostatnich pacjentów
-            const sortedPatients = [...patients]
-                .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
-                .slice(0, 3);
-
-            sortedPatients.forEach(patient => {
-                activities.push({
-                    id: `patient-${patient.id}`,
-                    type: 'PATIENT',
-                    title: 'Dodano nowego pacjenta',
-                    subtitle: `${patient.firstName} ${patient.lastName}`,
-                    date: patient.createdAt || new Date().toISOString(),
-                    link: `/patients/${patient.id}`,
-                });
-            });
-
-            // Dodaj ostatnie konsultacje
-            const sortedConsultations = [...consultations]
-                .sort((a, b) => new Date(b.consultationDate || 0).getTime() - new Date(a.consultationDate || 0).getTime())
-                .slice(0, 3);
-
-            sortedConsultations.forEach(consultation => {
-                const patient = patients.find((p: any) => p.id === consultation.patientId);
-                activities.push({
-                    id: `consultation-${consultation.id}`,
-                    type: 'CONSULTATION',
-                    title: 'Konsultacja',
-                    subtitle: patient ? `${patient.firstName} ${patient.lastName}` : 'Nieznany pacjent',
-                    date: consultation.consultationDate || new Date().toISOString(),
-                    link: `/patients/${consultation.patientId}`,
-                });
-            });
-
-            // Dodaj ostatnie emaile
-            const sortedEmails = [...emails]
-                .filter((e: any) => e.status === 'SENT')
-                .sort((a, b) => new Date(b.sentAt || 0).getTime() - new Date(a.sentAt || 0).getTime())
-                .slice(0, 3);
-
-            sortedEmails.forEach((email: any) => {
-                const patient = email.patient || patients.find((p: any) => p.id === email.patientId);
-                activities.push({
-                    id: `email-${email.id}`,
-                    type: 'EMAIL',
-                    title: 'Wysłano email',
-                    subtitle: patient ? `${patient.firstName} ${patient.lastName} - ${email.subject}` : email.subject,
-                    date: email.sentAt || new Date().toISOString(),
-                    link: `/patients/${email.patientId}`,
-                });
-            });
-
-            // Sortuj wszystkie aktywności po dacie
-            activities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-            // Weź tylko 8 najnowszych
-            setRecentActivities(activities.slice(0, 8));
+            setPatientsNeedingAttention(dashboardData.patientsNeedingAttention || []);
+            setInactivePatientsList(dashboardData.inactivePatients || []);
+            setRecentActivities(dashboardData.recentActivities || []);
         } catch (error: any) {
-            const errorMessage = error?.response?.data?.message || 'Nie udało się załadować danych dashboardu';
-            setError(errorMessage);
-            showError(errorMessage);
+            // Obsługa błędów 429 (Too Many Requests)
+            if (error?.response?.status === 429) {
+                const retryAfter = error?.response?.headers?.['retry-after'] || 60;
+                const errorMessage = `Zbyt wiele żądań. Spróbuj ponownie za ${retryAfter} sekund.`;
+                setError(errorMessage);
+                showError(errorMessage);
+                // Automatyczne ponowienie po czasie retry
+                setTimeout(() => {
+                    if (!isFetching) {
+                        fetchDashboardData(true);
+                    }
+                }, retryAfter * 1000);
+            } else {
+                const errorMessage = error?.response?.data?.message || 'Nie udało się załadować danych dashboardu';
+                setError(errorMessage);
+                showError(errorMessage);
+            }
             console.error('Failed to fetch dashboard data', error);
         } finally {
             setLoading(false);
             setRefreshing(false);
+            setIsFetching(false);
         }
-    }, [showError]);
+    }, [showError, isFetching]);
 
     useEffect(() => {
+        // Wywołaj tylko raz przy montowaniu komponentu
         fetchDashboardData();
-    }, [fetchDashboardData]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Pusta tablica - wywołaj tylko raz
 
     // Wyszukiwanie z debounce
     useEffect(() => {
