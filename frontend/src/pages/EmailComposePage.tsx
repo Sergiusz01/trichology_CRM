@@ -17,13 +17,18 @@ import {
   ListItem,
   ListItemText,
   ListItemIcon,
+  Container,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
-import { Send, AttachFile, Delete } from '@mui/icons-material';
+import { Send, AttachFile, Delete, ArrowBack } from '@mui/icons-material';
 import { api } from '../services/api';
 
 export default function EmailComposePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -140,189 +145,284 @@ export default function EmailComposePage() {
   };
 
   return (
-    <Box>
-      <Typography variant="h4" gutterBottom>
-        Wyślij email do pacjenta
-      </Typography>
+    <Box sx={{ width: '100%', maxWidth: '100%', overflow: 'hidden' }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 4 }, px: { xs: 1, sm: 3 } }}>
+        <Box sx={{ mb: { xs: 2, sm: 3 }, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+          <IconButton 
+            onClick={() => navigate(`/patients/${id}`)}
+            sx={{ 
+              bgcolor: 'action.hover',
+              '&:hover': { bgcolor: 'action.selected' }
+            }}
+          >
+            <ArrowBack />
+          </IconButton>
+          <Typography 
+            variant="h4" 
+            sx={{ 
+              fontSize: { xs: '1.5rem', sm: '2rem' },
+              fontWeight: 600,
+              flex: 1,
+            }}
+          >
+            Wyślij email do pacjenta
+          </Typography>
+        </Box>
 
-      {patient && (
-        <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-          Pacjent: <strong>{patient.firstName} {patient.lastName}</strong>
-        </Typography>
-      )}
+        {patient && (
+          <Typography 
+            variant="body1" 
+            color="text.secondary" 
+            sx={{ mb: { xs: 2, sm: 3 }, px: { xs: 1, sm: 0 } }}
+          >
+            Pacjent: <strong>{patient.firstName} {patient.lastName}</strong>
+          </Typography>
+        )}
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
-          {error}
-        </Alert>
-      )}
+        {error && (
+          <Alert 
+            severity="error" 
+            sx={{ mb: 2, mx: { xs: 1, sm: 0 } }} 
+            onClose={() => setError('')}
+          >
+            {error}
+          </Alert>
+        )}
 
-      {success && (
-        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>
-          {success}
-        </Alert>
-      )}
+        {success && (
+          <Alert 
+            severity="success" 
+            sx={{ mb: 2, mx: { xs: 1, sm: 0 } }} 
+            onClose={() => setSuccess('')}
+          >
+            {success}
+          </Alert>
+        )}
 
-      <Paper sx={{ p: 3 }}>
-        <form onSubmit={handleSubmit}>
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                required
-                label="Adres email odbiorcy"
-                type="email"
-                value={formData.recipientEmail}
-                onChange={(e) => handleChange('recipientEmail', e.target.value)}
-                helperText={!patient?.email && 'Pacjent nie ma zapisanego adresu email'}
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                required
-                label="Temat"
-                value={formData.subject}
-                onChange={(e) => handleChange('subject', e.target.value)}
-                placeholder="np. Zalecenia po konsultacji, Plan opieki, Wyniki badań"
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                required
-                label="Treść wiadomości"
-                multiline
-                rows={10}
-                value={formData.message}
-                onChange={(e) => handleChange('message', e.target.value)}
-                placeholder="Wpisz treść wiadomości do pacjenta..."
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <Typography variant="h6" gutterBottom>
-                Załączniki z systemu
-              </Typography>
-            </Grid>
-
-            {consultations.length > 0 && (
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Załącz konsultację (PDF)</InputLabel>
-                  <Select
-                    value={formData.attachConsultationId}
-                    onChange={(e) => handleChange('attachConsultationId', e.target.value)}
-                    label="Załącz konsultację (PDF)"
-                  >
-                    <MenuItem value="">Brak</MenuItem>
-                    {consultations.map((consultation) => (
-                      <MenuItem key={consultation.id} value={consultation.id}>
-                        {getConsultationLabel(consultation)}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-            )}
-
-            {carePlans.length > 0 && (
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Załącz plan opieki (PDF)</InputLabel>
-                  <Select
-                    value={formData.attachCarePlanId}
-                    onChange={(e) => handleChange('attachCarePlanId', e.target.value)}
-                    label="Załącz plan opieki (PDF)"
-                  >
-                    <MenuItem value="">Brak</MenuItem>
-                    {carePlans.map((plan) => (
-                      <MenuItem key={plan.id} value={plan.id}>
-                        {plan.title} ({plan.totalDurationWeeks} tygodni)
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-            )}
-
-            <Grid item xs={12}>
-              <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                Załączniki plików
-              </Typography>
-              <Box sx={{ mb: 2 }}>
-                <input
-                  key={fileInputKey}
-                  type="file"
-                  multiple
-                  onChange={handleFileSelect}
-                  style={{ display: 'none' }}
-                  id="file-upload"
+        <Paper 
+          sx={{ 
+            p: { xs: 2, sm: 3 },
+            borderRadius: 3,
+            border: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <form onSubmit={handleSubmit}>
+            <Grid container spacing={{ xs: 2, sm: 3 }}>
+              <Grid size={{ xs: 12 }}>
+                <TextField
+                  fullWidth
+                  required
+                  label="Adres email odbiorcy"
+                  type="email"
+                  value={formData.recipientEmail}
+                  onChange={(e) => handleChange('recipientEmail', e.target.value)}
+                  helperText={!patient?.email && 'Pacjent nie ma zapisanego adresu email'}
                 />
-                <label htmlFor="file-upload">
+              </Grid>
+
+              <Grid size={{ xs: 12 }}>
+                <TextField
+                  fullWidth
+                  required
+                  label="Temat"
+                  value={formData.subject}
+                  onChange={(e) => handleChange('subject', e.target.value)}
+                  placeholder="np. Zalecenia po konsultacji, Plan opieki, Wyniki badań"
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12 }}>
+                <TextField
+                  fullWidth
+                  required
+                  label="Treść wiadomości"
+                  multiline
+                  rows={isMobile ? 8 : 10}
+                  value={formData.message}
+                  onChange={(e) => handleChange('message', e.target.value)}
+                  placeholder="Wpisz treść wiadomości do pacjenta..."
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12 }}>
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    fontSize: { xs: '1rem', sm: '1.25rem' },
+                    fontWeight: 600,
+                    mb: 1,
+                  }}
+                >
+                  Załączniki z systemu
+                </Typography>
+              </Grid>
+
+              {consultations.length > 0 && (
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <FormControl fullWidth>
+                    <InputLabel>Załącz konsultację (PDF)</InputLabel>
+                    <Select
+                      value={formData.attachConsultationId}
+                      onChange={(e) => handleChange('attachConsultationId', e.target.value)}
+                      label="Załącz konsultację (PDF)"
+                    >
+                      <MenuItem value="">Brak</MenuItem>
+                      {consultations.map((consultation) => (
+                        <MenuItem key={consultation.id} value={consultation.id}>
+                          {getConsultationLabel(consultation)}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+              )}
+
+              {carePlans.length > 0 && (
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <FormControl fullWidth>
+                    <InputLabel>Załącz plan opieki (PDF)</InputLabel>
+                    <Select
+                      value={formData.attachCarePlanId}
+                      onChange={(e) => handleChange('attachCarePlanId', e.target.value)}
+                      label="Załącz plan opieki (PDF)"
+                    >
+                      <MenuItem value="">Brak</MenuItem>
+                      {carePlans.map((plan) => (
+                        <MenuItem key={plan.id} value={plan.id}>
+                          {plan.title} ({plan.totalDurationWeeks} tygodni)
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+              )}
+
+              <Grid size={{ xs: 12 }}>
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    fontSize: { xs: '1rem', sm: '1.25rem' },
+                    fontWeight: 600,
+                    mt: { xs: 1, sm: 2 },
+                    mb: 1,
+                  }}
+                >
+                  Załączniki plików
+                </Typography>
+                <Box sx={{ mb: 2 }}>
+                  <input
+                    key={fileInputKey}
+                    type="file"
+                    multiple
+                    onChange={handleFileSelect}
+                    style={{ display: 'none' }}
+                    id="file-upload"
+                  />
+                  <label htmlFor="file-upload">
+                    <Button
+                      variant="outlined"
+                      component="span"
+                      startIcon={<AttachFile />}
+                      fullWidth={isMobile}
+                      sx={{ 
+                        mr: { xs: 0, sm: 2 },
+                        mb: { xs: 1, sm: 0 },
+                      }}
+                    >
+                      Dodaj pliki
+                    </Button>
+                  </label>
+                </Box>
+
+                {attachedFiles.length > 0 && (
+                  <List sx={{ p: 0 }}>
+                    {attachedFiles.map((file, index) => (
+                      <ListItem
+                        key={index}
+                        sx={{
+                          px: { xs: 1, sm: 2 },
+                          py: { xs: 1, sm: 1.5 },
+                          border: '1px solid',
+                          borderColor: 'divider',
+                          borderRadius: 2,
+                          mb: 1,
+                        }}
+                        secondaryAction={
+                          <IconButton
+                            edge="end"
+                            onClick={() => handleRemoveFile(index)}
+                            color="error"
+                            size={isMobile ? 'small' : 'medium'}
+                          >
+                            <Delete />
+                          </IconButton>
+                        }
+                      >
+                        <ListItemIcon sx={{ minWidth: { xs: 36, sm: 40 } }}>
+                          <AttachFile fontSize={isMobile ? 'small' : 'medium'} />
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={
+                            <Typography 
+                              variant={isMobile ? 'body2' : 'body1'}
+                              sx={{ 
+                                wordBreak: 'break-word',
+                                pr: { xs: 4, sm: 6 },
+                              }}
+                            >
+                              {file.name}
+                            </Typography>
+                          }
+                          secondary={
+                            <Typography variant="caption" color="text.secondary">
+                              ${(file.size / 1024).toFixed(2)} KB
+                            </Typography>
+                          }
+                        />
+                      </ListItem>
+                    ))}
+                  </List>
+                )}
+              </Grid>
+
+              <Grid size={{ xs: 12 }}>
+                <Box 
+                  sx={{ 
+                    display: 'flex', 
+                    gap: 2, 
+                    justifyContent: { xs: 'stretch', sm: 'flex-end' },
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    mt: { xs: 1, sm: 2 },
+                  }}
+                >
                   <Button
                     variant="outlined"
-                    component="span"
-                    startIcon={<AttachFile />}
-                    sx={{ mr: 2 }}
+                    onClick={() => navigate(`/patients/${id}`)}
+                    disabled={loading}
+                    fullWidth={isMobile}
                   >
-                    Dodaj pliki
+                    Anuluj
                   </Button>
-                </label>
-              </Box>
-
-              {attachedFiles.length > 0 && (
-                <List>
-                  {attachedFiles.map((file, index) => (
-                    <ListItem
-                      key={index}
-                      secondaryAction={
-                        <IconButton
-                          edge="end"
-                          onClick={() => handleRemoveFile(index)}
-                          color="error"
-                        >
-                          <Delete />
-                        </IconButton>
-                      }
-                    >
-                      <ListItemIcon>
-                        <AttachFile />
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={file.name}
-                        secondary={`${(file.size / 1024).toFixed(2)} KB`}
-                      />
-                    </ListItem>
-                  ))}
-                </List>
-              )}
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    startIcon={<Send />}
+                    disabled={loading || !formData.subject || !formData.message}
+                    fullWidth={isMobile}
+                    sx={{
+                      bgcolor: '#1976d2',
+                      '&:hover': { bgcolor: '#1565c0' },
+                    }}
+                  >
+                    {loading ? 'Wysyłanie...' : 'Wyślij email'}
+                  </Button>
+                </Box>
+              </Grid>
             </Grid>
-
-            <Grid item xs={12}>
-              <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                <Button
-                  variant="outlined"
-                  onClick={() => navigate(`/patients/${id}`)}
-                  disabled={loading}
-                >
-                  Anuluj
-                </Button>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  startIcon={<Send />}
-                  disabled={loading || !formData.subject || !formData.message}
-                >
-                  {loading ? 'Wysyłanie...' : 'Wyślij email'}
-                </Button>
-              </Box>
-            </Grid>
-          </Grid>
-        </form>
-      </Paper>
+          </form>
+        </Paper>
+      </Container>
     </Box>
   );
 }
