@@ -68,9 +68,13 @@ export default function ConsultationFormPage() {
   const fetchTemplates = async () => {
     try {
       const response = await api.get('/consultation-templates');
-      setTemplates(response.data.templates || []);
+      console.log('[ConsultationFormPage] Templates response:', response.data);
+      const templatesList = response.data.templates || [];
+      console.log('[ConsultationFormPage] Templates count:', templatesList.length);
+      setTemplates(templatesList);
       // Auto-select default template if available
-      const defaultTemplate = response.data.templates?.find((t: any) => t.isDefault);
+      const defaultTemplate = templatesList.find((t: any) => t.isDefault);
+      console.log('[ConsultationFormPage] Default template:', defaultTemplate);
       if (defaultTemplate) {
         setSelectedTemplate(defaultTemplate);
         setUseTemplate(true);

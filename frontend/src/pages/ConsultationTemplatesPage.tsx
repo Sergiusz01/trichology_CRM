@@ -45,7 +45,13 @@ export default function ConsultationTemplatesPage() {
     try {
       setLoading(true);
       const response = await api.get('/consultation-templates');
-      setTemplates(response.data.templates || []);
+      console.log('[ConsultationTemplatesPage] Templates response:', response.data);
+      const templatesList = response.data.templates || [];
+      console.log('[ConsultationTemplatesPage] Templates count:', templatesList.length);
+      templatesList.forEach((t: any) => {
+        console.log(`[ConsultationTemplatesPage] Template: ${t.name}, isDefault: ${t.isDefault}, fields: ${t.fields?.length || 0}`);
+      });
+      setTemplates(templatesList);
     } catch (error: any) {
       console.error('Błąd pobierania szablonów:', error);
       showError('Błąd pobierania szablonów');

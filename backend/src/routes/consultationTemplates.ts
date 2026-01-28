@@ -33,6 +33,7 @@ const templateSchema = z.object({
 router.get('/', authenticate, async (req: AuthRequest, res, next) => {
   try {
     const doctorId = req.user!.id;
+    console.log('[GET /consultation-templates] Doctor ID:', doctorId);
     
     const templates = await prisma.consultationTemplate.findMany({
       where: {
@@ -45,8 +46,14 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
       ],
     });
 
+    console.log('[GET /consultation-templates] Found templates:', templates.length);
+    templates.forEach(t => {
+      console.log(`[GET /consultation-templates] Template: ${t.name}, isDefault: ${t.isDefault}, doctorId: ${t.doctorId}`);
+    });
+
     res.json({ templates });
   } catch (error) {
+    console.error('[GET /consultation-templates] Error:', error);
     next(error);
   }
 });

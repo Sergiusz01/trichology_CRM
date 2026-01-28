@@ -13,46 +13,53 @@ interface TemplateField {
 
 async function seedDefaultTemplate() {
   try {
-    // Check if default template already exists
-    const existing = await prisma.consultationTemplate.findFirst({
-      where: { isDefault: true },
-    });
-
-    if (existing) {
-      console.log('Domyślny szablon już istnieje. Aktualizuję...');
-      await prisma.consultationTemplate.update({
-        where: { id: existing.id },
-        data: {
-          name: 'Standardowy arkusz konsultacji',
-          fields: generateDefaultFields() as any,
-        },
-      });
-      console.log('✓ Szablon zaktualizowany');
-      return;
-    }
-
-    // Get first doctor to assign template
-    const doctor = await prisma.user.findFirst({
+    // Get all doctors
+    const doctors = await prisma.user.findMany({
       where: { role: 'DOCTOR' },
     });
 
-    if (!doctor) {
+    if (doctors.length === 0) {
       console.error('Brak lekarza w bazie danych. Utwórz najpierw użytkownika z rolą DOCTOR.');
       return;
     }
 
-    // Create default template
-    await prisma.consultationTemplate.create({
-      data: {
-        name: 'Standardowy arkusz konsultacji',
-        doctorId: doctor.id,
-        fields: generateDefaultFields() as any,
-        isDefault: true,
-        isActive: true,
-      },
-    });
+    console.log(`Znaleziono ${doctors.length} lekarzy. Tworzenie szablonów dla wszystkich...`);
 
-    console.log('✓ Domyślny szablon utworzony pomyślnie');
+    // Create or update default template for each doctor
+    for (const doctor of doctors) {
+      const existing = await prisma.consultationTemplate.findFirst({
+        where: {
+          doctorId: doctor.id,
+          isDefault: true,
+        },
+      });
+
+      if (existing) {
+        console.log(`Domyślny szablon dla lekarza ${doctor.email} już istnieje. Aktualizuję...`);
+        await prisma.consultationTemplate.update({
+          where: { id: existing.id },
+          data: {
+            name: 'Standardowy arkusz konsultacji',
+            fields: generateDefaultFields() as any,
+          },
+        });
+        console.log(`✓ Szablon zaktualizowany dla ${doctor.email}`);
+      } else {
+        // Create default template for this doctor
+        await prisma.consultationTemplate.create({
+          data: {
+            name: 'Standardowy arkusz konsultacji',
+            doctorId: doctor.id,
+            fields: generateDefaultFields() as any,
+            isDefault: true,
+            isActive: true,
+          },
+        });
+        console.log(`✓ Domyślny szablon utworzony dla ${doctor.email}`);
+      }
+    }
+
+    console.log('✓ Wszystkie szablony utworzone/zaktualizowane');
   } catch (error) {
     console.error('Błąd tworzenia szablonu:', error);
     throw error;
