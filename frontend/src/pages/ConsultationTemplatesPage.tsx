@@ -165,16 +165,19 @@ export default function ConsultationTemplatesPage() {
                       <IconButton
                         edge="end"
                         color="primary"
-                        onClick={() => handleEditTemplate(template)}
+                        onClick={() => {
+                          console.log('[ConsultationTemplatesPage] Editing template:', template);
+                          handleEditTemplate(template);
+                        }}
                         title="Edytuj szablon"
                       >
                         <Edit />
                       </IconButton>
-                      {!template.isDefault && (
+                      {!template.isDefault && template.id && (
                         <IconButton
                           edge="end"
                           color="error"
-                          onClick={() => template.id && handleDeleteTemplate(template.id)}
+                          onClick={() => handleDeleteTemplate(template.id)}
                           title="Usuń szablon"
                         >
                           <Delete />

@@ -483,20 +483,33 @@ export default function ConsultationFormPage() {
         {/* Dynamic Form Based on Template */}
         {useTemplate && selectedTemplate && selectedTemplate.fields && (
           <Paper sx={{ p: { xs: 2, sm: 3 }, mb: { xs: 2, sm: 3 }, borderRadius: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
               <Typography variant="h6">
                 {selectedTemplate.name}
               </Typography>
-              {selectedTemplate.isDefault && (
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                {selectedTemplate.isDefault && (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<Edit />}
+                    onClick={() => {
+                      console.log('[ConsultationFormPage] Opening edit template dialog for:', selectedTemplate);
+                      setEditTemplateOpen(true);
+                    }}
+                  >
+                    Edytuj strukturę arkusza
+                  </Button>
+                )}
                 <Button
                   variant="outlined"
                   size="small"
-                  startIcon={<Edit />}
-                  onClick={() => setEditTemplateOpen(true)}
+                  startIcon={<Settings />}
+                  onClick={() => navigate('/consultation-templates')}
                 >
-                  Edytuj strukturę arkusza
+                  Zarządzaj szablonami
                 </Button>
-              )}
+              </Box>
             </Box>
             <DynamicConsultationForm
               fields={selectedTemplate.fields}
