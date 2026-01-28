@@ -1,6 +1,8 @@
+import { PrismaClient } from '@prisma/client';
 import { hashPassword } from '../utils/password';
 import { initializeDefaultTemplates } from '../utils/initializeDefaultTemplates';
-import { prisma } from '../prisma';
+
+const prisma = new PrismaClient();
 
 async function main() {
   console.log('🌱 Rozpoczynam seedowanie bazy danych...');
@@ -152,7 +154,7 @@ async function main() {
   console.log('\n🎉 Seedowanie zakończone pomyślnie!');
   console.log('\nDane logowania:');
   console.log('Admin: admin@example.com / admin123');
-  console.log('Lekarz: doctor@example.com / doctor123');
+  console.log('Lekarz: agnieszka.polanska@example.com / test123');
 }
 
 main()

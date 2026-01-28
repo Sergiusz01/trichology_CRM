@@ -13,10 +13,16 @@ interface TemplateField {
 
 async function seedDefaultTemplate() {
   try {
-    // Get all doctors
-    const doctors = await prisma.user.findMany({
+    // Get all doctors, prioritize Agnieszka Polańska
+    const allDoctors = await prisma.user.findMany({
       where: { role: 'DOCTOR' },
     });
+
+    // Find Agnieszka Polańska first
+    let agnieszka = allDoctors.find(d => d.email === 'agnieszka.polanska@example.com');
+    
+    // If not found, get first doctor
+    const doctors = agnieszka ? [agnieszka, ...allDoctors.filter(d => d.id !== agnieszka!.id)] : allDoctors;
 
     if (doctors.length === 0) {
       console.error('Brak lekarza w bazie danych. Utwórz najpierw użytkownika z rolą DOCTOR.');
@@ -35,7 +41,7 @@ async function seedDefaultTemplate() {
       });
 
       if (existing) {
-        console.log(`Domyślny szablon dla lekarza ${doctor.email} już istnieje. Aktualizuję...`);
+        console.log(`Domyślny szablon dla lekarza ${doctor.name} (${doctor.email}) już istnieje. Aktualizuję...`);
         await prisma.consultationTemplate.update({
           where: { id: existing.id },
           data: {
@@ -43,7 +49,7 @@ async function seedDefaultTemplate() {
             fields: generateDefaultFields() as any,
           },
         });
-        console.log(`✓ Szablon zaktualizowany dla ${doctor.email}`);
+        console.log(`✓ Szablon zaktualizowany dla ${doctor.name}`);
       } else {
         // Create default template for this doctor
         await prisma.consultationTemplate.create({
@@ -55,7 +61,7 @@ async function seedDefaultTemplate() {
             isActive: true,
           },
         });
-        console.log(`✓ Domyślny szablon utworzony dla ${doctor.email}`);
+        console.log(`✓ Domyślny szablon utworzony dla ${doctor.name}`);
       }
     }
 
