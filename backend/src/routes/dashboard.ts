@@ -1,6 +1,7 @@
 import express from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { prisma } from '../prisma';
+import { startOfTodayWarsaw, weekRangeWarsaw } from '../utils/warsawTz';
 
 const router = express.Router();
 
@@ -122,11 +123,7 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
       prisma.visit.findMany({
         where: {
           data: {
-            gte: (() => {
-              const today = new Date();
-              today.setHours(0, 0, 0, 0);
-              return today;
-            })(),
+            gte: startOfTodayWarsaw(),
           },
           status: 'ZAPLANOWANA',
         },
@@ -142,16 +139,9 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
         orderBy: { data: 'asc' },
         take: 6,
       }),
-      // Weekly revenue calculation
+      // Weekly revenue (Mon–Sun Europe/Warsaw)
       (async () => {
-        const today = new Date();
-        const startOfWeek = new Date(today);
-        startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday
-        startOfWeek.setHours(0, 0, 0, 0);
-        
-        const endOfWeek = new Date(startOfWeek);
-        endOfWeek.setDate(startOfWeek.getDate() + 6); // Sunday
-        endOfWeek.setHours(23, 59, 59, 999);
+        const { start: startOfWeek, end: endOfWeek } = weekRangeWarsaw();
 
         const [plannedVisits, completedVisits, visitsByStatus] = await Promise.all([
           prisma.visit.findMany({

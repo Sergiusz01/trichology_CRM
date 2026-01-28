@@ -1,103 +1,133 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
 import { Prisma } from '@prisma/client';
+import { logger } from '../utils/logger';
+
+const DEV = process.env.NODE_ENV === 'development';
+
+type ReqWithId = Request & { requestId?: string };
+
+function getRequestId(req: Request): string | undefined {
+  return (req as ReqWithId).requestId;
+}
+
+function sendError(
+  res: Response,
+  status: number,
+  body: { code: string; message: string; details?: unknown; requestId?: string; stack?: string }
+): void {
+  res.status(status).json(body);
+}
 
 export const errorHandler = (
   err: Error,
   req: Request,
   res: Response,
-  next: NextFunction
-) => {
-  console.error('Error:', err);
-  console.error('Error stack:', err.stack);
+  _next: NextFunction
+): void => {
+  const requestId = getRequestId(req);
+  const meta: Record<string, unknown> = { requestId };
+  if (DEV && err.stack) meta.stack = err.stack;
 
-  // Zod validation errors - format nicely
-  if (err instanceof ZodError) {
-    const formattedErrors = err.errors.map((error) => ({
-      field: error.path.join('.'),
-      message: error.message,
-      code: error.code,
-    }));
+  logger.error(err.message, { ...meta, name: err.name });
 
-    return res.status(400).json({
-      error: 'Błąd walidacji danych',
-      message: 'Sprawdź wprowadzone dane',
-      details: formattedErrors,
-    });
+  if (DEV) {
+    // eslint-disable-next-line no-console
+    console.error(err.stack);
   }
 
-  // Prisma errors - differentiate by error code
+  const base = { requestId };
+
+  if (err instanceof ZodError) {
+    const details = err.errors.map((e) => ({
+      field: e.path.join('.'),
+      message: e.message,
+      code: e.code,
+    }));
+    sendError(res, 400, {
+      ...base,
+      code: 'VALIDATION_ERROR',
+      message: 'Błąd walidacji danych. Sprawdź wprowadzone dane.',
+      details,
+    });
+    return;
+  }
+
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
     switch (err.code) {
-      case 'P2002':
-        // Unique constraint violation
-        const target = (err.meta as any)?.target as string[] | undefined;
-        const field = target?.[0] || 'pole';
-        return res.status(409).json({
-          error: 'Konflikt danych',
-          message: `Wartość w polu "${field}" już istnieje w bazie danych`,
-          field,
+      case 'P2002': {
+        const target = (err.meta as { target?: string[] })?.target;
+        const field = target?.[0] ?? 'pole';
+        sendError(res, 409, {
+          ...base,
+          code: 'CONFLICT',
+          message: `Wartość w polu "${field}" już istnieje w bazie danych.`,
+          details: { field },
         });
-
+        return;
+      }
       case 'P2025':
-        // Record not found
-        return res.status(404).json({
-          error: 'Nie znaleziono',
-          message: 'Rekord nie został znaleziony w bazie danych',
+        sendError(res, 404, {
+          ...base,
+          code: 'NOT_FOUND',
+          message: 'Rekord nie został znaleziony w bazie danych.',
         });
-
+        return;
       case 'P2003':
-        // Foreign key constraint violation
-        return res.status(400).json({
-          error: 'Błąd relacji',
-          message: 'Nie można wykonać operacji - istnieją powiązane rekordy',
+        sendError(res, 400, {
+          ...base,
+          code: 'RELATION_ERROR',
+          message: 'Nie można wykonać operacji – istnieją powiązane rekordy.',
         });
-
+        return;
       case 'P2014':
-        // Required relation violation
-        return res.status(400).json({
-          error: 'Błąd relacji',
-          message: 'Wymagana relacja nie została spełniona',
+        sendError(res, 400, {
+          ...base,
+          code: 'RELATION_ERROR',
+          message: 'Wymagana relacja nie została spełniona.',
         });
-
+        return;
       default:
-        return res.status(400).json({
-          error: 'Błąd bazy danych',
-          message: err.message,
-          code: err.code,
+        sendError(res, 400, {
+          ...base,
+          code: 'DATABASE_ERROR',
+          message: DEV ? err.message : 'Błąd bazy danych.',
         });
+        return;
     }
   }
 
-  // Prisma validation errors
   if (err instanceof Prisma.PrismaClientValidationError) {
-    return res.status(400).json({
-      error: 'Błąd walidacji bazy danych',
-      message: 'Nieprawidłowe dane dla operacji na bazie danych',
+    sendError(res, 400, {
+      ...base,
+      code: 'VALIDATION_ERROR',
+      message: 'Nieprawidłowe dane dla operacji na bazie danych.',
     });
+    return;
   }
 
-  // JWT errors
   if (err.name === 'JsonWebTokenError') {
-    return res.status(401).json({
-      error: 'Nieprawidłowy token',
-      message: 'Token autoryzacyjny jest nieprawidłowy',
+    sendError(res, 401, {
+      ...base,
+      code: 'INVALID_TOKEN',
+      message: 'Token autoryzacyjny jest nieprawidłowy.',
     });
+    return;
   }
 
   if (err.name === 'TokenExpiredError') {
-    return res.status(401).json({
-      error: 'Token wygasł',
-      message: 'Token autoryzacyjny wygasł. Zaloguj się ponownie',
+    sendError(res, 401, {
+      ...base,
+      code: 'TOKEN_EXPIRED',
+      message: 'Token autoryzacyjny wygasł. Zaloguj się ponownie.',
     });
+    return;
   }
 
-  // Default error
-  res.status(500).json({
-    error: 'Wewnętrzny błąd serwera',
-    message: process.env.NODE_ENV === 'development' ? err.message : 'Wystąpił nieoczekiwany błąd',
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+  sendError(res, 500, {
+    ...base,
+    code: 'INTERNAL_ERROR',
+    message: DEV ? err.message : 'Wystąpił nieoczekiwany błąd.',
+    ...(DEV && err.stack ? { stack: err.stack } : {}),
   });
 };
-
-

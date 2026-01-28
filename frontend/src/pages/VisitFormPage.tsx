@@ -23,6 +23,7 @@ import { Save, ArrowBack } from '@mui/icons-material';
 import { api } from '../services/api';
 import { useNotification } from '../hooks/useNotification';
 import { VISIT_STATUS_CONFIG } from '../constants/visitStatus';
+import { formatDateTimeLocal } from '../utils/dateFormat';
 
 export default function VisitFormPage() {
   const { id, patientId } = useParams<{ id?: string; patientId?: string }>();
@@ -43,15 +44,7 @@ export default function VisitFormPage() {
 
   const [formData, setFormData] = useState({
     patientId: actualPatientId || '',
-    data: (() => {
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const day = String(now.getDate()).padStart(2, '0');
-      const hours = String(now.getHours()).padStart(2, '0');
-      const minutes = String(now.getMinutes()).padStart(2, '0');
-      return `${year}-${month}-${day}T${hours}:${minutes}`;
-    })(),
+    data: formatDateTimeLocal(new Date()),
     rodzajZabiegu: '',
     notatki: '',
     status: 'ZAPLANOWANA' as 'ZAPLANOWANA' | 'ODBYTA' | 'NIEOBECNOSC' | 'ANULOWANA',
@@ -104,18 +97,9 @@ export default function VisitFormPage() {
         return;
       }
 
-      // Format date for datetime-local input (use UTC to preserve exact time)
-      const visitDate = new Date(visit.data);
-      const year = visitDate.getUTCFullYear();
-      const month = String(visitDate.getUTCMonth() + 1).padStart(2, '0');
-      const day = String(visitDate.getUTCDate()).padStart(2, '0');
-      const hours = String(visitDate.getUTCHours()).padStart(2, '0');
-      const minutes = String(visitDate.getUTCMinutes()).padStart(2, '0');
-      const formattedDate = `${year}-${month}-${day}T${hours}:${minutes}`;
-
       setFormData({
         patientId: visit.patientId,
-        data: formattedDate,
+        data: formatDateTimeLocal(visit.data),
         rodzajZabiegu: visit.rodzajZabiegu || '',
         notatki: visit.notatki || '',
         status: visit.status || 'ZAPLANOWANA',

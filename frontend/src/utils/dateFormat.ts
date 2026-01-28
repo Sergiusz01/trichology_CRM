@@ -1,77 +1,120 @@
 /**
- * Centralized date/time formatting utilities
- * Ensures consistent date/time formatting and timezone handling across the application
+ * Centralized date/time formatting utilities.
+ * All UI dates/times use Europe/Warsaw. API stores UTC.
  */
 
+const TZ = 'Europe/Warsaw';
+
+const dateOpts: Intl.DateTimeFormatOptions = {
+  timeZone: TZ,
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+};
+
+const dateTimeOpts: Intl.DateTimeFormatOptions = {
+  ...dateOpts,
+  hour: '2-digit',
+  minute: '2-digit',
+};
+
+const dateTimeSecOpts: Intl.DateTimeFormatOptions = {
+  ...dateTimeOpts,
+  second: '2-digit',
+};
+
 /**
- * Format date as DD.MM.YYYY (Polish format)
+ * Format date as DD.MM.YYYY (Europe/Warsaw)
  */
 export const formatDate = (date: Date | string | null | undefined): string => {
   if (!date) return '-';
-  return new Date(date).toLocaleDateString('pl-PL', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
+  return new Date(date).toLocaleDateString('pl-PL', dateOpts);
 };
 
 /**
- * Format date and time as DD.MM.YYYY, HH:MM (Polish format)
+ * Format date and time as DD.MM.YYYY, HH:MM (Europe/Warsaw)
  */
 export const formatDateTime = (date: Date | string | null | undefined): string => {
   if (!date) return '-';
-  return new Date(date).toLocaleString('pl-PL', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  return new Date(date).toLocaleString('pl-PL', dateTimeOpts);
 };
 
 /**
- * Format date and time with seconds as DD.MM.YYYY, HH:MM:SS (Polish format)
+ * Format date and time with seconds as DD.MM.YYYY, HH:MM:SS (Europe/Warsaw)
  */
 export const formatDateTimeWithSeconds = (date: Date | string | null | undefined): string => {
   if (!date) return '-';
-  return new Date(date).toLocaleString('pl-PL', {
-    day: '2-digit',
-    month: '2-digit',
+  return new Date(date).toLocaleString('pl-PL', dateTimeSecOpts);
+};
+
+/**
+ * Format UTC date for datetime-local input (YYYY-MM-DDTHH:mm) in Europe/Warsaw.
+ */
+export const formatDateTimeLocal = (dateString: string | Date): string => {
+  const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: TZ,
     year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
-    second: '2-digit',
+    hour12: false,
+  }).formatToParts(date);
+  const get = (k: string) => parts.find((p) => p.type === k)?.value ?? '';
+  const year = get('year');
+  const month = get('month');
+  const day = get('day');
+  const hour = get('hour');
+  const minute = get('minute');
+  return `${year}-${month}-${day}T${hour}:${minute}`;
+};
+
+/**
+ * Format time as HH:MM (Europe/Warsaw)
+ */
+export const formatTime = (date: Date | string | null | undefined): string => {
+  if (!date) return '-';
+  return new Date(date).toLocaleTimeString('pl-PL', {
+    timeZone: TZ,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
   });
 };
 
 /**
- * Format date for datetime-local input (YYYY-MM-DDTHH:mm)
- * Preserves local timezone
+ * Format short date as "DD MMM" (Europe/Warsaw), e.g. "15 sty"
  */
-export const formatDateTimeLocal = (dateString: string | Date): string => {
-  const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
+export const formatDateShort = (date: Date | string | null | undefined): string => {
+  if (!date) return '-';
+  const d = new Date(date);
+  const parts = new Intl.DateTimeFormat('pl-PL', {
+    timeZone: TZ,
+    day: '2-digit',
+    month: 'short',
+  }).formatToParts(d);
+  const get = (k: string) => parts.find((p) => p.type === k)?.value ?? '';
+  return `${get('day')} ${get('month')}`;
 };
 
 /**
- * Format date for date input (YYYY-MM-DD)
+ * Format date for date input YYYY-MM-DD (Europe/Warsaw)
  */
 export const formatDateInput = (date: Date | string | null | undefined): string => {
   if (!date) return '';
-  const d = new Date(date);
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date(date));
+  const get = (k: string) => parts.find((p) => p.type === k)?.value ?? '';
+  return `${get('year')}-${get('month')}-${get('day')}`;
 };
 
 /**
- * Get relative time string (e.g., "2 dni temu", "za 3 godziny")
+ * Get relative time string (e.g. "2 dni temu", "za 3 godziny")
  */
 export const formatRelativeTime = (date: Date | string | null | undefined): string => {
   if (!date) return '-';
@@ -82,32 +125,27 @@ export const formatRelativeTime = (date: Date | string | null | undefined): stri
   const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
   const diffMinutes = Math.floor(diffMs / (1000 * 60));
 
-  if (Math.abs(diffDays) > 7) {
-    return formatDate(date);
-  }
+  if (Math.abs(diffDays) > 7) return formatDate(date);
 
   if (Math.abs(diffDays) >= 1) {
     if (diffDays > 0) {
       return `za ${diffDays} ${diffDays === 1 ? 'dzień' : diffDays < 5 ? 'dni' : 'dni'}`;
-    } else {
-      return `${Math.abs(diffDays)} ${Math.abs(diffDays) === 1 ? 'dzień' : Math.abs(diffDays) < 5 ? 'dni' : 'dni'} temu`;
     }
+    return `${Math.abs(diffDays)} ${Math.abs(diffDays) === 1 ? 'dzień' : Math.abs(diffDays) < 5 ? 'dni' : 'dni'} temu`;
   }
 
   if (Math.abs(diffHours) >= 1) {
     if (diffHours > 0) {
       return `za ${diffHours} ${diffHours === 1 ? 'godzinę' : diffHours < 5 ? 'godziny' : 'godzin'}`;
-    } else {
-      return `${Math.abs(diffHours)} ${Math.abs(diffHours) === 1 ? 'godzinę' : Math.abs(diffHours) < 5 ? 'godziny' : 'godzin'} temu`;
     }
+    return `${Math.abs(diffHours)} ${Math.abs(diffHours) === 1 ? 'godzinę' : Math.abs(diffHours) < 5 ? 'godziny' : 'godzin'} temu`;
   }
 
   if (Math.abs(diffMinutes) >= 1) {
     if (diffMinutes > 0) {
-      return `za ${diffMinutes} ${diffMinutes === 1 ? 'minutę' : diffMinutes < 5 ? 'minuty' : 'minut'} temu`;
-    } else {
-      return `${Math.abs(diffMinutes)} ${Math.abs(diffMinutes) === 1 ? 'minutę' : Math.abs(diffMinutes) < 5 ? 'minuty' : 'minut'} temu`;
+      return `za ${diffMinutes} ${diffMinutes === 1 ? 'minutę' : diffMinutes < 5 ? 'minuty' : 'minut'}`;
     }
+    return `${Math.abs(diffMinutes)} ${Math.abs(diffMinutes) === 1 ? 'minutę' : Math.abs(diffMinutes) < 5 ? 'minuty' : 'minut'} temu`;
   }
 
   return 'teraz';

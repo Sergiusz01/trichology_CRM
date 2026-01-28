@@ -7,6 +7,7 @@ import { writeAuditLog } from '../services/auditService';
 import { sendEmail } from '../services/emailService';
 import { generateVisitICS, generateGoogleCalendarURL, generateOutlookCalendarURL } from '../utils/icalendar';
 import { getLogoHTML } from '../utils/logo';
+import { parseWarsawToUtc, startOfTodayWarsaw, weekRangeWarsaw } from '../utils/warsawTz';
 
 const router = express.Router();
 
@@ -62,11 +63,10 @@ router.get('/patient/:id', authenticate, async (req: AuthRequest, res, next) => 
   }
 });
 
-// Get upcoming visits (for dashboard) - next 6 visits from today with status ZAPLANOWANA
+// Get upcoming visits (for dashboard) - next 6 visits from today (Europe/Warsaw) with status ZAPLANOWANA
 router.get('/upcoming', authenticate, async (req: AuthRequest, res, next) => {
   try {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = startOfTodayWarsaw();
 
     const visits = await prisma.visit.findMany({
       where: {
@@ -94,17 +94,10 @@ router.get('/upcoming', authenticate, async (req: AuthRequest, res, next) => {
   }
 });
 
-// Get weekly revenue statistics
+// Get weekly revenue statistics (week = Mon–Sun in Europe/Warsaw)
 router.get('/stats/weekly-revenue', authenticate, async (req: AuthRequest, res, next) => {
   try {
-    const today = new Date();
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday
-    startOfWeek.setHours(0, 0, 0, 0);
-    
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 6); // Sunday
-    endOfWeek.setHours(23, 59, 59, 999);
+    const { start: startOfWeek, end: endOfWeek } = weekRangeWarsaw();
 
     // Planned revenue (ZAPLANOWANA visits this week)
     const plannedVisits = await prisma.visit.findMany({
@@ -214,27 +207,9 @@ router.post('/', authenticate, async (req: AuthRequest, res, next) => {
       return res.status(404).json({ error: 'Pacjent nie znaleziony' });
     }
 
-    // Parse the date - the frontend sends a local datetime string (YYYY-MM-DDTHH:mm)
-    // The datetime-local input gives us local time without timezone info
-    // We need to treat it as UTC to preserve the exact hour/minute the user selected
-    // This way, when displayed back, it will show the same hour/minute
-    let visitDate: Date;
-    if (data.data.includes('T')) {
-      // Format: YYYY-MM-DDTHH:mm (datetime-local format)
-      // Parse as UTC to preserve the exact time the user entered
-      const [datePart, timePart] = data.data.split('T');
-      const [year, month, day] = datePart.split('-').map(Number);
-      const [hours, minutes] = timePart.split(':').map(Number);
-      
-      // Create date as UTC to preserve the exact hour/minute
-      // This ensures that when read back and displayed, it shows the same time
-      visitDate = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0, 0));
-    } else {
-      visitDate = new Date(data.data);
-    }
-
+    // Parse the date as Europe/Warsaw local (YYYY-MM-DDTHH:mm), store as UTC
+    const visitDate = parseWarsawToUtc(data.data);
     const now = new Date();
-    now.setSeconds(0, 0); // Remove seconds and milliseconds for comparison
 
     // Validate: Planned visits cannot be in the past
     const status = (data.status || 'ZAPLANOWANA') as VisitStatus;
@@ -313,29 +288,11 @@ router.put('/:id', authenticate, requireWriteAccess(), async (req: AuthRequest, 
       return res.status(404).json({ error: 'Wizyta nie znaleziona' });
     }
 
-    // Parse date if provided
+    // Parse date if provided (Europe/Warsaw local → UTC)
     const updateData: any = {};
     if (data.data) {
-      // Parse the date - the frontend sends a local datetime string (YYYY-MM-DDTHH:mm)
-      // The datetime-local input gives us local time without timezone info
-      // We need to treat it as UTC to preserve the exact hour/minute the user selected
-      let visitDate: Date;
-      if (data.data.includes('T')) {
-        // Format: YYYY-MM-DDTHH:mm (datetime-local format)
-        // Parse as UTC to preserve the exact time the user entered
-        const [datePart, timePart] = data.data.split('T');
-        const [year, month, day] = datePart.split('-').map(Number);
-        const [hours, minutes] = timePart.split(':').map(Number);
-        
-        // Create date as UTC to preserve the exact hour/minute
-        // This ensures that when read back and displayed, it shows the same time
-        visitDate = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0, 0));
-      } else {
-        visitDate = new Date(data.data);
-      }
-
+      const visitDate = parseWarsawToUtc(data.data);
       const now = new Date();
-      now.setSeconds(0, 0); // Remove seconds and milliseconds for comparison
 
       // Validate: Planned visits cannot be in the past
       const newStatus = (data.status || existingVisit.status) as VisitStatus;

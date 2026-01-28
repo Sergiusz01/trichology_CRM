@@ -56,56 +56,12 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
-import { format } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { useNotification } from '../hooks/useNotification';
-
-interface DashboardStats {
-    patientsCount: number;
-    consultationsCount: number;
-    emailsSentCount: number;
-    patientsThisWeek: number;
-    consultationsThisWeek: number;
-    patientsWithoutConsultation: number;
-}
-
-interface RecentActivity {
-    id: string;
-    type: 'PATIENT' | 'PATIENT_EDIT' | 'CONSULTATION' | 'CONSULTATION_EDIT' | 'VISIT' | 'VISIT_EDIT' | 'LAB_RESULT' | 'LAB_RESULT_EDIT' | 'SCALP_PHOTO' | 'CARE_PLAN' | 'CARE_PLAN_EDIT' | 'EMAIL';
-    title: string;
-    subtitle: string;
-    date: string;
-    link: string;
-}
-
-interface UpcomingVisit {
-    id: string;
-    data: string;
-    rodzajZabiegu: string;
-    status: string;
-    numerWSerii?: number;
-    liczbaSerii?: number;
-    cena?: number;
-    patient: {
-        id: string;
-        firstName: string;
-        lastName: string;
-    };
-}
-
-interface WeeklyRevenue {
-    plannedRevenue: number;
-    completedRevenue: number;
-    totalExpectedRevenue: number;
-    visitsThisWeek: {
-        zaplanowana: number;
-        odbyta: number;
-        nieobecnosc: number;
-        anulowana: number;
-    };
-}
-
+import { formatTime, formatDateShort, formatDateInput } from '../utils/dateFormat';
 import { VISIT_STATUS_CONFIG } from '../constants/visitStatus';
+import type { DashboardStats, RecentActivity, UpcomingVisit, WeeklyRevenue } from '../types/api';
 
 export default function DashboardPage() {
     const theme = useTheme();
@@ -245,22 +201,16 @@ export default function DashboardPage() {
                 visitsThisWeek: { zaplanowana: 0, odbyta: 0, nieobecnosc: 0, anulowana: 0 },
             });
 
-            // Podziel wizyty na dzisiejsze i jutrzejsze
-            const now = new Date();
-            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            const tomorrow = new Date(today);
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            const dayAfterTomorrow = new Date(tomorrow);
-            dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
+            // Podziel wizyty na dzisiejsze i jutrzejsze (daty w Europe/Warsaw)
+            const todayStr = formatDateInput(new Date());
+            const tomorrowStr = formatDateInput(addDays(new Date(), 1));
 
             const todayVisitsList = visits.filter((visit: UpcomingVisit) => {
-                const visitDate = new Date(visit.data);
-                return visitDate >= today && visitDate < tomorrow;
+                return formatDateInput(visit.data) === todayStr;
             });
 
             const tomorrowVisitsList = visits.filter((visit: UpcomingVisit) => {
-                const visitDate = new Date(visit.data);
-                return visitDate >= tomorrow && visitDate < dayAfterTomorrow;
+                return formatDateInput(visit.data) === tomorrowStr;
             });
 
             setTodayVisits(todayVisitsList);
@@ -346,19 +296,8 @@ export default function DashboardPage() {
         return () => clearTimeout(timeoutId);
     }, [searchQuery]);
 
-    const formatVisitTime = (dateString: string): string => {
-        const date = new Date(dateString);
-        const hours = String(date.getUTCHours()).padStart(2, '0');
-        const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-        return `${hours}:${minutes}`;
-    };
-
-    const formatVisitDate = (dateString: string): string => {
-        const date = new Date(dateString);
-        const day = String(date.getUTCDate()).padStart(2, '0');
-        const month = format(date, 'MMM', { locale: pl });
-        return `${day} ${month}`;
-    };
+    const formatVisitTime = (dateString: string): string => formatTime(dateString);
+    const formatVisitDate = (dateString: string): string => formatDateShort(dateString);
 
     if (loading) {
         return (
@@ -748,28 +687,27 @@ export default function DashboardPage() {
                 </Grid>
             </Grid>
 
-            {/* Today & Tomorrow Visits */}
-            {(todayVisits.length > 0 || tomorrowVisits.length > 0 || upcomingVisits.length > 0) && (
-                <Box id="visits" sx={{ mb: 4, px: { xs: 1, sm: 0 } }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                        <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                            Nadchodzące wizyty
-                        </Typography>
-                        <Button
-                            variant="outlined"
-                            startIcon={<Add />}
-                            onClick={() => navigate('/patients')}
-                            size="small"
-                            sx={{
-                                textTransform: 'none',
-                                fontWeight: 600,
-                                borderRadius: 2,
-                            }}
-                        >
-                            Dodaj wizytę
-                        </Button>
-                    </Box>
-                    <Grid container spacing={3}>
+            {/* Nadchodzące wizyty – zawsze widoczne, empty state gdy 0 */}
+            <Box id="visits" sx={{ mb: 4, px: { xs: 1, sm: 0 } }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                        Nadchodzące wizyty
+                    </Typography>
+                    <Button
+                        variant="outlined"
+                        startIcon={<Add />}
+                        onClick={() => navigate('/patients')}
+                        size="small"
+                        sx={{
+                            textTransform: 'none',
+                            fontWeight: 600,
+                            borderRadius: 2,
+                        }}
+                    >
+                        Dodaj wizytę
+                    </Button>
+                </Box>
+                <Grid container spacing={3}>
                         {todayVisits.length > 0 && (
                             <Grid size={{ xs: 12, md: 6 }}>
                                 <Paper
@@ -1081,9 +1019,35 @@ export default function DashboardPage() {
                                             </Paper>
                                         </Grid>
                                     )}
-                                </Grid>
-                            </Box>
+                        {todayVisits.length === 0 && tomorrowVisits.length === 0 && upcomingVisits.length === 0 && (
+                            <Grid size={{ xs: 12 }}>
+                                <Paper
+                                    sx={{
+                                        p: 4,
+                                        textAlign: 'center',
+                                        background: 'white',
+                                        borderRadius: 3,
+                                        border: '1px dashed',
+                                        borderColor: alpha('#1976d2', 0.4),
+                                    }}
+                                >
+                                    <CalendarToday sx={{ fontSize: 48, color: alpha('#1976d2', 0.5), mb: 1 }} />
+                                    <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+                                        Brak nadchodzących wizyt. Użyj przycisku „Dodaj wizytę”, aby zaplanować wizytę.
+                                    </Typography>
+                                    <Button
+                                        variant="contained"
+                                        startIcon={<Add />}
+                                        onClick={() => navigate('/patients')}
+                                        sx={{ textTransform: 'none', fontWeight: 600 }}
+                                    >
+                                        Dodaj wizytę
+                                    </Button>
+                                </Paper>
+                            </Grid>
                         )}
+                </Grid>
+            </Box>
 
             {/* Patients Needing Attention */}
             {(patientsNeedingAttention.length > 0 || inactivePatientsList.length > 0) && (

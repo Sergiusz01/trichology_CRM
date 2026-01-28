@@ -87,21 +87,7 @@ interface Visit {
 }
 
 import { VISIT_STATUS_CONFIG } from '../constants/visitStatus';
-
-// Helper function to format date for datetime-local input
-// Backend stores dates as UTC but representing the exact hour/minute entered
-// We need to extract UTC hours/minutes to preserve the exact time
-const formatDateTimeLocal = (dateString: string): string => {
-  const date = new Date(dateString);
-  // Use UTC methods to get the exact hour/minute that was stored
-  // This preserves the time the user originally entered
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(date.getUTCDate()).padStart(2, '0');
-  const hours = String(date.getUTCHours()).padStart(2, '0');
-  const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
-};
+import { formatDateTimeLocal, formatDate, formatTime } from '../utils/dateFormat';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -1838,23 +1824,10 @@ export default function PatientDetailPage() {
                         <TableRow key={visit.id} hover>
                           <TableCell>
                             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                              {(() => {
-                                const date = new Date(visit.data);
-                                return date.toLocaleDateString('pl-PL', {
-                                  year: 'numeric',
-                                  month: 'long',
-                                  day: 'numeric',
-                                });
-                              })()}
+                              {formatDate(visit.data)}
                             </Typography>
                             <Typography variant="caption" sx={{ color: '#86868b' }}>
-                              {(() => {
-                                const date = new Date(visit.data);
-                                // Use UTC hours/minutes to preserve the exact time stored
-                                const hours = String(date.getUTCHours()).padStart(2, '0');
-                                const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-                                return `${hours}:${minutes}`;
-                              })()}
+                              {formatTime(visit.data)}
                             </Typography>
                           </TableCell>
                           <TableCell>

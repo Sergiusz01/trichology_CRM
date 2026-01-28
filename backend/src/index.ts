@@ -17,6 +17,7 @@ import exportRoutes from './routes/export';
 import visitRoutes from './routes/visits';
 import dashboardRoutes from './routes/dashboard';
 import { errorHandler } from './middleware/errorHandler';
+import { requestIdMiddleware } from './middleware/requestId';
 import { startReminderWorker } from './services/reminderWorker';
 import { prisma } from './prisma';
 import { apiLimiter, authLimiter, refreshLimiter } from './middleware/rateLimit';
@@ -36,8 +37,9 @@ app.use(cors({
   origin: FRONTEND_URL,
   credentials: true,
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(requestIdMiddleware);
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // Serve static files from uploads directory
 const uploadDir = process.env.UPLOAD_DIR || './storage/uploads';
