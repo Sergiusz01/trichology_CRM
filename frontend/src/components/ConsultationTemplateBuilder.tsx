@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Grid2,
+  Grid,
   Chip,
   Stack,
   Switch,
@@ -227,8 +227,8 @@ export default function ConsultationTemplateBuilder({
       </Typography>
 
       <Paper sx={{ p: 3, mb: 3 }}>
-        <Grid2 container spacing={2}>
-          <Grid2 size={12}>
+        <Grid container spacing={2}>
+          <Grid item xs={12}>
             <TextField
               fullWidth
               label="Nazwa szablonu"
@@ -236,8 +236,8 @@ export default function ConsultationTemplateBuilder({
               onChange={(e) => setName(e.target.value)}
               required
             />
-          </Grid2>
-          <Grid2 size={12}>
+          </Grid>
+          <Grid item xs={12}>
             <FormControlLabel
               control={
                 <Switch
@@ -247,8 +247,8 @@ export default function ConsultationTemplateBuilder({
               }
               label="Ustaw jako domyślny"
             />
-          </Grid2>
-        </Grid2>
+          </Grid>
+        </Grid>
       </Paper>
 
       <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -341,8 +341,8 @@ export default function ConsultationTemplateBuilder({
           {editingFieldIndex !== null ? 'Edytuj pole' : 'Dodaj pole'}
         </DialogTitle>
         <DialogContent>
-          <Grid2 container spacing={2} sx={{ mt: 1 }}>
-            <Grid2 size={12}>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12}>
               <FormControl fullWidth required>
                 <InputLabel>Typ pytania</InputLabel>
                 <Select
@@ -363,8 +363,8 @@ export default function ConsultationTemplateBuilder({
                   ))}
                 </Select>
               </FormControl>
-            </Grid2>
-            <Grid2 size={12}>
+            </Grid>
+            <Grid item xs={12}>
               <TextField
                 fullWidth
                 label="Etykieta"
@@ -374,8 +374,8 @@ export default function ConsultationTemplateBuilder({
                 }
                 required
               />
-            </Grid2>
-            <Grid2 size={12}>
+            </Grid>
+            <Grid item xs={12}>
               <TextField
                 fullWidth
                 label="Klucz (identyfikator)"
@@ -386,8 +386,8 @@ export default function ConsultationTemplateBuilder({
                 required
                 helperText="Tylko litery, cyfry i podkreślenia"
               />
-            </Grid2>
-            <Grid2 size={12}>
+            </Grid>
+            <Grid item xs={12}>
               <TextField
                 fullWidth
                 label="Placeholder"
@@ -396,8 +396,8 @@ export default function ConsultationTemplateBuilder({
                   setCurrentField({ ...currentField, placeholder: e.target.value })
                 }
               />
-            </Grid2>
-            <Grid2 size={12}>
+            </Grid>
+            <Grid item xs={12}>
               <FormControlLabel
                 control={
                   <Switch
@@ -409,9 +409,9 @@ export default function ConsultationTemplateBuilder({
                 }
                 label="Pole wymagane"
               />
-            </Grid2>
+            </Grid>
             {(currentField.type === 'SELECT' || currentField.type === 'MULTISELECT') && (
-              <Grid2 size={12}>
+              <Grid item xs={12}>
                 <Divider sx={{ my: 2 }} />
                 <Typography variant="subtitle2" sx={{ mb: 1 }}>
                   Opcje wyboru
@@ -444,9 +444,9 @@ export default function ConsultationTemplateBuilder({
                     Dodaj opcję
                   </Button>
                 </Stack>
-              </Grid2>
+              </Grid>
             )}
-          </Grid2>
+          </Grid>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setFieldDialogOpen(false)} startIcon={<Cancel />}>
