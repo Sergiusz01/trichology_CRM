@@ -71,6 +71,40 @@ export const formatDateTimeLocal = (dateString: string | Date): string => {
 };
 
 /**
+ * Format date for datetime-local with minutes rounded to 00/15/30/45 (Europe/Warsaw, 24h).
+ * Use for visit/procedure time pickers with step="900".
+ */
+export const formatDateTimeLocalForPicker = (dateString: string | Date): string => {
+  const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(date);
+  const get = (k: string) => parts.find((p) => p.type === k)?.value ?? '';
+  let y = get('year');
+  let mo = get('month');
+  let d = get('day');
+  let h = parseInt(get('hour'), 10);
+  let m = Math.round(parseInt(get('minute'), 10) / 15) * 15;
+  if (m === 60) {
+    m = 0;
+    h += 1;
+  }
+  if (h === 24) {
+    h = 23;
+    m = 45;
+  }
+  const hour = String(h).padStart(2, '0');
+  const minute = String(m).padStart(2, '0');
+  return `${y}-${mo}-${d}T${hour}:${minute}`;
+};
+
+/**
  * Format time as HH:MM (Europe/Warsaw)
  */
 export const formatTime = (date: Date | string | null | undefined): string => {

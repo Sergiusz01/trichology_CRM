@@ -87,7 +87,7 @@ interface Visit {
 }
 
 import { VISIT_STATUS_CONFIG } from '../constants/visitStatus';
-import { formatDateTimeLocal, formatDate, formatTime } from '../utils/dateFormat';
+import { formatDateTimeLocalForPicker, formatDate, formatTime } from '../utils/dateFormat';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -449,21 +449,11 @@ export default function PatientDetailPage() {
   };
 
   const openAddVisitDialog = () => {
-    // Set default date to now in local time format
-    // Use local time for the default, but it will be stored as UTC preserving the hour/minute
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const localDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
-    
     setVisitDialog({
       open: true,
       mode: 'add',
       id: null,
-      data: localDateTime,
+      data: formatDateTimeLocalForPicker(new Date()),
       rodzajZabiegu: '',
       notatki: '',
       status: 'ZAPLANOWANA',
@@ -478,7 +468,7 @@ export default function PatientDetailPage() {
       open: true,
       mode: 'edit',
       id: visit.id,
-      data: formatDateTimeLocal(visit.data),
+      data: formatDateTimeLocalForPicker(visit.data),
       rodzajZabiegu: visit.rodzajZabiegu,
       notatki: visit.notatki || '',
       status: visit.status,
@@ -1970,7 +1960,9 @@ export default function PatientDetailPage() {
               onChange={(e) => setVisitDialog({ ...visitDialog, data: e.target.value })}
               fullWidth
               required
+              inputProps={{ step: 900 }}
               InputLabelProps={{ shrink: true }}
+              helperText="Format 24h, minuty: 00, 15, 30, 45"
             />
             <TextField
               label="Rodzaj zabiegu"

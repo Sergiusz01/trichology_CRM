@@ -23,7 +23,7 @@ import { Save, ArrowBack } from '@mui/icons-material';
 import { api } from '../services/api';
 import { useNotification } from '../hooks/useNotification';
 import { VISIT_STATUS_CONFIG } from '../constants/visitStatus';
-import { formatDateTimeLocal } from '../utils/dateFormat';
+import { formatDateTimeLocalForPicker } from '../utils/dateFormat';
 
 export default function VisitFormPage() {
   const { id, patientId } = useParams<{ id?: string; patientId?: string }>();
@@ -44,7 +44,7 @@ export default function VisitFormPage() {
 
   const [formData, setFormData] = useState({
     patientId: actualPatientId || '',
-    data: formatDateTimeLocal(new Date()),
+    data: formatDateTimeLocalForPicker(new Date()),
     rodzajZabiegu: '',
     notatki: '',
     status: 'ZAPLANOWANA' as 'ZAPLANOWANA' | 'ODBYTA' | 'NIEOBECNOSC' | 'ANULOWANA',
@@ -99,7 +99,7 @@ export default function VisitFormPage() {
 
       setFormData({
         patientId: visit.patientId,
-        data: formatDateTimeLocal(visit.data),
+        data: formatDateTimeLocalForPicker(visit.data),
         rodzajZabiegu: visit.rodzajZabiegu || '',
         notatki: visit.notatki || '',
         status: visit.status || 'ZAPLANOWANA',
@@ -240,7 +240,7 @@ export default function VisitFormPage() {
                 </Grid>
               )}
 
-              {/* Date and Time */}
+              {/* Date and Time – 24h, minuty 00/15/30/45 */}
               <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
@@ -249,9 +249,9 @@ export default function VisitFormPage() {
                   value={formData.data}
                   onChange={(e) => handleChange('data', e.target.value)}
                   required
-                  InputLabelProps={{
-                    shrink: true,
-                  }}
+                  inputProps={{ step: 900 }}
+                  InputLabelProps={{ shrink: true }}
+                  helperText="Format 24h, minuty: 00, 15, 30, 45"
                 />
               </Grid>
 
