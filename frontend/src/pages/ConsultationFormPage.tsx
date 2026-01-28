@@ -16,12 +16,15 @@ import {
   Select,
   MenuItem,
   alpha,
+  Dialog,
+  DialogContent,
 } from '@mui/material';
-import { ExpandMore, Save, EventAvailable, Settings } from '@mui/icons-material';
+import { ExpandMore, Save, EventAvailable, Settings, Edit } from '@mui/icons-material';
 import { api } from '../services/api';
+import { useNotification } from '../hooks/useNotification';
 import MultiSelectCheckboxes from '../components/MultiSelectCheckboxes';
 import DynamicConsultationForm from '../components/DynamicConsultationForm';
-import { TemplateField } from '../components/ConsultationTemplateBuilder';
+import ConsultationTemplateBuilder, { TemplateField } from '../components/ConsultationTemplateBuilder';
 
 export default function ConsultationFormPage() {
   const { id, patientId } = useParams<{ id?: string; patientId?: string }>();
@@ -44,6 +47,8 @@ export default function ConsultationFormPage() {
   const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
   const [templates, setTemplates] = useState<any[]>([]);
   const [useTemplate, setUseTemplate] = useState(false);
+  const [editTemplateOpen, setEditTemplateOpen] = useState(false);
+  const { success: showSuccess, error: showError } = useNotification();
 
   useEffect(() => {
     // Only fetch consultation if we're editing an existing one (not creating new)
@@ -69,6 +74,17 @@ export default function ConsultationFormPage() {
       if (defaultTemplate) {
         setSelectedTemplate(defaultTemplate);
         setUseTemplate(true);
+        // Initialize form data with template defaults
+        const initialData: any = {
+          patientId: actualPatientId || '',
+          consultationDate: new Date().toISOString().split('T')[0],
+        };
+        defaultTemplate.fields.forEach((field: TemplateField) => {
+          if (field.defaultValue !== undefined) {
+            initialData[field.key] = field.defaultValue;
+          }
+        });
+        setFormData(initialData);
       }
     } catch (error) {
       console.error('Błąd pobierania szablonów:', error);
@@ -229,11 +245,14 @@ export default function ConsultationFormPage() {
       const dynamicData: Record<string, any> = {};
       selectedTemplate.fields.forEach((field: TemplateField) => {
         const value = formData[field.key];
+        // Include value if it's not undefined/null/empty string, or if it's an array/boolean
         if (value !== undefined && value !== null && value !== '') {
+          dynamicData[field.key] = value;
+        } else if (typeof value === 'boolean' || Array.isArray(value)) {
           dynamicData[field.key] = value;
         }
       });
-      dataToSend.dynamicData = dynamicData;
+      dataToSend.dynamicData = Object.keys(dynamicData).length > 0 ? dynamicData : undefined;
     }
 
     // Copy only defined fields and handle conversions (for standard form)
@@ -402,13 +421,13 @@ export default function ConsultationFormPage() {
       )}
 
       {/* Template Selection for New Consultations */}
-      {isNewConsultation && templates.length > 0 && (
+      {isNewConsultation && templates.length > 0 && !useTemplate && (
         <Paper sx={{ p: 2, mb: 3 }}>
           <FormControl fullWidth sx={{ mb: 2 }}>
-            <InputLabel>Wybierz szablon (opcjonalnie)</InputLabel>
+            <InputLabel>Wybierz szablon</InputLabel>
             <Select
               value={selectedTemplate?.id || ''}
-              label="Wybierz szablon (opcjonalnie)"
+              label="Wybierz szablon"
               onChange={(e) => {
                 const template = templates.find((t: any) => t.id === e.target.value);
                 setSelectedTemplate(template || null);
@@ -428,9 +447,6 @@ export default function ConsultationFormPage() {
                 }
               }}
             >
-              <MenuItem value="">
-                <em>Brak szablonu (standardowy formularz)</em>
-              </MenuItem>
               {templates.map((template: any) => (
                 <MenuItem key={template.id} value={template.id}>
                   {template.name} {template.isDefault && '(Domyślny)'}
@@ -460,9 +476,21 @@ export default function ConsultationFormPage() {
         {/* Dynamic Form Based on Template */}
         {useTemplate && selectedTemplate && selectedTemplate.fields && (
           <Paper sx={{ p: { xs: 2, sm: 3 }, mb: { xs: 2, sm: 3 }, borderRadius: 2 }}>
-            <Typography variant="h6" sx={{ mb: 2 }}>
-              {selectedTemplate.name}
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h6">
+                {selectedTemplate.name}
+              </Typography>
+              {selectedTemplate.isDefault && (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<Edit />}
+                  onClick={() => setEditTemplateOpen(true)}
+                >
+                  Edytuj strukturę arkusza
+                </Button>
+              )}
+            </Box>
             <DynamicConsultationForm
               fields={selectedTemplate.fields}
               formData={formData}
@@ -1429,7 +1457,11 @@ export default function ConsultationFormPage() {
           </AccordionDetails>
         </Accordion>
 
-        <Box sx={{ mt: 3, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+          </>
+        )}
+
+        {/* Submit Button */}
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 3 }}>
           <Button
             variant="outlined"
             onClick={() => navigate(-1)}
@@ -1442,26 +1474,46 @@ export default function ConsultationFormPage() {
             variant="contained"
             startIcon={<Save />}
             disabled={loading}
-          >
-            {loading ? 'Zapisywanie...' : 'Zapisz'}
-          </Button>
-        </Box>
-          </>
-        )}
-
-        {/* Submit Button */}
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 3 }}>
-          <Button
-            type="submit"
-            variant="contained"
-            startIcon={<Save />}
-            disabled={loading}
             sx={{ minWidth: 150 }}
           >
             {loading ? 'Zapisywanie...' : 'Zapisz konsultację'}
           </Button>
         </Box>
       </form>
+
+      {/* Edit Template Dialog */}
+      {editTemplateOpen && selectedTemplate && (
+        <Dialog
+          open={editTemplateOpen}
+          onClose={() => setEditTemplateOpen(false)}
+          maxWidth="lg"
+          fullWidth
+          PaperProps={{
+            sx: {
+              height: '90vh',
+              maxHeight: '90vh',
+            },
+          }}
+        >
+          <DialogContent sx={{ p: 0, overflow: 'auto' }}>
+            <ConsultationTemplateBuilder
+              template={selectedTemplate}
+              onSave={async (template) => {
+                try {
+                  await api.put(`/consultation-templates/${template.id}`, template);
+                  showSuccess('Szablon zaktualizowany');
+                  setEditTemplateOpen(false);
+                  await fetchTemplates(); // Reload templates
+                } catch (error: any) {
+                  const errorMessage = error.response?.data?.error || 'Błąd zapisywania szablonu';
+                  showError(errorMessage);
+                }
+              }}
+              onCancel={() => setEditTemplateOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </Box>
   );
 }
