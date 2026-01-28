@@ -567,7 +567,7 @@ export default function DashboardPage() {
                             onClick={() => stat.link.startsWith('#') ? null : navigate(stat.link)}
                             sx={{
                                 position: 'relative',
-                                overflow: 'visible',
+                                overflow: 'hidden',
                                 borderRadius: 3,
                                 border: '1px solid',
                                 borderColor: 'divider',
@@ -592,7 +592,7 @@ export default function DashboardPage() {
                                 },
                             }}
                         >
-                            <CardContent sx={{ p: 3 }}>
+                            <CardContent sx={{ p: 3, overflow: 'hidden' }}>
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                                     <Box
                                         sx={{
@@ -622,24 +622,25 @@ export default function DashboardPage() {
                                 <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, mb: 1 }}>
                                     {stat.title}
                                 </Typography>
-                                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
+                                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500, mb: stat.progress > 0 ? 2 : 0, display: 'block' }}>
                                     {stat.subtitle}
                                 </Typography>
                                 {stat.progress > 0 && (
-                                    <LinearProgress
-                                        variant="determinate"
-                                        value={Math.min(stat.progress, 100)}
-                                        sx={{
-                                            mt: 2.5,
-                                            height: 8,
-                                            borderRadius: 4,
-                                            bgcolor: alpha(stat.color, 0.1),
-                                            '& .MuiLinearProgress-bar': {
-                                                background: stat.color,
+                                    <Box sx={{ mt: 2, width: '100%', overflow: 'hidden', borderRadius: 1 }}>
+                                        <LinearProgress
+                                            variant="determinate"
+                                            value={Math.min(stat.progress, 100)}
+                                            sx={{
+                                                height: 8,
                                                 borderRadius: 4,
-                                            },
-                                        }}
-                                    />
+                                                bgcolor: alpha(stat.color, 0.1),
+                                                '& .MuiLinearProgress-bar': {
+                                                    background: stat.color,
+                                                    borderRadius: 4,
+                                                },
+                                            }}
+                                        />
+                                    </Box>
                                 )}
                             </CardContent>
                         </Card>
@@ -647,9 +648,8 @@ export default function DashboardPage() {
                 ))}
             </Grid>
 
-            {/* Quick Actions & Revenue */}
+            {/* Quick Actions */}
             <Grid container spacing={3} sx={{ mb: 4, px: { xs: 1, sm: 0 } }}>
-                {/* Quick Actions */}
                 <Grid size={{ xs: 12, md: 4 }}>
                     <Paper
                         sx={{
@@ -744,84 +744,6 @@ export default function DashboardPage() {
                                 <ArrowForward sx={{ color: 'text.secondary', opacity: 0.5 }} />
                             </ListItemButton>
                         </List>
-                    </Paper>
-                </Grid>
-
-                {/* Weekly Revenue */}
-                <Grid size={{ xs: 12, md: 8 }}>
-                    <Paper
-                        sx={{
-                            p: { xs: 2.5, sm: 4 },
-                            height: '100%',
-                            borderRadius: 3,
-                            background: 'white',
-                            border: '1px solid',
-                            borderColor: 'divider',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                        }}
-                    >
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                            <AttachMoney sx={{ fontSize: 32, color: '#1976d2' }} />
-                            <Box>
-                                <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                                    Przychody w tym tygodniu
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                    {format(new Date(), 'dd MMM', { locale: pl })} - {format(new Date(Date.now() + 6 * 24 * 60 * 60 * 1000), 'dd MMM', { locale: pl })}
-                                </Typography>
-                            </Box>
-                        </Box>
-                        <Box sx={{ mb: 3 }}>
-                            <Typography variant="h3" sx={{ fontWeight: 600, mb: 0.5, color: 'text.primary' }}>
-                                {weeklyRevenue.totalExpectedRevenue.toFixed(0)} zł
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                Oczekiwany przychód
-                            </Typography>
-                        </Box>
-                        <Divider sx={{ my: 2 }} />
-                        <Grid container spacing={2}>
-                            <Grid size={{ xs: 6 }}>
-                                <Box>
-                                    <Typography variant="h5" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                                        {weeklyRevenue.completedRevenue.toFixed(0)} zł
-                                    </Typography>
-                                    <Typography variant="caption" color="text.secondary">
-                                        Zrealizowane
-                                    </Typography>
-                                </Box>
-                            </Grid>
-                            <Grid size={{ xs: 6 }}>
-                                <Box>
-                                    <Typography variant="h5" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                                        {weeklyRevenue.plannedRevenue.toFixed(0)} zł
-                                    </Typography>
-                                    <Typography variant="caption" color="text.secondary">
-                                        Zaplanowane
-                                    </Typography>
-                                </Box>
-                            </Grid>
-                            <Grid size={{ xs: 6 }}>
-                                <Box>
-                                    <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                                        {weeklyRevenue.visitsThisWeek.odbyta}
-                                    </Typography>
-                                    <Typography variant="caption" color="text.secondary">
-                                        Odbyte
-                                    </Typography>
-                                </Box>
-                            </Grid>
-                            <Grid size={{ xs: 6 }}>
-                                <Box>
-                                    <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                                        {weeklyRevenue.visitsThisWeek.zaplanowana}
-                                    </Typography>
-                                    <Typography variant="caption" color="text.secondary">
-                                        Zaplanowane
-                                    </Typography>
-                                </Box>
-                            </Grid>
-                        </Grid>
                     </Paper>
                 </Grid>
             </Grid>

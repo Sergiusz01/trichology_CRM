@@ -27,6 +27,7 @@ import {
   Email as EmailIcon,
   Dashboard as DashboardIcon,
   Description,
+  AttachMoney,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -35,6 +36,7 @@ const drawerWidth = 280;
 const menuItems = [
   { text: 'Panel główny', icon: <DashboardIcon />, path: '/' },
   { text: 'Pacjenci', icon: <People />, path: '/patients' },
+  { text: 'Przychody', icon: <AttachMoney />, path: '/revenue' },
   { text: 'Historia emaili', icon: <Email />, path: '/email/history' },
   { text: 'Szablony emaili', icon: <EmailIcon />, path: '/email/templates' },
   { text: 'Szablony konsultacji', icon: <Description />, path: '/consultation-templates' },

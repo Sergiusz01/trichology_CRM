@@ -28,6 +28,7 @@ const EmailHistoryPage = lazy(() => import('./pages/EmailHistoryPage'));
 const EmailTemplatesPage = lazy(() => import('./pages/EmailTemplatesPage'));
 const UserProfilePage = lazy(() => import('./pages/UserProfilePage'));
 const VisitFormPage = lazy(() => import('./pages/VisitFormPage'));
+const RevenuePage = lazy(() => import('./pages/RevenuePage'));
 
 // Loading component for Suspense fallback
 const PageLoader = () => (
@@ -82,6 +83,7 @@ function App() {
           <Route index element={<DashboardPage />} />
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="patients" element={<PatientsPage />} />
+          <Route path="revenue" element={<RevenuePage />} />
           <Route path="patients/new" element={<PatientFormPage />} />
           <Route path="patients/:id" element={<PatientDetailPage />} />
           <Route path="patients/:id/edit" element={<PatientFormPage />} />
