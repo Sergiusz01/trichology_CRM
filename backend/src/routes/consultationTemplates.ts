@@ -33,8 +33,45 @@ const templateSchema = z.object({
 router.get('/', authenticate, async (req: AuthRequest, res, next) => {
   try {
     const doctorId = req.user!.id;
-    console.log('[GET /consultation-templates] Doctor ID:', doctorId);
+    const userEmail = req.user!.email;
+    console.log('[GET /consultation-templates] Doctor ID:', doctorId, 'Email:', userEmail);
     
+    // First check if doctor has any templates
+    const doctorTemplates = await prisma.consultationTemplate.findMany({
+      where: {
+        doctorId,
+        isActive: true,
+      },
+    });
+    console.log('[GET /consultation-templates] Templates for this doctor:', doctorTemplates.length);
+    
+    // If no templates, check if there's a default template for any doctor and copy it
+    if (doctorTemplates.length === 0) {
+      console.log('[GET /consultation-templates] No templates found for doctor, checking for default template...');
+      const defaultTemplate = await prisma.consultationTemplate.findFirst({
+        where: {
+          isDefault: true,
+          isActive: true,
+        },
+      });
+      
+      if (defaultTemplate) {
+        console.log('[GET /consultation-templates] Found default template, creating copy for this doctor...');
+        // Create a copy of default template for this doctor
+        await prisma.consultationTemplate.create({
+          data: {
+            name: defaultTemplate.name,
+            doctorId: doctorId,
+            fields: defaultTemplate.fields as any,
+            isDefault: true,
+            isActive: true,
+          },
+        });
+        console.log('[GET /consultation-templates] Default template copied for doctor');
+      }
+    }
+    
+    // Now fetch templates again
     const templates = await prisma.consultationTemplate.findMany({
       where: {
         doctorId,
@@ -46,9 +83,9 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
       ],
     });
 
-    console.log('[GET /consultation-templates] Found templates:', templates.length);
+    console.log('[GET /consultation-templates] Returning templates:', templates.length);
     templates.forEach(t => {
-      console.log(`[GET /consultation-templates] Template: ${t.name}, isDefault: ${t.isDefault}, doctorId: ${t.doctorId}`);
+      console.log(`[GET /consultation-templates] Template: ${t.name}, isDefault: ${t.isDefault}, doctorId: ${t.doctorId}, fields: ${Array.isArray(t.fields) ? t.fields.length : 0}`);
     });
 
     res.json({ templates });

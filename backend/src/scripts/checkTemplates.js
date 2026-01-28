@@ -1,4 +1,5 @@
-const { prisma } = require('../dist/prisma');
+const path = require('path');
+const { prisma } = require(path.join(__dirname, '../dist/prisma'));
 
 async function checkTemplates() {
   try {
