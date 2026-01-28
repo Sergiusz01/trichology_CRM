@@ -21,6 +21,7 @@ model User {
   createdReminders    EmailReminder[] @relation("EmailReminderCreator")
   uploadedScalpPhotos   ScalpPhoto[]
   createdEmailTemplates EmailTemplate[]
+  consultationTemplates ConsultationTemplate[]
   refreshTokens         RefreshToken[]
   pdfJobs               PdfJob[]        @relation("PdfJobRequestor")
   auditLogs             AuditLog[]
@@ -86,6 +87,8 @@ model Consultation {
   patientId                     String
   doctorId                      String
   consultationDate              DateTime       @default(now())
+  templateId                    String?
+  dynamicData                   Json?          // Stores dynamic form data based on template
   hairLossSeverity              String?
   hairLossDuration              String?
   hairLossShampoos              String?
@@ -178,6 +181,7 @@ model Consultation {
   carePlans                     CarePlan[]
   doctor                        User           @relation(fields: [doctorId], references: [id])
   patient                       Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  template                      ConsultationTemplate? @relation(fields: [templateId], references: [id])
   emailHistory                  EmailHistory[]
   labResults                    LabResult[]
   scalpPhotos                   ScalpPhoto[]
@@ -187,6 +191,7 @@ model Consultation {
   @@index([doctorId])
   @@index([consultationDate])
   @@index([isArchived])
+  @@index([templateId])
 }
 
 model LabResult {
@@ -585,4 +590,21 @@ enum PdfJobStatus {
   PROCESSING
   DONE
   FAILED
+}
+
+model ConsultationTemplate {
+  id              String   @id @default(cuid())
+  name            String
+  doctorId        String
+  fields          Json     // Array of field definitions: [{type, label, key, required, options?, placeholder?}]
+  isDefault       Boolean  @default(false)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  doctor          User     @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  consultations   Consultation[]
+
+  @@index([doctorId])
+  @@index([isDefault])
+  @@index([isActive])
 }

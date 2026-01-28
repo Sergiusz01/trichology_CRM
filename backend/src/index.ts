@@ -6,6 +6,7 @@ import fs from 'fs';
 import authRoutes from './routes/auth';
 import patientRoutes from './routes/patients';
 import consultationRoutes from './routes/consultations';
+import consultationTemplateRoutes from './routes/consultationTemplates';
 import labResultRoutes from './routes/labResults';
 import scalpPhotoRoutes from './routes/scalpPhotos';
 import carePlanRoutes from './routes/carePlans';
@@ -87,6 +88,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/patients', patientRoutes);
 app.use('/api/consultations', consultationRoutes);
+app.use('/api/consultation-templates', consultationTemplateRoutes);
 app.use('/api/lab-results', labResultRoutes);
 app.use('/api/scalp-photos', scalpPhotoRoutes);
 app.use('/api/care-plans', carePlanRoutes);

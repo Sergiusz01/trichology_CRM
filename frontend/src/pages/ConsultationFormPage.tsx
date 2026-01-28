@@ -17,9 +17,11 @@ import {
   MenuItem,
   alpha,
 } from '@mui/material';
-import { ExpandMore, Save, EventAvailable } from '@mui/icons-material';
+import { ExpandMore, Save, EventAvailable, Settings } from '@mui/icons-material';
 import { api } from '../services/api';
 import MultiSelectCheckboxes from '../components/MultiSelectCheckboxes';
+import DynamicConsultationForm from '../components/DynamicConsultationForm';
+import { TemplateField } from '../components/ConsultationTemplateBuilder';
 
 export default function ConsultationFormPage() {
   const { id, patientId } = useParams<{ id?: string; patientId?: string }>();
@@ -39,6 +41,9 @@ export default function ConsultationFormPage() {
     patientId: actualPatientId || '',
     consultationDate: new Date().toISOString().split('T')[0],
   });
+  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [useTemplate, setUseTemplate] = useState(false);
 
   useEffect(() => {
     // Only fetch consultation if we're editing an existing one (not creating new)
@@ -50,8 +55,25 @@ export default function ConsultationFormPage() {
         ...prev,
         patientId: actualPatientId,
       }));
+      // Load templates for new consultation
+      fetchTemplates();
     }
   }, [actualConsultationId, actualPatientId, isNewConsultation]);
+
+  const fetchTemplates = async () => {
+    try {
+      const response = await api.get('/consultation-templates');
+      setTemplates(response.data.templates || []);
+      // Auto-select default template if available
+      const defaultTemplate = response.data.templates?.find((t: any) => t.isDefault);
+      if (defaultTemplate) {
+        setSelectedTemplate(defaultTemplate);
+        setUseTemplate(true);
+      }
+    } catch (error) {
+      console.error('Błąd pobierania szablonów:', error);
+    }
+  };
 
   const fetchConsultation = async () => {
     // Don't fetch if we're creating a new consultation
@@ -196,10 +218,33 @@ export default function ConsultationFormPage() {
       'alopeciaAffectedAreas',
     ];
 
-    const dataToSend: any = {};
+    const dataToSend: any = {
+      patientId: formData.patientId,
+      consultationDate: formData.consultationDate,
+    };
 
-    // Copy only defined fields and handle conversions
+    // If using template, save dynamic data separately
+    if (useTemplate && selectedTemplate) {
+      dataToSend.templateId = selectedTemplate.id;
+      const dynamicData: Record<string, any> = {};
+      selectedTemplate.fields.forEach((field: TemplateField) => {
+        const value = formData[field.key];
+        if (value !== undefined && value !== null && value !== '') {
+          dynamicData[field.key] = value;
+        }
+      });
+      dataToSend.dynamicData = dynamicData;
+    }
+
+    // Copy only defined fields and handle conversions (for standard form)
     Object.keys(formData).forEach((key) => {
+      // Skip if using template and this is a template field
+      if (useTemplate && selectedTemplate) {
+        const isTemplateField = selectedTemplate.fields.some((f: TemplateField) => f.key === key);
+        if (isTemplateField) {
+          return; // Already handled in dynamicData
+        }
+      }
       const value = formData[key];
 
       // Skip undefined, null, or empty strings (except for required fields)
@@ -308,25 +353,40 @@ export default function ConsultationFormPage() {
         >
           {isNewConsultation ? 'Nowa konsultacja' : 'Edycja konsultacji'}
         </Typography>
-        {actualPatientId && (
-          <Button
-            variant="outlined"
-            startIcon={<EventAvailable />}
-            onClick={() => navigate(`/patients/${actualPatientId}/visits/new`)}
-            sx={{
-              textTransform: 'none',
-              fontWeight: 500,
-              borderColor: '#1976d2',
-              color: '#1976d2',
-              '&:hover': {
-                borderColor: '#1565c0',
-                bgcolor: alpha('#1976d2', 0.05),
-              },
-            }}
-          >
-            Dodaj wizytę
-          </Button>
-        )}
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          {isNewConsultation && templates.length > 0 && (
+            <Button
+              variant="outlined"
+              startIcon={<Settings />}
+              onClick={() => navigate('/consultation-templates')}
+              sx={{
+                textTransform: 'none',
+                fontWeight: 500,
+              }}
+            >
+              Szablony
+            </Button>
+          )}
+          {actualPatientId && (
+            <Button
+              variant="outlined"
+              startIcon={<EventAvailable />}
+              onClick={() => navigate(`/patients/${actualPatientId}/visits/new`)}
+              sx={{
+                textTransform: 'none',
+                fontWeight: 500,
+                borderColor: '#1976d2',
+                color: '#1976d2',
+                '&:hover': {
+                  borderColor: '#1565c0',
+                  bgcolor: alpha('#1976d2', 0.05),
+                },
+              }}
+            >
+              Dodaj wizytę
+            </Button>
+          )}
+        </Box>
       </Box>
 
       {error && (
@@ -339,6 +399,46 @@ export default function ConsultationFormPage() {
         <Alert severity="success" sx={{ mb: 2 }}>
           Konsultacja zapisana pomyślnie!
         </Alert>
+      )}
+
+      {/* Template Selection for New Consultations */}
+      {isNewConsultation && templates.length > 0 && (
+        <Paper sx={{ p: 2, mb: 3 }}>
+          <FormControl fullWidth sx={{ mb: 2 }}>
+            <InputLabel>Wybierz szablon (opcjonalnie)</InputLabel>
+            <Select
+              value={selectedTemplate?.id || ''}
+              label="Wybierz szablon (opcjonalnie)"
+              onChange={(e) => {
+                const template = templates.find((t: any) => t.id === e.target.value);
+                setSelectedTemplate(template || null);
+                setUseTemplate(!!template);
+                if (template) {
+                  // Initialize form data with template defaults
+                  const initialData: any = {
+                    patientId: actualPatientId || '',
+                    consultationDate: new Date().toISOString().split('T')[0],
+                  };
+                  template.fields.forEach((field: TemplateField) => {
+                    if (field.defaultValue !== undefined) {
+                      initialData[field.key] = field.defaultValue;
+                    }
+                  });
+                  setFormData(initialData);
+                }
+              }}
+            >
+              <MenuItem value="">
+                <em>Brak szablonu (standardowy formularz)</em>
+              </MenuItem>
+              {templates.map((template: any) => (
+                <MenuItem key={template.id} value={template.id}>
+                  {template.name} {template.isDefault && '(Domyślny)'}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Paper>
       )}
 
       <form onSubmit={handleSubmit}>
@@ -356,6 +456,24 @@ export default function ConsultationFormPage() {
             </Grid>
           </Grid>
         </Paper>
+
+        {/* Dynamic Form Based on Template */}
+        {useTemplate && selectedTemplate && selectedTemplate.fields && (
+          <Paper sx={{ p: { xs: 2, sm: 3 }, mb: { xs: 2, sm: 3 }, borderRadius: 2 }}>
+            <Typography variant="h6" sx={{ mb: 2 }}>
+              {selectedTemplate.name}
+            </Typography>
+            <DynamicConsultationForm
+              fields={selectedTemplate.fields}
+              formData={formData}
+              onChange={(key, value) => handleChange(key, value)}
+            />
+          </Paper>
+        )}
+
+        {/* Standard Form - only show if not using template */}
+        {!useTemplate && (
+          <>
 
         {/* Hair Loss Section */}
         <Accordion defaultExpanded>
@@ -1326,6 +1444,21 @@ export default function ConsultationFormPage() {
             disabled={loading}
           >
             {loading ? 'Zapisywanie...' : 'Zapisz'}
+          </Button>
+        </Box>
+          </>
+        )}
+
+        {/* Submit Button */}
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 3 }}>
+          <Button
+            type="submit"
+            variant="contained"
+            startIcon={<Save />}
+            disabled={loading}
+            sx={{ minWidth: 150 }}
+          >
+            {loading ? 'Zapisywanie...' : 'Zapisz konsultację'}
           </Button>
         </Box>
       </form>

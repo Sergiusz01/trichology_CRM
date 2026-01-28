@@ -26,6 +26,7 @@ import {
   AccountCircle,
   Email as EmailIcon,
   Dashboard as DashboardIcon,
+  Description,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -36,6 +37,7 @@ const menuItems = [
   { text: 'Pacjenci', icon: <People />, path: '/patients' },
   { text: 'Historia emaili', icon: <Email />, path: '/email/history' },
   { text: 'Szablony emaili', icon: <EmailIcon />, path: '/email/templates' },
+  { text: 'Szablony konsultacji', icon: <Description />, path: '/consultation-templates' },
   { text: 'Test email', icon: <Settings />, path: '/email/test' },
 ];
 

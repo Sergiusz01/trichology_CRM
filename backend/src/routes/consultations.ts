@@ -13,6 +13,8 @@ const consultationSchema = z.object({
     z.string().datetime(),
     z.string().regex(/^\d{4}-\d{2}-\d{2}$/), // YYYY-MM-DD format
   ]).optional(),
+  templateId: z.string().optional(),
+  dynamicData: z.record(z.any()).optional(), // For dynamic template-based consultations
   // 1. WYPADANIE WŁOSÓW
   hairLossSeverity: z.string().optional(),
   hairLossLocalization: z.union([z.array(z.string()), z.string()]).optional(), // Json array
@@ -213,6 +215,9 @@ router.get('/:id', authenticate, async (req: AuthRequest, res, next) => {
         doctor: {
           select: { id: true, name: true, email: true },
         },
+        template: {
+          select: { id: true, name: true, fields: true },
+        },
       },
     });
 
@@ -372,6 +377,25 @@ router.post('/', authenticate, async (req: AuthRequest, res, next) => {
         consultationDate = new Date(data.consultationDate);
       }
     }
+
+    // Handle template and dynamic data
+    if (data.templateId) {
+      // Verify template exists and belongs to doctor
+      const template = await prisma.consultationTemplate.findFirst({
+        where: {
+          id: data.templateId,
+          doctorId,
+          isActive: true,
+        },
+      });
+
+      if (!template) {
+        return res.status(404).json({ error: 'Szablon nie znaleziony' });
+      }
+
+      preparedData.templateId = data.templateId;
+      preparedData.dynamicData = data.dynamicData || {};
+    }
     
     // Define JSON fields list for logging (same as in prepareDataForDb)
     const jsonFieldsList = [
@@ -410,6 +434,8 @@ router.post('/', authenticate, async (req: AuthRequest, res, next) => {
     // Build final data object for Prisma
     const dataForPrisma: any = {
       ...preparedData,
+      templateId: preparedData.templateId || null,
+      dynamicData: preparedData.dynamicData || null,
       patientId: data.patientId,
       doctorId,
       consultationDate,
@@ -497,13 +523,41 @@ router.put('/:id', authenticate, async (req: AuthRequest, res, next) => {
         consultationDate = new Date(data.consultationDate);
       }
     }
+
+    // Handle template and dynamic data
+    const updateData: any = {
+      ...preparedData,
+      consultationDate,
+    };
+
+    if (data.templateId !== undefined) {
+      if (data.templateId) {
+        // Verify template exists and belongs to doctor
+        const doctorId = req.user!.id;
+        const template = await prisma.consultationTemplate.findFirst({
+          where: {
+            id: data.templateId,
+            doctorId,
+            isActive: true,
+          },
+        });
+
+        if (!template) {
+          return res.status(404).json({ error: 'Szablon nie znaleziony' });
+        }
+
+        updateData.templateId = data.templateId;
+        updateData.dynamicData = data.dynamicData || {};
+      } else {
+        // Remove template
+        updateData.templateId = null;
+        updateData.dynamicData = null;
+      }
+    }
     
     const consultation = await prisma.consultation.update({
       where: { id },
-      data: {
-        ...preparedData,
-        consultationDate,
-      },
+      data: updateData,
       include: {
         patient: true,
         doctor: {
