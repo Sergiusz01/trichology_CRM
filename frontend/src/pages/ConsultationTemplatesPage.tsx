@@ -128,45 +128,57 @@ export default function ConsultationTemplatesPage() {
         </Alert>
       ) : (
         <List>
-          {templates.map((template) => (
-            <Paper key={template.id} sx={{ mb: 2 }}>
-              <ListItem>
-                <ListItemText
-                  primary={
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="h6">{template.name}</Typography>
-                      {template.isDefault && (
-                        <Chip label="Domyślny" color="primary" size="small" />
+          {/* Show default template first */}
+          {templates
+            .sort((a, b) => {
+              if (a.isDefault && !b.isDefault) return -1;
+              if (!a.isDefault && b.isDefault) return 1;
+              return 0;
+            })
+            .map((template) => (
+              <Paper key={template.id} sx={{ mb: 2 }}>
+                <ListItem>
+                  <ListItemText
+                    primary={
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="h6">{template.name}</Typography>
+                        {template.isDefault && (
+                          <Chip label="Domyślny (Standardowy arkusz)" color="primary" size="small" />
+                        )}
+                      </Box>
+                    }
+                    secondary={
+                      <Typography variant="body2" color="text.secondary">
+                        {template.fields.length} {template.fields.length === 1 ? 'pole' : 'pól'}
+                        {template.isDefault && ' • Używany automatycznie przy tworzeniu nowej konsultacji'}
+                      </Typography>
+                    }
+                  />
+                  <ListItemSecondaryAction>
+                    <Stack direction="row" spacing={1}>
+                      <IconButton
+                        edge="end"
+                        color="primary"
+                        onClick={() => handleEditTemplate(template)}
+                        title="Edytuj szablon"
+                      >
+                        <Edit />
+                      </IconButton>
+                      {!template.isDefault && (
+                        <IconButton
+                          edge="end"
+                          color="error"
+                          onClick={() => template.id && handleDeleteTemplate(template.id)}
+                          title="Usuń szablon"
+                        >
+                          <Delete />
+                        </IconButton>
                       )}
-                    </Box>
-                  }
-                  secondary={
-                    <Typography variant="body2" color="text.secondary">
-                      {template.fields.length} {template.fields.length === 1 ? 'pole' : 'pól'}
-                    </Typography>
-                  }
-                />
-                <ListItemSecondaryAction>
-                  <Stack direction="row" spacing={1}>
-                    <IconButton
-                      edge="end"
-                      color="primary"
-                      onClick={() => handleEditTemplate(template)}
-                    >
-                      <Edit />
-                    </IconButton>
-                    <IconButton
-                      edge="end"
-                      color="error"
-                      onClick={() => template.id && handleDeleteTemplate(template.id)}
-                    >
-                      <Delete />
-                    </IconButton>
-                  </Stack>
-                </ListItemSecondaryAction>
-              </ListItem>
-            </Paper>
-          ))}
+                    </Stack>
+                  </ListItemSecondaryAction>
+                </ListItem>
+              </Paper>
+            ))}
         </List>
       )}
 

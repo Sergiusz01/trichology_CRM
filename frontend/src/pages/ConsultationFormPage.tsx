@@ -420,9 +420,12 @@ export default function ConsultationFormPage() {
         </Alert>
       )}
 
-      {/* Template Selection for New Consultations */}
+      {/* Template Selection for New Consultations - Show if no template selected yet */}
       {isNewConsultation && templates.length > 0 && !useTemplate && (
         <Paper sx={{ p: 2, mb: 3 }}>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Wybierz szablon konsultacji. Domyślny szablon zostanie automatycznie załadowany.
+          </Alert>
           <FormControl fullWidth sx={{ mb: 2 }}>
             <InputLabel>Wybierz szablon</InputLabel>
             <Select
