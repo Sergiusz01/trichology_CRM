@@ -29,6 +29,7 @@ import {
   Description,
   AttachMoney,
   EventNote,
+  History,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -42,6 +43,7 @@ const menuItems = [
   { text: 'Historia emaili', icon: <Email />, path: '/email/history' },
   { text: 'Szablony emaili', icon: <EmailIcon />, path: '/email/templates' },
   { text: 'Szablony konsultacji', icon: <Description />, path: '/consultation-templates' },
+  { text: 'Dziennik aktywności', icon: <History />, path: '/activity' },
   { text: 'Test email', icon: <Settings />, path: '/email/test' },
 ];
 

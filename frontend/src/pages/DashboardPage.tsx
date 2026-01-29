@@ -34,7 +34,6 @@ import {
 import {
     PersonAdd,
     EventNote,
-    Email,
     ArrowForward,
     Search,
     Warning,
@@ -46,12 +45,6 @@ import {
     CalendarToday,
     Today,
     Schedule,
-    TrendingUp,
-    LocalHospital,
-    Edit,
-    Science,
-    PhotoCamera,
-    Assignment,
     Notifications,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
@@ -67,15 +60,6 @@ interface DashboardStats {
     patientsThisWeek: number;
     consultationsThisWeek: number;
     patientsWithoutConsultation: number;
-}
-
-interface RecentActivity {
-    id: string;
-    type: 'PATIENT' | 'PATIENT_EDIT' | 'CONSULTATION' | 'CONSULTATION_EDIT' | 'VISIT' | 'VISIT_EDIT' | 'LAB_RESULT' | 'LAB_RESULT_EDIT' | 'SCALP_PHOTO' | 'CARE_PLAN' | 'CARE_PLAN_EDIT' | 'EMAIL';
-    title: string;
-    subtitle: string;
-    date: string;
-    link: string;
 }
 
 interface UpcomingVisit {
@@ -134,7 +118,6 @@ export default function DashboardPage() {
         consultationsThisWeek: 0,
         patientsWithoutConsultation: 0,
     });
-    const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
     const [patientsNeedingAttention, setPatientsNeedingAttention] = useState<any[]>([]);
     const [inactivePatientsList, setInactivePatientsList] = useState<any[]>([]);
     const [upcomingVisits, setUpcomingVisits] = useState<UpcomingVisit[]>([]);
@@ -288,7 +271,6 @@ export default function DashboardPage() {
 
             setPatientsNeedingAttention(dashboardData.patientsNeedingAttention || []);
             setInactivePatientsList(dashboardData.inactivePatients || []);
-            setRecentActivities(dashboardData.recentActivities || []);
         } catch (error: any) {
             // Obsługa błędów 429 (Too Many Requests)
             if (error?.response?.status === 429) {
@@ -658,13 +640,12 @@ export default function DashboardPage() {
                 ))}
             </Grid>
 
-            {/* Quick Actions */}
+            {/* Quick Actions – pełna szerokość, 3 przyciski */}
             <Grid container spacing={3} sx={{ mb: 4, px: { xs: 1, sm: 0 } }}>
-                <Grid size={{ xs: 12, md: 4 }}>
+                <Grid size={{ xs: 12 }}>
                     <Paper
                         sx={{
-                            p: { xs: 2.5, sm: 3 },
-                            height: '100%',
+                            p: { xs: 2, sm: 2.5 },
                             borderRadius: 3,
                             background: 'white',
                             border: '1px solid',
@@ -675,92 +656,90 @@ export default function DashboardPage() {
                         <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: 'text.primary' }}>
                             Szybkie akcje
                         </Typography>
-                        <List sx={{ p: 0 }}>
-                            <ListItemButton
-                                onClick={() => navigate('/patients/new')}
-                                sx={{
-                                    mb: 1,
-                                    borderRadius: 2,
-                                    border: '1px solid',
-                                    borderColor: 'divider',
-                                    transition: 'all 0.2s',
-                                    '&:hover': {
-                                        bgcolor: alpha('#1976d2', 0.05),
-                                        borderColor: '#1976d2',
-                                    },
-                                }}
-                            >
-                                <ListItemIcon>
-                                    <PersonAdd sx={{ color: '#1976d2' }} />
-                                </ListItemIcon>
-                                <ListItemText
-                                    primary="Dodaj pacjenta"
-                                    primaryTypographyProps={{
-                                        fontWeight: 500,
-                                        color: 'text.primary',
+                        <Grid container spacing={2}>
+                            <Grid size={{ xs: 12, sm: 4 }}>
+                                <ListItemButton
+                                    onClick={() => navigate('/patients/new')}
+                                    sx={{
+                                        borderRadius: 2,
+                                        border: '1px solid',
+                                        borderColor: 'divider',
+                                        py: 1.5,
+                                        transition: 'all 0.2s',
+                                        '&:hover': {
+                                            bgcolor: alpha('#1976d2', 0.05),
+                                            borderColor: '#1976d2',
+                                        },
                                     }}
-                                />
-                                <ArrowForward sx={{ color: 'text.secondary', opacity: 0.5 }} />
-                            </ListItemButton>
-                            <ListItemButton
-                                onClick={() => navigate('/visits/new')}
-                                sx={{
-                                    mb: 1,
-                                    borderRadius: 2,
-                                    border: '1px solid',
-                                    borderColor: 'divider',
-                                    transition: 'all 0.2s',
-                                    '&:hover': {
-                                        bgcolor: alpha('#1976d2', 0.05),
-                                        borderColor: '#1976d2',
-                                    },
-                                }}
-                            >
-                                <ListItemIcon>
-                                    <CalendarToday sx={{ color: '#1976d2' }} />
-                                </ListItemIcon>
-                                <ListItemText
-                                    primary="Nowa wizyta"
-                                    primaryTypographyProps={{
-                                        fontWeight: 500,
-                                        color: 'text.primary',
+                                >
+                                    <ListItemIcon>
+                                        <PersonAdd sx={{ color: '#1976d2' }} />
+                                    </ListItemIcon>
+                                    <ListItemText
+                                        primary="Dodaj pacjenta"
+                                        primaryTypographyProps={{ fontWeight: 500, color: 'text.primary' }}
+                                    />
+                                    <ArrowForward sx={{ color: 'text.secondary', opacity: 0.5 }} />
+                                </ListItemButton>
+                            </Grid>
+                            <Grid size={{ xs: 12, sm: 4 }}>
+                                <ListItemButton
+                                    onClick={() => navigate('/visits/new')}
+                                    sx={{
+                                        borderRadius: 2,
+                                        border: '1px solid',
+                                        borderColor: 'divider',
+                                        py: 1.5,
+                                        transition: 'all 0.2s',
+                                        '&:hover': {
+                                            bgcolor: alpha('#1976d2', 0.05),
+                                            borderColor: '#1976d2',
+                                        },
                                     }}
-                                />
-                                <ArrowForward sx={{ color: 'text.secondary', opacity: 0.5 }} />
-                            </ListItemButton>
-                            <ListItemButton
-                                onClick={() => navigate('/patients')}
-                                sx={{
-                                    borderRadius: 2,
-                                    border: '1px solid',
-                                    borderColor: 'divider',
-                                    transition: 'all 0.2s',
-                                    '&:hover': {
-                                        bgcolor: alpha('#1976d2', 0.05),
-                                        borderColor: '#1976d2',
-                                    },
-                                }}
-                            >
-                                <ListItemIcon>
-                                    <Assessment sx={{ color: '#1976d2' }} />
-                                </ListItemIcon>
-                                <ListItemText
-                                    primary="Lista pacjentów"
-                                    primaryTypographyProps={{
-                                        fontWeight: 500,
-                                        color: 'text.primary',
+                                >
+                                    <ListItemIcon>
+                                        <CalendarToday sx={{ color: '#1976d2' }} />
+                                    </ListItemIcon>
+                                    <ListItemText
+                                        primary="Nowa wizyta"
+                                        primaryTypographyProps={{ fontWeight: 500, color: 'text.primary' }}
+                                    />
+                                    <ArrowForward sx={{ color: 'text.secondary', opacity: 0.5 }} />
+                                </ListItemButton>
+                            </Grid>
+                            <Grid size={{ xs: 12, sm: 4 }}>
+                                <ListItemButton
+                                    onClick={() => navigate('/patients')}
+                                    sx={{
+                                        borderRadius: 2,
+                                        border: '1px solid',
+                                        borderColor: 'divider',
+                                        py: 1.5,
+                                        transition: 'all 0.2s',
+                                        '&:hover': {
+                                            bgcolor: alpha('#1976d2', 0.05),
+                                            borderColor: '#1976d2',
+                                        },
                                     }}
-                                />
-                                <ArrowForward sx={{ color: 'text.secondary', opacity: 0.5 }} />
-                            </ListItemButton>
-                        </List>
+                                >
+                                    <ListItemIcon>
+                                        <Assessment sx={{ color: '#1976d2' }} />
+                                    </ListItemIcon>
+                                    <ListItemText
+                                        primary="Lista pacjentów"
+                                        primaryTypographyProps={{ fontWeight: 500, color: 'text.primary' }}
+                                    />
+                                    <ArrowForward sx={{ color: 'text.secondary', opacity: 0.5 }} />
+                                </ListItemButton>
+                            </Grid>
+                        </Grid>
                     </Paper>
                 </Grid>
-                <Grid size={{ xs: 12, md: 8 }}>
+                {/* Ostatnie konsultacje – jeden kafelek */}
+                <Grid size={{ xs: 12 }}>
                     <Paper
                         sx={{
                             p: { xs: 2.5, sm: 3 },
-                            height: '100%',
                             borderRadius: 3,
                             background: 'white',
                             border: '1px solid',
@@ -1310,134 +1289,6 @@ export default function DashboardPage() {
                             </Grid>
                         )}
                     </Grid>
-                </Box>
-            )}
-
-            {/* Recent Activity */}
-            {recentActivities.length > 0 && (
-                <Box sx={{ px: { xs: 1, sm: 0 } }}>
-                    <Paper
-                        sx={{
-                            p: { xs: 2, sm: 3 },
-                            background: 'white',
-                            borderRadius: 3,
-                            border: '1px solid',
-                            borderColor: 'divider',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-                        }}
-                    >
-                        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, gap: 2, mb: 3 }}>
-                            <Box>
-                                <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>
-                                    Ostatnia aktywność
-                                </Typography>
-                                <Typography variant="body2" color="text.secondary">
-                                    Najnowsze zdarzenia w systemie
-                                </Typography>
-                            </Box>
-                            <Button
-                                endIcon={<ArrowForward />}
-                                onClick={() => navigate('/patients')}
-                                variant="contained"
-                                fullWidth={isMobile}
-                                sx={{
-                                    borderRadius: 2,
-                                    textTransform: 'none',
-                                    fontWeight: 600,
-                                    background: '#1976d2',
-                                    boxShadow: `0 4px 12px ${alpha('#667eea', 0.2)}`,
-                                    '&:hover': {
-                                        background: '#1565c0',
-                                    },
-                                }}
-                            >
-                                Zobacz wszystkich
-                            </Button>
-                        </Box>
-                        <List sx={{ p: 0 }}>
-                            {recentActivities.map((activity, index) => (
-                                <React.Fragment key={activity.id}>
-                                    {index > 0 && <Divider sx={{ my: 1 }} />}
-                                    <ListItem
-                                        sx={{
-                                            px: 2,
-                                            py: 2,
-                                            borderRadius: 2,
-                                            transition: 'all 0.2s',
-                                            '&:hover': {
-                                                bgcolor: alpha('#667eea', 0.05),
-                                                transform: 'translateX(4px)',
-                                            },
-                                        }}
-                                    >
-                                        <ListItemAvatar>
-                                            <Avatar
-                                                sx={{
-                                                    width: 48,
-                                                    height: 48,
-                                                    background: activity.type === 'PATIENT' || activity.type === 'PATIENT_EDIT'
-                                                        ? '#1976d2'
-                                                        : activity.type === 'CONSULTATION' || activity.type === 'CONSULTATION_EDIT'
-                                                            ? '#d32f2f'
-                                                            : activity.type === 'VISIT' || activity.type === 'VISIT_EDIT'
-                                                                ? '#34C759'
-                                                                : activity.type === 'LAB_RESULT' || activity.type === 'LAB_RESULT_EDIT'
-                                                                    ? '#FF9500'
-                                                                    : activity.type === 'SCALP_PHOTO'
-                                                                        ? '#AF52DE'
-                                                                        : activity.type === 'CARE_PLAN' || activity.type === 'CARE_PLAN_EDIT'
-                                                                            ? '#007AFF'
-                                                                            : '#1976d2',
-                                                }}
-                                            >
-                                                {activity.type === 'PATIENT' ? <PersonAdd /> :
-                                                    activity.type === 'PATIENT_EDIT' ? <Edit /> :
-                                                    activity.type === 'CONSULTATION' ? <EventNote /> :
-                                                    activity.type === 'CONSULTATION_EDIT' ? <Edit /> :
-                                                    activity.type === 'VISIT' ? <CalendarToday /> :
-                                                    activity.type === 'VISIT_EDIT' ? <Edit /> :
-                                                    activity.type === 'LAB_RESULT' ? <Science /> :
-                                                    activity.type === 'LAB_RESULT_EDIT' ? <Edit /> :
-                                                    activity.type === 'SCALP_PHOTO' ? <PhotoCamera /> :
-                                                    activity.type === 'CARE_PLAN' ? <Assignment /> :
-                                                    activity.type === 'CARE_PLAN_EDIT' ? <Edit /> :
-                                                    <Email />}
-                                            </Avatar>
-                                        </ListItemAvatar>
-                                        <ListItemText
-                                            primary={
-                                                <Typography variant="body1" sx={{ fontWeight: 600, mb: 0.5 }}>
-                                                    {activity.title}
-                                                </Typography>
-                                            }
-                                            secondary={
-                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                                                    <Typography component="span" variant="body2" color="text.primary">
-                                                        {activity.subtitle}
-                                                    </Typography>
-                                                    <Typography component="span" variant="caption" color="text.secondary">
-                                                        • {format(new Date(activity.date), 'dd MMM yyyy, HH:mm', { locale: pl })}
-                                                    </Typography>
-                                                </Box>
-                                            }
-                                        />
-                                        <IconButton
-                                            edge="end"
-                                            onClick={() => navigate(activity.link)}
-                                            sx={{
-                                                bgcolor: alpha('#667eea', 0.1),
-                                                '&:hover': {
-                                                    bgcolor: alpha('#667eea', 0.2),
-                                                },
-                                            }}
-                                        >
-                                            <ArrowForward sx={{ color: '#667eea' }} />
-                                        </IconButton>
-                                    </ListItem>
-                                </React.Fragment>
-                            ))}
-                        </List>
-                    </Paper>
                 </Box>
             )}
 
