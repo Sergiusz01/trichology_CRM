@@ -88,9 +88,16 @@ Jeśli chcesz **szyfrowanie** i **brak komunikatu** bez domeny: użyj Nginx z SS
 
 ---
 
-## 7. Podsumowanie
+## 7. Cache i HSTS (strona wcześniej na HTTPS)
+
+Serwer wymusza **no-cache** dla `/` i `/index.html`. Urządzenia, które wcześniej odwiedzały aplikację po **HTTPS**, mogą nadal wymuszać https lub używać starego cache. Instrukcja czyszczenia na każdym urządzeniu: **`WYCZYSC_CACHE_I_HSTS.md`**.
+
+---
+
+## 8. Podsumowanie
 
 - **Dostęp:** **http://91.99.237.141** – bez ostrzeżeń o certyfikacie.
 - **Brak domeny, brak SSL.** Połączenie nieszyfrowane (HTTP). Dla sieci wewnętrznej / VPN zwykle akceptowalne.
 - **CORS:** whitelist (localhost + IP z env).
 - **Health:** `GET /health`.
+- **Cache / HSTS:** zob. `WYCZYSC_CACHE_I_HSTS.md`.
