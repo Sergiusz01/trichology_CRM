@@ -202,9 +202,9 @@ npm run dev
 
 ## 🚀 Wdrożenie na VPS (tylko IP)
 
-- **DEPLOYMENT.md** – Nginx, SSL self-signed dla IP, CORS (`FRONTEND_URLS`), rozwiązywanie problemów.
+- **DEPLOYMENT.md** – Nginx tylko HTTP, CORS (`FRONTEND_URLS`), rozwiązywanie problemów.
 - **INSTRUKCJA_AKTUALIZACJI.md** – skrypt `git-deploy.ps1`, ręczna aktualizacja, health check, PM2.
-- Aplikacja działa **wyłącznie pod adresem IP** (https://91.99.237.141). Brak domeny; certyfikat self-signed dla IP.
+- Aplikacja działa **wyłącznie pod adresem IP** (http://91.99.237.141). Brak domeny, brak SSL – **brak ostrzeżenia o certyfikacie**.
 
 ## 🔒 Bezpieczeństwo
 

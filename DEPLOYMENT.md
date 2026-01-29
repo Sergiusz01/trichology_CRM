@@ -1,6 +1,6 @@
-# Wdrożenie na VPS – wyłącznie IP (91.99.237.141)
+# Wdrożenie na VPS – wyłącznie IP (91.99.237.141), tylko HTTP
 
-Aplikacja **nie używa domeny**; działa tylko pod adresem IP. SSL: **certyfikat self-signed dla IP** (Let's Encrypt nie wystawia certów na same IP).
+Aplikacja **nie używa domeny**; działa tylko pod adresem IP. **Brak HTTPS** – Nginx serwuje wyłącznie HTTP (port 80). **Brak certyfikatów = brak ostrzeżenia** „certyfikat nie jest zaufany” w przeglądarce.
 
 ---
 
@@ -15,11 +15,11 @@ Aplikacja **nie używa domeny**; działa tylko pod adresem IP. SSL: **certyfikat
 | `FRONTEND_URL` | Jeden dozwolony origin (np. `http://localhost:5173`) |
 | `FRONTEND_URLS` | Wiele originów, po przecinku – **zalecane na VPS** |
 
-**CORS:** Backend akceptuje żądania tylko z adresów z `FRONTEND_URL` / `FRONTEND_URLS`. Dodatkowo dozwolone: `http://localhost:5173`, `http://127.0.0.1:5173`, `localhost:3000`, `127.0.0.1:3000`.
+**CORS:** Backend akceptuje żądania tylko z adresów z `FRONTEND_URL` / `FRONTEND_URLS`. Dodatkowo dozwolone: localhost (5173, 3000).
 
-**Przykład na VPS (tylko IP):**
+**Przykład na VPS (tylko IP, HTTP):**
 ```env
-FRONTEND_URLS="https://91.99.237.141,http://91.99.237.141,http://localhost:5173"
+FRONTEND_URLS="http://91.99.237.141,http://localhost:5173"
 ```
 
 Skopiuj szablon:
@@ -36,27 +36,18 @@ cp backend/.env.example backend/.env
 
 ---
 
-## 2. SSL i Nginx (tylko IP)
+## 2. Nginx (tylko HTTP, bez SSL)
 
-- **Certyfikat:** self-signed dla `91.99.237.141` (skrypt `deploy-ssl-ip.sh`).
-- **Let's Encrypt / DuckDNS:** trwale usunięte z konfiguracji.
+- **`nginx-trichology.conf`** – jeden blok `server` na porcie 80, bez `listen 443`, bez certyfikatów.
+- Lokacje: `/health`, `/public`, `/api`, `/uploads`, SPA (`/` → `index.html`).
 
-### Wdrożenie SSL na VPS
-
-1. Skopiuj na VPS: `nginx-trichology.conf` → `/tmp/trichology.conf`, `deploy-ssl-ip.sh` → `~/deploy-ssl-ip.sh`.
-2. Na VPS:
-   ```bash
-   chmod +x ~/deploy-ssl-ip.sh
-   ~/deploy-ssl-ip.sh
-   ```
-   Skrypt: tworzy `/etc/nginx/ssl/`, generuje cert self-signed dla IP, dhparam, instaluje config Nginx, **usuwa certyfikat Let's Encrypt** (dawna domena), restart Nginx.
-
-3. **Przeglądarka:** przy pierwszym wejściu na **https://91.99.237.141** pojawi się ostrzeżenie (self-signed). Wybierz „Zaawansowane” → „Przejdź do 91.99.237.141 (niebezpieczne)” – połączenie jest szyfrowane.
-
-### Pliki
-
-- **`nginx-trichology.conf`** – Nginx tylko pod IP, SSL z `/etc/nginx/ssl/trichology-ip.{crt,key}`, `/health`, `/public`, `/api`, `/uploads`.
-- **`deploy-ssl-ip.sh`** – generuje cert, usuwa LE, instaluje config.
+Wdrożenie:
+```bash
+# skopiuj nginx-trichology.conf na VPS
+sudo cp /path/to/nginx-trichology.conf /etc/nginx/sites-available/trichology
+sudo ln -sf /etc/nginx/sites-available/trichology /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+```
 
 ---
 
@@ -75,11 +66,11 @@ pm2 startup && pm2 save
 ## 4. Diagnostyka
 
 ```bash
-curl -sk https://91.99.237.141/health
+curl -s http://91.99.237.141/health
 # {"status":"ok",...}
 ```
 
-**CORS:** `FRONTEND_URLS` musi zawierać `https://91.99.237.141` i `http://91.99.237.141` (redirect 80→443).
+**CORS:** `FRONTEND_URLS` musi zawierać `http://91.99.237.141`.
 
 **Restart:** `pm2 restart trichology-backend`, `systemctl reload nginx`.
 
@@ -87,13 +78,19 @@ curl -sk https://91.99.237.141/health
 
 ## 5. Skrypt wdrożenia (`git-deploy.ps1`)
 
-Po wdrożeniu wyświetla: **Aplikacja: https://91.99.237.141**
+Po wdrożeniu wyświetla: **Aplikacja: http://91.99.237.141**
 
 ---
 
-## 6. Podsumowanie
+## 6. Opcjonalnie: HTTPS bez ostrzeżenia (import certyfikatu)
 
-- **Dostęp:** **https://91.99.237.141** (ew. http → 301 na https).
-- **Brak domeny.** Certyfikat self-signed dla IP; Let's Encrypt / DuckDNS usunięte.
+Jeśli chcesz **szyfrowanie** i **brak komunikatu** bez domeny: użyj Nginx z SSL (self-signed), wygeneruj cert jak w `deploy-ssl-ip.sh`, a na **każdym komputerze klienckim** zaimportuj `trichology-ip.crt` do **Zaufane główne urzędy certyfikacji** (Windows: `certmgr.msc` → Zaufane główne urzędy certyfikacji → Certyfikaty → Akcje → Wszystkie zadania → Import). Po imporcie przeglądarka przestanie pokazywać ostrzeżenie dla `https://91.99.237.141`.
+
+---
+
+## 7. Podsumowanie
+
+- **Dostęp:** **http://91.99.237.141** – bez ostrzeżeń o certyfikacie.
+- **Brak domeny, brak SSL.** Połączenie nieszyfrowane (HTTP). Dla sieci wewnętrznej / VPN zwykle akceptowalne.
 - **CORS:** whitelist (localhost + IP z env).
 - **Health:** `GET /health`.
