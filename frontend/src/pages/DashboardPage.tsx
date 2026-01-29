@@ -77,12 +77,6 @@ interface UpcomingVisit {
     };
 }
 
-interface RecentConsultation {
-    id: string;
-    consultationDate: string | null;
-    patient: { id: string; firstName: string; lastName: string };
-}
-
 interface WeeklyRevenue {
     plannedRevenue: number;
     completedRevenue: number;
@@ -123,7 +117,6 @@ export default function DashboardPage() {
     const [upcomingVisits, setUpcomingVisits] = useState<UpcomingVisit[]>([]);
     const [todayVisits, setTodayVisits] = useState<UpcomingVisit[]>([]);
     const [tomorrowVisits, setTomorrowVisits] = useState<UpcomingVisit[]>([]);
-    const [recentConsultations, setRecentConsultations] = useState<RecentConsultation[]>([]);
     const [weeklyRevenue, setWeeklyRevenue] = useState<WeeklyRevenue>({
         plannedRevenue: 0,
         completedRevenue: 0,
@@ -222,12 +215,8 @@ export default function DashboardPage() {
             }
             setError(null);
 
-            const [dashboardRes, consultationsRes] = await Promise.all([
-                api.get('/dashboard'),
-                api.get<{ consultations: RecentConsultation[] }>('/consultations', { params: { limit: 5 } }).catch(() => ({ data: { consultations: [] } })),
-            ]);
+            const dashboardRes = await api.get('/dashboard');
             const dashboardData = dashboardRes.data;
-            setRecentConsultations(consultationsRes.data?.consultations?.slice(0, 5) ?? []);
 
             const visits = dashboardData.upcomingVisits || [];
             setUpcomingVisits(visits);
@@ -733,74 +722,6 @@ export default function DashboardPage() {
                                 </ListItemButton>
                             </Grid>
                         </Grid>
-                    </Paper>
-                </Grid>
-                {/* Ostatnie konsultacje – jeden kafelek */}
-                <Grid size={{ xs: 12 }}>
-                    <Paper
-                        sx={{
-                            p: { xs: 2.5, sm: 3 },
-                            borderRadius: 3,
-                            background: 'white',
-                            border: '1px solid',
-                            borderColor: 'divider',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                        }}
-                    >
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                            <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                                Ostatnie konsultacje
-                            </Typography>
-                            <Button
-                                size="small"
-                                endIcon={<ArrowForward />}
-                                onClick={() => navigate('/consultations')}
-                                sx={{ textTransform: 'none', fontWeight: 600 }}
-                            >
-                                Zobacz wszystkie
-                            </Button>
-                        </Box>
-                        {recentConsultations.length === 0 ? (
-                            <Typography variant="body2" color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
-                                Brak ostatnich konsultacji.
-                            </Typography>
-                        ) : (
-                            <List sx={{ p: 0 }}>
-                                {recentConsultations.map((c, idx) => (
-                                    <React.Fragment key={c.id}>
-                                        {idx > 0 && <Divider sx={{ my: 1 }} />}
-                                        <ListItemButton
-                                            onClick={() => navigate(`/consultations/${c.id}`)}
-                                            sx={{
-                                                borderRadius: 2,
-                                                '&:hover': { bgcolor: alpha('#1976d2', 0.05) },
-                                            }}
-                                        >
-                                            <ListItemAvatar>
-                                                <Avatar sx={{ bgcolor: alpha('#1976d2', 0.1), color: '#1976d2', fontWeight: 600 }}>
-                                                    {c.patient.firstName[0]}{c.patient.lastName[0]}
-                                                </Avatar>
-                                            </ListItemAvatar>
-                                            <ListItemText
-                                                primary={
-                                                    <Typography variant="body1" fontWeight={600}>
-                                                        {c.patient.firstName} {c.patient.lastName}
-                                                    </Typography>
-                                                }
-                                                secondary={
-                                                    <Typography variant="caption" color="text.secondary">
-                                                        {c.consultationDate
-                                                            ? format(new Date(c.consultationDate), 'dd MMM yyyy', { locale: pl })
-                                                            : '—'}
-                                                    </Typography>
-                                                }
-                                            />
-                                            <ArrowForward sx={{ color: 'text.secondary', opacity: 0.5 }} />
-                                        </ListItemButton>
-                                    </React.Fragment>
-                                ))}
-                            </List>
-                        )}
                     </Paper>
                 </Grid>
             </Grid>
