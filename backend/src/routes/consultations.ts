@@ -2,6 +2,7 @@ import express from 'express';
 import { z } from 'zod';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 import { generateConsultationPDF } from '../services/pdfService';
+import { writeAuditLog } from '../services/auditService';
 import { prisma } from '../prisma';
 
 const router = express.Router();
@@ -465,6 +466,12 @@ router.post('/', authenticate, async (req: AuthRequest, res, next) => {
         },
       });
 
+      await writeAuditLog(req, {
+        action: 'CREATE_CONSULTATION',
+        entity: 'Consultation',
+        entityId: consultation.id,
+      });
+
       res.status(201).json({ consultation });
     } catch (dbError: any) {
       console.error('[POST /consultations] Prisma error message:', dbError.message);
@@ -566,11 +573,15 @@ router.put('/:id', authenticate, async (req: AuthRequest, res, next) => {
       },
     });
 
+    await writeAuditLog(req, {
+      action: 'UPDATE_CONSULTATION',
+      entity: 'Consultation',
+      entityId: consultation.id,
+    });
+
     res.json({ consultation });
   } catch (error: any) {
-    // Log validation errors for debugging
     if (error.name === 'ZodError') {
-      console.error('Validation error:', JSON.stringify(error.errors, null, 2));
       return res.status(400).json({
         error: 'Błąd walidacji danych',
         details: error.errors,
@@ -588,6 +599,12 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res, next) => {
     const consultation = await prisma.consultation.update({
       where: { id },
       data: { isArchived: true },
+    });
+
+    await writeAuditLog(req, {
+      action: 'ARCHIVE_CONSULTATION',
+      entity: 'Consultation',
+      entityId: consultation.id,
     });
 
     res.json({ 
@@ -621,6 +638,12 @@ router.post('/:id/restore', authenticate, async (req: AuthRequest, res, next) =>
       data: { isArchived: false },
     });
 
+    await writeAuditLog(req, {
+      action: 'RESTORE_CONSULTATION',
+      entity: 'Consultation',
+      entityId: id,
+    });
+
     res.json({ 
       consultation: restoredConsultation, 
       message: 'Konsultacja została przywrócona' 
@@ -650,6 +673,12 @@ router.delete('/:id/permanent', authenticate, requireRole('ADMIN'), async (req: 
     // - emailHistory (onDelete: SetNull - consultationId will be set to null)
     await prisma.consultation.delete({
       where: { id },
+    });
+
+    await writeAuditLog(req, {
+      action: 'DELETE_CONSULTATION',
+      entity: 'Consultation',
+      entityId: id,
     });
 
     res.json({ 

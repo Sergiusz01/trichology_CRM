@@ -87,6 +87,26 @@ router.post('/login', authLimiter, async (req, res, next) => {
     const accessToken = generateAccessToken(tokenPayload);
     const refreshToken = generateRefreshToken(tokenPayload);
 
+    const getClientIp = (r: express.Request) =>
+      (r.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || r.ip || '';
+
+    try {
+      await prisma.auditLog.create({
+        data: {
+          userId: user.id,
+          action: 'LOGIN',
+          entity: 'User',
+          entityId: user.id,
+          method: 'POST',
+          path: '/api/auth/login',
+          ip: getClientIp(req) || undefined,
+          userAgent: (req.headers['user-agent'] as string) || undefined,
+        },
+      });
+    } catch {
+      /* nie przerywaj logowania przy błędzie audytu */
+    }
+
     res.json({
       accessToken,
       refreshToken,

@@ -16,6 +16,7 @@ import userProfileRoutes from './routes/userProfile';
 import exportRoutes from './routes/export';
 import visitRoutes from './routes/visits';
 import dashboardRoutes from './routes/dashboard';
+import activityRoutes from './routes/activity';
 import { errorHandler } from './middleware/errorHandler';
 import { startReminderWorker } from './services/reminderWorker';
 import { prisma } from './prisma';
@@ -98,6 +99,7 @@ app.use('/api/user-profile', userProfileRoutes);
 app.use('/api/export', exportRoutes);
 app.use('/api/visits', visitRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/activity', activityRoutes);
 
 // Error handler
 app.use(errorHandler);

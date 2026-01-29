@@ -285,14 +285,13 @@ router.post('/', authenticate, async (req: AuthRequest, res, next) => {
       },
     });
 
-    res.status(201).json({ visit });
-
-    // Audit log
     await writeAuditLog(req, {
       action: 'CREATE_VISIT',
       entity: 'Visit',
       entityId: visit.id,
     });
+
+    res.status(201).json({ visit });
   } catch (error) {
     next(error);
   }
@@ -402,14 +401,13 @@ router.put('/:id', authenticate, requireWriteAccess(), async (req: AuthRequest, 
       },
     });
 
-    res.json({ visit });
-
-    // Audit log
     await writeAuditLog(req, {
       action: 'UPDATE_VISIT',
       entity: 'Visit',
       entityId: visit.id,
     });
+
+    res.json({ visit });
   } catch (error) {
     next(error);
   }
@@ -447,14 +445,13 @@ router.patch('/:id/status', authenticate, async (req: AuthRequest, res, next) =>
       },
     });
 
-    res.json({ visit });
-
-    // Audit log
     await writeAuditLog(req, {
-      action: 'UPDATE_VISIT_STATUS',
+      action: 'UPDATE_VISIT',
       entity: 'Visit',
       entityId: visit.id,
     });
+
+    res.json({ visit });
   } catch (error) {
     next(error);
   }
