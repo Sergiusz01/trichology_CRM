@@ -197,6 +197,15 @@ npm run dev
 - `POST /api/email/consultation/:id` - Wyślij konsultację emailem
 - `POST /api/email/care-plan/:id` - Wyślij plan emailem
 
+### Diagnostyka
+- `GET /health` - Health check (poza /api, bez rate limit). Używaj do monitoringu i diagnostyki.
+
+## 🚀 Wdrożenie na VPS (tylko IP)
+
+- **DEPLOYMENT.md** – Nginx, SSL self-signed dla IP, CORS (`FRONTEND_URLS`), rozwiązywanie problemów.
+- **INSTRUKCJA_AKTUALIZACJI.md** – skrypt `git-deploy.ps1`, ręczna aktualizacja, health check, PM2.
+- Aplikacja działa **wyłącznie pod adresem IP** (https://91.99.237.141). Brak domeny; certyfikat self-signed dla IP.
+
 ## 🔒 Bezpieczeństwo
 
 - Wszystkie endpointy wymagają autentykacji (oprócz login)

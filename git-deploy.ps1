@@ -64,4 +64,4 @@ if (-not $backendChanged -and -not $frontendChanged) {
     Write-Host "Info: Nie wykryto zmian w kodzie aplikacji. Tylko commit wykonany." -ForegroundColor Gray
 }
 
-Write-Host "--- Gotowe! https://trichology.duckdns.org ---" -ForegroundColor Cyan
+Write-Host "--- Gotowe! Aplikacja: https://${serverIp} ---" -ForegroundColor Cyan
