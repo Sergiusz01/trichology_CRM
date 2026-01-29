@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 import { calculateLabFlags } from '../utils/labResults';
 import { generateLabResultPDF } from '../services/pdfService';
+import { writeAuditLog } from '../services/auditService';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -237,6 +238,12 @@ router.post('/', authenticate, async (req: AuthRequest, res, next) => {
       },
     });
 
+    await writeAuditLog(req, {
+      action: 'CREATE_LAB_RESULT',
+      entity: 'LabResult',
+      entityId: labResult.id,
+    });
+
     res.status(201).json({ labResult });
   } catch (error) {
     next(error);
@@ -267,6 +274,12 @@ router.put('/:id', authenticate, async (req: AuthRequest, res, next) => {
       },
     });
 
+    await writeAuditLog(req, {
+      action: 'UPDATE_LAB_RESULT',
+      entity: 'LabResult',
+      entityId: labResult.id,
+    });
+
     res.json({ labResult });
   } catch (error) {
     next(error);
@@ -281,6 +294,12 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res, next) => {
     const labResult = await prisma.labResult.update({
       where: { id },
       data: { isArchived: true },
+    });
+
+    await writeAuditLog(req, {
+      action: 'ARCHIVE_LAB_RESULT',
+      entity: 'LabResult',
+      entityId: labResult.id,
     });
 
     res.json({ 
@@ -314,6 +333,12 @@ router.post('/:id/restore', authenticate, async (req: AuthRequest, res, next) =>
       data: { isArchived: false },
     });
 
+    await writeAuditLog(req, {
+      action: 'RESTORE_LAB_RESULT',
+      entity: 'LabResult',
+      entityId: restoredLabResult.id,
+    });
+
     res.json({ 
       labResult: restoredLabResult, 
       message: 'Wynik badania został przywrócony' 
@@ -335,6 +360,12 @@ router.delete('/:id/permanent', authenticate, requireRole('ADMIN'), async (req: 
     if (!labResult) {
       return res.status(404).json({ error: 'Wynik badania nie znaleziony' });
     }
+
+    await writeAuditLog(req, {
+      action: 'PERMANENT_DELETE_LAB_RESULT',
+      entity: 'LabResult',
+      entityId: id,
+    });
 
     // Permanent delete - RODO compliant
     await prisma.labResult.delete({

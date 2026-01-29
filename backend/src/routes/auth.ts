@@ -6,6 +6,13 @@ import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 import { prisma } from '../prisma';
 import { authLimiter, refreshLimiter } from '../middleware/rateLimit';
 
+function getClientIp(req: express.Request): string | undefined {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (typeof forwarded === 'string') return forwarded.split(',')[0]?.trim();
+  if (Array.isArray(forwarded)) return forwarded[0]?.trim();
+  return req.socket?.remoteAddress;
+}
+
 const router = express.Router();
 
 const registerSchema = z.object({
@@ -86,6 +93,23 @@ router.post('/login', authLimiter, async (req, res, next) => {
 
     const accessToken = generateAccessToken(tokenPayload);
     const refreshToken = generateRefreshToken(tokenPayload);
+
+    try {
+      await prisma.auditLog.create({
+        data: {
+          userId: user.id,
+          action: 'LOGIN',
+          entity: 'User',
+          entityId: user.id,
+          method: 'POST',
+          path: '/api/auth/login',
+          ip: getClientIp(req),
+          userAgent: (req.headers['user-agent'] as string) || undefined,
+        },
+      });
+    } catch {
+      // Nie przerywamy logowania przy błędzie audytu
+    }
 
     res.json({
       accessToken,

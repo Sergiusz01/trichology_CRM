@@ -87,7 +87,17 @@ interface Visit {
 }
 
 import { VISIT_STATUS_CONFIG } from '../constants/visitStatus';
-import { formatDateTimeLocalForPicker, formatDate, formatTime } from '../utils/dateFormat';
+import {
+  formatDateTimeLocalForPicker,
+  formatDate,
+  formatTime,
+  HOUR_OPTIONS,
+  MINUTE_OPTIONS,
+  getDatePart,
+  getTimePart,
+  getHourPart,
+  getMinutePart,
+} from '../utils/dateFormat';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -1954,16 +1964,57 @@ export default function PatientDetailPage() {
         <DialogContent>
           <Stack spacing={3} sx={{ mt: 1 }}>
             <TextField
-              label="Data i godzina wizyty"
-              type="datetime-local"
-              value={visitDialog.data}
-              onChange={(e) => setVisitDialog({ ...visitDialog, data: e.target.value })}
+              label="Data wizyty"
+              type="date"
+              value={getDatePart(visitDialog.data)}
+              onChange={(e) =>
+                setVisitDialog({
+                  ...visitDialog,
+                  data: `${e.target.value}T${getTimePart(visitDialog.data)}`,
+                })
+              }
               fullWidth
               required
-              inputProps={{ step: 900 }}
               InputLabelProps={{ shrink: true }}
-              helperText="Format 24h, minuty: 00, 15, 30, 45"
             />
+            <FormControl fullWidth required>
+              <InputLabel>Godzina (24h)</InputLabel>
+              <Select
+                value={getHourPart(visitDialog.data)}
+                onChange={(e) =>
+                  setVisitDialog({
+                    ...visitDialog,
+                    data: `${getDatePart(visitDialog.data)}T${(e.target.value as string).padStart(2, '0')}:${getMinutePart(visitDialog.data)}`,
+                  })
+                }
+                label="Godzina (24h)"
+              >
+                {HOUR_OPTIONS.map((h) => (
+                  <MenuItem key={h} value={h}>
+                    {h}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl fullWidth required>
+              <InputLabel>Minuta (00, 15, 30, 45)</InputLabel>
+              <Select
+                value={getMinutePart(visitDialog.data)}
+                onChange={(e) =>
+                  setVisitDialog({
+                    ...visitDialog,
+                    data: `${getDatePart(visitDialog.data)}T${getHourPart(visitDialog.data).padStart(2, '0')}:${e.target.value}`,
+                  })
+                }
+                label="Minuta (00, 15, 30, 45)"
+              >
+                {MINUTE_OPTIONS.map((m) => (
+                  <MenuItem key={m} value={m}>
+                    {m}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
             <TextField
               label="Rodzaj zabiegu"
               value={visitDialog.rodzajZabiegu}

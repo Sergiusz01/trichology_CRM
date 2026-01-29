@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 import { generateCarePlanPDF } from '../services/pdfService';
+import { writeAuditLog } from '../services/auditService';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -140,6 +141,12 @@ router.post('/', authenticate, async (req: AuthRequest, res, next) => {
       },
     });
 
+    await writeAuditLog(req, {
+      action: 'CREATE_CARE_PLAN',
+      entity: 'CarePlan',
+      entityId: carePlan.id,
+    });
+
     res.status(201).json({ carePlan });
   } catch (error) {
     next(error);
@@ -189,6 +196,12 @@ router.put('/:id', authenticate, async (req: AuthRequest, res, next) => {
       },
     });
 
+    await writeAuditLog(req, {
+      action: 'UPDATE_CARE_PLAN',
+      entity: 'CarePlan',
+      entityId: id,
+    });
+
     res.json({ carePlan: updatedPlan });
   } catch (error) {
     next(error);
@@ -203,6 +216,12 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res, next) => {
     const carePlan = await prisma.carePlan.update({
       where: { id },
       data: { isArchived: true },
+    });
+
+    await writeAuditLog(req, {
+      action: 'ARCHIVE_CARE_PLAN',
+      entity: 'CarePlan',
+      entityId: carePlan.id,
     });
 
     res.json({ 
@@ -236,6 +255,12 @@ router.post('/:id/restore', authenticate, async (req: AuthRequest, res, next) =>
       data: { isArchived: false },
     });
 
+    await writeAuditLog(req, {
+      action: 'RESTORE_CARE_PLAN',
+      entity: 'CarePlan',
+      entityId: restoredCarePlan.id,
+    });
+
     res.json({ 
       carePlan: restoredCarePlan, 
       message: 'Plan opieki został przywrócony' 
@@ -257,6 +282,12 @@ router.delete('/:id/permanent', authenticate, requireRole('ADMIN'), async (req: 
     if (!carePlan) {
       return res.status(404).json({ error: 'Plan opieki nie znaleziony' });
     }
+
+    await writeAuditLog(req, {
+      action: 'PERMANENT_DELETE_CARE_PLAN',
+      entity: 'CarePlan',
+      entityId: id,
+    });
 
     // Prisma will cascade delete:
     // - CarePlanWeek (onDelete: Cascade)

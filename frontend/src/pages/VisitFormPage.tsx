@@ -23,7 +23,15 @@ import { Save, ArrowBack } from '@mui/icons-material';
 import { api } from '../services/api';
 import { useNotification } from '../hooks/useNotification';
 import { VISIT_STATUS_CONFIG } from '../constants/visitStatus';
-import { formatDateTimeLocalForPicker } from '../utils/dateFormat';
+import {
+  formatDateTimeLocalForPicker,
+  HOUR_OPTIONS,
+  MINUTE_OPTIONS,
+  getDatePart,
+  getTimePart,
+  getHourPart,
+  getMinutePart,
+} from '../utils/dateFormat';
 
 export default function VisitFormPage() {
   const { id, patientId } = useParams<{ id?: string; patientId?: string }>();
@@ -240,19 +248,63 @@ export default function VisitFormPage() {
                 </Grid>
               )}
 
-              {/* Date and Time – 24h, minuty 00/15/30/45 */}
-              <Grid size={{ xs: 12, md: 6 }}>
+              {/* Data – format YYYY-MM-DD */}
+              <Grid size={{ xs: 12, md: 3 }}>
                 <TextField
                   fullWidth
-                  label="Data i godzina *"
-                  type="datetime-local"
-                  value={formData.data}
-                  onChange={(e) => handleChange('data', e.target.value)}
+                  label="Data *"
+                  type="date"
+                  value={getDatePart(formData.data)}
+                  onChange={(e) =>
+                    handleChange('data', `${e.target.value}T${getTimePart(formData.data)}`)
+                  }
                   required
-                  inputProps={{ step: 900 }}
                   InputLabelProps={{ shrink: true }}
-                  helperText="Format 24h, minuty: 00, 15, 30, 45"
                 />
+              </Grid>
+              {/* Godzina 00–23 (24h) */}
+              <Grid size={{ xs: 12, md: 2 }}>
+                <FormControl fullWidth required>
+                  <InputLabel>Godz. *</InputLabel>
+                  <Select
+                    value={getHourPart(formData.data)}
+                    onChange={(e) =>
+                      handleChange(
+                        'data',
+                        `${getDatePart(formData.data)}T${e.target.value.padStart(2, '0')}:${getMinutePart(formData.data)}`
+                      )
+                    }
+                    label="Godz. *"
+                  >
+                    {HOUR_OPTIONS.map((h) => (
+                      <MenuItem key={h} value={h}>
+                        {h}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              {/* Minuta – tylko 00, 15, 30, 45 (4 opcje, bez przewijania) */}
+              <Grid size={{ xs: 12, md: 2 }}>
+                <FormControl fullWidth required>
+                  <InputLabel>Min. *</InputLabel>
+                  <Select
+                    value={getMinutePart(formData.data)}
+                    onChange={(e) =>
+                      handleChange(
+                        'data',
+                        `${getDatePart(formData.data)}T${getHourPart(formData.data).padStart(2, '0')}:${e.target.value}`
+                      )
+                    }
+                    label="Min. *"
+                  >
+                    {MINUTE_OPTIONS.map((m) => (
+                      <MenuItem key={m} value={m}>
+                        {m}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
               </Grid>
 
               {/* Treatment Type */}

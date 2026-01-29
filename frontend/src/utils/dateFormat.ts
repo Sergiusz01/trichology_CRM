@@ -70,6 +70,38 @@ export const formatDateTimeLocal = (dateString: string | Date): string => {
   return `${year}-${month}-${day}T${hour}:${minute}`;
 };
 
+/** Tylko 4 minuty do wyboru – bez przewijania. */
+export const MINUTE_OPTIONS = ['00', '15', '30', '45'] as const;
+
+/** Godziny 00–23 (24h). */
+export const HOUR_OPTIONS: string[] = Array.from({ length: 24 }, (_, i) =>
+  String(i).padStart(2, '0')
+);
+
+/** Z "YYYY-MM-DDTHH:mm" zwraca "YYYY-MM-DD". */
+export const getDatePart = (dt: string): string => (dt || '').slice(0, 10);
+
+/** Z "YYYY-MM-DDTHH:mm" zwraca "HH" (00–23). */
+export const getHourPart = (dt: string): string => {
+  const h = (dt || '').slice(11, 13);
+  return /^\d{2}$/.test(h) && parseInt(h, 10) < 24 ? h : '09';
+};
+
+/** Z "YYYY-MM-DDTHH:mm" zwraca "00"|"15"|"30"|"45". */
+export const getMinutePart = (dt: string): string => {
+  const t = (dt || '').slice(11, 16);
+  if (!/^\d{2}:\d{2}$/.test(t)) return '00';
+  let [, mm] = t.split(':').map(Number);
+  mm = Math.round(mm / 15) * 15;
+  if (mm === 60) mm = 0;
+  const m = String(mm).padStart(2, '0');
+  return MINUTE_OPTIONS.includes(m as (typeof MINUTE_OPTIONS)[number]) ? m : '00';
+};
+
+/** Z "YYYY-MM-DDTHH:mm" zwraca "HH:mm" (00/15/30/45). Używane przy łączeniu daty z godziną. */
+export const getTimePart = (dt: string): string =>
+  `${getHourPart(dt).padStart(2, '0')}:${getMinutePart(dt)}`;
+
 /**
  * Format date for datetime-local with minutes rounded to 00/15/30/45 (Europe/Warsaw, 24h).
  * Use for visit/procedure time pickers with step="900".
