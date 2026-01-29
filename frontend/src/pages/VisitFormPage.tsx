@@ -24,6 +24,29 @@ import { api } from '../services/api';
 import { useNotification } from '../hooks/useNotification';
 import { VISIT_STATUS_CONFIG } from '../constants/visitStatus';
 
+const MINUTE_OPTIONS = [0, 15, 30, 45];
+
+function roundToNearestMinutes(date: Date): { h: string; m: string } {
+  const m = date.getMinutes();
+  const nearest = MINUTE_OPTIONS.reduce((a, b) => (Math.abs(m - a) <= Math.abs(m - b) ? a : b));
+  const d = new Date(date);
+  d.setMinutes(nearest, 0, 0);
+  return {
+    h: String(d.getHours()).padStart(2, '0'),
+    m: String(d.getMinutes()).padStart(2, '0'),
+  };
+}
+
+function roundToNearestMinutesUTC(date: Date): { h: string; m: string } {
+  const m = date.getUTCMinutes();
+  const nearest = MINUTE_OPTIONS.reduce((a, b) => (Math.abs(m - a) <= Math.abs(m - b) ? a : b));
+  const h = date.getUTCHours();
+  return {
+    h: String(h).padStart(2, '0'),
+    m: String(nearest).padStart(2, '0'),
+  };
+}
+
 export default function VisitFormPage() {
   const { id, patientId } = useParams<{ id?: string; patientId?: string }>();
   const navigate = useNavigate();
@@ -45,12 +68,11 @@ export default function VisitFormPage() {
     patientId: actualPatientId || '',
     data: (() => {
       const now = new Date();
+      const { h, m } = roundToNearestMinutes(now);
       const year = now.getFullYear();
       const month = String(now.getMonth() + 1).padStart(2, '0');
       const day = String(now.getDate()).padStart(2, '0');
-      const hours = String(now.getHours()).padStart(2, '0');
-      const minutes = String(now.getMinutes()).padStart(2, '0');
-      return `${year}-${month}-${day}T${hours}:${minutes}`;
+      return `${year}-${month}-${day}T${h}:${m}`;
     })(),
     rodzajZabiegu: '',
     notatki: '',
@@ -104,13 +126,12 @@ export default function VisitFormPage() {
         return;
       }
 
-      // Format date for datetime-local input (use UTC to preserve exact time)
+      // Format date for datetime-local (UTC), minuty zaokrąglone do 00, 15, 30, 45
       const visitDate = new Date(visit.data);
       const year = visitDate.getUTCFullYear();
       const month = String(visitDate.getUTCMonth() + 1).padStart(2, '0');
       const day = String(visitDate.getUTCDate()).padStart(2, '0');
-      const hours = String(visitDate.getUTCHours()).padStart(2, '0');
-      const minutes = String(visitDate.getUTCMinutes()).padStart(2, '0');
+      const { h: hours, m: minutes } = roundToNearestMinutesUTC(visitDate);
       const formattedDate = `${year}-${month}-${day}T${hours}:${minutes}`;
 
       setFormData({
@@ -265,9 +286,11 @@ export default function VisitFormPage() {
                   value={formData.data}
                   onChange={(e) => handleChange('data', e.target.value)}
                   required
+                  inputProps={{ step: 900 }}
                   InputLabelProps={{
                     shrink: true,
                   }}
+                  helperText="Godzina w formacie 24h, minuty: 00, 15, 30, 45"
                 />
               </Grid>
 
