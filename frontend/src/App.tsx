@@ -12,6 +12,7 @@ const PatientDetailPage = lazy(() => import('./pages/PatientDetailPage'));
 const PatientFormPage = lazy(() => import('./pages/PatientFormPage'));
 const ConsultationFormPage = lazy(() => import('./pages/ConsultationFormPage'));
 const ConsultationViewPage = lazy(() => import('./pages/ConsultationViewPage'));
+const ConsultationsPage = lazy(() => import('./pages/ConsultationsPage'));
 const ConsultationTemplatesPage = lazy(() => import('./pages/ConsultationTemplatesPage'));
 const LabResultsPage = lazy(() => import('./pages/LabResultsPage'));
 const LabResultFormPage = lazy(() => import('./pages/LabResultFormPage'));
@@ -90,6 +91,7 @@ function App() {
           <Route path="patients/:id/consultations/new" element={<ConsultationFormPage />} />
           <Route path="patients/:id/visits/new" element={<VisitFormPage />} />
           <Route path="visits/new" element={<VisitFormPage />} />
+          <Route path="consultations" element={<ConsultationsPage />} />
           <Route path="consultations/:id" element={<ConsultationViewPage />} />
           <Route path="consultations/:id/edit" element={<ConsultationFormPage />} />
           <Route path="patients/:id/lab-results" element={<LabResultsPage />} />
