@@ -24,11 +24,13 @@ import { api } from '../services/api';
 import { useNotification } from '../hooks/useNotification';
 import { VISIT_STATUS_CONFIG } from '../constants/visitStatus';
 
-const MINUTE_OPTIONS = [0, 15, 30, 45];
+const MINUTE_OPTIONS = ['00', '15', '30', '45'] as const;
+const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
 
 function roundToNearestMinutes(date: Date): { h: string; m: string } {
   const m = date.getMinutes();
-  const nearest = MINUTE_OPTIONS.reduce((a, b) => (Math.abs(m - a) <= Math.abs(m - b) ? a : b));
+  const options = [0, 15, 30, 45];
+  const nearest = options.reduce((a, b) => (Math.abs(m - a) <= Math.abs(m - b) ? a : b));
   const d = new Date(date);
   d.setMinutes(nearest, 0, 0);
   return {
@@ -39,7 +41,8 @@ function roundToNearestMinutes(date: Date): { h: string; m: string } {
 
 function roundToNearestMinutesUTC(date: Date): { h: string; m: string } {
   const m = date.getUTCMinutes();
-  const nearest = MINUTE_OPTIONS.reduce((a, b) => (Math.abs(m - a) <= Math.abs(m - b) ? a : b));
+  const options = [0, 15, 30, 45];
+  const nearest = options.reduce((a, b) => (Math.abs(m - a) <= Math.abs(m - b) ? a : b));
   const h = date.getUTCHours();
   return {
     h: String(h).padStart(2, '0'),
@@ -64,16 +67,25 @@ export default function VisitFormPage() {
   const actualPatientId = location.pathname.includes('/visits/new') ? id : (patientId || id);
   const actualVisitId = location.pathname.includes('/visits/new') ? undefined : id;
 
+  const initDateTime = (() => {
+    const now = new Date();
+    const { h, m } = roundToNearestMinutes(now);
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const minute = (MINUTE_OPTIONS as readonly string[]).includes(m) ? m : '00';
+    return {
+      datePart: `${year}-${month}-${day}`,
+      hour: h,
+      minute,
+    };
+  })();
+
   const [formData, setFormData] = useState({
     patientId: actualPatientId || '',
-    data: (() => {
-      const now = new Date();
-      const { h, m } = roundToNearestMinutes(now);
-      const year = now.getFullYear();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const day = String(now.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}T${h}:${m}`;
-    })(),
+    datePart: initDateTime.datePart,
+    hour: initDateTime.hour,
+    minute: initDateTime.minute,
     rodzajZabiegu: '',
     notatki: '',
     status: 'ZAPLANOWANA' as 'ZAPLANOWANA' | 'ODBYTA' | 'NIEOBECNOSC' | 'ANULOWANA',
@@ -126,17 +138,18 @@ export default function VisitFormPage() {
         return;
       }
 
-      // Format date for datetime-local (UTC), minuty zaokrąglone do 00, 15, 30, 45
       const visitDate = new Date(visit.data);
       const year = visitDate.getUTCFullYear();
       const month = String(visitDate.getUTCMonth() + 1).padStart(2, '0');
       const day = String(visitDate.getUTCDate()).padStart(2, '0');
       const { h: hours, m: minutes } = roundToNearestMinutesUTC(visitDate);
-      const formattedDate = `${year}-${month}-${day}T${hours}:${minutes}`;
+      const minute = (MINUTE_OPTIONS as readonly string[]).includes(minutes) ? minutes : '00';
 
       setFormData({
         patientId: visit.patientId,
-        data: formattedDate,
+        datePart: `${year}-${month}-${day}`,
+        hour: hours,
+        minute,
         rodzajZabiegu: visit.rodzajZabiegu || '',
         notatki: visit.notatki || '',
         status: visit.status || 'ZAPLANOWANA',
@@ -173,9 +186,10 @@ export default function VisitFormPage() {
     try {
       setLoading(true);
 
+      const data = `${formData.datePart}T${formData.hour}:${formData.minute}`;
       const visitData: any = {
         patientId: formData.patientId,
-        data: formData.data,
+        data,
         rodzajZabiegu: formData.rodzajZabiegu.trim(),
         status: formData.status,
       };
@@ -277,21 +291,56 @@ export default function VisitFormPage() {
                 </Grid>
               )}
 
-              {/* Date and Time */}
-              <Grid size={{ xs: 12, md: 6 }}>
+              {/* Data */}
+              <Grid size={{ xs: 12, sm: 4 }}>
                 <TextField
                   fullWidth
-                  label="Data i godzina *"
-                  type="datetime-local"
-                  value={formData.data}
-                  onChange={(e) => handleChange('data', e.target.value)}
+                  label="Data *"
+                  type="date"
+                  value={formData.datePart}
+                  onChange={(e) => handleChange('datePart', e.target.value)}
                   required
-                  inputProps={{ step: 900 }}
-                  InputLabelProps={{
-                    shrink: true,
-                  }}
-                  helperText="Godzina w formacie 24h, minuty: 00, 15, 30, 45"
+                  InputLabelProps={{ shrink: true }}
                 />
+              </Grid>
+              {/* Godzina (24h) */}
+              <Grid size={{ xs: 12, sm: 4 }}>
+                <FormControl fullWidth required>
+                  <InputLabel>Godzina</InputLabel>
+                  <Select
+                    label="Godzina"
+                    value={formData.hour}
+                    onChange={(e) => handleChange('hour', e.target.value)}
+                  >
+                    {HOUR_OPTIONS.map((h) => (
+                      <MenuItem key={h} value={h}>
+                        {h}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              {/* Minuty – tylko 00, 15, 30, 45 */}
+              <Grid size={{ xs: 12, sm: 4 }}>
+                <FormControl fullWidth required>
+                  <InputLabel>Minuty</InputLabel>
+                  <Select
+                    label="Minuty"
+                    value={formData.minute}
+                    onChange={(e) => handleChange('minute', e.target.value)}
+                  >
+                    {MINUTE_OPTIONS.map((m) => (
+                      <MenuItem key={m} value={m}>
+                        :{m}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid size={{ xs: 12 }}>
+                <Typography variant="caption" color="text.secondary">
+                  Godzina w formacie 24h. Minuty: tylko 00, 15, 30, 45.
+                </Typography>
               </Grid>
 
               {/* Treatment Type */}
