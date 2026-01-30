@@ -265,11 +265,68 @@ export default function LabResultViewPage() {
 
         {/* Lab Results */}
         <Box sx={{ mt: 3 }}>
-          {/* Morphology */}
-          {(labResult.hgb !== null && labResult.hgb !== undefined) || 
+          {labResult.templateId && labResult.dynamicData && labResult.template && (() => {
+            const dyn = labResult.dynamicData as Record<string, unknown>;
+            const tpl = labResult.template as { name?: string; fields?: { key: string; label: string; type: string; unit?: string; refLow?: number; refHigh?: number; order?: number }[] };
+            const fields = (tpl.fields || []).slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+            const rows: JSX.Element[] = [];
+            fields.forEach((f) => {
+              const v = dyn[f.key];
+              if (v === null || v === undefined || v === '') return;
+              if (f.type === 'NUMBER') {
+                const unit = (dyn[`${f.key}Unit`] as string) ?? f.unit ?? '';
+                const refLow = (dyn[`${f.key}RefLow`] as number) ?? f.refLow;
+                const refHigh = (dyn[`${f.key}RefHigh`] as number) ?? f.refHigh;
+                const flag = dyn[`${f.key}Flag`] as string | undefined;
+                rows.push(
+                  <TableRow key={f.key}>
+                    <TableCell><strong>{f.label}</strong></TableCell>
+                    <TableCell>{String(v)} {unit}</TableCell>
+                    <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                      {refLow != null || refHigh != null ? `${refLow ?? '-'} - ${refHigh ?? '-'}` : '-'}
+                    </TableCell>
+                    <TableCell>
+                      <Chip label={flag || '-'} color={getFlagColor(flag)} size="small" sx={{ fontSize: '0.75rem' }} />
+                    </TableCell>
+                  </TableRow>
+                );
+              } else {
+                rows.push(
+                  <TableRow key={f.key}>
+                    <TableCell><strong>{f.label}</strong></TableCell>
+                    <TableCell colSpan={3}>{String(v)}</TableCell>
+                  </TableRow>
+                );
+              }
+            });
+            if (rows.length === 0) return null;
+            return (
+              <>
+                <Typography variant="h6" sx={{ fontSize: '1.25rem', fontWeight: 'bold', mt: 3, mb: 2, color: '#2c3e50', borderBottom: '2px solid #3498db', pb: 1 }}>
+                  Wyniki (szablon: {tpl.name || '—'})
+                </Typography>
+                <TableContainer component={Paper} sx={{ mb: 3 }}>
+                  <Table>
+                    <TableHead>
+                      <TableRow sx={{ backgroundColor: '#2c3e50' }}>
+                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Parametr</TableCell>
+                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Wartość</TableCell>
+                        <TableCell sx={{ color: 'white', fontWeight: 'bold', display: { xs: 'none', md: 'table-cell' } }}>Zakres referencyjny</TableCell>
+                        <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Status</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>{rows}</TableBody>
+                  </Table>
+                </TableContainer>
+              </>
+            );
+          })()}
+
+          {/* Legacy: Morphology */}
+          {!labResult.templateId && ((labResult.hgb !== null && labResult.hgb !== undefined) || 
            (labResult.rbc !== null && labResult.rbc !== undefined) || 
            (labResult.wbc !== null && labResult.wbc !== undefined) || 
-           (labResult.plt !== null && labResult.plt !== undefined) ? (
+           (labResult.plt !== null && labResult.plt !== undefined)) ? (
             <>
               <Typography variant="h6" sx={{ 
                 fontSize: '1.25rem',
@@ -303,9 +360,9 @@ export default function LabResultViewPage() {
             </>
           ) : null}
 
-          {/* Iron */}
-          {(labResult.ferritin !== null && labResult.ferritin !== undefined) || 
-           (labResult.iron !== null && labResult.iron !== undefined) ? (
+          {/* Legacy: Iron */}
+          {!labResult.templateId && ((labResult.ferritin !== null && labResult.ferritin !== undefined) || 
+           (labResult.iron !== null && labResult.iron !== undefined)) ? (
             <>
               <Typography variant="h6" sx={{ 
                 fontSize: '1.25rem',
@@ -337,10 +394,10 @@ export default function LabResultViewPage() {
             </>
           ) : null}
 
-          {/* Vitamins */}
-          {(labResult.vitaminD3 !== null && labResult.vitaminD3 !== undefined) || 
+          {/* Legacy: Vitamins */}
+          {!labResult.templateId && ((labResult.vitaminD3 !== null && labResult.vitaminD3 !== undefined) || 
            (labResult.vitaminB12 !== null && labResult.vitaminB12 !== undefined) || 
-           (labResult.folicAcid !== null && labResult.folicAcid !== undefined) ? (
+           (labResult.folicAcid !== null && labResult.folicAcid !== undefined)) ? (
             <>
               <Typography variant="h6" sx={{ 
                 fontSize: '1.25rem',
@@ -373,10 +430,10 @@ export default function LabResultViewPage() {
             </>
           ) : null}
 
-          {/* Thyroid */}
-          {(labResult.tsh !== null && labResult.tsh !== undefined) || 
+          {/* Legacy: Thyroid */}
+          {!labResult.templateId && ((labResult.tsh !== null && labResult.tsh !== undefined) || 
            (labResult.ft3 !== null && labResult.ft3 !== undefined) || 
-           (labResult.ft4 !== null && labResult.ft4 !== undefined) ? (
+           (labResult.ft4 !== null && labResult.ft4 !== undefined)) ? (
             <>
               <Typography variant="h6" sx={{ 
                 fontSize: '1.25rem',

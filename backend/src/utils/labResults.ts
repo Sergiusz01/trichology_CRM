@@ -58,4 +58,35 @@ export const calculateLabFlags = (data: any): any => {
   return result;
 };
 
+export type LabResultTemplateField = {
+  key: string;
+  type: string;
+  label: string;
+  unit?: string;
+  refLow?: number;
+  refHigh?: number;
+  order?: number;
+  options?: string[];
+};
+
+export function calculateDynamicDataFlags(
+  fields: LabResultTemplateField[],
+  dynamicData: Record<string, unknown>
+): Record<string, unknown> {
+  const out = { ...dynamicData };
+  for (const f of fields) {
+    if (f.type !== 'NUMBER') continue;
+    const v = dynamicData[f.key];
+    if (v === null || v === undefined || typeof v !== 'number') continue;
+    const refLow = (f.refLow ?? (dynamicData[`${f.key}RefLow`] as number)) as number | undefined;
+    const refHigh = (f.refHigh ?? (dynamicData[`${f.key}RefHigh`] as number)) as number | undefined;
+    let flag: 'LOW' | 'NORMAL' | 'HIGH' | null = null;
+    if (refLow !== undefined && refLow !== null && v < refLow) flag = 'LOW';
+    else if (refHigh !== undefined && refHigh !== null && v > refHigh) flag = 'HIGH';
+    else if (refLow != null || refHigh != null) flag = 'NORMAL';
+    if (flag !== null) (out as Record<string, unknown>)[`${f.key}Flag`] = flag;
+  }
+  return out;
+}
+
 

@@ -1,0 +1,1 @@
+import{_ as s}from"./index-ik9JjyS6.js";const i=()=>{const{enqueueSnackbar:a}=s();return{success:r=>{a(r,{variant:"success"})},error:r=>{a(r,{variant:"error"})},warning:r=>{a(r,{variant:"warning"})},info:r=>{a(r,{variant:"info"})},show:(r,n="default")=>{a(r,{variant:n})}}};export{i as u};

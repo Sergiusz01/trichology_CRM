@@ -62,10 +62,23 @@ ssh root@91.99.237.141 "cd ~/backend-src && npx prisma db push"
 
 ## 4. Sprawdzanie czy wszystko działa
 
-Po każdej aktualizacji możesz sprawdzić logi serwera:
+**Logi backendu:**
 ```powershell
 ssh root@91.99.237.141 "pm2 logs trichology-backend --lines 20"
 ```
+
+**Health check (diagnostyka):**
+```powershell
+ssh root@91.99.237.141 "curl -s http://127.0.0.1:3001/health"
+```
+Oczekiwane: `{"status":"ok",...}`. Z zewnątrz: `curl -s http://91.99.237.141/health` (gdy Nginx proxy’uje `/health`).
+
+**Restart backendu:**
+```powershell
+ssh root@91.99.237.141 "pm2 restart trichology-backend"
+```
+
+Więcej: **DEPLOYMENT.md** (Nginx, CORS, zmienne środowiskowe, rozwiązywanie problemów).
 
 ### 💡 Wskazówki:
 *   **Przystanek:** Przed wysyłką upewnij się, że Twoje zmiany działają lokalnie (`npm run dev`).

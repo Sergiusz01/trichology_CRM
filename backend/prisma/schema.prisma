@@ -22,6 +22,7 @@ model User {
   uploadedScalpPhotos   ScalpPhoto[]
   createdEmailTemplates EmailTemplate[]
   consultationTemplates ConsultationTemplate[]
+  labResultTemplates    LabResultTemplate[]
   refreshTokens         RefreshToken[]
   pdfJobs               PdfJob[]        @relation("PdfJobRequestor")
   auditLogs             AuditLog[]
@@ -194,10 +195,29 @@ model Consultation {
   @@index([templateId])
 }
 
+model LabResultTemplate {
+  id              String         @id @default(cuid())
+  name            String
+  doctorId        String?
+  fields          Json           // [{ type, label, key, unit?, refLow?, refHigh?, order, options? }]
+  isDefault       Boolean        @default(false)
+  isActive        Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  doctor          User?          @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  labResults      LabResult[]
+
+  @@index([doctorId])
+  @@index([isDefault])
+  @@index([isActive])
+}
+
 model LabResult {
   id                  String        @id @default(cuid())
   patientId           String
   consultationId      String?
+  templateId          String?
+  dynamicData         Json?
   date                DateTime      @default(now())
   hgb                 Float?
   hgbUnit             String?
@@ -329,9 +349,11 @@ model LabResult {
   updatedAt           DateTime      @updatedAt
   consultation        Consultation? @relation(fields: [consultationId], references: [id])
   patient             Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  template            LabResultTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
 
   @@index([patientId])
   @@index([consultationId])
+  @@index([templateId])
   @@index([date])
 }
 

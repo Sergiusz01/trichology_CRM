@@ -8,6 +8,7 @@ import patientRoutes from './routes/patients';
 import consultationRoutes from './routes/consultations';
 import consultationTemplateRoutes from './routes/consultationTemplates';
 import labResultRoutes from './routes/labResults';
+import labResultTemplateRoutes from './routes/labResultTemplates';
 import scalpPhotoRoutes from './routes/scalpPhotos';
 import carePlanRoutes from './routes/carePlans';
 import emailRoutes from './routes/email';
@@ -27,15 +28,29 @@ dotenv.config();
 const app = express();
 
 const PORT = process.env.PORT || 3001;
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+// CORS: allow multiple origins (FRONTEND_URLS comma-separated) or single FRONTEND_URL.
+// Always allow localhost for dev. Production: add http://<VPS_IP>, https://<DOMAIN>, etc.
+const defaultOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:3000', 'http://127.0.0.1:3000'];
+const fromEnv = (process.env.FRONTEND_URLS ?? process.env.FRONTEND_URL ?? '')
+  .split(',')
+  .map((s: string) => s.trim())
+  .filter(Boolean);
+const corsAllowlist = [...new Set([...defaultOrigins, ...fromEnv])];
 
 // Trust proxy (required for rate limiting behind Nginx)
 app.set('trust proxy', true);
 
-// Middleware
+// Middleware – whitelist only; no open CORS
 app.use(cors({
-  origin: FRONTEND_URL,
+  origin: (origin, cb) => {
+    if (!origin) return cb(null, true); // same-origin / non-browser (e.g. curl)
+    if (corsAllowlist.includes(origin)) return cb(null, origin);
+    cb(null, false);
+  },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -79,9 +94,14 @@ app.use('/public', express.static(publicDir, {
 // Rate limiting - apply to all API routes
 app.use('/api', apiLimiter);
 
-// Health check (no rate limit)
+// Health check (no rate limit) – używaj do diagnostyki i load-balancerów
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    service: 'trichology-backend',
+    corsOrigins: corsAllowlist.length,
+  });
 });
 
 // Routes
@@ -91,6 +111,7 @@ app.use('/api/patients', patientRoutes);
 app.use('/api/consultations', consultationRoutes);
 app.use('/api/consultation-templates', consultationTemplateRoutes);
 app.use('/api/lab-results', labResultRoutes);
+app.use('/api/lab-result-templates', labResultTemplateRoutes);
 app.use('/api/scalp-photos', scalpPhotoRoutes);
 app.use('/api/care-plans', carePlanRoutes);
 app.use('/api/email', emailRoutes);
@@ -108,20 +129,20 @@ app.use(errorHandler);
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔒 CORS allowlist: ${corsAllowlist.join(', ') || '(none)'}`);
 });
 
 // Start reminder worker
 startReminderWorker();
 
-// Initialize default email templates on startup (if no templates exist)
+// Initialize default email templates and lab result template on startup (if missing)
 (async () => {
   try {
-    // Wait a bit for database connection to be ready
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     const { initializeDefaultTemplates } = await import('./utils/initializeDefaultTemplates');
+    const { initializeDefaultLabResultTemplate } = await import('./utils/initializeDefaultLabResultTemplates');
 
-    // Get first admin user to use as creator
     const admin = await prisma.user.findFirst({
       where: { role: 'ADMIN' },
     });
@@ -129,11 +150,12 @@ startReminderWorker();
     if (admin && prisma) {
       await initializeDefaultTemplates(admin.id, prisma);
     } else {
-      console.log('⚠️ Brak użytkownika admin lub prisma nie jest zainicjalizowane - pomijam inicjalizację szablonów');
+      console.log('⚠️ Brak użytkownika admin - pomijam inicjalizację szablonów emaili');
     }
+
+    await initializeDefaultLabResultTemplate(prisma);
   } catch (error) {
     console.error('❌ Błąd podczas inicjalizacji domyślnych szablonów:', error);
-    // Don't throw - this is not critical for server startup
   }
 })();
 

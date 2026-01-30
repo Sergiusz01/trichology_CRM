@@ -16,6 +16,10 @@ import {
   AccordionDetails,
   Divider,
   InputAdornment,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import {
   ExpandMore,
@@ -26,9 +30,11 @@ import {
   Opacity,
   Assignment,
   MonitorHeart,
-  CalendarMonth
+  CalendarMonth,
 } from '@mui/icons-material';
 import { api } from '../services/api';
+import DynamicLabResultForm from '../components/DynamicLabResultForm';
+import type { LabResultTemplate, LabResultTemplateField } from '../components/LabResultTemplateBuilder';
 
 export default function LabResultFormPage() {
   const { id, labResultId } = useParams<{ id?: string; labResultId?: string }>();
@@ -39,6 +45,9 @@ export default function LabResultFormPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [templates, setTemplates] = useState<LabResultTemplate[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
+  const [dynamicFormData, setDynamicFormData] = useState<Record<string, unknown>>({});
   const [formData, setFormData] = useState({
     patientId: id || '',
     consultationId: '',
@@ -103,6 +112,10 @@ export default function LabResultFormPage() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleDynamicChange = (key: string, value: unknown) => {
+    setDynamicFormData((prev) => ({ ...prev, [key]: value }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -110,67 +123,52 @@ export default function LabResultFormPage() {
     setSuccess(false);
 
     try {
-      // Convert empty strings to undefined and numbers
-      const dataToSend: any = {
-        patientId: formData.patientId,
+      const patientId = formData.patientId || id;
+      const base: any = {
+        patientId,
         date: formData.date ? new Date(formData.date).toISOString() : undefined,
         consultationId: formData.consultationId || undefined,
         notes: formData.notes || undefined,
       };
 
-      // Helper to convert string to number or undefined
-      const toNumber = (val: string) => (val === '' ? undefined : parseFloat(val));
-
-      // Add all numeric fields
-      const numericFields = [
-        'hgb', 'hgbRefLow', 'hgbRefHigh',
-        'rbc', 'rbcRefLow', 'rbcRefHigh',
-        'wbc', 'wbcRefLow', 'wbcRefHigh',
-        'plt', 'pltRefLow', 'pltRefHigh',
-        'ferritin', 'ferritinRefLow', 'ferritinRefHigh',
-        'iron', 'ironRefLow', 'ironRefHigh',
-        'vitaminD3', 'vitaminD3RefLow', 'vitaminD3RefHigh',
-        'vitaminB12', 'vitaminB12RefLow', 'vitaminB12RefHigh',
-        'folicAcid', 'folicAcidRefLow', 'folicAcidRefHigh',
-        'tsh', 'tshRefLow', 'tshRefHigh',
-        'ft3', 'ft3RefLow', 'ft3RefHigh',
-        'ft4', 'ft4RefLow', 'ft4RefHigh',
-      ];
-
-      numericFields.forEach((field) => {
-        const value = toNumber(formData[field as keyof typeof formData] as string);
-        if (value !== undefined) {
-          dataToSend[field] = value;
+      if (selectedTemplateId && templates.some((t) => t.id === selectedTemplateId)) {
+        const dynamicData: Record<string, unknown> = { ...dynamicFormData };
+        dynamicData.notes = base.notes ?? dynamicFormData.notes ?? '';
+        const payload = { ...base, templateId: selectedTemplateId, dynamicData };
+        if (labResultId) {
+          await api.put(`/lab-results/${labResultId}`, payload);
+        } else {
+          await api.post('/lab-results', payload);
         }
-      });
-
-      // Add unit fields
-      const unitFields = [
-        'hgbUnit', 'rbcUnit', 'wbcUnit', 'pltUnit',
-        'ferritinUnit', 'ironUnit',
-        'vitaminD3Unit', 'vitaminB12Unit', 'folicAcidUnit',
-        'tshUnit', 'ft3Unit', 'ft4Unit',
-      ];
-
-      unitFields.forEach((field) => {
-        const value = formData[field as keyof typeof formData] as string;
-        if (value) {
-          dataToSend[field] = value;
-        }
-      });
-
-      if (labResultId) {
-        await api.put(`/lab-results/${labResultId}`, dataToSend);
       } else {
-        await api.post('/lab-results', dataToSend);
+        const toNumber = (val: string) => (val === '' ? undefined : parseFloat(val));
+        const numericFields = [
+          'hgb', 'hgbRefLow', 'hgbRefHigh', 'rbc', 'rbcRefLow', 'rbcRefHigh',
+          'wbc', 'wbcRefLow', 'wbcRefHigh', 'plt', 'pltRefLow', 'pltRefHigh',
+          'ferritin', 'ferritinRefLow', 'ferritinRefHigh', 'iron', 'ironRefLow', 'ironRefHigh',
+          'vitaminD3', 'vitaminD3RefLow', 'vitaminD3RefHigh', 'vitaminB12', 'vitaminB12RefLow', 'vitaminB12RefHigh',
+          'folicAcid', 'folicAcidRefLow', 'folicAcidRefHigh',
+          'tsh', 'tshRefLow', 'tshRefHigh', 'ft3', 'ft3RefLow', 'ft3RefHigh', 'ft4', 'ft4RefLow', 'ft4RefHigh',
+        ];
+        numericFields.forEach((field) => {
+          const v = toNumber(formData[field as keyof typeof formData] as string);
+          if (v !== undefined) base[field] = v;
+        });
+        const unitFields = ['hgbUnit', 'rbcUnit', 'wbcUnit', 'pltUnit', 'ferritinUnit', 'ironUnit', 'vitaminD3Unit', 'vitaminB12Unit', 'folicAcidUnit', 'tshUnit', 'ft3Unit', 'ft4Unit'];
+        unitFields.forEach((field) => {
+          const v = formData[field as keyof typeof formData] as string;
+          if (v) base[field] = v;
+        });
+        if (labResultId) {
+          await api.put(`/lab-results/${labResultId}`, base);
+        } else {
+          await api.post('/lab-results', base);
+        }
       }
 
       setSuccess(true);
-      setTimeout(() => {
-        navigate(`/patients/${id}`);
-      }, 1500);
+      setTimeout(() => navigate(`/patients/${id}`), 1500);
     } catch (err: any) {
-      console.error('Błąd zapisywania wyniku:', err);
       setError(err.response?.data?.error || err.message || 'Błąd zapisywania wyniku');
     } finally {
       setLoading(false);
@@ -178,9 +176,18 @@ export default function LabResultFormPage() {
   };
 
   useEffect(() => {
-    if (labResultId && id) {
-      fetchLabResult();
-    }
+    (async () => {
+      try {
+        const res = await api.get('/lab-result-templates');
+        setTemplates(res.data.templates || []);
+      } catch {
+        /* ignore */
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (labResultId && id) fetchLabResult();
   }, [labResultId, id]);
 
   const fetchLabResult = async () => {
@@ -190,62 +197,70 @@ export default function LabResultFormPage() {
       const response = await api.get(`/lab-results/${labResultId}`);
       const result = response.data.labResult;
 
+      const dateStr = result.date ? new Date(result.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
       setFormData({
         patientId: result.patientId || id || '',
         consultationId: result.consultationId || '',
-        date: result.date ? new Date(result.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        hgb: result.hgb || '',
+        date: dateStr,
+        hgb: result.hgb ?? '',
         hgbUnit: result.hgbUnit || 'g/dL',
-        hgbRefLow: result.hgbRefLow || '',
-        hgbRefHigh: result.hgbRefHigh || '',
-        rbc: result.rbc || '',
+        hgbRefLow: result.hgbRefLow ?? '',
+        hgbRefHigh: result.hgbRefHigh ?? '',
+        rbc: result.rbc ?? '',
         rbcUnit: result.rbcUnit || 'M/μL',
-        rbcRefLow: result.rbcRefLow || '',
-        rbcRefHigh: result.rbcRefHigh || '',
-        wbc: result.wbc || '',
+        rbcRefLow: result.rbcRefLow ?? '',
+        rbcRefHigh: result.rbcRefHigh ?? '',
+        wbc: result.wbc ?? '',
         wbcUnit: result.wbcUnit || 'K/μL',
-        wbcRefLow: result.wbcRefLow || '',
-        wbcRefHigh: result.wbcRefHigh || '',
-        plt: result.plt || '',
+        wbcRefLow: result.wbcRefLow ?? '',
+        wbcRefHigh: result.wbcRefHigh ?? '',
+        plt: result.plt ?? '',
         pltUnit: result.pltUnit || 'K/μL',
-        pltRefLow: result.pltRefLow || '',
-        pltRefHigh: result.pltRefHigh || '',
-        ferritin: result.ferritin || '',
+        pltRefLow: result.pltRefLow ?? '',
+        pltRefHigh: result.pltRefHigh ?? '',
+        ferritin: result.ferritin ?? '',
         ferritinUnit: result.ferritinUnit || 'ng/mL',
-        ferritinRefLow: result.ferritinRefLow || '',
-        ferritinRefHigh: result.ferritinRefHigh || '',
-        iron: result.iron || '',
+        ferritinRefLow: result.ferritinRefLow ?? '',
+        ferritinRefHigh: result.ferritinRefHigh ?? '',
+        iron: result.iron ?? '',
         ironUnit: result.ironUnit || 'μg/dL',
-        ironRefLow: result.ironRefLow || '',
-        ironRefHigh: result.ironRefHigh || '',
-        vitaminD3: result.vitaminD3 || '',
+        ironRefLow: result.ironRefLow ?? '',
+        ironRefHigh: result.ironRefHigh ?? '',
+        vitaminD3: result.vitaminD3 ?? '',
         vitaminD3Unit: result.vitaminD3Unit || 'ng/mL',
-        vitaminD3RefLow: result.vitaminD3RefLow || '',
-        vitaminD3RefHigh: result.vitaminD3RefHigh || '',
-        vitaminB12: result.vitaminB12 || '',
+        vitaminD3RefLow: result.vitaminD3RefLow ?? '',
+        vitaminD3RefHigh: result.vitaminD3RefHigh ?? '',
+        vitaminB12: result.vitaminB12 ?? '',
         vitaminB12Unit: result.vitaminB12Unit || 'pg/mL',
-        vitaminB12RefLow: result.vitaminB12RefLow || '',
-        vitaminB12RefHigh: result.vitaminB12RefHigh || '',
-        folicAcid: result.folicAcid || '',
+        vitaminB12RefLow: result.vitaminB12RefLow ?? '',
+        vitaminB12RefHigh: result.vitaminB12RefHigh ?? '',
+        folicAcid: result.folicAcid ?? '',
         folicAcidUnit: result.folicAcidUnit || 'ng/mL',
-        folicAcidRefLow: result.folicAcidRefLow || '',
-        folicAcidRefHigh: result.folicAcidRefHigh || '',
-        tsh: result.tsh || '',
+        folicAcidRefLow: result.folicAcidRefLow ?? '',
+        folicAcidRefHigh: result.folicAcidRefHigh ?? '',
+        tsh: result.tsh ?? '',
         tshUnit: result.tshUnit || 'mIU/L',
-        tshRefLow: result.tshRefLow || '',
-        tshRefHigh: result.tshRefHigh || '',
-        ft3: result.ft3 || '',
+        tshRefLow: result.tshRefLow ?? '',
+        tshRefHigh: result.tshRefHigh ?? '',
+        ft3: result.ft3 ?? '',
         ft3Unit: result.ft3Unit || 'pg/mL',
-        ft3RefLow: result.ft3RefLow || '',
-        ft3RefHigh: result.ft3RefHigh || '',
-        ft4: result.ft4 || '',
+        ft3RefLow: result.ft3RefLow ?? '',
+        ft3RefHigh: result.ft3RefHigh ?? '',
+        ft4: result.ft4 ?? '',
         ft4Unit: result.ft4Unit || 'ng/dL',
-        ft4RefLow: result.ft4RefLow || '',
-        ft4RefHigh: result.ft4RefHigh || '',
-        notes: result.notes || '',
+        ft4RefLow: result.ft4RefLow ?? '',
+        ft4RefHigh: result.ft4RefHigh ?? '',
+        notes: result.notes ?? '',
       });
+
+      if (result.templateId && result.dynamicData) {
+        setSelectedTemplateId(result.templateId);
+        setDynamicFormData(typeof result.dynamicData === 'object' ? (result.dynamicData as Record<string, unknown>) : {});
+      } else {
+        setSelectedTemplateId('');
+        setDynamicFormData({});
+      }
     } catch (error: any) {
-      console.error('Błąd pobierania wyniku:', error);
       setError(error.response?.data?.error || 'Błąd pobierania wyniku');
     } finally {
       setLoadingData(false);
@@ -315,10 +330,51 @@ export default function LabResultFormPage() {
                 }}
               />
             </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              <FormControl fullWidth size="medium">
+                <InputLabel>Szablon wyników</InputLabel>
+                <Select
+                  value={selectedTemplateId}
+                  label="Szablon wyników"
+                  onChange={(e) => {
+                    setSelectedTemplateId(e.target.value);
+                    if (!e.target.value) setDynamicFormData({});
+                  }}
+                >
+                  <MenuItem value="">Bez szablonu (formularz standardowy)</MenuItem>
+                  {templates.map((t) => (
+                    <MenuItem key={t.id} value={t.id!}>
+                      {t.name}
+                      {t.isDefault ? ' (domyślny)' : ''}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
           </Grid>
         </Paper>
 
-        {/* Categories */}
+        {selectedTemplateId ? (
+          <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3, borderRadius: 2, boxShadow: 1 }}>
+            <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+              Wyniki (szablon)
+            </Typography>
+            <DynamicLabResultForm
+              fields={(templates.find((t) => t.id === selectedTemplateId)?.fields ?? []) as LabResultTemplateField[]}
+              formData={dynamicFormData}
+              onChange={handleDynamicChange}
+            />
+            <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>Notatki</Typography>
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              placeholder="Dodatkowe uwagi..."
+              value={formData.notes}
+              onChange={(e) => handleChange('notes', e.target.value)}
+            />
+          </Paper>
+        ) : (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {/* Morfologia */}
           <Accordion defaultExpanded sx={{ borderRadius: 2, '&:before': { display: 'none' }, boxShadow: 1 }}>
@@ -417,6 +473,7 @@ export default function LabResultFormPage() {
             />
           </Paper>
         </Box>
+        )}
 
         {/* Actions */}
         <Box sx={{

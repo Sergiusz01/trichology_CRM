@@ -14,6 +14,7 @@ const ConsultationFormPage = lazy(() => import('./pages/ConsultationFormPage'));
 const ConsultationViewPage = lazy(() => import('./pages/ConsultationViewPage'));
 const ConsultationsPage = lazy(() => import('./pages/ConsultationsPage'));
 const ConsultationTemplatesPage = lazy(() => import('./pages/ConsultationTemplatesPage'));
+const LabResultTemplatesPage = lazy(() => import('./pages/LabResultTemplatesPage'));
 const LabResultsPage = lazy(() => import('./pages/LabResultsPage'));
 const LabResultFormPage = lazy(() => import('./pages/LabResultFormPage'));
 const LabResultViewPage = lazy(() => import('./pages/LabResultViewPage'));
@@ -112,6 +113,7 @@ function App() {
           <Route path="email/test" element={<EmailTestPage />} />
           <Route path="email/templates" element={<EmailTemplatesPage />} />
           <Route path="consultation-templates" element={<ConsultationTemplatesPage />} />
+          <Route path="lab-result-templates" element={<LabResultTemplatesPage />} />
           <Route path="activity" element={<ActivityLogPage />} />
           <Route path="profile" element={<UserProfilePage />} />
           <Route path="care-plans/:id" element={<CarePlanDetailPage />} />

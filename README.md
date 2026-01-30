@@ -180,8 +180,17 @@ npm run dev
 
 ### Wyniki badań
 - `GET /api/lab-results/patient/:patientId` - Lista wyników
-- `POST /api/lab-results` - Nowy wynik
+- `GET /api/lab-results/:id` - Szczegóły (z `template` gdy `templateId`)
+- `POST /api/lab-results` - Nowy wynik (`templateId` + `dynamicData` opcjonalnie)
 - `PUT /api/lab-results/:id` - Edycja wyniku
+- `GET /api/lab-results/:id/pdf` - PDF wyniku
+
+### Szablony wyników badań
+- `GET /api/lab-result-templates` - Lista (global + użytkownika)
+- `GET /api/lab-result-templates/:id` - Pojedynczy szablon
+- `POST /api/lab-result-templates` - Utwórz
+- `PUT /api/lab-result-templates/:id` - Edytuj
+- `DELETE /api/lab-result-templates/:id` - Usuń (soft)
 
 ### Zdjęcia skóry głowy
 - `POST /api/scalp-photos/patient/:patientId` - Upload zdjęcia
@@ -199,6 +208,10 @@ npm run dev
 
 ### Diagnostyka
 - `GET /health` - Health check (poza /api, bez rate limit). Używaj do monitoringu i diagnostyki.
+
+## 📋 Szablony wyników badań
+- **docs/SZABLONY_WYNIKOW_BADAN.md** – instrukcja (gdzie kliknąć, zarządzanie szablonami, formularz, stare wyniki).
+- Menu: **Szablony wyników badań**; formularz wyniku: dropdown **Szablon wyników** (bez szablonu = formularz standardowy).
 
 ## 🚀 Wdrożenie na VPS (tylko IP)
 

@@ -51,6 +51,57 @@ export const generateLabResultPDF = async (labResult: any, patient: any): Promis
     `;
   };
 
+  const renderDynamicSection = (lab: any) => {
+    const template = lab.template;
+    const dyn = (lab.dynamicData || {}) as Record<string, unknown>;
+    if (!template || !Array.isArray(template.fields)) return '';
+
+    const rows: string[] = [];
+    const sorted = (template.fields as { key: string; label: string; type: string; unit?: string; refLow?: number; refHigh?: number; order?: number }[])
+      .slice()
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+    for (const f of sorted) {
+      const v = dyn[f.key];
+      if (v === null || v === undefined || v === '') continue;
+      const unit = (dyn[`${f.key}Unit`] as string) ?? f.unit ?? '';
+      const refLow = (dyn[`${f.key}RefLow`] as number) ?? f.refLow;
+      const refHigh = (dyn[`${f.key}RefHigh`] as number) ?? f.refHigh;
+      const flag = dyn[`${f.key}Flag`] as string | undefined;
+      if (f.type === 'NUMBER') {
+        rows.push(renderLabValue(f.label, v, unit, refLow, refHigh, flag ?? null));
+      } else {
+        rows.push(`
+      <tr>
+        <td><strong>${f.label}</strong></td>
+        <td colspan="3">${String(v).replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')}</td>
+      </tr>
+    `);
+      }
+    }
+    if (rows.length === 0) return '';
+    return `
+        <div class="section-title">WYNIKI (szablon: ${template.name || '—'})</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Parametr</th>
+              <th>Wartość</th>
+              <th>Zakres referencyjny</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.join('')}
+          </tbody>
+        </table>
+    `;
+  };
+
+  const dynamicSection = labResult.templateId && labResult.dynamicData
+    ? renderDynamicSection(labResult)
+    : '';
+
   const html = `
     <!DOCTYPE html>
     <html lang="pl">
@@ -159,10 +210,8 @@ export const generateLabResultPDF = async (labResult: any, patient: any): Promis
       </div>
 
       <div class="lab-results">
-        ${(labResult.hgb !== null && labResult.hgb !== undefined) ||
-      (labResult.rbc !== null && labResult.rbc !== undefined) ||
-      (labResult.wbc !== null && labResult.wbc !== undefined) ||
-      (labResult.plt !== null && labResult.plt !== undefined) ? `
+        ${dynamicSection ? dynamicSection : ''}
+        ${!dynamicSection && (labResult.hgb != null || labResult.rbc != null || labResult.wbc != null || labResult.plt != null) ? `
         <div class="section-title">MORFOLOGIA KRWI</div>
         <table>
           <thead>
@@ -182,8 +231,7 @@ export const generateLabResultPDF = async (labResult: any, patient: any): Promis
         </table>
         ` : ''}
 
-        ${(labResult.ferritin !== null && labResult.ferritin !== undefined) ||
-      (labResult.iron !== null && labResult.iron !== undefined) ? `
+        ${!dynamicSection && (labResult.ferritin != null || labResult.iron != null) ? `
         <div class="section-title">ŻELAZO</div>
         <table>
           <thead>
@@ -201,9 +249,7 @@ export const generateLabResultPDF = async (labResult: any, patient: any): Promis
         </table>
         ` : ''}
 
-        ${(labResult.vitaminD3 !== null && labResult.vitaminD3 !== undefined) ||
-      (labResult.vitaminB12 !== null && labResult.vitaminB12 !== undefined) ||
-      (labResult.folicAcid !== null && labResult.folicAcid !== undefined) ? `
+        ${!dynamicSection && (labResult.vitaminD3 != null || labResult.vitaminB12 != null || labResult.folicAcid != null) ? `
         <div class="section-title">WITAMINY</div>
         <table>
           <thead>
@@ -222,9 +268,7 @@ export const generateLabResultPDF = async (labResult: any, patient: any): Promis
         </table>
         ` : ''}
 
-        ${(labResult.tsh !== null && labResult.tsh !== undefined) ||
-      (labResult.ft3 !== null && labResult.ft3 !== undefined) ||
-      (labResult.ft4 !== null && labResult.ft4 !== undefined) ? `
+        ${!dynamicSection && (labResult.tsh != null || labResult.ft3 != null || labResult.ft4 != null) ? `
         <div class="section-title">FUNKCJA TARCZYCY</div>
         <table>
           <thead>

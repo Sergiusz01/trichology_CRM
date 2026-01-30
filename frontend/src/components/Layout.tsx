@@ -30,6 +30,7 @@ import {
   AttachMoney,
   EventNote,
   History,
+  Science,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -43,6 +44,7 @@ const menuItems = [
   { text: 'Historia emaili', icon: <Email />, path: '/email/history' },
   { text: 'Szablony emaili', icon: <EmailIcon />, path: '/email/templates' },
   { text: 'Szablony konsultacji', icon: <Description />, path: '/consultation-templates' },
+  { text: 'Szablony wyników badań', icon: <Science />, path: '/lab-result-templates' },
   { text: 'Dziennik aktywności', icon: <History />, path: '/activity' },
   { text: 'Test email', icon: <Settings />, path: '/email/test' },
 ];

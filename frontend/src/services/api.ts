@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Use relative path for production (Nginx proxy handles /api)
-// Use full URL only for local development
+// Produkcja (za Nginx): nie ustawiaj VITE_API_URL → używamy względnego /api (brak CORS przy samej domenie).
+// Lokalnie: VITE_API_URL=http://localhost:3001 w .env – frontend na :5173, API na :3001.
 const API_URL = (import.meta as any).env?.VITE_API_URL || '';
 
 export const BASE_URL = API_URL;
@@ -45,7 +45,7 @@ export const setupApiErrorHandler = (errorHandler: (message: string, variant: 'e
 // Helper function to format error messages
 const formatErrorMessage = (error: any): string => {
   if (!error.response) {
-    return 'Brak połączenia z serwerem. Sprawdź połączenie internetowe.';
+    return 'Brak połączenia z serwerem. Sprawdź połączenie i czy backend działa (GET /health). Przy cross-origin upewnij się, że CORS obejmuje tę domenę (FRONTEND_URL / FRONTEND_URLS).';
   }
 
   const { status, data } = error.response;

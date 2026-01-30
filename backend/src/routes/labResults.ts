@@ -1,13 +1,12 @@
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
-import { calculateLabFlags } from '../utils/labResults';
+import { calculateLabFlags, calculateDynamicDataFlags, type LabResultTemplateField } from '../utils/labResults';
 import { generateLabResultPDF } from '../services/pdfService';
 import { writeAuditLog } from '../services/auditService';
+import { prisma } from '../prisma';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 const labResultSchema = z.object({
   patientId: z.string(),
@@ -120,7 +119,12 @@ const labResultSchema = z.object({
   hba1cRefLow: z.number().optional(),
   hba1cRefHigh: z.number().optional(),
   notes: z.string().optional(),
+  templateId: z.string().optional(),
+  dynamicData: z.record(z.unknown()).optional(),
 });
+
+const labResultCreateSchema = labResultSchema;
+const labResultUpdateSchema = labResultSchema.omit({ patientId: true });
 
 // Get lab results for a patient
 router.get('/patient/:patientId', authenticate, async (req: AuthRequest, res, next) => {
@@ -139,6 +143,7 @@ router.get('/patient/:patientId', authenticate, async (req: AuthRequest, res, ne
         consultation: {
           select: { id: true, consultationDate: true },
         },
+        template: { select: { id: true, name: true, fields: true } },
       },
     });
 
@@ -161,6 +166,7 @@ router.get('/:id/pdf', authenticate, async (req: AuthRequest, res, next) => {
         consultation: {
           select: { id: true, consultationDate: true },
         },
+        template: true,
       },
     });
 
@@ -168,7 +174,7 @@ router.get('/:id/pdf', authenticate, async (req: AuthRequest, res, next) => {
       return res.status(404).json({ error: 'Wynik laboratoryjny nie znaleziony' });
     }
 
-    const pdfBuffer = await generateLabResultPDF(labResult, labResult.patient);
+    const pdfBuffer = await generateLabResultPDF(labResult as any, labResult.patient);
     console.log(`PDF wygenerowany pomyślnie dla wyniku badania ${id}, rozmiar: ${pdfBuffer.length} bajtów`);
 
     res.setHeader('Content-Type', 'application/pdf');
@@ -194,6 +200,7 @@ router.get('/:id', authenticate, async (req: AuthRequest, res, next) => {
         consultation: {
           select: { id: true, consultationDate: true },
         },
+        template: true,
       },
     });
 
@@ -210,20 +217,44 @@ router.get('/:id', authenticate, async (req: AuthRequest, res, next) => {
 // Create lab result
 router.post('/', authenticate, async (req: AuthRequest, res, next) => {
   try {
-    const data = labResultSchema.parse(req.body);
+    const data = labResultCreateSchema.parse(req.body);
 
-    // Verify patient exists
     const patient = await prisma.patient.findUnique({
       where: { id: data.patientId },
     });
-
     if (!patient) {
       return res.status(404).json({ error: 'Pacjent nie znaleziony' });
     }
 
-    // Calculate flags for all parameters
-    const labDataWithFlags = calculateLabFlags(data);
+    if (data.templateId && data.dynamicData) {
+      const t = await prisma.labResultTemplate.findFirst({
+        where: { id: data.templateId, isActive: true },
+      });
+      if (!t) {
+        return res.status(404).json({ error: 'Szablon wyników badań nie znaleziony' });
+      }
+      const fields = (t.fields as LabResultTemplateField[]) || [];
+      const dynamicData = calculateDynamicDataFlags(fields, data.dynamicData as Record<string, unknown>);
+      const labResult = await prisma.labResult.create({
+        data: {
+          patientId: data.patientId,
+          date: data.date ? new Date(data.date) : new Date(),
+          consultationId: data.consultationId || undefined,
+          notes: data.notes ?? undefined,
+          templateId: data.templateId,
+          dynamicData: dynamicData as object,
+        },
+        include: {
+          patient: true,
+          consultation: { select: { id: true, consultationDate: true } },
+          template: true,
+        },
+      });
+      await writeAuditLog(req, { action: 'CREATE_LAB_RESULT', entity: 'LabResult', entityId: labResult.id });
+      return res.status(201).json({ labResult });
+    }
 
+    const labDataWithFlags = calculateLabFlags(data);
     const labResult = await prisma.labResult.create({
       data: {
         ...labDataWithFlags,
@@ -232,20 +263,16 @@ router.post('/', authenticate, async (req: AuthRequest, res, next) => {
       },
       include: {
         patient: true,
-        consultation: {
-          select: { id: true, consultationDate: true },
-        },
+        consultation: { select: { id: true, consultationDate: true } },
+        template: true,
       },
     });
-
-    await writeAuditLog(req, {
-      action: 'CREATE_LAB_RESULT',
-      entity: 'LabResult',
-      entityId: labResult.id,
-    });
-
+    await writeAuditLog(req, { action: 'CREATE_LAB_RESULT', entity: 'LabResult', entityId: labResult.id });
     res.status(201).json({ labResult });
-  } catch (error) {
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: 'Błąd walidacji', details: error.errors });
+    }
     next(error);
   }
 });
@@ -254,34 +281,67 @@ router.post('/', authenticate, async (req: AuthRequest, res, next) => {
 router.put('/:id', authenticate, async (req: AuthRequest, res, next) => {
   try {
     const { id } = req.params;
-    const data = labResultSchema.omit({ patientId: true }).parse(req.body);
+    const data = labResultUpdateSchema.parse(req.body);
 
-    // Calculate flags
+    const existing = await prisma.labResult.findUnique({
+      where: { id },
+      include: { template: true },
+    });
+    if (!existing) {
+      return res.status(404).json({ error: 'Wynik laboratoryjny nie znaleziony' });
+    }
+
+    if (data.templateId && data.dynamicData) {
+      const t = await prisma.labResultTemplate.findFirst({
+        where: { id: data.templateId, isActive: true },
+      });
+      if (!t) {
+        return res.status(404).json({ error: 'Szablon wyników badań nie znaleziony' });
+      }
+      const fields = (t.fields as LabResultTemplateField[]) || [];
+      const dynamicData = calculateDynamicDataFlags(fields, data.dynamicData as Record<string, unknown>);
+      const labResult = await prisma.labResult.update({
+        where: { id },
+        data: {
+          date: data.date ? new Date(data.date) : undefined,
+          consultationId: data.consultationId ?? undefined,
+          notes: data.notes ?? undefined,
+          templateId: data.templateId,
+          dynamicData: dynamicData as object,
+        },
+        include: {
+          patient: true,
+          consultation: { select: { id: true, consultationDate: true } },
+          template: true,
+        },
+      });
+      await writeAuditLog(req, { action: 'UPDATE_LAB_RESULT', entity: 'LabResult', entityId: labResult.id });
+      return res.json({ labResult });
+    }
+
     const labDataWithFlags = calculateLabFlags(data);
-
     const labResult = await prisma.labResult.update({
       where: { id },
       data: {
         ...labDataWithFlags,
         date: data.date ? new Date(data.date) : undefined,
-        consultationId: data.consultationId || undefined,
+        consultationId: data.consultationId ?? undefined,
+        notes: data.notes ?? undefined,
+        templateId: null,
+        dynamicData: null,
       },
       include: {
         patient: true,
-        consultation: {
-          select: { id: true, consultationDate: true },
-        },
+        consultation: { select: { id: true, consultationDate: true } },
+        template: true,
       },
     });
-
-    await writeAuditLog(req, {
-      action: 'UPDATE_LAB_RESULT',
-      entity: 'LabResult',
-      entityId: labResult.id,
-    });
-
+    await writeAuditLog(req, { action: 'UPDATE_LAB_RESULT', entity: 'LabResult', entityId: labResult.id });
     res.json({ labResult });
-  } catch (error) {
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: 'Błąd walidacji', details: error.errors });
+    }
     next(error);
   }
 });

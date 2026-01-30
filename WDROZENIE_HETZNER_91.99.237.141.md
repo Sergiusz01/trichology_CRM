@@ -86,3 +86,7 @@ Będę wykonywał komendy automatycznie i raportował postęp.
 ---
 
 **Gotowy do startu! Potwierdzasz?** 🚀
+
+---
+
+**Zob. też:** `DEPLOYMENT.md` – zmienne CORS (`FRONTEND_URLS`), Nginx, diagnostyka (`/health`), PM2.

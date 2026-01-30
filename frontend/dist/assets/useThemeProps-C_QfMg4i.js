@@ -1,0 +1,1 @@
+import{an as r,am as m,ao as n}from"./index-ik9JjyS6.js";const p=r();function c({props:t,name:a,defaultTheme:o,themeId:s}){let e=m(o);return s&&(e=e[s]||e),n({theme:e,name:a,props:t})}export{p as s,c as u};
