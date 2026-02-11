@@ -9,8 +9,8 @@ import path from 'path';
 
 const router = express.Router();
 
-// Serve consultation scale images
-router.get('/scales/:name', authenticate, async (req: AuthRequest, res) => {
+// Serve consultation scale images (public, no auth required for <img> tags)
+router.get('/scales/:name', async (req: AuthRequest, res) => {
   const { name } = req.params;
   const fileMap: Record<string, string> = {
     'norwood-hamilton': 'norwood-hamilton.png',

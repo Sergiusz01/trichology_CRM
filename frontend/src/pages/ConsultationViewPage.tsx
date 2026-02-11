@@ -154,6 +154,21 @@ export default function ConsultationViewPage() {
     }
   };
 
+  const buildPdfFilename = () => {
+    const firstName = consultation?.patient?.firstName || 'pacjent';
+    const lastName = consultation?.patient?.lastName || '';
+    const dateValue = consultation?.consultationDate ? new Date(consultation.consultationDate) : new Date();
+    const dateStr = dateValue.toISOString().split('T')[0];
+    const rawName = `${firstName} ${lastName}`.trim();
+    const safeName = rawName
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .toLowerCase();
+    return `konsultacja_${safeName || 'pacjent'}_${dateStr}.pdf`;
+  };
+
   const handleDownloadPDF = async () => {
     try {
       setDownloadingPDF(true);
@@ -163,7 +178,7 @@ export default function ConsultationViewPage() {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `konsultacja-${id}.pdf`);
+      link.setAttribute('download', buildPdfFilename());
       document.body.appendChild(link);
       link.click();
       link.remove();
