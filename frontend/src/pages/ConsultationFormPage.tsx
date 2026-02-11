@@ -250,10 +250,14 @@ export default function ConsultationFormPage() {
     };
 
     // If using template, save dynamic data separately
-    if (useTemplate && selectedTemplate) {
-      dataToSend.templateId = selectedTemplate.id;
+    const templateIdFromState = selectedTemplate?.id || formData.templateId || formData.template?.id;
+    const templateFields: TemplateField[] = selectedTemplate?.fields || formData.template?.fields || [];
+    const shouldUseTemplate = useTemplate || Boolean(templateIdFromState && templateFields.length > 0);
+
+    if (shouldUseTemplate && templateIdFromState && templateFields.length > 0) {
+      dataToSend.templateId = templateIdFromState;
       const dynamicData: Record<string, any> = {};
-      selectedTemplate.fields.forEach((field: TemplateField) => {
+      templateFields.forEach((field: TemplateField) => {
         if (field.type === 'SECTION' || field.type === 'SUBSECTION') {
           return;
         }
@@ -271,8 +275,8 @@ export default function ConsultationFormPage() {
     // Copy only defined fields and handle conversions (for standard form)
     Object.keys(formData).forEach((key) => {
       // Skip if using template and this is a template field
-      if (useTemplate && selectedTemplate) {
-        const isTemplateField = selectedTemplate.fields.some((f: TemplateField) => f.key === key);
+      if (shouldUseTemplate && templateFields.length > 0) {
+        const isTemplateField = templateFields.some((f: TemplateField) => f.key === key);
         if (isTemplateField) {
           return; // Already handled in dynamicData
         }
