@@ -179,7 +179,15 @@ export default function LabResultFormPage() {
     (async () => {
       try {
         const res = await api.get('/lab-result-templates');
-        setTemplates(res.data.templates || []);
+        const list: LabResultTemplate[] = res.data.templates || [];
+        setTemplates(list);
+
+        if (!labResultId) {
+          const defaultTemplate = list.find((t) => t.isDefault) || list[0];
+          if (defaultTemplate?.id) {
+            setSelectedTemplateId((prev) => prev || defaultTemplate.id!);
+          }
+        }
       } catch {
         /* ignore */
       }
@@ -350,6 +358,17 @@ export default function LabResultFormPage() {
                   ))}
                 </Select>
               </FormControl>
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              <Button
+                variant="outlined"
+                startIcon={<Science />}
+                fullWidth
+                onClick={() => navigate('/lab-result-templates')}
+                sx={{ height: '100%' }}
+              >
+                Edytuj szablony badań
+              </Button>
             </Grid>
           </Grid>
         </Paper>

@@ -90,22 +90,39 @@ export default function LabResultsPage() {
             Historia wyników laboratoryjnych pacjenta
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          fullWidth={isMobile}
-          onClick={() => navigate(`/patients/${id}/lab-results/new`)}
-          sx={{
-            borderRadius: 2.5,
-            textTransform: 'none',
-            fontWeight: 700,
-            py: 1.2,
-            px: 3,
-            boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.2)}`,
-          }}
-        >
-          Dodaj wynik
-        </Button>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ width: { xs: '100%', sm: 'auto' } }}>
+          <Button
+            variant="outlined"
+            startIcon={<Science />}
+            fullWidth={isMobile}
+            onClick={() => navigate('/lab-result-templates')}
+            sx={{
+              borderRadius: 2.5,
+              textTransform: 'none',
+              fontWeight: 700,
+              py: 1.2,
+              px: 3,
+            }}
+          >
+            Szablony badań
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            fullWidth={isMobile}
+            onClick={() => navigate(`/patients/${id}/lab-results/new`)}
+            sx={{
+              borderRadius: 2.5,
+              textTransform: 'none',
+              fontWeight: 700,
+              py: 1.2,
+              px: 3,
+              boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.2)}`,
+            }}
+          >
+            Dodaj wynik
+          </Button>
+        </Stack>
       </Box>
 
       {labResults.length === 0 ? (

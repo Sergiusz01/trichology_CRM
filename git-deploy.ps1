@@ -34,7 +34,7 @@ if ($backendChanged) {
     Compress-Archive -Path "$tempPath\backend-deploy\*" -DestinationPath "$tempPath\backend.zip" -Force
     scp "$tempPath\backend.zip" "root@${serverIp}:~/"
     
-    $backendCmd = "unzip -o ~/backend.zip -d ~/backend-src && cd ~/backend-src && npm install && npm run build && pm2 restart trichology-backend"
+    $backendCmd = "unzip -o ~/backend.zip -d ~/backend-src && cd ~/backend-src && npm install && npx prisma generate && npm run build && pm2 restart trichology-backend"
     ssh "root@${serverIp}" $backendCmd
     Write-Host "OK: Backend zaktualizowany!" -ForegroundColor Green
 }
