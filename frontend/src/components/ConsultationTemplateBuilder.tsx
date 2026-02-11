@@ -118,40 +118,47 @@ export default function ConsultationTemplateBuilder({
   };
 
   const handleSaveField = () => {
-    if (!currentField.label || !currentField.key) {
-      showError('Etykieta i klucz są wymagane');
+    const isSection = currentField.type === 'SECTION' || currentField.type === 'SUBSECTION';
+    if (!currentField.label) {
+      showError('Etykieta jest wymagana');
       return;
     }
-
-    // Validate key format (alphanumeric and underscore)
-    if (!/^[a-zA-Z0-9_]+$/.test(currentField.key)) {
+    if (!isSection && !currentField.key) {
+      showError('Klucz jest wymagany');
+      return;
+    }
+    if (!isSection && currentField.key && !/^[a-zA-Z0-9_]+$/.test(currentField.key)) {
       showError('Klucz może zawierać tylko litery, cyfry i podkreślenia');
       return;
     }
-
-    // Check for duplicate keys
-    const duplicateKey = fields.some(
-      (f, i) => f.key === currentField.key && i !== editingFieldIndex
-    );
-    if (duplicateKey) {
-      showError('Klucz musi być unikalny');
-      return;
+    if (!isSection) {
+      const duplicateKey = fields.some(
+        (f, i) => f.key === currentField.key && i !== editingFieldIndex
+      );
+      if (duplicateKey) {
+        showError('Klucz musi być unikalny');
+        return;
+      }
     }
 
-    // Validate options for SELECT and MULTISELECT
+    // Validate options for SELECT, MULTISELECT, IMAGE_SELECT
     if (
-      (currentField.type === 'SELECT' || currentField.type === 'MULTISELECT') &&
+      (currentField.type === 'SELECT' || currentField.type === 'MULTISELECT' || currentField.type === 'IMAGE_SELECT') &&
       (!currentField.options || currentField.options.length === 0)
     ) {
-      showError('Typy SELECT i MULTISELECT wymagają przynajmniej jednej opcji');
+      showError('Te typy wymagają przynajmniej jednej opcji');
       return;
     }
+
+    const fieldKey = isSection && !currentField.key
+      ? `section_${Date.now()}`
+      : (currentField.key || '');
 
     const fieldToSave: TemplateField = {
       id: currentField.id,
       type: currentField.type as TemplateField['type'],
       label: currentField.label,
-      key: currentField.key,
+      key: fieldKey,
       required: currentField.required || false,
       placeholder: currentField.placeholder,
       options: currentField.options,
