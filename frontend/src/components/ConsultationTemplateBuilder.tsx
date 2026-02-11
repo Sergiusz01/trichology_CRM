@@ -35,7 +35,7 @@ import { useNotification } from '../hooks/useNotification';
 
 export interface TemplateField {
   id?: string;
-  type: 'TEXT' | 'TEXTAREA' | 'SELECT' | 'MULTISELECT' | 'CHECKBOX' | 'NUMBER' | 'DATE';
+  type: 'TEXT' | 'TEXTAREA' | 'SELECT' | 'MULTISELECT' | 'CHECKBOX' | 'NUMBER' | 'DATE' | 'SECTION' | 'SUBSECTION';
   label: string;
   key: string;
   required: boolean;
@@ -81,6 +81,8 @@ export default function ConsultationTemplateBuilder({
   const { success: showSuccess, error: showError } = useNotification();
 
   const fieldTypes = [
+    { value: 'SECTION', label: 'Nagłówek sekcji' },
+    { value: 'SUBSECTION', label: 'Nagłówek podsekcji' },
     { value: 'TEXT', label: 'Tekst krótki' },
     { value: 'TEXTAREA', label: 'Tekst długi' },
     { value: 'SELECT', label: 'Wybór pojedynczy' },

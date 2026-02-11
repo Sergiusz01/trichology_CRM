@@ -194,6 +194,7 @@ export default function ConsultationViewPage() {
     );
   }
 
+  const hasTemplate = Boolean(consultation?.templateId && consultation?.template?.fields?.length);
   const hairLossNotesValue = getFieldValue('hairLossNotes');
   const oilyHairNotesValue = getFieldValue('oilyHairNotes');
   const supplementsDetailsValue = getFieldValue('supplementsDetails');
@@ -212,6 +213,55 @@ export default function ConsultationViewPage() {
     getFieldValue('oilyHairShampoos') ||
     oilyHairNotesValue
   );
+
+  const renderTemplateField = (field: any) => {
+    if (field.type === 'SECTION') {
+      return (
+        <Box sx={{
+          backgroundColor: '#e0e0e0',
+          fontWeight: 'bold',
+          fontSize: '1rem',
+          p: 1,
+          mt: 3,
+          mb: 2,
+          borderLeft: '5px solid #333',
+          textTransform: 'uppercase'
+        }}>
+          {field.label}
+        </Box>
+      );
+    }
+
+    if (field.type === 'SUBSECTION') {
+      return (
+        <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mt: 2, mb: 1, textDecoration: 'underline' }}>
+          {field.label}
+        </Typography>
+      );
+    }
+
+    const value = getFieldValue(field.key);
+    const displayValue = (value === undefined || value === null || value === '')
+      ? '-'
+      : field.type === 'CHECKBOX'
+        ? (value ? 'TAK' : 'NIE')
+        : formatJsonField(value);
+
+    return (
+      <Box sx={{
+        display: 'flex',
+        borderBottom: '1px dotted #ccc',
+        pb: 0.5,
+        mb: 0.5,
+        fontSize: '0.875rem'
+      }}>
+        <Typography component="span" sx={{ fontWeight: 'bold', mr: 1, minWidth: '200px' }}>
+          {field.label}:
+        </Typography>
+        <Typography component="span" sx={{ flex: 1 }}>{displayValue}</Typography>
+      </Box>
+    );
+  };
 
   return (
     <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 3 }, px: { xs: 1, sm: 2, md: 3 } }}>
@@ -306,31 +356,37 @@ export default function ConsultationViewPage() {
 
         {/* Patient Info */}
         <Box sx={{ mb: 3, p: 2, backgroundColor: '#f9f9f9', borderRadius: 1 }}>
-          <Typography variant="h6" sx={{ mb: 1, fontWeight: 'bold' }}>Dane pacjenta</Typography>
+          <Typography variant="h6" sx={{ mb: 1, fontWeight: 'bold' }}>DANE PACJENTA</Typography>
           <Grid container spacing={2}>
             <Grid size={{ xs: 12, sm: 6 }}>
               <Typography><strong>Imię i nazwisko:</strong> {consultation.patient.firstName} {consultation.patient.lastName}</Typography>
-              {consultation.patient.age && (
-                <Typography><strong>Wiek:</strong> {consultation.patient.age} lat</Typography>
-              )}
-              {consultation.patient.gender && (
-                <Typography><strong>Płeć:</strong> {consultation.patient.gender === 'MALE' ? 'Mężczyzna' : consultation.patient.gender === 'FEMALE' ? 'Kobieta' : 'Inna'}</Typography>
-              )}
+              <Typography><strong>Wiek:</strong> {consultation.patient.age ?? '-'}</Typography>
+              <Typography><strong>Płeć:</strong> {consultation.patient.gender === 'MALE' ? 'M' : consultation.patient.gender === 'FEMALE' ? 'K' : '-'}</Typography>
+              <Typography><strong>Wykonywany zawód:</strong> {consultation.patient.occupation || '-'}</Typography>
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
-              {consultation.patient.phone && (
-                <Typography><strong>Telefon:</strong> {consultation.patient.phone}</Typography>
-              )}
-              {consultation.patient.email && (
-                <Typography><strong>Email:</strong> {consultation.patient.email}</Typography>
-              )}
+              <Typography><strong>Adres zamieszkania:</strong> {consultation.patient.address || '-'}</Typography>
+              <Typography><strong>Numer telefonu:</strong> {consultation.patient.phone || '-'}</Typography>
+              <Typography><strong>e-mail:</strong> {consultation.patient.email || '-'}</Typography>
               <Typography><strong>Lekarz:</strong> {consultation.doctor.name}</Typography>
             </Grid>
           </Grid>
         </Box>
 
+        {hasTemplate && consultation.template?.fields && (
+          <Box sx={{ mb: 3 }}>
+            {[...consultation.template.fields]
+              .sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0))
+              .map((field: any, index: number) => (
+                <Box key={field.key || `${field.label}-${index}`} sx={{ mb: field.type === 'SECTION' ? 0 : 0.5 }}>
+                  {renderTemplateField(field)}
+                </Box>
+              ))}
+          </Box>
+        )}
+
         {/* Section: Problems */}
-        {(hasHairLossData || hasOilyHairData || consultation.scalingSeverity || consultation.sensitivitySeverity) && (
+        {!hasTemplate && (hasHairLossData || hasOilyHairData || consultation.scalingSeverity || consultation.sensitivitySeverity) && (
           <>
             <Box sx={{
               backgroundColor: '#e0e0e0',
@@ -405,7 +461,7 @@ export default function ConsultationViewPage() {
         )}
 
         {/* Section: Anamnesis */}
-        {(consultation.familyHistory || consultation.medications || consultation.stressLevel || consultation.supplements || consultation.antibiotics || supplementsDetailsValue || antibioticsDetailsValue) && (
+        {!hasTemplate && (consultation.familyHistory || consultation.medications || consultation.stressLevel || consultation.supplements || consultation.antibiotics || supplementsDetailsValue || antibioticsDetailsValue) && (
           <>
             <Box sx={{
               backgroundColor: '#e0e0e0',
@@ -470,7 +526,7 @@ export default function ConsultationViewPage() {
         )}
 
         {/* Section: Trichoscopy */}
-        {(consultation.scalpType || consultation.hairQuality || consultation.seborrheaType) && (
+        {!hasTemplate && (consultation.scalpType || consultation.hairQuality || consultation.seborrheaType) && (
           <>
             <Box sx={{
               backgroundColor: '#e0e0e0',
@@ -542,6 +598,7 @@ export default function ConsultationViewPage() {
         )}
 
         {/* Section: Diagnosis and Recommendations */}
+        {!hasTemplate && (
         <Grid container spacing={2} sx={{ mt: 2 }}>
           <Grid size={{ xs: 12, md: 6 }}>
             <Box sx={{
@@ -642,9 +699,10 @@ export default function ConsultationViewPage() {
             </Box>
           </Grid>
         </Grid>
+        )}
 
         {/* General Remarks */}
-        {consultation.generalRemarks && (
+        {!hasTemplate && consultation.generalRemarks && (
           <Box sx={{
             border: '1px solid #ccc',
             mt: 3,

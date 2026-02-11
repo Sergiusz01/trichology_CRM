@@ -1,4 +1,6 @@
 import puppeteer from 'puppeteer';
+import fs from 'fs';
+import path from 'path';
 import { prisma } from '../prisma';
 import { getLogoHTMLForPDF } from '../utils/logo';
 
@@ -90,7 +92,58 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
     return consultation?.[key];
   };
 
-  const html = `
+  const useTemplateLayout = Boolean(consultation?.templateId && consultation?.template?.fields?.length);
+
+  const renderTemplateFieldsHtml = () => {
+    if (!consultation?.template?.fields) return '';
+
+    const fields = [...consultation.template.fields].sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0));
+
+    return fields.map((field: any) => {
+      if (field.type === 'SECTION') {
+        return `<div class="section-header">${escapeHtml(field.label)}</div>`;
+      }
+
+      if (field.type === 'SUBSECTION') {
+        return `<div class="sub-header">${escapeHtml(field.label)}</div>`;
+      }
+
+      const value = getDynamicValue(field.key);
+      const displayValue = (value === undefined || value === null || value === '')
+        ? '&nbsp;'
+        : field.type === 'CHECKBOX'
+          ? (value ? 'TAK' : 'NIE')
+          : formatJsonField(value);
+
+      return `
+        <div class="field-row">
+          <span class="field-label">${escapeHtml(field.label)}:</span>
+          <span class="field-value">${displayValue}</span>
+        </div>
+      `;
+    }).join('');
+  };
+
+  const getImageDataUri = (filename: string) => {
+    const candidates = [
+      path.resolve(__dirname, '../../src/assets', filename),
+      path.resolve(process.cwd(), 'src/assets', filename),
+      path.resolve(process.cwd(), 'backend/src/assets', filename),
+    ];
+
+    for (const candidate of candidates) {
+      if (fs.existsSync(candidate)) {
+        const buffer = fs.readFileSync(candidate);
+        return `data:image/png;base64,${buffer.toString('base64')}`;
+      }
+    }
+    return null;
+  };
+
+  const norwoodImage = getImageDataUri('norwood-hamilton.png');
+  const ludwigImage = getImageDataUri('ludwig.png');
+
+  const legacyHtml = `
     <!DOCTYPE html>
     <html lang="pl">
     <head>
@@ -366,10 +419,75 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
     </html>
   `;
 
+  const templateHtml = `
+    <!DOCTYPE html>
+    <html lang="pl">
+    <head>
+      <meta charset="UTF-8">
+      <title>Karta Konsultacyjna</title>
+      <style>
+        @page { margin: 10mm 10mm 10mm 10mm; }
+        body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 9pt; line-height: 1.3; color: #000; margin: 0; padding: 0; }
+        .container { width: 100%; }
+        .row { display: flex; width: 100%; margin-bottom: 4px; }
+        .col-2 { width: 50%; padding-right: 5px; }
+        .header-main { text-align: center; border-bottom: 2px solid #000; margin-bottom: 10px; padding-bottom: 5px; }
+        .header-title { font-size: 14pt; font-weight: bold; text-transform: uppercase; margin: 0; }
+        .header-sub { font-size: 8pt; letter-spacing: 2px; text-transform: uppercase; }
+        .section-header { background-color: #e0e0e0; font-weight: bold; font-size: 10pt; padding: 2px 5px; margin-top: 8px; margin-bottom: 4px; border-left: 5px solid #333; text-transform: uppercase; }
+        .sub-header { font-weight: bold; font-size: 9pt; margin-top: 4px; margin-bottom: 2px; text-decoration: underline; }
+        .field-row { display: flex; border-bottom: 1px dotted #ccc; padding-bottom: 1px; margin-bottom: 2px; }
+        .field-label { font-weight: bold; margin-right: 5px; min-width: 140px; }
+        .field-value { flex: 1; font-weight: normal; }
+        .scale-image { width: 100%; max-width: 700px; display: block; margin: 6px auto 10px auto; }
+        .footer { margin-top: 20px; font-size: 7pt; text-align: right; color: #666; border-top: 1px solid #ddd; }
+      </style>
+    </head>
+    <body>
+      ${getLogoHTMLForPDF('small')}
+      <div class="header-main">
+        <div class="header-title">Karta Konsultacyjna</div>
+        <div class="header-sub">Rich Diagnostic</div>
+        <div style="font-size: 9pt; margin-top: 5px; text-align: right;">
+          Data konsultacji: <strong>${formatDate(consultation.consultationDate)}</strong>
+        </div>
+      </div>
+
+      <div class="section-header">DANE PACJENTA</div>
+      <div class="row">
+        <div class="col-2">
+          <div class="field-row"><span class="field-label">Imię i nazwisko:</span><span class="field-value">${escapeHtml(consultation.patient?.firstName || '')} ${escapeHtml(consultation.patient?.lastName || '')}</span></div>
+          <div class="field-row"><span class="field-label">Wiek:</span><span class="field-value">${consultation.patient?.age ?? '-'}</span></div>
+          <div class="field-row"><span class="field-label">płeć K/M:</span><span class="field-value">${consultation.patient?.gender === 'FEMALE' ? 'K' : consultation.patient?.gender === 'MALE' ? 'M' : '-'}</span></div>
+          <div class="field-row"><span class="field-label">Wykonywany zawód:</span><span class="field-value">${escapeHtml(consultation.patient?.occupation || '-')}</span></div>
+        </div>
+        <div class="col-2">
+          <div class="field-row"><span class="field-label">Adres zamieszkania:</span><span class="field-value">${escapeHtml(consultation.patient?.address || '-')}</span></div>
+          <div class="field-row"><span class="field-label">Numer telefonu:</span><span class="field-value">${escapeHtml(consultation.patient?.phone || '-')}</span></div>
+          <div class="field-row"><span class="field-label">e-mail:</span><span class="field-value">${escapeHtml(consultation.patient?.email || '-')}</span></div>
+        </div>
+      </div>
+
+      ${renderTemplateFieldsHtml()}
+
+      <div class="section-header">SKALA NORWOODA- HAMILTONA</div>
+      ${norwoodImage ? `<img class="scale-image" src="${norwoodImage}" alt="Skala Norwooda-Hamiltona" />` : `<div class="field-row"><span class="field-label">Brak obrazu</span><span class="field-value">&nbsp;</span></div>`}
+
+      <div class="section-header">SKALA M. LUDWIGA</div>
+      ${ludwigImage ? `<img class="scale-image" src="${ludwigImage}" alt="Skala M. Ludwiga" />` : `<div class="field-row"><span class="field-label">Brak obrazu</span><span class="field-value">&nbsp;</span></div>`}
+
+      <div class="footer">
+        Dokument wygenerowany elektronicznie. Lekarz prowadzący: ${escapeHtml(consultation.doctor?.name || 'Nieznany')} | Data wydruku: ${formatDateTime(new Date())}
+      </div>
+    </body>
+    </html>
+  `;
+
+  const html = useTemplateLayout ? templateHtml : legacyHtml;
+
   let browser;
   try {
     // Try to find system Chromium first, then use Puppeteer's bundled Chrome
-    const fs = require('fs');
     let executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
     if (!executablePath) {
       const possiblePaths = [

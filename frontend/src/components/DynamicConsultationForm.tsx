@@ -32,6 +32,24 @@ export default function DynamicConsultationForm({
     const value = formData[field.key] ?? field.defaultValue ?? '';
 
     switch (field.type) {
+      case 'SECTION':
+        return (
+          <Box sx={{ mt: 3, mb: 1 }}>
+            <Typography variant="h6" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>
+              {field.label}
+            </Typography>
+          </Box>
+        );
+
+      case 'SUBSECTION':
+        return (
+          <Box sx={{ mt: 2, mb: 1 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, textTransform: 'uppercase' }}>
+              {field.label}
+            </Typography>
+          </Box>
+        );
+
       case 'TEXT':
         return (
           <TextField
@@ -81,7 +99,7 @@ export default function DynamicConsultationForm({
           <MultiSelectCheckboxes
             label={field.label}
             options={field.options || []}
-            selected={Array.isArray(value) ? value : []}
+            value={Array.isArray(value) ? value : []}
             onChange={(selected) => onChange(field.key, selected)}
             required={field.required}
           />

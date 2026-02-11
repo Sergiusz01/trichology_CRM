@@ -73,7 +73,8 @@ export default function ConsultationFormPage() {
       console.log('[ConsultationFormPage] Templates count:', templatesList.length);
       setTemplates(templatesList);
       // Auto-select default template if available
-      const defaultTemplate = templatesList.find((t: any) => t.isDefault);
+      const pdfTemplate = templatesList.find((t: any) => t.name === 'Karta konsultacyjna (PDF)');
+      const defaultTemplate = pdfTemplate || templatesList.find((t: any) => t.isDefault);
       console.log('[ConsultationFormPage] Default template:', defaultTemplate);
       if (defaultTemplate) {
         setSelectedTemplate(defaultTemplate);
@@ -141,6 +142,7 @@ export default function ConsultationFormPage() {
       ];
       const parsedData: any = {
         ...consultation,
+        ...(consultation.dynamicData || {}),
         consultationDate: new Date(consultation.consultationDate).toISOString().split('T')[0],
         patientId: consultation.patientId,
       };
@@ -155,6 +157,10 @@ export default function ConsultationFormPage() {
           }
         }
       });
+      if (consultation.template) {
+        setSelectedTemplate(consultation.template);
+        setUseTemplate(true);
+      }
       setFormData(parsedData);
     } catch (error: any) {
       console.error('[ConsultationFormPage] Błąd pobierania konsultacji:', error);
@@ -248,6 +254,9 @@ export default function ConsultationFormPage() {
       dataToSend.templateId = selectedTemplate.id;
       const dynamicData: Record<string, any> = {};
       selectedTemplate.fields.forEach((field: TemplateField) => {
+        if (field.type === 'SECTION' || field.type === 'SUBSECTION') {
+          return;
+        }
         const value = formData[field.key];
         // Include value if it's not undefined/null/empty string, or if it's an array/boolean
         if (value !== undefined && value !== null && value !== '') {

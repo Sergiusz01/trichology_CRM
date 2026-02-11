@@ -182,6 +182,9 @@ router.get('/:id/pdf', authenticate, async (req: AuthRequest, res, next) => {
         doctor: {
           select: { id: true, name: true, email: true },
         },
+        template: {
+          select: { id: true, name: true, fields: true },
+        },
       },
     });
 
