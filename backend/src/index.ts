@@ -21,6 +21,7 @@ import activityRoutes from './routes/activity';
 import { errorHandler } from './middleware/errorHandler';
 import { startReminderWorker } from './services/reminderWorker';
 import { prisma } from './prisma';
+import { initializeDefaultConsultationTemplate } from './utils/initializeDefaultConsultationTemplate';
 import { apiLimiter, authLimiter, refreshLimiter } from './middleware/rateLimit';
 
 dotenv.config();
@@ -153,6 +154,7 @@ startReminderWorker();
       console.log('⚠️ Brak użytkownika admin - pomijam inicjalizację szablonów emaili');
     }
 
+    await initializeDefaultConsultationTemplate(prisma);
     await initializeDefaultLabResultTemplate(prisma);
   } catch (error) {
     console.error('❌ Błąd podczas inicjalizacji domyślnych szablonów:', error);
