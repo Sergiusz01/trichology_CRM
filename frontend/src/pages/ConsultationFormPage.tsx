@@ -340,14 +340,25 @@ export default function ConsultationFormPage() {
       }
     });
 
+    // Ostateczne filtrowanie - usunąć metadane i patientId dla PUT (backend ich nie oczekuje)
+    const keysToRemove = [
+      'id', 'doctorId', 'isArchived', 'createdAt', 'updatedAt',
+      'patient', 'doctor', 'template',
+    ];
+    if (actualConsultationId && !isNewConsultation) {
+      keysToRemove.push('patientId');
+    }
+    keysToRemove.forEach((k) => delete dataToSend[k]);
+
     console.log('[ConsultationFormPage] Data to send keys:', Object.keys(dataToSend));
     console.log('[ConsultationFormPage] PatientId:', dataToSend.patientId);
 
     try {
+      const config = { _skipErrorToast: true } as any; // własny komunikat błędu
       if (actualConsultationId && !isNewConsultation) {
-        await api.put(`/consultations/${actualConsultationId}`, dataToSend);
+        await api.put(`/consultations/${actualConsultationId}`, dataToSend, config);
       } else {
-        await api.post('/consultations', dataToSend);
+        await api.post('/consultations', dataToSend, config);
       }
       setSuccess(true);
       showSuccess('Dane zostały zapisane');
@@ -358,38 +369,29 @@ export default function ConsultationFormPage() {
       console.error('Błąd zapisywania konsultacji:', err);
       console.error('Error response:', err.response);
       console.error('Error response data:', err.response?.data);
-      console.error('Error message:', err.message);
 
-      if (err.response?.data) {
+      let errorMessage = 'Nie udało się zapisać danych.';
+      if (!err.response) {
+        errorMessage = 'Brak połączenia z serwerem. Sprawdź połączenie internetowe.';
+      } else if (err.response?.data) {
         const errorData = err.response.data;
-
-        // Show detailed error message
-        let errorMessage = errorData.error || 'Błąd zapisywania konsultacji';
-
-        if (errorData.message) {
-          errorMessage += `: ${errorData.message}`;
-        }
-
+        errorMessage = errorData.error || errorMessage;
+        if (errorData.message) errorMessage += `: ${errorData.message}`;
         if (errorData.details) {
           if (Array.isArray(errorData.details)) {
-            // Validation errors
-            const validationErrors = errorData.details
-              .map((e: any) => `${e.path?.join('.') || e.field || 'unknown'}: ${e.message || e}`)
-              .join(', ');
-            errorMessage = `Błąd walidacji: ${validationErrors}`;
-          } else if (errorData.details.field) {
-            // Prisma error with field details
-            errorMessage += ` (Pole: ${errorData.details.field})`;
-          } else {
-            // Other details
-            errorMessage += ` (${JSON.stringify(errorData.details)})`;
+            const parts = errorData.details
+              .map((e: any) => `${e.path?.join?.('.') || e.field || '?'}: ${e.message || e}`)
+              .slice(0, 3);
+            errorMessage += ` (${parts.join('; ')})`;
+          } else if (typeof errorData.details === 'object') {
+            errorMessage += ` (${JSON.stringify(errorData.details).slice(0, 100)})`;
           }
         }
-
-        setError(errorMessage);
-      } else {
-        setError(err.message || 'Błąd zapisywania konsultacji');
+      } else if (err.message) {
+        errorMessage = err.message;
       }
+      setError(errorMessage);
+      showError(errorMessage);
     } finally {
       setLoading(false);
     }
