@@ -250,7 +250,7 @@ export default function ConsultationFormPage() {
     ];
 
     const dataToSend: any = {
-      consultationDate: formData.consultationDate,
+      consultationDate: formData.consultationDate || new Date().toISOString().split('T')[0],
     };
     if (!actualConsultationId || isNewConsultation) {
       dataToSend.patientId = formData.patientId;
