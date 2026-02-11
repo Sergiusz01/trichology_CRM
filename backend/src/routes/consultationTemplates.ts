@@ -6,7 +6,7 @@ import { prisma } from '../prisma';
 const router = express.Router();
 
 // Field type enum
-const FieldTypeEnum = z.enum(['TEXT', 'TEXTAREA', 'SELECT', 'MULTISELECT', 'CHECKBOX', 'NUMBER', 'DATE', 'SECTION', 'SUBSECTION']);
+const FieldTypeEnum = z.enum(['TEXT', 'TEXTAREA', 'SELECT', 'MULTISELECT', 'CHECKBOX', 'NUMBER', 'DATE', 'SECTION', 'SUBSECTION', 'IMAGE_SELECT']);
 
 // Field schema
 const fieldSchema = z.object({

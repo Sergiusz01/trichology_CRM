@@ -15,7 +15,9 @@ export async function initializeDefaultConsultationTemplate(prisma = defaultPris
       return;
     }
 
-    const defaultFields = generateDefaultFields() as any;
+    const defaultFields = generateDefaultFields() as any[];
+    const scaleKeys = new Set(['section_norwood_scale', 'norwoodScale', 'section_ludwig_scale', 'ludwigScale']);
+    const scaleFields = defaultFields.filter((field) => scaleKeys.has(field.key));
 
     for (const doctor of doctors) {
       const existing = await db.consultationTemplate.findFirst({
@@ -35,6 +37,22 @@ export async function initializeDefaultConsultationTemplate(prisma = defaultPris
             },
           });
           console.log(`✅ Zaktualizowano domyślny szablon konsultacji dla ${doctor.email}`);
+        } else if (existing.name === 'Karta konsultacyjna (PDF)' && Array.isArray(existing.fields)) {
+          const existingKeys = new Set((existing.fields as any[]).map((field) => field.key));
+          const missingScaleFields = scaleFields.filter((field) => !existingKeys.has(field.key));
+
+          if (missingScaleFields.length > 0) {
+            const mergedFields = [...(existing.fields as any[]), ...missingScaleFields]
+              .map((field, index) => ({ ...field, order: index }));
+
+            await db.consultationTemplate.update({
+              where: { id: existing.id },
+              data: {
+                fields: mergedFields,
+              },
+            });
+            console.log(`✅ Dodano pola skali do szablonu konsultacji dla ${doctor.email}`);
+          }
         }
       } else {
         await db.consultationTemplate.create({

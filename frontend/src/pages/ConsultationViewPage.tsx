@@ -119,6 +119,16 @@ export default function ConsultationViewPage() {
     return consultation[key];
   };
 
+  const getScaleImageSrc = (key: string) => {
+    if (key.toLowerCase().includes('norwood')) {
+      return '/api/consultations/scales/norwood-hamilton.png';
+    }
+    if (key.toLowerCase().includes('ludwig')) {
+      return '/api/consultations/scales/ludwig.png';
+    }
+    return null;
+  };
+
   useEffect(() => {
     if (id) {
       fetchConsultation();
@@ -240,6 +250,27 @@ export default function ConsultationViewPage() {
       );
     }
 
+    if (field.type === 'IMAGE_SELECT') {
+      const value = getFieldValue(field.key);
+      const imageSrc = getScaleImageSrc(field.key);
+      return (
+        <Box sx={{ mb: 2 }}>
+          <Typography sx={{ fontWeight: 'bold', mb: 1 }}>{field.label}</Typography>
+          {imageSrc && (
+            <Box
+              component="img"
+              src={imageSrc}
+              alt={field.label}
+              sx={{ width: '100%', maxWidth: 700, display: 'block', mb: 1 }}
+            />
+          )}
+          <Typography sx={{ fontSize: '0.875rem' }}>
+            Wybrany stopień: {value ? formatJsonField(value) : '-'}
+          </Typography>
+        </Box>
+      );
+    }
+
     const value = getFieldValue(field.key);
     const displayValue = (value === undefined || value === null || value === '')
       ? '-'
@@ -336,18 +367,6 @@ export default function ConsultationViewPage() {
             }}
           >
             Karta Konsultacyjna
-          </Typography>
-          <Typography
-            variant="subtitle1"
-            sx={{
-              letterSpacing: 4,
-              textTransform: 'uppercase',
-              color: 'primary.main',
-              fontWeight: 700,
-              fontSize: { xs: '0.75rem', sm: '1rem' }
-            }}
-          >
-            Rich Diagnostic
           </Typography>
           <Box sx={{ mt: 3, textAlign: 'right', fontSize: '0.875rem', color: 'text.secondary' }}>
             Data: <strong style={{ color: '#000' }}>{formatDate(consultation.consultationDate)}</strong>

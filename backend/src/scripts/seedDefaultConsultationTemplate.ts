@@ -1,7 +1,7 @@
 import { prisma } from '../prisma';
 
 interface TemplateField {
-  type: 'TEXT' | 'TEXTAREA' | 'SELECT' | 'MULTISELECT' | 'CHECKBOX' | 'NUMBER' | 'DATE' | 'SECTION' | 'SUBSECTION';
+  type: 'TEXT' | 'TEXTAREA' | 'SELECT' | 'MULTISELECT' | 'CHECKBOX' | 'NUMBER' | 'DATE' | 'SECTION' | 'SUBSECTION' | 'IMAGE_SELECT';
   label: string;
   key: string;
   required: boolean;
@@ -252,6 +252,24 @@ function generateLegacyFields(): TemplateField[] {
   add({ type: 'SECTION', label: 'UWAGI', key: 'section_remarks', required: false });
   add({ type: 'TEXTAREA', label: 'UWAGI', key: 'generalRemarks', required: false });
   add({ type: 'TEXTAREA', label: 'Komentarz lekarza', key: 'remarksComment', required: false });
+
+  add({ type: 'SECTION', label: 'SKALA NORWOODA- HAMILTONA', key: 'section_norwood_scale', required: false });
+  add({
+    type: 'IMAGE_SELECT',
+    label: 'Wybierz stopień',
+    key: 'norwoodScale',
+    required: false,
+    options: ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'],
+  });
+
+  add({ type: 'SECTION', label: 'SKALA M. LUDWIGA', key: 'section_ludwig_scale', required: false });
+  add({
+    type: 'IMAGE_SELECT',
+    label: 'Wybierz stopień',
+    key: 'ludwigScale',
+    required: false,
+    options: ['I', 'II', 'III'],
+  });
 
   return fields;
 }
@@ -889,6 +907,39 @@ function generateDefaultFields(): TemplateField[] {
       key: 'generalRemarks',
       required: false,
       placeholder: 'Dodatkowe uwagi',
+      order: order++,
+    }
+  );
+
+  fields.push(
+    {
+      type: 'SECTION',
+      label: 'SKALA NORWOODA- HAMILTONA',
+      key: 'section_norwood_scale',
+      required: false,
+      order: order++,
+    },
+    {
+      type: 'IMAGE_SELECT',
+      label: 'Wybierz stopień',
+      key: 'norwoodScale',
+      required: false,
+      options: ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'],
+      order: order++,
+    },
+    {
+      type: 'SECTION',
+      label: 'SKALA M. LUDWIGA',
+      key: 'section_ludwig_scale',
+      required: false,
+      order: order++,
+    },
+    {
+      type: 'IMAGE_SELECT',
+      label: 'Wybierz stopień',
+      key: 'ludwigScale',
+      required: false,
+      options: ['I', 'II', 'III'],
       order: order++,
     }
   );

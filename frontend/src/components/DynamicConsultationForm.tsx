@@ -8,6 +8,9 @@ import {
   MenuItem,
   FormControlLabel,
   Checkbox,
+  Radio,
+  RadioGroup,
+  FormLabel,
   Grid2,
   Typography,
   Paper,
@@ -27,6 +30,16 @@ export default function DynamicConsultationForm({
   onChange,
 }: DynamicConsultationFormProps) {
   const sortedFields = [...fields].sort((a, b) => a.order - b.order);
+
+  const getScaleImageSrc = (key: string) => {
+    if (key.toLowerCase().includes('norwood')) {
+      return '/api/consultations/scales/norwood-hamilton.png';
+    }
+    if (key.toLowerCase().includes('ludwig')) {
+      return '/api/consultations/scales/ludwig.png';
+    }
+    return null;
+  };
 
   const renderField = (field: TemplateField) => {
     const value = formData[field.key] ?? field.defaultValue ?? '';
@@ -117,6 +130,44 @@ export default function DynamicConsultationForm({
             label={field.label}
           />
         );
+
+      case 'IMAGE_SELECT': {
+        const imageSrc = getScaleImageSrc(field.key);
+        return (
+          <FormControl component="fieldset" fullWidth>
+            <FormLabel component="legend" sx={{ mb: 1, fontWeight: 600 }}>
+              {field.label}
+            </FormLabel>
+            {imageSrc && (
+              <Box
+                sx={{
+                  border: '1px solid #ddd',
+                  borderRadius: 1,
+                  p: 1,
+                  mb: 2,
+                  backgroundColor: '#fafafa',
+                }}
+              >
+                <Box
+                  component="img"
+                  src={imageSrc}
+                  alt={field.label}
+                  sx={{ width: '100%', maxWidth: 700, display: 'block', margin: '0 auto' }}
+                />
+              </Box>
+            )}
+            <RadioGroup
+              row
+              value={value || ''}
+              onChange={(e) => onChange(field.key, e.target.value)}
+            >
+              {field.options?.map((option) => (
+                <FormControlLabel key={option} value={option} control={<Radio />} label={option} />
+              ))}
+            </RadioGroup>
+          </FormControl>
+        );
+      }
 
       case 'NUMBER':
         return (

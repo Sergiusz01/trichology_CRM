@@ -4,8 +4,40 @@ import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 import { generateConsultationPDF } from '../services/pdfService';
 import { writeAuditLog } from '../services/auditService';
 import { prisma } from '../prisma';
+import fs from 'fs';
+import path from 'path';
 
 const router = express.Router();
+
+// Serve consultation scale images
+router.get('/scales/:name', authenticate, async (req: AuthRequest, res) => {
+  const { name } = req.params;
+  const fileMap: Record<string, string> = {
+    'norwood-hamilton': 'norwood-hamilton.png',
+    'norwood-hamilton.png': 'norwood-hamilton.png',
+    'ludwig': 'ludwig.png',
+    'ludwig.png': 'ludwig.png',
+  };
+
+  const filename = fileMap[name];
+  if (!filename) {
+    return res.status(404).json({ error: 'Obraz nie znaleziony' });
+  }
+
+  const candidates = [
+    path.resolve(__dirname, '../assets', filename),
+    path.resolve(process.cwd(), 'src/assets', filename),
+    path.resolve(process.cwd(), 'backend/src/assets', filename),
+  ];
+
+  const filePath = candidates.find((candidate) => fs.existsSync(candidate));
+  if (!filePath) {
+    return res.status(404).json({ error: 'Obraz nie znaleziony' });
+  }
+
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  return res.sendFile(filePath);
+});
 
 // Large schema for consultation - all fields from the form
 const consultationSchema = z.object({

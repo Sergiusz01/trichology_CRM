@@ -100,6 +100,12 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
     const fields = [...consultation.template.fields].sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0));
 
     return fields.map((field: any) => {
+      if (field.type === 'IMAGE_SELECT') {
+        return '';
+      }
+      if (field.key === 'section_norwood_scale' || field.key === 'section_ludwig_scale') {
+        return '';
+      }
       if (field.type === 'SECTION') {
         return `<div class="section-header">${escapeHtml(field.label)}</div>`;
       }
@@ -235,9 +241,8 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
     <body>
 
       ${getLogoHTMLForPDF('small')}
-      <div class="header-main">
-        <div class="header-title">Karta Konsultacyjna</div>
-        <div class="header-sub">Rich Diagnostic</div>
+    <div class="header-main">
+      <div class="header-title">Karta Konsultacyjna</div>
         <div style="font-size: 9pt; margin-top: 5px; text-align: right;">
           Data konsultacji: <strong>${formatDate(consultation.consultationDate)}</strong>
         </div>
@@ -445,9 +450,8 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
     </head>
     <body>
       ${getLogoHTMLForPDF('small')}
-      <div class="header-main">
-        <div class="header-title">Karta Konsultacyjna</div>
-        <div class="header-sub">Rich Diagnostic</div>
+    <div class="header-main">
+      <div class="header-title">Karta Konsultacyjna</div>
         <div style="font-size: 9pt; margin-top: 5px; text-align: right;">
           Data konsultacji: <strong>${formatDate(consultation.consultationDate)}</strong>
         </div>
@@ -472,9 +476,17 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
 
       <div class="section-header">SKALA NORWOODA- HAMILTONA</div>
       ${norwoodImage ? `<img class="scale-image" src="${norwoodImage}" alt="Skala Norwooda-Hamiltona" />` : `<div class="field-row"><span class="field-label">Brak obrazu</span><span class="field-value">&nbsp;</span></div>`}
+      <div class="field-row">
+        <span class="field-label">Wybrany stopień:</span>
+        <span class="field-value">${getDynamicValue('norwoodScale') ? formatJsonField(getDynamicValue('norwoodScale')) : '&nbsp;'}</span>
+      </div>
 
       <div class="section-header">SKALA M. LUDWIGA</div>
       ${ludwigImage ? `<img class="scale-image" src="${ludwigImage}" alt="Skala M. Ludwiga" />` : `<div class="field-row"><span class="field-label">Brak obrazu</span><span class="field-value">&nbsp;</span></div>`}
+      <div class="field-row">
+        <span class="field-label">Wybrany stopień:</span>
+        <span class="field-value">${getDynamicValue('ludwigScale') ? formatJsonField(getDynamicValue('ludwigScale')) : '&nbsp;'}</span>
+      </div>
 
       <div class="footer">
         Dokument wygenerowany elektronicznie. Lekarz prowadzący: ${escapeHtml(consultation.doctor?.name || 'Nieznany')} | Data wydruku: ${formatDateTime(new Date())}
