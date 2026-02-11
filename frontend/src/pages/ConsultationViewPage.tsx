@@ -111,6 +111,14 @@ export default function ConsultationViewPage() {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { error: showError, success: showSuccess } = useNotification();
 
+  const getFieldValue = (key: string) => {
+    if (!consultation) return undefined;
+    if (consultation.dynamicData && Object.prototype.hasOwnProperty.call(consultation.dynamicData, key)) {
+      return consultation.dynamicData[key];
+    }
+    return consultation[key];
+  };
+
   useEffect(() => {
     if (id) {
       fetchConsultation();
@@ -185,6 +193,25 @@ export default function ConsultationViewPage() {
       </Container>
     );
   }
+
+  const hairLossNotesValue = getFieldValue('hairLossNotes');
+  const oilyHairNotesValue = getFieldValue('oilyHairNotes');
+  const supplementsDetailsValue = getFieldValue('supplementsDetails');
+  const antibioticsDetailsValue = getFieldValue('antibioticsDetails');
+  const hasHairLossData = Boolean(
+    getFieldValue('hairLossSeverity') ||
+    getFieldValue('hairLossLocalization') ||
+    getFieldValue('hairLossDuration') ||
+    getFieldValue('hairLossShampoos') ||
+    hairLossNotesValue
+  );
+  const hasOilyHairData = Boolean(
+    getFieldValue('oilyHairSeverity') ||
+    getFieldValue('oilyHairWashingFreq') ||
+    getFieldValue('oilyHairDuration') ||
+    getFieldValue('oilyHairShampoos') ||
+    oilyHairNotesValue
+  );
 
   return (
     <Container maxWidth="lg" sx={{ py: { xs: 2, sm: 3 }, px: { xs: 1, sm: 2, md: 3 } }}>
@@ -303,7 +330,7 @@ export default function ConsultationViewPage() {
         </Box>
 
         {/* Section: Problems */}
-        {(consultation.hairLossSeverity || consultation.oilyHairSeverity || consultation.scalingSeverity || consultation.sensitivitySeverity) && (
+        {(hasHairLossData || hasOilyHairData || consultation.scalingSeverity || consultation.sensitivitySeverity) && (
           <>
             <Box sx={{
               backgroundColor: '#e0e0e0',
@@ -318,30 +345,31 @@ export default function ConsultationViewPage() {
               Problemy zgłaszane przez pacjenta
             </Box>
             <Grid container spacing={2} sx={{ mb: 2 }}>
-              {(consultation.hairLossSeverity || consultation.hairLossLocalization) && (
+              {hasHairLossData && (
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <Box sx={{ border: '1px solid #ccc', p: 1.5, borderRadius: 1, mb: 2 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, textDecoration: 'underline' }}>
                       1. WYPADANIE WŁOSÓW
                     </Typography>
-                    {renderCheckboxInfo('Nasilenie', consultation.hairLossSeverity)}
-                    {renderCheckboxInfo('Lokalizacja', consultation.hairLossLocalization)}
-                    {renderCheckboxInfo('Czas trwania', consultation.hairLossDuration)}
-                    {consultation.hairLossShampoos && renderFieldRow('Szampony', consultation.hairLossShampoos)}
+                    {renderCheckboxInfo('Nasilenie', getFieldValue('hairLossSeverity'))}
+                    {renderCheckboxInfo('Lokalizacja', getFieldValue('hairLossLocalization'))}
+                    {renderCheckboxInfo('Czas trwania', getFieldValue('hairLossDuration'))}
+                    {getFieldValue('hairLossShampoos') && renderFieldRow('Szampony', getFieldValue('hairLossShampoos'))}
+                    {hairLossNotesValue && renderFieldRow('Uwagi', hairLossNotesValue)}
                   </Box>
                 </Grid>
               )}
-              {(consultation.oilyHairSeverity || consultation.oilyHairWashingFreq) && (
+              {hasOilyHairData && (
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <Box sx={{ border: '1px solid #ccc', p: 1.5, borderRadius: 1, mb: 2 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, textDecoration: 'underline' }}>
                       2. PRZETŁUSZCZANIE WŁOSÓW
                     </Typography>
-                    {renderCheckboxInfo('Nasilenie', consultation.oilyHairSeverity)}
-                    {renderCheckboxInfo('Częstotliwość mycia', consultation.oilyHairWashingFreq)}
-                    {renderCheckboxInfo('Czas trwania', consultation.oilyHairDuration)}
-                    {consultation.oilyHairShampoos && renderFieldRow('Szampony', consultation.oilyHairShampoos)}
-                    {consultation.oilyHairNotes && renderFieldRow('Uwagi', consultation.oilyHairNotes)}
+                    {renderCheckboxInfo('Nasilenie', getFieldValue('oilyHairSeverity'))}
+                    {renderCheckboxInfo('Częstotliwość mycia', getFieldValue('oilyHairWashingFreq'))}
+                    {renderCheckboxInfo('Czas trwania', getFieldValue('oilyHairDuration'))}
+                    {getFieldValue('oilyHairShampoos') && renderFieldRow('Szampony', getFieldValue('oilyHairShampoos'))}
+                    {oilyHairNotesValue && renderFieldRow('Uwagi', oilyHairNotesValue)}
                   </Box>
                 </Grid>
               )}
@@ -377,7 +405,7 @@ export default function ConsultationViewPage() {
         )}
 
         {/* Section: Anamnesis */}
-        {(consultation.familyHistory || consultation.medications || consultation.stressLevel) && (
+        {(consultation.familyHistory || consultation.medications || consultation.stressLevel || consultation.supplements || consultation.antibiotics || supplementsDetailsValue || antibioticsDetailsValue) && (
           <>
             <Box sx={{
               backgroundColor: '#e0e0e0',
@@ -403,6 +431,7 @@ export default function ConsultationViewPage() {
                 {renderCheckboxInfo('Leki', consultation.medications)}
                 {consultation.medicationsList && renderFieldRow('Lista leków', consultation.medicationsList)}
                 {consultation.supplements && renderFieldRow('Suplementy', consultation.supplements)}
+                {supplementsDetailsValue && renderFieldRow('Jakie suplementy?', supplementsDetailsValue)}
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
                 {renderCheckboxInfo('Znieczulenie', consultation.anesthesia)}
@@ -410,6 +439,7 @@ export default function ConsultationViewPage() {
                 {renderCheckboxInfo('Radioterapia', consultation.radiotherapy)}
                 {renderCheckboxInfo('Szczepienia', consultation.vaccination)}
                 {consultation.antibiotics && renderFieldRow('Antybiotyki', consultation.antibiotics)}
+                {antibioticsDetailsValue && renderFieldRow('Jakie antybiotyki? / kiedy?', antibioticsDetailsValue)}
                 {renderCheckboxInfo('Choroby', consultation.chronicDiseases)}
                 {consultation.chronicDiseasesList && renderFieldRow('Lista chorób', consultation.chronicDiseasesList)}
                 {renderCheckboxInfo('Specjaliści', consultation.specialists)}

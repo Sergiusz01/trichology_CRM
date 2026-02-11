@@ -93,6 +93,7 @@ model Consultation {
   hairLossSeverity              String?
   hairLossDuration              String?
   hairLossShampoos              String?
+  hairLossNotes                 String?
   oilyHairSeverity              String?
   oilyHairWashingFreq           String?
   oilyHairDuration              String?
@@ -110,12 +111,14 @@ model Consultation {
   contraception                 String?
   medications                   String?
   supplements                   String?
+  supplementsDetails            String?
   stressLevel                   String?
   anesthesia                    String?
   chemotherapy                  String?
   radiotherapy                  String?
   vaccination                   String?
   antibiotics                   String?
+  antibioticsDetails            String?
   chronicDiseases               String?
   specialists                   String?
   eatingDisorders               String?

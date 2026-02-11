@@ -116,6 +116,14 @@ function generateDefaultFields(): TemplateField[] {
     },
     {
       type: 'TEXTAREA',
+      label: 'Uwagi',
+      key: 'hairLossNotes',
+      required: false,
+      placeholder: 'Dodatkowe uwagi',
+      order: order++,
+    },
+    {
+      type: 'TEXTAREA',
       label: 'Używane szampony (wypadanie włosów)',
       key: 'hairLossShampoos',
       required: false,
@@ -159,6 +167,15 @@ function generateDefaultFields(): TemplateField[] {
       order: order++,
     }
   );
+
+  fields.push({
+    type: 'TEXTAREA',
+    label: 'Uwagi',
+    key: 'oilyHairNotes',
+    required: false,
+    placeholder: 'Dodatkowe uwagi',
+    order: order++,
+  });
 
   // 3. ŁUSZCZENIE SKÓRY GŁOWY
   fields.push(
@@ -331,6 +348,14 @@ function generateDefaultFields(): TemplateField[] {
       order: order++,
     },
     {
+      type: 'TEXTAREA',
+      label: 'Jakie suplementy?',
+      key: 'supplementsDetails',
+      required: false,
+      placeholder: 'Wymień suplementy i dawki',
+      order: order++,
+    },
+    {
       type: 'SELECT',
       label: 'Poziom stresu',
       key: 'stressLevel',
@@ -376,6 +401,14 @@ function generateDefaultFields(): TemplateField[] {
       key: 'antibiotics',
       required: false,
       options: ['Tak', 'Nie'],
+      order: order++,
+    },
+    {
+      type: 'TEXTAREA',
+      label: 'Jakie antybiotyki? / kiedy?',
+      key: 'antibioticsDetails',
+      required: false,
+      placeholder: 'Wymień antybiotyki i terminy',
       order: order++,
     },
     {

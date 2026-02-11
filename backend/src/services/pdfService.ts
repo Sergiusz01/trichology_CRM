@@ -83,6 +83,13 @@ const renderCheckboxInfo = (label: string, value: any, isBoolean = false) => {
 };
 
 export const generateConsultationPDF = async (consultation: any): Promise<Buffer> => {
+  const getDynamicValue = (key: string) => {
+    if (consultation?.dynamicData && Object.prototype.hasOwnProperty.call(consultation.dynamicData, key)) {
+      return consultation.dynamicData[key];
+    }
+    return consultation?.[key];
+  };
+
   const html = `
     <!DOCTYPE html>
     <html lang="pl">
@@ -203,6 +210,7 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
             ${consultation.hairLossLocalization ? renderCheckboxInfo('Lokalizacja', consultation.hairLossLocalization) : ''}
             ${consultation.hairLossDuration ? renderCheckboxInfo('Czas trwania', consultation.hairLossDuration) : ''}
             ${consultation.hairLossShampoos ? `<div class="field-row"><span style="font-size:8pt">Szampon: ${escapeHtml(consultation.hairLossShampoos)}</span></div>` : ''}
+            ${getDynamicValue('hairLossNotes') ? `<div class="field-row"><span style="font-size:8pt">Uwagi: ${escapeHtml(getDynamicValue('hairLossNotes'))}</span></div>` : ''}
         </div>
 
         <div class="col-2 boxed-section">
@@ -211,7 +219,7 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
             ${consultation.oilyHairWashingFreq ? renderCheckboxInfo('Mycie', consultation.oilyHairWashingFreq) : ''}
             ${consultation.oilyHairDuration ? renderCheckboxInfo('Trwanie', consultation.oilyHairDuration) : ''}
             ${consultation.oilyHairShampoos ? `<div class="field-row"><span style="font-size:8pt">Szampon: ${escapeHtml(consultation.oilyHairShampoos)}</span></div>` : ''}
-            ${consultation.oilyHairNotes ? `<div class="field-row"><span style="font-size:8pt">Uwagi: ${escapeHtml(consultation.oilyHairNotes)}</span></div>` : ''}
+            ${getDynamicValue('oilyHairNotes') ? `<div class="field-row"><span style="font-size:8pt">Uwagi: ${escapeHtml(getDynamicValue('oilyHairNotes'))}</span></div>` : ''}
         </div>
       </div>
       
@@ -246,6 +254,7 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
             ${renderCheckboxInfo('Leki', consultation.medications)}
             ${consultation.medicationsList ? `<div class="field-row"><span class="field-label">Lista leków:</span><span class="field-value">${escapeHtml(consultation.medicationsList)}</span></div>` : ''}
             ${consultation.supplements ? `<div class="field-row"><span class="field-label">Suplementy:</span><span class="field-value">${escapeHtml(consultation.supplements)}</span></div>` : ''}
+            ${getDynamicValue('supplementsDetails') ? `<div class="field-row"><span class="field-label">Jakie suplementy?:</span><span class="field-value">${escapeHtml(getDynamicValue('supplementsDetails'))}</span></div>` : ''}
         </div>
         <div class="col-2">
              ${renderCheckboxInfo('Znieczulenie', consultation.anesthesia)}
@@ -253,6 +262,7 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
              ${renderCheckboxInfo('Radioterapia', consultation.radiotherapy)}
              ${renderCheckboxInfo('Szczepienia', consultation.vaccination)}
              ${consultation.antibiotics ? `<div class="field-row"><span class="field-label">Antybiotyki:</span><span class="field-value">${escapeHtml(consultation.antibiotics)}</span></div>` : ''}
+             ${getDynamicValue('antibioticsDetails') ? `<div class="field-row"><span class="field-label">Jakie antybiotyki? / kiedy?:</span><span class="field-value">${escapeHtml(getDynamicValue('antibioticsDetails'))}</span></div>` : ''}
              ${renderCheckboxInfo('Choroby', consultation.chronicDiseases)}
              ${consultation.chronicDiseasesList ? `<div class="field-row"><span class="field-label">Lista chorób:</span><span class="field-value">${escapeHtml(consultation.chronicDiseasesList)}</span></div>` : ''}
              ${renderCheckboxInfo('Specjaliści', consultation.specialists)}

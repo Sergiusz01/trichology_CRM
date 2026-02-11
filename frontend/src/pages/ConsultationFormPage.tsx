@@ -591,6 +591,16 @@ export default function ConsultationFormPage() {
                   rows={2}
                 />
               </Grid>
+              <Grid size={{ xs: 12 }}>
+                <TextField
+                  fullWidth
+                  label="Uwagi"
+                  value={formData.hairLossNotes || ''}
+                  onChange={(e) => handleChange('hairLossNotes', e.target.value)}
+                  multiline
+                  rows={2}
+                />
+              </Grid>
             </Grid>
           </AccordionDetails>
         </Accordion>
@@ -656,6 +666,16 @@ export default function ConsultationFormPage() {
                   label="Używane szampony"
                   value={formData.oilyHairShampoos || ''}
                   onChange={(e) => handleChange('oilyHairShampoos', e.target.value)}
+                  multiline
+                  rows={2}
+                />
+              </Grid>
+              <Grid size={{ xs: 12 }}>
+                <TextField
+                  fullWidth
+                  label="Uwagi"
+                  value={formData.oilyHairNotes || ''}
+                  onChange={(e) => handleChange('oilyHairNotes', e.target.value)}
                   multiline
                   rows={2}
                 />

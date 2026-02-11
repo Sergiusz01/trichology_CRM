@@ -21,11 +21,13 @@ const consultationSchema = z.object({
   hairLossLocalization: z.union([z.array(z.string()), z.string()]).optional(), // Json array
   hairLossDuration: z.string().optional(),
   hairLossShampoos: z.string().optional(),
+  hairLossNotes: z.string().optional(),
   // 2. PRZETŁUSZCZANIE WŁOSÓW
   oilyHairSeverity: z.string().optional(),
   oilyHairWashingFreq: z.string().optional(),
   oilyHairDuration: z.string().optional(),
   oilyHairShampoos: z.string().optional(),
+  oilyHairNotes: z.string().optional(),
   // 3. ŁUSZCZENIE SKÓRY GŁOWY
   scalingSeverity: z.string().optional(),
   scalingType: z.union([z.array(z.string()), z.string()]).optional(), // Json array
@@ -48,12 +50,14 @@ const consultationSchema = z.object({
   medications: z.string().optional(),
   medicationsList: z.string().optional(),
   supplements: z.string().optional(),
+  supplementsDetails: z.string().optional(),
   stressLevel: z.string().optional(),
   anesthesia: z.string().optional(),
   chemotherapy: z.string().optional(),
   radiotherapy: z.string().optional(),
   vaccination: z.string().optional(),
   antibiotics: z.string().optional(),
+  antibioticsDetails: z.string().optional(),
   chronicDiseases: z.string().optional(),
   chronicDiseasesList: z.string().optional(),
   specialists: z.string().optional(),
