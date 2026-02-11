@@ -539,12 +539,19 @@ router.put('/:id', authenticate, async (req: AuthRequest, res, next) => {
 
     if (data.templateId !== undefined) {
       if (data.templateId) {
-        // Verify template exists and belongs to doctor
-        const doctorId = req.user!.id;
+        // Verify template exists - belongs to current user OR consultation's doctor
+        const existing = await prisma.consultation.findUnique({
+          where: { id },
+          select: { doctorId: true },
+        });
+        const allowedDoctorIds = [req.user!.id];
+        if (existing?.doctorId) {
+          allowedDoctorIds.push(existing.doctorId);
+        }
         const template = await prisma.consultationTemplate.findFirst({
           where: {
             id: data.templateId,
-            doctorId,
+            doctorId: { in: allowedDoctorIds },
             isActive: true,
           },
         });

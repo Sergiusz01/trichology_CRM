@@ -155,6 +155,17 @@ export default function ConsultationFormPage() {
           }
         }
       });
+      // Merge dynamicData into form fields when consultation has template
+      if (consultation.templateId && consultation.template?.fields) {
+        const dyn = (consultation.dynamicData || {}) as Record<string, any>;
+        consultation.template.fields.forEach((f: TemplateField) => {
+          if (f.type !== 'SECTION' && f.type !== 'SUBSECTION' && dyn[f.key] !== undefined) {
+            parsedData[f.key] = dyn[f.key];
+          }
+        });
+        setSelectedTemplate(consultation.template);
+        setUseTemplate(true);
+      }
       setFormData(parsedData);
     } catch (error: any) {
       console.error('[ConsultationFormPage] Błąd pobierania konsultacji:', error);
@@ -239,33 +250,52 @@ export default function ConsultationFormPage() {
     ];
 
     const dataToSend: any = {
-      patientId: formData.patientId,
       consultationDate: formData.consultationDate,
     };
+    if (!actualConsultationId || isNewConsultation) {
+      dataToSend.patientId = formData.patientId;
+    }
+
+    // Resolve template for building dynamicData (selectedTemplate or formData.template when editing)
+    const templateForSave = selectedTemplate || formData.template;
+    const templateFieldsForSave = templateForSave?.fields || [];
+    const shouldSendTemplate = (useTemplate && selectedTemplate) || (templateForSave && formData.templateId);
 
     // If using template, save dynamic data separately
-    if (useTemplate && selectedTemplate) {
-      dataToSend.templateId = selectedTemplate.id;
+    if (shouldSendTemplate && templateForSave && templateFieldsForSave.length > 0) {
+      dataToSend.templateId = templateForSave.id || formData.templateId;
       const dynamicData: Record<string, any> = {};
-      selectedTemplate.fields.forEach((field: TemplateField) => {
+      templateFieldsForSave.forEach((field: TemplateField) => {
         const value = formData[field.key];
-        // Include value if it's not undefined/null/empty string, or if it's an array/boolean
         if (value !== undefined && value !== null && value !== '') {
           dynamicData[field.key] = value;
         } else if (typeof value === 'boolean' || Array.isArray(value)) {
           dynamicData[field.key] = value;
         }
       });
-      dataToSend.dynamicData = Object.keys(dynamicData).length > 0 ? dynamicData : undefined;
+      dataToSend.dynamicData = Object.keys(dynamicData).length > 0 ? dynamicData : {};
     }
+
+    // Keys to never send to API (metadata from response)
+    const excludeKeys = new Set([
+      'id',
+      'doctorId',
+      'isArchived',
+      'createdAt',
+      'updatedAt',
+      'patient',
+      'doctor',
+      'template',
+    ]);
 
     // Copy only defined fields and handle conversions (for standard form)
     Object.keys(formData).forEach((key) => {
-      // Skip if using template and this is a template field
-      if (useTemplate && selectedTemplate) {
-        const isTemplateField = selectedTemplate.fields.some((f: TemplateField) => f.key === key);
+      if (excludeKeys.has(key)) return;
+      // Skip if this is a template field (already in dynamicData)
+      if (shouldSendTemplate && templateFieldsForSave.length > 0) {
+        const isTemplateField = templateFieldsForSave.some((f: TemplateField) => f.key === key);
         if (isTemplateField) {
-          return; // Already handled in dynamicData
+          return;
         }
       }
       const value = formData[key];
@@ -320,9 +350,10 @@ export default function ConsultationFormPage() {
         await api.post('/consultations', dataToSend);
       }
       setSuccess(true);
+      showSuccess('Dane zostały zapisane');
       setTimeout(() => {
         navigate(`/patients/${formData.patientId}`);
-      }, 1500);
+      }, 2000);
     } catch (err: any) {
       console.error('Błąd zapisywania konsultacji:', err);
       console.error('Error response:', err.response);
@@ -420,7 +451,7 @@ export default function ConsultationFormPage() {
 
       {success && (
         <Alert severity="success" sx={{ mb: 2 }}>
-          Konsultacja zapisana pomyślnie!
+          Dane zostały zapisane
         </Alert>
       )}
 
