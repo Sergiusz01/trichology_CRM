@@ -340,25 +340,44 @@ export default function ConsultationFormPage() {
       }
     });
 
-    // Ostateczne filtrowanie - usunąć metadane i patientId dla PUT (backend ich nie oczekuje)
-    const keysToRemove = [
-      'id', 'doctorId', 'isArchived', 'createdAt', 'updatedAt',
-      'patient', 'doctor', 'template',
-    ];
+    // Ostateczne filtrowanie - NIGDY nie wysyłać metadanych (whitelist)
+    const allowedKeys = new Set([
+      'patientId', 'consultationDate', 'templateId', 'dynamicData',
+      'hairLossSeverity', 'hairLossLocalization', 'hairLossDuration', 'hairLossShampoos', 'hairLossNotes',
+      'oilyHairSeverity', 'oilyHairWashingFreq', 'oilyHairDuration', 'oilyHairShampoos', 'oilyHairNotes',
+      'scalingSeverity', 'scalingType', 'scalingDuration', 'scalingOther',
+      'sensitivitySeverity', 'sensitivityProblemType', 'sensitivityDuration', 'sensitivityOther',
+      'inflammatoryStates', 'familyHistory', 'dermatologyVisits', 'dermatologyVisitsReason',
+      'pregnancy', 'menstruationRegularity', 'contraception', 'medications', 'medicationsList',
+      'supplements', 'supplementsDetails', 'stressLevel', 'anesthesia', 'chemotherapy', 'radiotherapy',
+      'vaccination', 'antibiotics', 'antibioticsDetails', 'chronicDiseases', 'chronicDiseasesList',
+      'specialists', 'specialistsList', 'eatingDisorders', 'foodIntolerances', 'diet', 'allergies',
+      'metalPartsInBody', 'careRoutineShampoo', 'careRoutineConditioner', 'careRoutineOils', 'careRoutineChemical',
+      'scalpType', 'scalpAppearance', 'skinLesions', 'hyperhidrosis', 'hyperkeratinization', 'sebaceousSecretion',
+      'seborrheaType', 'seborrheaTypeOther', 'dandruffType', 'scalpPH', 'hairDamage', 'hairDamageReason',
+      'hairQuality', 'hairShape', 'hairTypes', 'regrowingHairs', 'vellusMiniaturizedHairs',
+      'vascularPatterns', 'perifollicularFeatures', 'scalpDiseases', 'otherDiagnostics',
+      'alopeciaTypes', 'degreeOfThinning', 'alopeciaType', 'alopeciaAffectedAreas', 'miniaturization',
+      'follicularUnits', 'pullTest', 'alopeciaOther', 'diagnosis',
+      'careRecommendationsWashing', 'careRecommendationsTopical', 'careRecommendationsSupplement', 'careRecommendationsBehavior',
+      'visitsProcedures', 'generalRemarks', 'norwoodHamiltonStage', 'norwoodHamiltonNotes', 'ludwigStage', 'ludwigNotes',
+    ]);
     if (actualConsultationId && !isNewConsultation) {
-      keysToRemove.push('patientId');
+      allowedKeys.delete('patientId');
     }
-    keysToRemove.forEach((k) => delete dataToSend[k]);
+    const cleanPayload: Record<string, any> = {};
+    Object.keys(dataToSend).forEach((k) => {
+      if (allowedKeys.has(k)) cleanPayload[k] = dataToSend[k];
+    });
 
-    console.log('[ConsultationFormPage] Data to send keys:', Object.keys(dataToSend));
-    console.log('[ConsultationFormPage] PatientId:', dataToSend.patientId);
+    console.log('[ConsultationFormPage] v2 - Data to send keys:', Object.keys(cleanPayload));
 
     try {
-      const config = { _skipErrorToast: true } as any; // własny komunikat błędu
+      const config = { _skipErrorToast: true } as any;
       if (actualConsultationId && !isNewConsultation) {
-        await api.put(`/consultations/${actualConsultationId}`, dataToSend, config);
+        await api.put(`/consultations/${actualConsultationId}`, cleanPayload, config);
       } else {
-        await api.post('/consultations', dataToSend, config);
+        await api.post('/consultations', cleanPayload, config);
       }
       setSuccess(true);
       showSuccess('Dane zostały zapisane');
