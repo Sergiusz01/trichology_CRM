@@ -512,11 +512,42 @@ router.post('/', authenticate, async (req: AuthRequest, res, next) => {
   }
 });
 
+// Pola Consultation z Prisma - tylko te można aktualizować (bez id, patientId, doctorId, createdAt)
+const CONSULTATION_UPDATE_FIELDS = new Set([
+  'consultationDate', 'templateId', 'dynamicData', 'hairLossSeverity', 'hairLossDuration', 'hairLossShampoos',
+  'oilyHairSeverity', 'oilyHairWashingFreq', 'oilyHairDuration', 'oilyHairShampoos', 'oilyHairNotes',
+  'scalingSeverity', 'scalingDuration', 'sensitivitySeverity', 'sensitivityDuration', 'inflammatoryStates',
+  'familyHistory', 'dermatologyVisits', 'dermatologyVisitsReason', 'pregnancy', 'menstruationRegularity',
+  'contraception', 'medications', 'medicationsList', 'supplements', 'stressLevel', 'anesthesia', 'chemotherapy',
+  'radiotherapy', 'vaccination', 'antibiotics', 'chronicDiseases', 'chronicDiseasesList', 'specialists', 'specialistsList',
+  'eatingDisorders', 'foodIntolerances', 'diet', 'allergies', 'metalPartsInBody', 'careRoutineShampoo',
+  'careRoutineConditioner', 'careRoutineOils', 'careRoutineChemical', 'hyperhidrosis', 'hyperkeratinization',
+  'sebaceousSecretion', 'scalpPH', 'hairQuality', 'hairShape', 'regrowingHairs', 'degreeOfThinning',
+  'miniaturization', 'follicularUnits', 'pullTest', 'alopeciaOther', 'diagnosis',
+  'careRecommendationsWashing', 'careRecommendationsTopical', 'careRecommendationsSupplement', 'careRecommendationsBehavior',
+  'visitsProcedures', 'generalRemarks', 'norwoodHamiltonStage', 'norwoodHamiltonNotes', 'ludwigStage', 'ludwigNotes',
+  'hairLossLocalization', 'scalingType', 'sensitivityProblemType', 'scalpType', 'scalpAppearance', 'skinLesions',
+  'seborrheaType', 'dandruffType', 'hairDamage', 'hairDamageReason', 'hairTypes', 'vellusMiniaturizedHairs',
+  'vascularPatterns', 'perifollicularFeatures', 'scalpDiseases', 'otherDiagnostics', 'alopeciaTypes', 'alopeciaAffectedAreas',
+  'scalingOther', 'sensitivityOther',
+]);
+
 // Update consultation
 router.put('/:id', authenticate, async (req: AuthRequest, res, next) => {
   try {
     const { id } = req.params;
-    const data = consultationSchema.omit({ patientId: true }).parse(req.body);
+    console.log('[PUT /consultations/:id] Request id:', id, 'Body keys:', Object.keys(req.body));
+
+    let data;
+    try {
+      data = consultationSchema.omit({ patientId: true }).parse(req.body);
+    } catch (validationError: any) {
+      console.error('[PUT /consultations/:id] Validation error:', JSON.stringify(validationError.errors));
+      return res.status(400).json({
+        error: 'Błąd walidacji danych',
+        details: validationError.errors,
+      });
+    }
 
     const preparedData = prepareDataForDb(data);
     
@@ -563,22 +594,44 @@ router.put('/:id', authenticate, async (req: AuthRequest, res, next) => {
         updateData.templateId = data.templateId;
         updateData.dynamicData = data.dynamicData || {};
       } else {
-        // Remove template
         updateData.templateId = null;
         updateData.dynamicData = null;
       }
     }
-    
-    const consultation = await prisma.consultation.update({
-      where: { id },
-      data: updateData,
-      include: {
-        patient: true,
-        doctor: {
-          select: { id: true, name: true, email: true },
-        },
-      },
+
+    // Tylko pola zdefiniowane w modelu Prisma
+    const prismaData: Record<string, any> = {};
+    Object.keys(updateData).forEach((k) => {
+      if (CONSULTATION_UPDATE_FIELDS.has(k) && updateData[k] !== undefined) {
+        prismaData[k] = updateData[k];
+      }
     });
+    if (updateData.consultationDate !== undefined) {
+      prismaData.consultationDate = updateData.consultationDate;
+    }
+
+    console.log('[PUT /consultations/:id] Prisma update keys:', Object.keys(prismaData));
+
+    let consultation;
+    try {
+      consultation = await prisma.consultation.update({
+        where: { id },
+        data: prismaData,
+        include: {
+          patient: true,
+          doctor: {
+            select: { id: true, name: true, email: true },
+          },
+        },
+      });
+    } catch (dbError: any) {
+      console.error('[PUT /consultations/:id] Prisma error:', dbError.message, dbError.code, dbError.meta);
+      return res.status(500).json({
+        error: 'Błąd zapisu do bazy danych',
+        message: dbError.message,
+        details: dbError.meta || {},
+      });
+    }
 
     await writeAuditLog(req, {
       action: 'UPDATE_CONSULTATION',
@@ -586,16 +639,17 @@ router.put('/:id', authenticate, async (req: AuthRequest, res, next) => {
       entityId: consultation.id,
     });
 
+    console.log('[PUT /consultations/:id] Success, id:', consultation.id);
     res.json({ consultation });
   } catch (error: any) {
-    // Log validation errors for debugging
     if (error.name === 'ZodError') {
-      console.error('Validation error:', JSON.stringify(error.errors, null, 2));
+      console.error('[PUT /consultations/:id] Zod validation:', JSON.stringify(error.errors));
       return res.status(400).json({
         error: 'Błąd walidacji danych',
         details: error.errors,
       });
     }
+    console.error('[PUT /consultations/:id] Unexpected error:', error);
     next(error);
   }
 });
