@@ -504,14 +504,20 @@ const CONSULTATION_UPDATE_FIELDS = new Set([
     'vascularPatterns', 'perifollicularFeatures', 'scalpDiseases', 'otherDiagnostics', 'alopeciaTypes', 'alopeciaAffectedAreas',
     'scalingOther', 'sensitivityOther',
 ]);
+// Schema permissive dla PUT - akceptuje dowolne pole, waliduje tylko typy
+const putConsultationSchema = zod_1.z.object({
+    consultationDate: zod_1.z.union([zod_1.z.string(), zod_1.z.date()]).optional(),
+    templateId: zod_1.z.union([zod_1.z.string(), zod_1.z.null()]).optional(),
+    dynamicData: zod_1.z.record(zod_1.z.any()).optional().nullable(),
+}).passthrough();
 // Update consultation
 router.put('/:id', auth_1.authenticate, async (req, res, next) => {
     try {
         const { id } = req.params;
-        console.log('[PUT /consultations/:id] Request id:', id, 'Body keys:', Object.keys(req.body));
+        console.log('[PUT /consultations/:id] Request id:', id, 'Body keys:', Object.keys(req.body || {}));
         let data;
         try {
-            data = consultationSchema.omit({ patientId: true }).parse(req.body);
+            data = putConsultationSchema.parse(req.body || {});
         }
         catch (validationError) {
             console.error('[PUT /consultations/:id] Validation error:', JSON.stringify(validationError.errors));
@@ -592,17 +598,21 @@ router.put('/:id', auth_1.authenticate, async (req, res, next) => {
         }
         catch (dbError) {
             console.error('[PUT /consultations/:id] Prisma error:', dbError.message, dbError.code, dbError.meta);
+            if (dbError.code === 'P2025') {
+                return res.status(404).json({ error: 'Konsultacja nie znaleziona' });
+            }
             return res.status(500).json({
                 error: 'Błąd zapisu do bazy danych',
                 message: dbError.message,
                 details: dbError.meta || {},
             });
         }
-        await (0, auditService_1.writeAuditLog)(req, {
-            action: 'UPDATE_CONSULTATION',
-            entity: 'Consultation',
-            entityId: consultation.id,
-        });
+        try {
+            await (0, auditService_1.writeAuditLog)(req, { action: 'UPDATE_CONSULTATION', entity: 'Consultation', entityId: consultation.id });
+        }
+        catch (auditErr) {
+            console.warn('[PUT /consultations/:id] Audit log failed:', auditErr);
+        }
         console.log('[PUT /consultations/:id] Success, id:', consultation.id);
         res.json({ consultation });
     }
