@@ -9,7 +9,7 @@ const auth_1 = require("../middleware/auth");
 const prisma_1 = require("../prisma");
 const router = express_1.default.Router();
 // Field type enum
-const FieldTypeEnum = zod_1.z.enum(['TEXT', 'TEXTAREA', 'SELECT', 'MULTISELECT', 'CHECKBOX', 'NUMBER', 'DATE']);
+const FieldTypeEnum = zod_1.z.enum(['TEXT', 'TEXTAREA', 'SELECT', 'MULTISELECT', 'CHECKBOX', 'NUMBER', 'DATE', 'SECTION', 'SUBSECTION', 'IMAGE_SELECT']);
 // Field schema
 const fieldSchema = zod_1.z.object({
     id: zod_1.z.string().optional(),

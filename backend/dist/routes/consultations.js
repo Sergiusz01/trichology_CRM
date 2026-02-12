@@ -9,7 +9,34 @@ const auth_1 = require("../middleware/auth");
 const pdfService_1 = require("../services/pdfService");
 const auditService_1 = require("../services/auditService");
 const prisma_1 = require("../prisma");
+const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
 const router = express_1.default.Router();
+// Serve consultation scale images (public, no auth required for <img> tags)
+router.get('/scales/:name', async (req, res) => {
+    const { name } = req.params;
+    const fileMap = {
+        'norwood-hamilton': 'norwood-hamilton.png',
+        'norwood-hamilton.png': 'norwood-hamilton.png',
+        'ludwig': 'ludwig.png',
+        'ludwig.png': 'ludwig.png',
+    };
+    const filename = fileMap[name];
+    if (!filename) {
+        return res.status(404).json({ error: 'Obraz nie znaleziony' });
+    }
+    const candidates = [
+        path_1.default.resolve(__dirname, '../assets', filename),
+        path_1.default.resolve(process.cwd(), 'src/assets', filename),
+        path_1.default.resolve(process.cwd(), 'backend/src/assets', filename),
+    ];
+    const filePath = candidates.find((candidate) => fs_1.default.existsSync(candidate));
+    if (!filePath) {
+        return res.status(404).json({ error: 'Obraz nie znaleziony' });
+    }
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    return res.sendFile(filePath);
+});
 // Large schema for consultation - all fields from the form
 const consultationSchema = zod_1.z.object({
     patientId: zod_1.z.string(),
@@ -24,11 +51,13 @@ const consultationSchema = zod_1.z.object({
     hairLossLocalization: zod_1.z.union([zod_1.z.array(zod_1.z.string()), zod_1.z.string()]).optional(), // Json array
     hairLossDuration: zod_1.z.string().optional(),
     hairLossShampoos: zod_1.z.string().optional(),
+    hairLossNotes: zod_1.z.string().optional(),
     // 2. PRZETŁUSZCZANIE WŁOSÓW
     oilyHairSeverity: zod_1.z.string().optional(),
     oilyHairWashingFreq: zod_1.z.string().optional(),
     oilyHairDuration: zod_1.z.string().optional(),
     oilyHairShampoos: zod_1.z.string().optional(),
+    oilyHairNotes: zod_1.z.string().optional(),
     // 3. ŁUSZCZENIE SKÓRY GŁOWY
     scalingSeverity: zod_1.z.string().optional(),
     scalingType: zod_1.z.union([zod_1.z.array(zod_1.z.string()), zod_1.z.string()]).optional(), // Json array
@@ -51,12 +80,14 @@ const consultationSchema = zod_1.z.object({
     medications: zod_1.z.string().optional(),
     medicationsList: zod_1.z.string().optional(),
     supplements: zod_1.z.string().optional(),
+    supplementsDetails: zod_1.z.string().optional(),
     stressLevel: zod_1.z.string().optional(),
     anesthesia: zod_1.z.string().optional(),
     chemotherapy: zod_1.z.string().optional(),
     radiotherapy: zod_1.z.string().optional(),
     vaccination: zod_1.z.string().optional(),
     antibiotics: zod_1.z.string().optional(),
+    antibioticsDetails: zod_1.z.string().optional(),
     chronicDiseases: zod_1.z.string().optional(),
     chronicDiseasesList: zod_1.z.string().optional(),
     specialists: zod_1.z.string().optional(),
@@ -177,6 +208,10 @@ router.get('/:id/pdf', auth_1.authenticate, async (req, res, next) => {
                 doctor: {
                     select: { id: true, name: true, email: true },
                 },
+                template: {
+                    select: { id: true, name: true, fields: true },
+                },
+                labResults: true,
             },
         });
         if (!consultation) {

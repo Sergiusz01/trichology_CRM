@@ -64,4 +64,4 @@ if (-not $backendChanged -and -not $frontendChanged) {
     Write-Host "Info: Nie wykryto zmian w kodzie aplikacji. Tylko commit wykonany." -ForegroundColor Gray
 }
 
-Write-Host "--- Gotowe! Aplikacja: http://${serverIp} ---" -ForegroundColor Cyan
+Write-Host "--- Gotowe! https://www.001246.xyz ---" -ForegroundColor Cyan

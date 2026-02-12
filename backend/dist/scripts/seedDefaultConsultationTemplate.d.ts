@@ -1,5 +1,5 @@
 interface TemplateField {
-    type: 'TEXT' | 'TEXTAREA' | 'SELECT' | 'MULTISELECT' | 'CHECKBOX' | 'NUMBER' | 'DATE';
+    type: 'TEXT' | 'TEXTAREA' | 'SELECT' | 'MULTISELECT' | 'CHECKBOX' | 'NUMBER' | 'DATE' | 'SECTION' | 'SUBSECTION' | 'IMAGE_SELECT';
     label: string;
     key: string;
     required: boolean;

@@ -217,6 +217,7 @@ router.get('/:id/pdf', authenticate, async (req: AuthRequest, res, next) => {
         template: {
           select: { id: true, name: true, fields: true },
         },
+        labResults: true,
       },
     });
 

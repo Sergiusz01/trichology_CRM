@@ -1,0 +1,2 @@
+export declare function initializeDefaultConsultationTemplate(prisma?: import(".prisma/client").PrismaClient<import(".prisma/client").Prisma.PrismaClientOptions, never, import("@prisma/client/runtime/library").DefaultArgs>): Promise<void>;
+//# sourceMappingURL=initializeDefaultConsultationTemplate.d.ts.map

@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
 const password_1 = require("../utils/password");
 const initializeDefaultTemplates_1 = require("../utils/initializeDefaultTemplates");
+const seedDefaultConsultationTemplate_1 = require("./seedDefaultConsultationTemplate");
 const prisma = new client_1.PrismaClient();
 async function main() {
     console.log('🌱 Rozpoczynam seedowanie bazy danych...');
@@ -32,6 +33,22 @@ async function main() {
         },
     });
     console.log('✅ Utworzono użytkownika lekarza:', doctor.email);
+    // Create default consultation template for doctor (PDF-based)
+    const existingTemplate = await prisma.consultationTemplate.findFirst({
+        where: { doctorId: doctor.id, isDefault: true },
+    });
+    if (!existingTemplate) {
+        await prisma.consultationTemplate.create({
+            data: {
+                name: 'Karta konsultacyjna (PDF)',
+                doctorId: doctor.id,
+                fields: (0, seedDefaultConsultationTemplate_1.generateDefaultFields)(),
+                isDefault: true,
+                isActive: true,
+            },
+        });
+        console.log('✅ Utworzono domyślny szablon konsultacji (PDF)');
+    }
     // Create sample patient
     const patient = await prisma.patient.upsert({
         where: { id: 'sample-patient-1' },

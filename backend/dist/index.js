@@ -59,6 +59,7 @@ const activity_1 = __importDefault(require("./routes/activity"));
 const errorHandler_1 = require("./middleware/errorHandler");
 const reminderWorker_1 = require("./services/reminderWorker");
 const prisma_1 = require("./prisma");
+const initializeDefaultConsultationTemplate_1 = require("./utils/initializeDefaultConsultationTemplate");
 const rateLimit_1 = require("./middleware/rateLimit");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
@@ -178,6 +179,7 @@ app.listen(PORT, () => {
         else {
             console.log('⚠️ Brak użytkownika admin - pomijam inicjalizację szablonów emaili');
         }
+        await (0, initializeDefaultConsultationTemplate_1.initializeDefaultConsultationTemplate)(prisma_1.prisma);
         await initializeDefaultLabResultTemplate(prisma_1.prisma);
     }
     catch (error) {
