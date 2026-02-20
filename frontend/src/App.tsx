@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { useAuth } from './contexts/AuthContext';
 import Layout from './components/Layout';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Lazy load pages for code splitting
 const LoginPage = lazy(() => import('./pages/LoginPage'));
@@ -33,6 +34,7 @@ const VisitFormPage = lazy(() => import('./pages/VisitFormPage'));
 const RevenuePage = lazy(() => import('./pages/RevenuePage'));
 const ActivityLogPage = lazy(() => import('./pages/ActivityLogPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 // Loading component for Suspense fallback
 const PageLoader = () => (
@@ -77,52 +79,55 @@ function App() {
   }
 
   return (
-    <Suspense fallback={<PageLoader />}>
-      <Routes>
-        <Route
-          path="/login"
-          element={!user ? <LoginPage /> : <Navigate to="/" />}
-        />
-        <Route path="/" element={user ? <Layout /> : <Navigate to="/login" />}>
-          <Route index element={<DashboardPage />} />
-          <Route path="dashboard" element={<DashboardPage />} />
-          <Route path="patients" element={<PatientsPage />} />
-          <Route path="revenue" element={<RevenuePage />} />
-          <Route path="patients/new" element={<PatientFormPage />} />
-          <Route path="patients/:id" element={<PatientDetailPage />} />
-          <Route path="patients/:id/edit" element={<PatientFormPage />} />
-          <Route path="patients/:id/consultations/new" element={<ConsultationFormPage />} />
-          <Route path="patients/:id/visits/new" element={<VisitFormPage />} />
-          <Route path="visits/new" element={<VisitFormPage />} />
-          <Route path="consultations" element={<ConsultationsPage />} />
-          <Route path="consultations/:id" element={<ConsultationViewPage />} />
-          <Route path="consultations/:id/edit" element={<ConsultationFormPage />} />
-          <Route path="patients/:id/lab-results" element={<LabResultsPage />} />
-          <Route path="patients/:id/lab-results/new" element={<LabResultFormPage />} />
-          <Route path="patients/:id/lab-results/:labResultId" element={<LabResultViewPage />} />
-          <Route path="patients/:id/lab-results/:labResultId/edit" element={<LabResultFormPage />} />
-          <Route path="patients/:id/scalp-photos" element={<ScalpPhotosPage />} />
-          <Route path="patients/:id/scalp-photos/new" element={<ScalpPhotoFormPage />} />
-          <Route path="patients/:id/scalp-photos/:photoId" element={<ScalpPhotoDetailPage />} />
-          <Route path="patients/:id/care-plans" element={<CarePlansPage />} />
-          <Route path="patients/:id/care-plans/new" element={<CarePlanFormPage />} />
-          <Route path="patients/:id/care-plans/:carePlanId" element={<CarePlanDetailPage />} />
-          <Route path="patients/:id/care-plans/:carePlanId/edit" element={<CarePlanFormPage />} />
-          <Route path="patients/:id/email" element={<EmailComposePage />} />
-          <Route path="patients/:id/email-history" element={<EmailHistoryPage />} />
-          <Route path="email/history" element={<EmailHistoryPage />} />
-          <Route path="email/test" element={<EmailTestPage />} />
-          <Route path="email/templates" element={<EmailTemplatesPage />} />
-          <Route path="consultation-templates" element={<ConsultationTemplatesPage />} />
-          <Route path="lab-result-templates" element={<LabResultTemplatesPage />} />
-          <Route path="activity" element={<ActivityLogPage />} />
-          <Route path="profile" element={<UserProfilePage />} />
-          <Route path="settings" element={<SettingsPage />} />
-          <Route path="care-plans/:id" element={<CarePlanDetailPage />} />
-          <Route path="scalp-photos/:photoId" element={<ScalpPhotoDetailPage />} />
-        </Route>
-      </Routes>
-    </Suspense>
+    <ErrorBoundary>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route
+            path="/login"
+            element={!user ? <LoginPage /> : <Navigate to="/" />}
+          />
+          <Route path="/" element={user ? <Layout /> : <Navigate to="/login" />}>
+            <Route index element={<DashboardPage />} />
+            <Route path="dashboard" element={<DashboardPage />} />
+            <Route path="patients" element={<PatientsPage />} />
+            <Route path="revenue" element={<RevenuePage />} />
+            <Route path="patients/new" element={<PatientFormPage />} />
+            <Route path="patients/:id" element={<PatientDetailPage />} />
+            <Route path="patients/:id/edit" element={<PatientFormPage />} />
+            <Route path="patients/:id/consultations/new" element={<ConsultationFormPage />} />
+            <Route path="patients/:id/visits/new" element={<VisitFormPage />} />
+            <Route path="visits/new" element={<VisitFormPage />} />
+            <Route path="consultations" element={<ConsultationsPage />} />
+            <Route path="consultations/:id" element={<ConsultationViewPage />} />
+            <Route path="consultations/:id/edit" element={<ConsultationFormPage />} />
+            <Route path="patients/:id/lab-results" element={<LabResultsPage />} />
+            <Route path="patients/:id/lab-results/new" element={<LabResultFormPage />} />
+            <Route path="patients/:id/lab-results/:labResultId" element={<LabResultViewPage />} />
+            <Route path="patients/:id/lab-results/:labResultId/edit" element={<LabResultFormPage />} />
+            <Route path="patients/:id/scalp-photos" element={<ScalpPhotosPage />} />
+            <Route path="patients/:id/scalp-photos/new" element={<ScalpPhotoFormPage />} />
+            <Route path="patients/:id/scalp-photos/:photoId" element={<ScalpPhotoDetailPage />} />
+            <Route path="patients/:id/care-plans" element={<CarePlansPage />} />
+            <Route path="patients/:id/care-plans/new" element={<CarePlanFormPage />} />
+            <Route path="patients/:id/care-plans/:carePlanId" element={<CarePlanDetailPage />} />
+            <Route path="patients/:id/care-plans/:carePlanId/edit" element={<CarePlanFormPage />} />
+            <Route path="patients/:id/email" element={<EmailComposePage />} />
+            <Route path="patients/:id/email-history" element={<EmailHistoryPage />} />
+            <Route path="email/history" element={<EmailHistoryPage />} />
+            <Route path="email/test" element={<EmailTestPage />} />
+            <Route path="email/templates" element={<EmailTemplatesPage />} />
+            <Route path="consultation-templates" element={<ConsultationTemplatesPage />} />
+            <Route path="lab-result-templates" element={<LabResultTemplatesPage />} />
+            <Route path="activity" element={<ActivityLogPage />} />
+            <Route path="profile" element={<UserProfilePage />} />
+            <Route path="settings" element={<SettingsPage />} />
+            <Route path="care-plans/:id" element={<CarePlanDetailPage />} />
+            <Route path="scalp-photos/:photoId" element={<ScalpPhotoDetailPage />} />
+            <Route path="*" element={<NotFoundPage />} />
+          </Route>
+        </Routes>
+      </Suspense>
+    </ErrorBoundary>
   );
 }
 

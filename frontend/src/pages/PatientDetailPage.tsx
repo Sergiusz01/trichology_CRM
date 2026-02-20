@@ -382,7 +382,7 @@ export default function PatientDetailPage() {
 
   const handleSendVisitReminder = async () => {
     if (!reminderDialog.visitId) return;
-    
+
     if (!reminderDialog.recipientEmail) {
       showError('Podaj adres email odbiorcy');
       return;
@@ -472,7 +472,7 @@ export default function PatientDetailPage() {
     const hours = String(now.getHours()).padStart(2, '0');
     const minutes = String(now.getMinutes()).padStart(2, '0');
     const localDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
-    
+
     setVisitDialog({
       open: true,
       mode: 'add',
@@ -1500,10 +1500,12 @@ export default function PatientDetailPage() {
                         }}
                       >
                         {photo.url || photo.filePath ? (
-                          <img
-                            src={photo.url || (photo.filePath ? `/uploads/${photo.filePath.split(/[/\\]/).pop()}` : '')}
-                            alt="Zdjęcie skóry głowy"
-                            style={{
+                          <CardMedia
+                            component="img"
+                            height="180"
+                            image={photo.url || (photo.filePath ? `/uploads/${photo.filePath.split(/[/\\]/).pop()}?token=${localStorage.getItem('accessToken')}` : '')}
+                            alt={photo.originalFilename || 'Zdjęcie skóry głowy'}
+                            sx={{
                               width: '100%',
                               height: '100%',
                               objectFit: 'cover',

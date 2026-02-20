@@ -37,7 +37,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [copiedEmail, setCopiedEmail] = useState(false);
   const [copiedPassword, setCopiedPassword] = useState(false);
-  
+
   const {
     control,
     handleSubmit,
@@ -116,22 +116,22 @@ export default function LoginPage() {
           >
             T
           </Avatar>
-          <Typography 
-            component="h1" 
-            variant="h4" 
-            sx={{ 
-              mb: 1, 
+          <Typography
+            component="h1"
+            variant="h4"
+            sx={{
+              mb: 1,
               fontWeight: 'bold',
               fontSize: { xs: '1.5rem', sm: '2.125rem' },
             }}
           >
             Logowanie
           </Typography>
-          <Typography 
-            variant="body2" 
-            color="text.secondary" 
-            sx={{ 
-              mb: { xs: 2, sm: 3 }, 
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{
+              mb: { xs: 2, sm: 3 },
               textAlign: 'center',
               fontSize: { xs: '0.75rem', sm: '0.875rem' },
               px: { xs: 1, sm: 0 },
@@ -140,73 +140,75 @@ export default function LoginPage() {
             System Zarządzania Konsultacjami Trychologicznymi
           </Typography>
 
-          {/* Test Account Info */}
-          <Card 
-            sx={{ 
-              width: '100%', 
-              mb: 2, 
-              bgcolor: 'info.light',
-              border: '2px solid',
-              borderColor: 'info.main',
-            }}
-          >
-            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1.5, color: 'info.dark' }}>
-                ⚠️ Aplikacja w fazie testowej
-              </Typography>
-              <Typography variant="body2" sx={{ mb: 1.5, color: 'text.primary' }}>
-                Użyj poniższych danych testowych do logowania:
-              </Typography>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'background.paper', p: 1, borderRadius: 1 }}>
-                  <Typography variant="body2" sx={{ flex: 1, fontFamily: 'monospace' }}>
-                    <strong>Email:</strong> {testEmail}
-                  </Typography>
-                  <IconButton 
-                    size="small" 
-                    onClick={handleCopyEmail}
-                    title="Kopiuj email"
-                  >
-                    <ContentCopy fontSize="small" />
-                  </IconButton>
-                  {copiedEmail && (
-                    <Typography variant="caption" color="success.main">
-                      Skopiowano!
+          {/* Test Account Info - Only visible in development */}
+          {import.meta.env.DEV && (
+            <Card
+              sx={{
+                width: '100%',
+                mb: 2,
+                bgcolor: 'info.light',
+                border: '2px solid',
+                borderColor: 'info.main',
+              }}
+            >
+              <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1.5, color: 'info.dark' }}>
+                  ⚠️ Aplikacja w fazie testowej
+                </Typography>
+                <Typography variant="body2" sx={{ mb: 1.5, color: 'text.primary' }}>
+                  Użyj poniższych danych testowych do logowania:
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'background.paper', p: 1, borderRadius: 1 }}>
+                    <Typography variant="body2" sx={{ flex: 1, fontFamily: 'monospace' }}>
+                      <strong>Email:</strong> {testEmail}
                     </Typography>
-                  )}
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'background.paper', p: 1, borderRadius: 1 }}>
-                  <Typography variant="body2" sx={{ flex: 1, fontFamily: 'monospace' }}>
-                    <strong>Hasło:</strong> {testPassword}
-                  </Typography>
-                  <IconButton 
-                    size="small" 
-                    onClick={handleCopyPassword}
-                    title="Kopiuj hasło"
-                  >
-                    <ContentCopy fontSize="small" />
-                  </IconButton>
-                  {copiedPassword && (
-                    <Typography variant="caption" color="success.main">
-                      Skopiowano!
+                    <IconButton
+                      size="small"
+                      onClick={handleCopyEmail}
+                      title="Kopiuj email"
+                    >
+                      <ContentCopy fontSize="small" />
+                    </IconButton>
+                    {copiedEmail && (
+                      <Typography variant="caption" color="success.main">
+                        Skopiowano!
+                      </Typography>
+                    )}
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'background.paper', p: 1, borderRadius: 1 }}>
+                    <Typography variant="body2" sx={{ flex: 1, fontFamily: 'monospace' }}>
+                      <strong>Hasło:</strong> {testPassword}
                     </Typography>
-                  )}
+                    <IconButton
+                      size="small"
+                      onClick={handleCopyPassword}
+                      title="Kopiuj hasło"
+                    >
+                      <ContentCopy fontSize="small" />
+                    </IconButton>
+                    {copiedPassword && (
+                      <Typography variant="caption" color="success.main">
+                        Skopiowano!
+                      </Typography>
+                    )}
+                  </Box>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    fullWidth
+                    onClick={handleFillTestData}
+                    sx={{ mt: 1 }}
+                  >
+                    Wypełnij dane testowe
+                  </Button>
                 </Box>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  fullWidth
-                  onClick={handleFillTestData}
-                  sx={{ mt: 1 }}
-                >
-                  Wypełnij dane testowe
-                </Button>
-              </Box>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
           {errors.root && (
-            <Alert severity="error" sx={{ width: '100%', mb: 2 }} onClose={() => {}}>
+            <Alert severity="error" sx={{ width: '100%', mb: 2 }} onClose={() => { }}>
               {errors.root.message}
             </Alert>
           )}
@@ -277,9 +279,9 @@ export default function LoginPage() {
               type="submit"
               fullWidth
               variant="contained"
-              sx={{ 
-                mt: { xs: 2, sm: 3 }, 
-                mb: 2, 
+              sx={{
+                mt: { xs: 2, sm: 3 },
+                mb: 2,
                 py: { xs: 1.25, sm: 1.5 },
                 fontSize: { xs: '0.875rem', sm: '1rem' },
               }}

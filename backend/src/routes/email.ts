@@ -1,17 +1,6 @@
-import express from 'express';
-import { PrismaClient } from '@prisma/client';
-import { z } from 'zod';
-import { authenticate, AuthRequest } from '../middleware/auth';
-import { sendEmail } from '../services/emailService';
-import { generateConsultationPDF, generateCarePlanPDF } from '../services/pdfService';
-import { renderEmailTemplate, TemplateVariables } from '../utils/emailTemplateRenderer';
-import { getLogoHTML } from '../utils/logo';
-import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
+import { prisma } from '../prisma';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // Configure multer for file uploads
 const uploadDir = path.join(__dirname, '../../storage/email-attachments');
@@ -67,7 +56,7 @@ router.post('/consultation/:id', authenticate, async (req: AuthRequest, res, nex
     }
 
     const pdfBuffer = await generateConsultationPDF(consultation);
-    
+
     // Try to get email template, fallback to default if not found
     let template = await prisma.emailTemplate.findFirst({
       where: {
@@ -190,7 +179,7 @@ router.post('/care-plan/:id', authenticate, async (req: AuthRequest, res, next) 
     }
 
     const pdfBuffer = await generateCarePlanPDF(carePlan);
-    
+
     // Try to get email template, fallback to default if not found
     let template = await prisma.emailTemplate.findFirst({
       where: {
@@ -665,7 +654,7 @@ router.post('/send', authenticate, upload.array('attachments', 5), async (req: A
     });
 
     const attachmentNames: string[] = [];
-    
+
     // Collect attachment names
     if (data.attachConsultationId) {
       attachmentNames.push('Konsultacja (PDF)');
@@ -756,7 +745,7 @@ router.post('/lab-result/:id', authenticate, async (req: AuthRequest, res, next)
 
     // Create a simple text summary of lab results
     let labSummary = `Wyniki badań laboratoryjnych z dnia ${new Date(labResult.date).toLocaleDateString('pl-PL')}\n\n`;
-    
+
     const fields = [
       { key: 'hgb', label: 'Hemoglobina', unit: labResult.hgbUnit, value: labResult.hgb, refLow: labResult.hgbRefLow, refHigh: labResult.hgbRefHigh, flag: labResult.hgbFlag },
       { key: 'rbc', label: 'Erytrocyty', unit: labResult.rbcUnit, value: labResult.rbc, refLow: labResult.rbcRefLow, refHigh: labResult.rbcRefHigh, flag: labResult.rbcFlag },
@@ -909,8 +898,8 @@ router.post('/scalp-photo/:id', authenticate, async (req: AuthRequest, res, next
 
     const imageBuffer = fs.readFileSync(imagePath);
     const imageExtension = path.extname(scalpPhoto.originalFilename || imagePath).toLowerCase();
-    const mimeType = imageExtension === '.jpg' || imageExtension === '.jpeg' ? 'image/jpeg' : 
-                     imageExtension === '.png' ? 'image/png' : 'image/jpeg';
+    const mimeType = imageExtension === '.jpg' || imageExtension === '.jpeg' ? 'image/jpeg' :
+      imageExtension === '.png' ? 'image/png' : 'image/jpeg';
 
     const subject = `Zdjęcie skóry głowy - ${scalpPhoto.patient.firstName} ${scalpPhoto.patient.lastName}`;
     const message = `W załączeniu przesyłamy zdjęcie skóry głowy z dnia ${new Date(scalpPhoto.createdAt).toLocaleDateString('pl-PL')}.${scalpPhoto.notes ? `\n\nUwagi: ${scalpPhoto.notes}` : ''}`;

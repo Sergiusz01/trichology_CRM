@@ -1,12 +1,6 @@
-import express from 'express';
-import { PrismaClient } from '@prisma/client';
-import { z } from 'zod';
-import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
-import { generateCarePlanPDF } from '../services/pdfService';
-import { writeAuditLog } from '../services/auditService';
+import { prisma } from '../prisma';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 const carePlanSchema = z.object({
   patientId: z.string(),
@@ -33,7 +27,7 @@ router.get('/patient/:patientId', authenticate, async (req: AuthRequest, res, ne
     const { active, archived = 'false' } = req.query;
     const isArchived = archived === 'true';
 
-    const where: any = { 
+    const where: any = {
       patientId,
       isArchived,
     };
@@ -224,7 +218,7 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res, next) => {
       entityId: id,
     });
 
-    res.json({ 
+    res.json({
       carePlan,
       message: 'Plan opieki został zarchiwizowany'
     });
@@ -261,9 +255,9 @@ router.post('/:id/restore', authenticate, async (req: AuthRequest, res, next) =>
       entityId: id,
     });
 
-    res.json({ 
-      carePlan: restoredCarePlan, 
-      message: 'Plan opieki został przywrócony' 
+    res.json({
+      carePlan: restoredCarePlan,
+      message: 'Plan opieki został przywrócony'
     });
   } catch (error) {
     next(error);
@@ -297,7 +291,7 @@ router.delete('/:id/permanent', authenticate, requireRole('ADMIN'), async (req: 
       entityId: id,
     });
 
-    res.json({ 
+    res.json({
       message: 'Plan opieki został trwale usunięty zgodnie z RODO',
       deleted: true
     });

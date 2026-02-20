@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
+import jwt from 'jsonwebtoken';
 import authRoutes from './routes/auth';
 import patientRoutes from './routes/patients';
 import consultationRoutes from './routes/consultations';
@@ -61,7 +62,20 @@ const uploadDir = process.env.UPLOAD_DIR || './storage/uploads';
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
-app.use('/uploads', express.static(uploadDir, {
+app.use('/uploads', async (req, res, next) => {
+  try {
+    const token = req.query.token as string;
+    if (!token) {
+      return res.status(401).send('Brak tokenu autoryzacyjnego');
+    }
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) throw new Error('JWT_SECRET nie jest ustawiony');
+    jwt.verify(token, jwtSecret);
+    next();
+  } catch (err) {
+    return res.status(401).send('Nieprawidłowy lub wygasły token');
+  }
+}, express.static(uploadDir, {
   setHeaders: (res, filePath) => {
     // Set appropriate content type for images
     if (filePath.endsWith('.jpg') || filePath.endsWith('.jpeg')) {

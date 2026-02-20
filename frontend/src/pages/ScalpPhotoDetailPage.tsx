@@ -385,7 +385,7 @@ export default function ScalpPhotoDetailPage() {
             <Box sx={{ position: 'relative', display: 'inline-block', width: '100%' }}>
               <img
                 ref={imageRef}
-                src={photo.url || (photo.filePath ? `/uploads/${photo.filePath.split(/[/\\]/).pop()}` : '')}
+                src={photo.url || (photo.filePath ? `/uploads/${photo.filePath.split(/[/\\]/).pop()}?token=${localStorage.getItem('accessToken')}` : '')}
                 alt={photo.originalFilename || 'Zdjęcie skóry głowy'}
                 onLoad={() => {
                   console.log('Obraz załadowany:', photo.url || photo.filePath);
