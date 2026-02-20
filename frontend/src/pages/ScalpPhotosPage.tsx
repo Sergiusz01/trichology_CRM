@@ -134,7 +134,7 @@ export default function ScalpPhotosPage() {
                       <CardMedia
                         component="img"
                         height={isMobile ? 240 : 220}
-                        image={photo.url || (photo.filePath ? `/uploads/${photo.filePath.split(/[/\\]/).pop()}?token=${localStorage.getItem('accessToken')}` : '')}
+                        image={photo.url ? `${photo.url}?token=${localStorage.getItem('accessToken')}` : (photo.filePath ? `/uploads/${photo.filePath.split(/[/\\]/).pop()}?token=${localStorage.getItem('accessToken')}` : '')}
                         alt={photo.originalFilename || 'Zdjęcie skóry głowy'}
                         sx={{
                           transition: 'transform 0.5s ease',

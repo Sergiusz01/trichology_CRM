@@ -1504,7 +1504,7 @@ export default function PatientDetailPage() {
                           <CardMedia
                             component="img"
                             height="180"
-                            image={photo.url || (photo.filePath ? `/uploads/${photo.filePath.split(/[/\\]/).pop()}?token=${localStorage.getItem('accessToken')}` : '')}
+                            image={photo.url ? `${photo.url}?token=${localStorage.getItem('accessToken')}` : (photo.filePath ? `/uploads/${photo.filePath.split(/[/\\]/).pop()}?token=${localStorage.getItem('accessToken')}` : '')}
                             alt={photo.originalFilename || 'Zdjęcie skóry głowy'}
                             sx={{
                               width: '100%',
