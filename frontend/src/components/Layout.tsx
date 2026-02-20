@@ -46,6 +46,7 @@ const menuItems = [
   { text: 'Szablony konsultacji', icon: <Description />, path: '/consultation-templates' },
   { text: 'Szablony wyników badań', icon: <Science />, path: '/lab-result-templates' },
   { text: 'Dziennik aktywności', icon: <History />, path: '/activity' },
+  { text: 'Ustawienia i Wersja', icon: <Settings />, path: '/settings' },
   { text: 'Test email', icon: <Settings />, path: '/email/test' },
 ];
 

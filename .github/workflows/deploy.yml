@@ -63,6 +63,11 @@ jobs:
           script: |
             unzip -o ~/frontend.zip -d ~/frontend-src
             cd ~/frontend-src
+            
+            echo "VITE_APP_VERSION=${{ github.sha }}" > .env.production
+            echo "VITE_APP_BUILD_DATE=$(date +'%Y-%m-%d %H:%M:%S')" >> .env.production
+            echo "VITE_APP_COMMIT_MESSAGE=\"${{ github.event.head_commit.message }}\"" >> .env.production
+            
             npm install
             npm run build
             cp -r dist/* /var/www/trichology/

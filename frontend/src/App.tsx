@@ -32,6 +32,7 @@ const UserProfilePage = lazy(() => import('./pages/UserProfilePage'));
 const VisitFormPage = lazy(() => import('./pages/VisitFormPage'));
 const RevenuePage = lazy(() => import('./pages/RevenuePage'));
 const ActivityLogPage = lazy(() => import('./pages/ActivityLogPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 
 // Loading component for Suspense fallback
 const PageLoader = () => (
@@ -78,9 +79,9 @@ function App() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
-        <Route 
-          path="/login" 
-          element={!user ? <LoginPage /> : <Navigate to="/" />} 
+        <Route
+          path="/login"
+          element={!user ? <LoginPage /> : <Navigate to="/" />}
         />
         <Route path="/" element={user ? <Layout /> : <Navigate to="/login" />}>
           <Route index element={<DashboardPage />} />
@@ -116,6 +117,7 @@ function App() {
           <Route path="lab-result-templates" element={<LabResultTemplatesPage />} />
           <Route path="activity" element={<ActivityLogPage />} />
           <Route path="profile" element={<UserProfilePage />} />
+          <Route path="settings" element={<SettingsPage />} />
           <Route path="care-plans/:id" element={<CarePlanDetailPage />} />
           <Route path="scalp-photos/:photoId" element={<ScalpPhotoDetailPage />} />
         </Route>
