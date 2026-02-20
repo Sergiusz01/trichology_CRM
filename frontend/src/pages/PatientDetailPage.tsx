@@ -34,6 +34,7 @@ import {
   InputLabel,
   InputAdornment,
   Tooltip,
+  CardMedia,
 } from '@mui/material';
 import {
   Add,
