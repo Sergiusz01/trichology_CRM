@@ -1,3 +1,13 @@
+import express from 'express';
+import { z } from 'zod';
+import { authenticate, AuthRequest } from '../middleware/auth';
+import { sendEmail } from '../services/emailService';
+import { generateConsultationPDF, generateCarePlanPDF } from '../services/pdfService';
+import { renderEmailTemplate, TemplateVariables } from '../utils/emailTemplateRenderer';
+import { getLogoHTML } from '../utils/logo';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 import { prisma } from '../prisma';
 
 const router = express.Router();

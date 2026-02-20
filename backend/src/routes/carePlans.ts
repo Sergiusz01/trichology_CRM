@@ -1,3 +1,8 @@
+import express from 'express';
+import { z } from 'zod';
+import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
+import { generateCarePlanPDF } from '../services/pdfService';
+import { writeAuditLog } from '../services/auditService';
 import { prisma } from '../prisma';
 
 const router = express.Router();
