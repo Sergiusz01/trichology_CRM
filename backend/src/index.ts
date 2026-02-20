@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
+import 'dotenv/config';
 import path from 'path';
 import fs from 'fs';
 import jwt from 'jsonwebtoken';
@@ -24,8 +24,6 @@ import { startReminderWorker } from './services/reminderWorker';
 import { prisma } from './prisma';
 import { initializeDefaultConsultationTemplate } from './utils/initializeDefaultConsultationTemplate';
 import { apiLimiter, authLimiter, refreshLimiter } from './middleware/rateLimit';
-
-dotenv.config();
 
 const app = express();
 
