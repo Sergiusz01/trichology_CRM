@@ -46,8 +46,20 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
+            # Create persistent uploads directory outside of deployment folder
+            mkdir -p /root/uploads
+
+            # Migrate any existing uploads from the old location into the persistent dir
+            if [ -d /root/backend-src/storage/uploads ]; then
+              mv /root/backend-src/storage/uploads/* /root/uploads/ 2>/dev/null || true
+            fi
+
             unzip -o ~/backend.zip -d ~/backend-src
             cd ~/backend-src
+
+            # Ensure UPLOAD_DIR points to the persistent directory
+            sed -i 's|UPLOAD_DIR=.*|UPLOAD_DIR=/root/uploads|' .env
+
             npm install
             npx prisma generate
             npx prisma db push
