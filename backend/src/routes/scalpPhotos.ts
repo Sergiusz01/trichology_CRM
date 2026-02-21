@@ -3,42 +3,38 @@ import { z } from 'zod';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { v4 as uuidv4 } from 'uuid';
+import jwt from 'jsonwebtoken';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { prisma } from '../prisma';
 
 const router = express.Router();
 
-// Configure multer for file uploads
-const uploadDir = process.env.UPLOAD_DIR || './storage/uploads';
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(process.cwd(), 'storage/uploads');
+if (!fs.existsSync(UPLOAD_DIR)) {
+  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
 
+// Ensure the directory is fully resolved
+const normalizedUploadDir = path.resolve(UPLOAD_DIR);
+
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
+  destination: (req, file, cb) => cb(null, normalizedUploadDir),
   filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname);
-    cb(null, `scalp-${uniqueSuffix}${ext}`);
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `scalp-${uuidv4()}${ext}`);
   },
 });
 
 const upload = multer({
   storage,
-  limits: {
-    fileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760', 10), // 10MB default
-  },
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB Limit
   fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|webp/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
-
-    if (extname && mimetype) {
+    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (allowedMimeTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Tylko pliki obrazów (JPEG, PNG, WEBP) są dozwolone'));
+      cb(new Error('Niedozwolony format pliku. Tylko JPG, PNG, WEBP.'));
     }
   },
 });
@@ -46,8 +42,36 @@ const upload = multer({
 const annotationSchema = z.object({
   type: z.enum(['PROBLEM_AREA', 'NOTE', 'OTHER']),
   shapeType: z.enum(['RECT', 'CIRCLE', 'POLYGON']),
-  coordinates: z.any(), // JSON object
+  coordinates: z.any(),
   label: z.string().min(1, 'Etykieta jest wymagana'),
+});
+
+// Secure image download endpoint
+router.get('/secure/:filename', async (req, res) => {
+  const { filename } = req.params;
+  const token = req.query.token as string;
+
+  if (!token) return res.status(401).json({ error: 'Brak tokenu autoryzacyjnego' });
+
+  try {
+    jwt.verify(token, process.env.JWT_SECRET as string);
+    const normalizedFilePath = path.resolve(path.join(normalizedUploadDir, filename));
+
+    if (!normalizedFilePath.startsWith(normalizedUploadDir)) {
+      return res.status(403).json({ error: 'Odmowa dostępu: niedozwolona ścieżka' });
+    }
+
+    if (!fs.existsSync(normalizedFilePath)) {
+      return res.status(404).json({ error: 'Plik nie istnieje' });
+    }
+
+    res.setHeader('Cache-Control', 'private, max-age=86400');
+    // Security header to avoid XSS issues
+    res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+    res.sendFile(normalizedFilePath);
+  } catch (err) {
+    return res.status(401).json({ error: 'Nieprawidłowy lub wygasły token' });
+  }
 });
 
 // Upload scalp photo
@@ -57,47 +81,41 @@ router.post('/patient/:patientId', authenticate, upload.single('photo'), async (
     const { consultationId, notes } = req.body;
 
     if (!req.file) {
-      return res.status(400).json({ error: 'Brak pliku' });
+      return res.status(400).json({ error: 'Brak pliku lub zły format' });
     }
 
-    // Verify patient exists
     const patient = await prisma.patient.findUnique({
       where: { id: patientId },
     });
 
     if (!patient) {
-      // Delete uploaded file if patient doesn't exist
       fs.unlinkSync(req.file.path);
       return res.status(404).json({ error: 'Pacjent nie znaleziony' });
     }
 
-    const scalpPhoto = await prisma.scalpPhoto.create({
-      data: {
-        patientId,
-        consultationId: consultationId || undefined,
-        uploadedByUserId: req.user!.id,
-        filePath: req.file.path,
-        originalFilename: req.file.originalname,
-        mimeType: req.file.mimetype,
-        notes: notes || undefined,
-      },
-      include: {
-        patient: {
-          select: { id: true, firstName: true, lastName: true },
+    try {
+      const scalpPhoto = await prisma.scalpPhoto.create({
+        data: {
+          patientId,
+          consultationId: consultationId || undefined,
+          uploadedByUserId: req.user!.id,
+          filename: req.file.filename,
+          filePath: req.file.path, // deprecated legacy fallback
+          originalFilename: req.file.originalname,
+          mimeType: req.file.mimetype,
+          notes: notes || undefined,
         },
-        uploadedBy: {
-          select: { id: true, name: true },
+        include: {
+          patient: { select: { id: true, firstName: true, lastName: true } },
+          uploadedBy: { select: { id: true, name: true } },
         },
-      },
-    });
+      });
 
-    // Add URL field for frontend (use secured route)
-    const photoWithUrl = {
-      ...scalpPhoto,
-      url: `/uploads/${path.basename(scalpPhoto.filePath)}`,
-    };
-
-    res.status(201).json({ scalpPhoto: photoWithUrl });
+      res.status(201).json({ scalpPhoto });
+    } catch (dbError) {
+      if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+      throw dbError;
+    }
   } catch (error) {
     next(error);
   }
@@ -118,22 +136,12 @@ router.get('/patient/:patientId', authenticate, async (req: AuthRequest, res, ne
       where,
       orderBy: { createdAt: 'desc' },
       include: {
-        uploadedBy: {
-          select: { id: true, name: true },
-        },
-        annotations: {
-          orderBy: { createdAt: 'asc' },
-        },
+        uploadedBy: { select: { id: true, name: true } },
+        annotations: { orderBy: { createdAt: 'asc' } },
       },
     });
 
-    // Convert file paths to URLs (use secured route)
-    const photosWithUrls = scalpPhotos.map(photo => ({
-      ...photo,
-      url: `/uploads/${path.basename(photo.filePath)}`,
-    }));
-
-    res.json({ scalpPhotos: photosWithUrls });
+    res.json({ scalpPhotos });
   } catch (error) {
     next(error);
   }

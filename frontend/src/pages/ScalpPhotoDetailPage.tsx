@@ -27,6 +27,8 @@ import {
   Delete,
 } from '@mui/icons-material';
 import { api } from '../services/api';
+import { SecureImage } from '../components/SecureImage';
+import { buildSecureImageUrl } from '../utils/imageHandler';
 
 interface Annotation {
   id: string;
@@ -385,21 +387,20 @@ export default function ScalpPhotoDetailPage() {
             <Box sx={{ position: 'relative', display: 'inline-block', width: '100%' }}>
               <img
                 ref={imageRef}
-                src={photo.url ? `${photo.url}?token=${localStorage.getItem('accessToken')}` : (photo.filePath ? `/uploads/${photo.filePath.split(/[/\\]/).pop()}?token=${localStorage.getItem('accessToken')}` : '')}
+                src={buildSecureImageUrl(photo.filename || photo.filePath)}
                 alt={photo.originalFilename || 'Zdjęcie skóry głowy'}
                 onLoad={() => {
-                  console.log('Obraz załadowany:', photo.url || photo.filePath);
+                  console.log('Obraz załadowany:', photo.filename || photo.filePath);
                   handleImageLoad();
                 }}
                 onError={(e) => {
                   const img = e.target as HTMLImageElement;
                   console.error('Błąd ładowania obrazu:', {
                     src: img.src,
-                    url: photo.url,
-                    filePath: photo.filePath,
-                    photo: photo
+                    filename: photo.filename,
+                    filePath: photo.filePath
                   });
-                  setError(`Nie można załadować obrazu: ${photo.url || photo.filePath}`);
+                  setError(`Nie można załadować obrazu: ${photo.filename || photo.filePath}`);
                 }}
                 style={{ maxWidth: '100%', height: 'auto', display: 'none', imageOrientation: 'from-image' }}
               />

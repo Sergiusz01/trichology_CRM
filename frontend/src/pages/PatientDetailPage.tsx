@@ -62,6 +62,7 @@ import {
 import { api, BASE_URL } from '../services/api';
 import { useNotification } from '../hooks/useNotification';
 import { ErrorRetry } from '../components/ErrorRetry';
+import { SecureImage } from '../components/SecureImage';
 
 interface Patient {
   id: string;
@@ -1500,28 +1501,15 @@ export default function PatientDetailPage() {
                           overflow: 'hidden'
                         }}
                       >
-                        {photo.url || photo.filePath ? (
-                          <CardMedia
-                            component="img"
-                            height="180"
-                            image={photo.url ? `${photo.url}?token=${localStorage.getItem('accessToken')}` : (photo.filePath ? `/uploads/${photo.filePath.split(/[/\\]/).pop()}?token=${localStorage.getItem('accessToken')}` : '')}
+                        {photo.filename || photo.filePath ? (
+                          <SecureImage
+                            filename={photo.filename || photo.filePath}
                             alt={photo.originalFilename || 'Zdjęcie skóry głowy'}
-                            sx={{
+                            style={{
                               width: '100%',
                               height: '100%',
                               objectFit: 'cover',
                               transition: 'transform 0.5s ease',
-                            }}
-                            onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
-                            onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-                            onError={(e) => {
-                              const img = e.target as HTMLImageElement;
-                              console.error('Błąd ładowania obrazu:', {
-                                src: img.src,
-                                photoUrl: photo.url,
-                                filePath: photo.filePath
-                              });
-                              img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23ddd" width="200" height="200"/%3E%3Ctext fill="%23999" font-family="sans-serif" font-size="14" dy="10.5" font-weight="bold" x="50%25" y="50%25" text-anchor="middle"%3EBrak zdj%26%23381%3Bcia%3C/text%3E%3C/svg%3E';
                             }}
                           />
                         ) : (

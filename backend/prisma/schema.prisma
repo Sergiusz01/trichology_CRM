@@ -365,7 +365,8 @@ model ScalpPhoto {
   patientId        String
   consultationId   String?
   uploadedByUserId String
-  filePath         String
+  filename         String?
+  filePath         String?
   originalFilename String
   mimeType         String
   notes            String?

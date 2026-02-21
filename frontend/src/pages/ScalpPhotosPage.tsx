@@ -131,25 +131,13 @@ export default function ScalpPhotosPage() {
                 >
                   <CardActionArea onClick={() => navigate(`/patients/${id}/scalp-photos/${photo.id}`)}>
                     <Box sx={{ position: 'relative', overflow: 'hidden' }}>
-                      <CardMedia
-                        component="img"
-                        height={isMobile ? 240 : 220}
-                        image={photo.url ? `${photo.url}?token=${localStorage.getItem('accessToken')}` : (photo.filePath ? `/uploads/${photo.filePath.split(/[/\\]/).pop()}?token=${localStorage.getItem('accessToken')}` : '')}
+                      <SecureImage
+                        filename={photo.filename || photo.filePath}
                         alt={photo.originalFilename || 'Zdjęcie skóry głowy'}
-                        sx={{
+                        style={{
+                          height: isMobile ? 240 : 220,
                           transition: 'transform 0.5s ease',
-                          backgroundColor: '#f5f5f5',
-                          objectFit: 'cover',
-                        }}
-                        onError={(e) => {
-                          const img = e.target as HTMLImageElement;
-                          console.error('Błąd ładowania obrazu:', {
-                            src: img.src,
-                            photoUrl: photo.url,
-                            filePath: photo.filePath,
-                            photo: photo
-                          });
-                          img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23ddd" width="200" height="200"/%3E%3Ctext fill="%23999" font-family="sans-serif" font-size="14" dy="10.5" font-weight="bold" x="50%25" y="50%25" text-anchor="middle"%3EBrak zdj%26%23381%3Bcia%3C/text%3E%3C/svg%3E';
+                          backgroundColor: '#f5f5f5'
                         }}
                       />
                       <Box sx={{
