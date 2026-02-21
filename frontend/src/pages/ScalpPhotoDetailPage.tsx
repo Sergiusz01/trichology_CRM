@@ -140,6 +140,9 @@ export default function ScalpPhotoDetailPage() {
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    // Safety guard: don't draw a broken image (would throw InvalidStateError)
+    if (!img.complete || img.naturalWidth === 0 || img.naturalHeight === 0) return;
+
     // Draw image (browser handles EXIF orientation for img element, so we use it as-is)
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 

@@ -31,7 +31,11 @@ const PORT = process.env.PORT || 3001;
 
 // CORS: allow multiple origins (FRONTEND_URLS comma-separated) or single FRONTEND_URL.
 // Always allow localhost for dev. Production: add http://<VPS_IP>, https://<DOMAIN>, etc.
-const defaultOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:3000', 'http://127.0.0.1:3000'];
+const defaultOrigins = [
+  'http://localhost:5173', 'http://127.0.0.1:5173',
+  'http://localhost:3000', 'http://127.0.0.1:3000',
+  'https://001246.xyz', 'https://www.001246.xyz',
+];
 const fromEnv = (process.env.FRONTEND_URLS ?? process.env.FRONTEND_URL ?? '')
   .split(',')
   .map((s: string) => s.trim())
@@ -55,11 +59,12 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files from uploads directory
-const uploadDir = process.env.UPLOAD_DIR || './storage/uploads';
+// Resolve uploads directory to an absolute path to ensure consistency
+const uploadDir = path.resolve(process.env.UPLOAD_DIR || './storage/uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
+// Legacy /uploads static route with JWT auth (kept for backward compat)
 app.use('/uploads', async (req, res, next) => {
   try {
     const token = req.query.token as string;
@@ -75,7 +80,6 @@ app.use('/uploads', async (req, res, next) => {
   }
 }, express.static(uploadDir, {
   setHeaders: (res, filePath) => {
-    // Set appropriate content type for images
     if (filePath.endsWith('.jpg') || filePath.endsWith('.jpeg')) {
       res.setHeader('Content-Type', 'image/jpeg');
     } else if (filePath.endsWith('.png')) {
@@ -83,8 +87,7 @@ app.use('/uploads', async (req, res, next) => {
     } else if (filePath.endsWith('.webp')) {
       res.setHeader('Content-Type', 'image/webp');
     }
-    // Cache control for uploaded files
-    res.setHeader('Cache-Control', 'public, max-age=31536000');
+    res.setHeader('Cache-Control', 'private, max-age=86400');
   },
 }));
 
@@ -126,6 +129,8 @@ app.use('/api/consultation-templates', consultationTemplateRoutes);
 app.use('/api/lab-results', labResultRoutes);
 app.use('/api/lab-result-templates', labResultTemplateRoutes);
 app.use('/api/scalp-photos', scalpPhotoRoutes);
+// /api/uploads/secure/:filename → handled by scalpPhotos router (/secure/:filename)
+app.use('/api/uploads', scalpPhotoRoutes);
 app.use('/api/care-plans', carePlanRoutes);
 app.use('/api/email', emailRoutes);
 app.use('/api/email-templates', emailTemplateRoutes);
