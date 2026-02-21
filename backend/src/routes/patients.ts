@@ -101,7 +101,7 @@ router.get('/:id', authenticate, async (req: AuthRequest, res, next) => {
           take: 10,
         },
         carePlans: {
-          where: { 
+          where: {
             isActive: true,
           },
           orderBy: { createdAt: 'desc' },
@@ -257,7 +257,9 @@ router.delete('/:id/permanent', authenticate, requireRole('ADMIN'), async (req: 
     // Delete all scalp photo files from filesystem
     for (const photo of patient.scalpPhotos) {
       try {
-        const photoPath = path.join(__dirname, '../../storage/uploads', path.basename(photo.filePath));
+        const fileName = photo.filename || (photo.filePath ? path.basename(photo.filePath) : '');
+        if (!fileName) continue;
+        const photoPath = path.join(__dirname, '../../storage/uploads', fileName);
         if (fs.existsSync(photoPath)) {
           fs.unlinkSync(photoPath);
         }
@@ -286,7 +288,7 @@ router.delete('/:id/permanent', authenticate, requireRole('ADMIN'), async (req: 
       entityId: patient.id,
     });
 
-    res.json({ 
+    res.json({
       message: 'Pacjent i wszystkie powiązane dane zostały trwale usunięte zgodnie z RODO',
       deletedPatient: {
         id: patient.id,

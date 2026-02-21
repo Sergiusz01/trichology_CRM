@@ -167,7 +167,7 @@ router.get('/:id/file', authenticate, async (req: AuthRequest, res, next) => {
     }
 
     // Verify file exists on disk
-    if (!fs.existsSync(scalpPhoto.filePath)) {
+    if (!scalpPhoto.filePath || !fs.existsSync(scalpPhoto.filePath)) {
       return res.status(404).json({ error: 'Plik nie istnieje na serwerze' });
     }
 
@@ -213,7 +213,7 @@ router.get('/:id', authenticate, async (req: AuthRequest, res, next) => {
     // Use secured file route instead of /uploads
     const photoWithUrl = {
       ...scalpPhoto,
-      url: `/uploads/${path.basename(scalpPhoto.filePath)}`,
+      url: scalpPhoto.filename ? `/api/uploads/secure/${scalpPhoto.filename}` : (scalpPhoto.filePath ? `/uploads/${path.basename(scalpPhoto.filePath)}` : null),
     };
 
     res.json({ scalpPhoto: photoWithUrl });
@@ -248,7 +248,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res, next) => {
 
     const photoWithUrl = {
       ...scalpPhoto,
-      url: `/uploads/${path.basename(scalpPhoto.filePath)}`,
+      url: scalpPhoto.filename ? `/api/uploads/secure/${scalpPhoto.filename}` : (scalpPhoto.filePath ? `/uploads/${path.basename(scalpPhoto.filePath)}` : null),
     };
 
     res.json({ scalpPhoto: photoWithUrl });
@@ -271,7 +271,7 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res, next) => {
     }
 
     // Delete file from filesystem
-    if (fs.existsSync(scalpPhoto.filePath)) {
+    if (scalpPhoto.filePath && fs.existsSync(scalpPhoto.filePath)) {
       fs.unlinkSync(scalpPhoto.filePath);
     }
 

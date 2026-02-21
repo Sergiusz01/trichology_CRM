@@ -15,7 +15,7 @@ router.get('/patients/zip', authenticate, requireRole('ADMIN', 'DOCTOR'), async 
     // Set response headers
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
     const filename = `eksport-pacjentow-${timestamp}.zip`;
-    
+
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
@@ -171,7 +171,10 @@ router.get('/patients/zip', authenticate, requireRole('ADMIN', 'DOCTOR'), async 
       if (patient.scalpPhotos.length > 0) {
         // Copy actual image files
         for (const photo of patient.scalpPhotos) {
-          const photoPath = path.join(__dirname, '../../storage/uploads', path.basename(photo.filePath));
+          const fileName = photo.filename || (photo.filePath ? path.basename(photo.filePath) : '');
+          if (!fileName) continue;
+
+          const photoPath = path.join(__dirname, '../../storage/uploads', fileName);
           if (fs.existsSync(photoPath)) {
             const fileBuffer = fs.readFileSync(photoPath);
             const photoFileName = photo.originalFilename || `zdjecie_${photo.id.slice(0, 8)}.jpg`;
