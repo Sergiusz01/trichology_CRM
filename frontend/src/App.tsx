@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import { useAuth } from './contexts/AuthContext';
@@ -113,12 +113,9 @@ function App() {
             <Route path="patients/:id/care-plans/:carePlanId/edit" element={<CarePlanFormPage />} />
             <Route path="patients/:id/email" element={<EmailComposePage />} />
             <Route path="patients/:id/email-history" element={<EmailHistoryPage />} />
-            <Route path="email/history" element={<EmailHistoryPage />} />
-            <Route path="email/test" element={<EmailTestPage />} />
             <Route path="email/templates" element={<EmailTemplatesPage />} />
             <Route path="consultation-templates" element={<ConsultationTemplatesPage />} />
             <Route path="lab-result-templates" element={<LabResultTemplatesPage />} />
-            <Route path="activity" element={<ActivityLogPage />} />
             <Route path="profile" element={<UserProfilePage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="care-plans/:id" element={<CarePlanDetailPage />} />
