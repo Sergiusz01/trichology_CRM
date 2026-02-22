@@ -5,6 +5,8 @@ import {
   Paper,
   Typography,
   Button,
+  Tabs,
+  Tab,
   Grid,
   Chip,
   Dialog,
@@ -32,8 +34,8 @@ import {
   InputLabel,
   InputAdornment,
   Tooltip,
+  CardMedia,
 } from '@mui/material';
-import { AppCard, AppButton, Section } from '../ui';
 import {
   Add,
   Edit,
@@ -103,43 +105,24 @@ const formatDateTimeLocal = (dateString: string): string => {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
 
-const sectionTitles = {
-  0: "Przegląd",
-  1: "Konsultacje",
-  2: "Wyniki Badań",
-  3: "Zdjęcia Skóry Głowy",
-  4: "Plany Opieki",
-  5: "Wizyty",
-};
-
-const sectionIds = [
-  'section-overview',
-  'section-consultations',
-  'section-lab-results',
-  'section-scalp-photos',
-  'section-care-plans',
-  'section-visits',
-];
-
 interface TabPanelProps {
   children?: React.ReactNode;
   index: number;
   value: number;
-  activeSection?: number | null;
 }
 
 function TabPanel(props: TabPanelProps) {
-  const { children, index, activeSection } = props;
-  const title = sectionTitles[index as keyof typeof sectionTitles] || "Sekcja";
+  const { children, value, index, ...other } = props;
   return (
-    <Section
-      id={sectionIds[index]}
-      title={title}
-      defaultExpanded={index === 0}
-      forceExpand={activeSection === index}
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`patient-tabpanel-${index}`}
+      aria-labelledby={`patient-tab-${index}`}
+      {...other}
     >
-      <Box sx={{ pt: 1, px: { xs: 0.5, md: 2 } }}>{children}</Box>
-    </Section>
+      {value === index && <Box sx={{ pt: 5, px: { xs: 2, md: 4 } }}>{children}</Box>}
+    </div>
   );
 }
 
@@ -151,7 +134,6 @@ export default function PatientDetailPage() {
   const [patient, setPatient] = useState<Patient | null>(null);
   const [loading, setLoading] = useState(true);
   const [tabValue, setTabValue] = useState(0);
-  const [activeSection, setActiveSection] = useState<number | null>(null);
   const [consultations, setConsultations] = useState<any[]>([]);
   const [labResults, setLabResults] = useState<any[]>([]);
   const [scalpPhotos, setScalpPhotos] = useState<any[]>([]);
@@ -618,36 +600,27 @@ export default function PatientDetailPage() {
     { label: 'Wizyty', value: visits.length, icon: EventAvailable, color: '#AF52DE' },
   ];
 
-  const scrollToSection = (index: number) => {
-    const sectionIndex = index + 1; // stats map to sections 1-5
-    setActiveSection(sectionIndex);
-    setTabValue(sectionIndex);
-    setTimeout(() => {
-      const el = document.getElementById(sectionIds[sectionIndex]);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-      // Reset forceExpand after a short delay
-      setTimeout(() => setActiveSection(null), 1000);
-    }, 100);
-  };
-
   return (
     <Box sx={{
       bgcolor: '#f5f5f7',
       minHeight: '100vh',
       pb: 6,
     }}>
-      <Container maxWidth="lg" sx={{ pt: { xs: 2, md: 3 }, px: { xs: 1.5, md: 3 } }}>
+      <Container maxWidth="lg" sx={{ pt: 3 }}>
         {/* Back Button */}
-        <AppButton
-          variant="secondary"
+        <Button
           startIcon={<ArrowBack />}
           onClick={() => navigate('/patients')}
-          sx={{ mb: 3 }}
+          sx={{
+            mb: 3,
+            color: '#1d1d1f',
+            '&:hover': {
+              bgcolor: alpha('#000', 0.05),
+            },
+          }}
         >
           Powrót do listy pacjentów
-        </AppButton>
+        </Button>
 
         {/* Loading Error with Retry */}
         {loadError && (
@@ -655,13 +628,15 @@ export default function PatientDetailPage() {
         )}
 
         {/* Header Card */}
-        <AppCard
+        <Paper
+          elevation={0}
           sx={{
-            p: { xs: 2.5, md: 4 },
+            p: 4,
             mb: 3,
+            borderRadius: 3,
+            bgcolor: 'white',
             border: '1px solid',
             borderColor: 'divider',
-            boxShadow: 'none'
           }}
         >
           <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: { xs: 'center', md: 'flex-start' }, gap: { xs: 2.5, md: 4 }, mb: 4, textAlign: { xs: 'center', md: 'left' } }}>
@@ -727,90 +702,127 @@ export default function PatientDetailPage() {
           {/* Action Buttons */}
           <Grid container spacing={2}>
             <Grid size={{ xs: 12, sm: 4 }}>
-              <AppButton
+              <Button
                 fullWidth
-                variant="primary"
+                variant="contained"
                 startIcon={<Add />}
                 onClick={() => navigate(`/patients/${id}/consultations/new`)}
+                sx={{
+                  bgcolor: '#007AFF',
+                  color: 'white',
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  py: { xs: 1.2, sm: 1.5 },
+                  borderRadius: 2.5,
+                  boxShadow: `0 4px 14px ${alpha('#007AFF', 0.4)}`,
+                  '&:hover': {
+                    bgcolor: '#0051D5',
+                    boxShadow: `0 6px 20px ${alpha('#007AFF', 0.5)}`,
+                  },
+                }}
               >
                 Nowa konsultacja
-              </AppButton>
+              </Button>
             </Grid>
             <Grid size={{ xs: 12, sm: 4 }}>
-              <AppButton
+              <Button
                 fullWidth
                 variant="outlined"
                 startIcon={<Edit />}
                 onClick={() => navigate(`/patients/${id}/edit`)}
+                sx={{
+                  borderColor: alpha('#1d1d1f', 0.15),
+                  color: '#1d1d1f',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  py: { xs: 1.2, sm: 1.5 },
+                  borderRadius: 2.5,
+                  '&:hover': {
+                    borderColor: '#1d1d1f',
+                    bgcolor: alpha('#000', 0.02),
+                  },
+                }}
               >
                 Edytuj dane
-              </AppButton>
+              </Button>
             </Grid>
             {patient.email && (
               <Grid size={{ xs: 12, sm: 4 }}>
-                <AppButton
+                <Button
                   fullWidth
                   variant="outlined"
                   startIcon={<Email />}
                   onClick={() => navigate(`/patients/${id}/email`)}
+                  sx={{
+                    borderColor: alpha('#1d1d1f', 0.15),
+                    color: '#1d1d1f',
+                    textTransform: 'none',
+                    fontWeight: 600,
+                    py: { xs: 1.2, sm: 1.5 },
+                    borderRadius: 2.5,
+                    '&:hover': {
+                      borderColor: '#1d1d1f',
+                      bgcolor: alpha('#000', 0.02),
+                    },
+                  }}
                 >
                   Email
-                </AppButton>
+                </Button>
               </Grid>
             )}
           </Grid>
-        </AppCard>
+        </Paper>
 
         {/* Stats Grid */}
-        <Grid container spacing={{ xs: 1.5, md: 3 }} sx={{ mb: { xs: 2, md: 4 } }}>
+        <Grid container spacing={3} sx={{ mb: 4 }}>
           {stats.map((stat, index) => {
-            const isActive = tabValue === (index + 1);
+            const isActive = tabValue === (index + 1); // Stats correspond to tabs 1-4
             return (
-              <Grid key={index} size={{ xs: 6, sm: 4, md: 'auto' }} sx={{ flex: { md: 1 } }}>
+              <Grid key={index} size={{ xs: 6, md: 3 }}>
                 <Paper
                   elevation={0}
-                  onClick={() => scrollToSection(index)}
+                  onClick={() => setTabValue(index + 1)}
                   sx={{
-                    p: { xs: 1.5, sm: 2, md: 3 },
-                    borderRadius: 3,
+                    p: { xs: 2, sm: 3 },
+                    borderRadius: 4,
                     bgcolor: 'white',
                     border: '1px solid',
                     borderColor: isActive ? stat.color : 'divider',
                     cursor: 'pointer',
-                    transition: 'all 0.25s ease',
-                    boxShadow: isActive ? `0 4px 16px ${alpha(stat.color, 0.15)}` : 'none',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: isActive ? `0 8px 24px ${alpha(stat.color, 0.15)}` : 'none',
                     position: 'relative',
                     overflow: 'hidden',
-                    height: '100%',
                     '&:hover': {
                       borderColor: stat.color,
-                      transform: 'translateY(-2px)',
-                      boxShadow: `0 8px 20px ${alpha(stat.color, 0.12)}`,
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 12px 30px ${alpha(stat.color, 0.12)}`,
                     },
                     '&::before': isActive ? {
                       content: '""',
                       position: 'absolute',
                       top: 0,
                       left: 0,
-                      width: 3,
+                      width: 4,
                       height: '100%',
                       bgcolor: stat.color
                     } : {}
                   }}
                 >
-                  <Box
-                    sx={{
-                      width: { xs: 36, md: 44 },
-                      height: { xs: 36, md: 44 },
-                      borderRadius: 2,
-                      bgcolor: alpha(stat.color, 0.1),
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      mb: { xs: 1, md: 2 },
-                    }}
-                  >
-                    <stat.icon sx={{ color: stat.color, fontSize: { xs: 18, md: 24 } }} />
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                    <Box
+                      sx={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: 2.5,
+                        bgcolor: alpha(stat.color, 0.1),
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <stat.icon sx={{ color: stat.color, fontSize: 24 }} />
+                    </Box>
                   </Box>
                   <Typography
                     variant="h3"
@@ -818,8 +830,7 @@ export default function PatientDetailPage() {
                       fontWeight: 800,
                       color: '#1d1d1f',
                       mb: 0.5,
-                      fontSize: { xs: '1.4rem', sm: '1.75rem', md: '2.25rem' },
-                      lineHeight: 1,
+                      fontSize: { xs: '1.75rem', md: '2.25rem' },
                     }}
                   >
                     {stat.value}
@@ -828,11 +839,10 @@ export default function PatientDetailPage() {
                     variant="body2"
                     sx={{
                       color: '#86868b',
-                      fontSize: { xs: '0.7rem', md: '0.875rem' },
+                      fontSize: '0.875rem',
                       fontWeight: 600,
                       textTransform: 'uppercase',
-                      letterSpacing: '0.02em',
-                      mt: 0.5,
+                      letterSpacing: '0.02em'
                     }}
                   >
                     {stat.label}
@@ -843,10 +853,55 @@ export default function PatientDetailPage() {
           })}
         </Grid>
 
-        <Box sx={{ mt: { xs: 2, md: 4 } }}>
+        {/* Tabs */}
+        <Paper
+          elevation={0}
+          sx={{
+            borderRadius: 3,
+            bgcolor: 'white',
+            border: '1px solid',
+            borderColor: 'divider',
+            overflow: 'hidden',
+          }}
+        >
+          <Tabs
+            value={tabValue}
+            onChange={(_, newValue) => setTabValue(newValue)}
+            variant="scrollable"
+            scrollButtons="auto"
+            allowScrollButtonsMobile
+            sx={{
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+              px: { xs: 1, sm: 2 },
+              '& .MuiTab-root': {
+                textTransform: 'none',
+                fontWeight: 700,
+                fontSize: { xs: '0.9rem', sm: '1rem' },
+                color: '#86868b',
+                minHeight: { xs: 56, sm: 64 },
+                minWidth: { xs: 100, sm: 120 },
+                '&.Mui-selected': {
+                  color: '#007AFF',
+                },
+              },
+              '& .MuiTabs-indicator': {
+                height: 3,
+                borderRadius: '3px 3px 0 0',
+                bgcolor: '#007AFF',
+              },
+            }}
+          >
+            <Tab label="Przegląd" />
+            <Tab label="Konsultacje" />
+            <Tab label="Wyniki" />
+            <Tab label="Zdjęcia" />
+            <Tab label="Plany" />
+            <Tab label="Wizyty" />
+          </Tabs>
 
           {/* Tab Panel 0: Overview */}
-          <TabPanel value={tabValue} index={0} activeSection={activeSection}>
+          <TabPanel value={tabValue} index={0}>
             <Grid container spacing={3}>
               {/* Contact Information */}
               <Grid size={{ xs: 12, md: 6 }}>
@@ -1007,7 +1062,7 @@ export default function PatientDetailPage() {
           </TabPanel>
 
           {/* Tab Panel 1: Consultations */}
-          <TabPanel value={tabValue} index={1} activeSection={activeSection}>
+          <TabPanel value={tabValue} index={1}>
             <Box sx={{ mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
               <Button
                 variant="contained"
@@ -1169,7 +1224,7 @@ export default function PatientDetailPage() {
           </TabPanel>
 
           {/* Tab Panel 2: Lab Results */}
-          <TabPanel value={tabValue} index={2} activeSection={activeSection}>
+          <TabPanel value={tabValue} index={2}>
             <Box sx={{ mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
               <Button
                 variant="contained"
@@ -1385,7 +1440,7 @@ export default function PatientDetailPage() {
           </TabPanel>
 
           {/* Tab Panel 3: Photos */}
-          <TabPanel value={tabValue} index={3} activeSection={activeSection}>
+          <TabPanel value={tabValue} index={3}>
             <Box sx={{ mb: 3 }}>
               <Button
                 variant="contained"
@@ -1510,7 +1565,7 @@ export default function PatientDetailPage() {
           </TabPanel>
 
           {/* Tab Panel 4: Care Plans */}
-          <TabPanel value={tabValue} index={4} activeSection={activeSection}>
+          <TabPanel value={tabValue} index={4}>
             <Box sx={{ mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
               <Button
                 variant="contained"
@@ -1724,7 +1779,7 @@ export default function PatientDetailPage() {
           </TabPanel>
 
           {/* Tab Panel 5: Visits */}
-          <TabPanel value={tabValue} index={5} activeSection={activeSection}>
+          <TabPanel value={tabValue} index={5}>
             <Box sx={{ mb: 3 }}>
               <Button
                 variant="contained"
@@ -1905,7 +1960,7 @@ export default function PatientDetailPage() {
               </TableContainer>
             )}
           </TabPanel>
-        </Box>
+        </Paper>
       </Container>
 
       {/* Visit Dialog */}
