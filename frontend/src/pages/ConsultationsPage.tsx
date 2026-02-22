@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -21,12 +21,15 @@ import {
   TableHead,
   TableRow,
   TablePagination,
+  TextField,
+  InputAdornment,
 } from '@mui/material';
 import {
   Add,
   EventNote,
   ChevronRight,
   Person,
+  Search,
 } from '@mui/icons-material';
 import { api } from '../services/api';
 import { format } from 'date-fns';
@@ -43,40 +46,49 @@ interface Consultation {
 export default function ConsultationsPage() {
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [page, setPage] = useState(0);              // MUI is 0-indexed
+  const [rowsPerPage, setRowsPerPage] = useState(25);
   const [total, setTotal] = useState(0);
+  const [search, setSearch] = useState('');
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  useEffect(() => {
-    fetchConsultations();
-  }, []);
-
-  const fetchConsultations = async () => {
+  const fetchConsultations = useCallback(async (pg = page, rpp = rowsPerPage, q = search) => {
     try {
       setLoading(true);
-      const res = await api.get<{ consultations: Consultation[] }>('/consultations', {
-        params: { limit: 500 },
+      const res = await api.get('/consultations', {
+        params: { page: pg + 1, limit: rpp, search: q || undefined },
       });
-      const list = res.data.consultations || [];
-      setTotal(list.length);
-      setConsultations(list);
+      setConsultations(res.data.consultations || []);
+      setTotal(res.data.pagination?.total ?? 0);
     } catch (e) {
       console.error('Błąd pobierania konsultacji:', e);
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, rowsPerPage, search]);
+
+  // Reload when page or rowsPerPage changes
+  useEffect(() => {
+    fetchConsultations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, rowsPerPage]);
+
+  // Debounced search: reset to page 0
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setPage(0);
+      fetchConsultations(0, rowsPerPage, search);
+    }, 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
 
   const formatDate = (d: string | null) =>
     d ? format(new Date(d), 'dd MMM yyyy', { locale: pl }) : '—';
 
-  const paginated = consultations.slice(
-    page * rowsPerPage,
-    page * rowsPerPage + rowsPerPage,
-  );
+  // Data is already paginated by the server — no local slice needed
 
   return (
     <Box sx={{ p: { xs: 1, sm: 2 } }}>
@@ -125,7 +137,25 @@ export default function ConsultationsPage() {
         </Button>
       </Box>
 
+      {/* Search */}
+      <TextField
+        fullWidth
+        size="small"
+        placeholder="Szukaj po nazwisku lub imieniu pacjenta…"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        sx={{ mb: 2, maxWidth: 420 }}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <Search sx={{ color: 'text.secondary', fontSize: 20 }} />
+            </InputAdornment>
+          ),
+        }}
+      />
+
       {loading ? (
+
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 280 }}>
           <CircularProgress />
         </Box>
@@ -157,7 +187,7 @@ export default function ConsultationsPage() {
         </Paper>
       ) : isMobile ? (
         <Grid container spacing={2}>
-          {paginated.map((c) => (
+          {consultations.map((c) => (
             <Grid key={c.id} size={{ xs: 12 }}>
               <Card
                 onClick={() => navigate(`/consultations/${c.id}`)}
@@ -211,7 +241,7 @@ export default function ConsultationsPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {paginated.map((c) => (
+              {consultations.map((c) => (
                 <TableRow
                   key={c.id}
                   onClick={() => navigate(`/consultations/${c.id}`)}
@@ -262,11 +292,12 @@ export default function ConsultationsPage() {
               setRowsPerPage(parseInt(e.target.value, 10));
               setPage(0);
             }}
-            rowsPerPageOptions={[10, 25, 50]}
+            rowsPerPageOptions={[10, 25, 50, 100]}
             labelRowsPerPage="Wierszy na stronę:"
           />
         </TableContainer>
-      )}
-    </Box>
+      )
+      }
+    </Box >
   );
 }

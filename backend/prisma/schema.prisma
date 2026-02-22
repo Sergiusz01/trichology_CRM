@@ -447,7 +447,7 @@ model EmailReminder {
   bodyPreview     String?
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
-  carePlan        CarePlan?      @relation(fields: [carePlanId], references: [id])
+  carePlan        CarePlan?      @relation(fields: [carePlanId], references: [id], onDelete: SetNull)
   createdBy       User           @relation("EmailReminderCreator", fields: [createdByUserId], references: [id])
   patient         Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
 

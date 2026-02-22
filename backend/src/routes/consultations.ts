@@ -152,30 +152,50 @@ const consultationSchema = z.object({
   ludwigStage: z.string().optional(),
   ludwigNotes: z.string().optional(),
 });
-// Get all consultations (for dashboard and reports)
+// Get all consultations (paginated, with optional search)
 router.get('/', authenticate, async (req: AuthRequest, res, next) => {
   try {
-    const { limit = '100' } = req.query;
-    const limitNum = parseInt(limit as string, 10);
+    const { limit = '25', page = '1', search = '' } = req.query;
+    const limitNum = Math.min(parseInt(limit as string, 10) || 25, 100);
+    const pageNum = Math.max(parseInt(page as string, 10) || 1, 1);
+    const skip = (pageNum - 1) * limitNum;
 
-    const consultations = await prisma.consultation.findMany({
-      take: limitNum,
-      orderBy: { consultationDate: 'desc' },
-      include: {
-        patient: {
-          select: { id: true, firstName: true, lastName: true, email: true },
+    const where: any = {};
+    if (search) {
+      const s = (search as string).trim();
+      where.OR = [
+        { patient: { firstName: { contains: s, mode: 'insensitive' } } },
+        { patient: { lastName: { contains: s, mode: 'insensitive' } } },
+      ];
+    }
+
+    const [consultations, total] = await Promise.all([
+      prisma.consultation.findMany({
+        where,
+        skip,
+        take: limitNum,
+        orderBy: { consultationDate: 'desc' },
+        include: {
+          patient: {
+            select: { id: true, firstName: true, lastName: true, email: true },
+          },
+          doctor: {
+            select: { id: true, name: true, email: true },
+          },
         },
-        doctor: {
-          select: { id: true, name: true, email: true },
-        },
-      },
+      }),
+      prisma.consultation.count({ where }),
+    ]);
+
+    res.json({
+      consultations,
+      pagination: { page: pageNum, limit: limitNum, total, totalPages: Math.ceil(total / limitNum) },
     });
-
-    res.json({ consultations });
   } catch (error) {
     next(error);
   }
 });
+
 // Get consultations for a patient
 router.get('/patient/:patientId', authenticate, async (req: AuthRequest, res, next) => {
   const { archived = 'false' } = req.query;
@@ -184,7 +204,7 @@ router.get('/patient/:patientId', authenticate, async (req: AuthRequest, res, ne
     const { patientId } = req.params;
 
     const consultations = await prisma.consultation.findMany({
-      where: { 
+      where: {
         patientId,
         isArchived,
       },
@@ -303,13 +323,13 @@ const prepareDataForDb = (data: any) => {
   ];
 
   const prepared: any = {};
-  
+
   // First, handle all non-JSON fields (regular string fields)
   Object.keys(data).forEach((key) => {
     // Skip JSON fields, patientId, and consultationDate (handled separately in route)
     if (!jsonFields.includes(key) && key !== 'patientId' && key !== 'consultationDate') {
       const value = data[key];
-      
+
       // If it's undefined, null, or empty string, set to null
       if (value === undefined || value === null || value === '') {
         prepared[key] = null;
@@ -325,16 +345,16 @@ const prepareDataForDb = (data: any) => {
       }
     }
   });
-  
+
   // Now handle JSON fields - convert to JavaScript arrays/objects
   jsonFields.forEach((field) => {
     const value = data[field];
-    
+
     if (value !== undefined && value !== null && value !== '') {
       // If it's already an array, use it directly (Prisma Json accepts arrays)
       if (Array.isArray(value)) {
         prepared[field] = value.length > 0 ? value : null;
-      } 
+      }
       // If it's a JSON string, parse it
       else if (typeof value === 'string') {
         try {
@@ -366,14 +386,14 @@ const prepareDataForDb = (data: any) => {
       prepared[field] = null;
     }
   });
-  
+
   // Clean up undefined values - Prisma doesn't like them
   Object.keys(prepared).forEach((key) => {
     if (prepared[key] === undefined) {
       delete prepared[key];
     }
   });
-  
+
   return prepared;
 };
 
@@ -383,7 +403,7 @@ router.post('/', authenticate, async (req: AuthRequest, res, next) => {
     // Log incoming request data for debugging
     console.log('[POST /consultations] Incoming request keys:', Object.keys(req.body));
     console.log('[POST /consultations] PatientId:', req.body.patientId);
-    
+
     // Parse and validate data
     let data;
     try {
@@ -407,7 +427,7 @@ router.post('/', authenticate, async (req: AuthRequest, res, next) => {
     }
 
     const preparedData = prepareDataForDb(data);
-    
+
     // Handle consultationDate - convert date string to Date object
     let consultationDate = new Date();
     if (data.consultationDate) {
@@ -437,7 +457,7 @@ router.post('/', authenticate, async (req: AuthRequest, res, next) => {
       preparedData.templateId = data.templateId;
       preparedData.dynamicData = data.dynamicData || {};
     }
-    
+
     // Define JSON fields list for logging (same as in prepareDataForDb)
     const jsonFieldsList = [
       'hairLossLocalization',
@@ -459,19 +479,19 @@ router.post('/', authenticate, async (req: AuthRequest, res, next) => {
       'alopeciaTypes',
       'alopeciaAffectedAreas',
     ];
-    
+
     // Log prepared data for debugging (but limit JSON fields to avoid huge logs)
     const logData = { ...preparedData };
     jsonFieldsList.forEach((field) => {
       if (logData[field]) {
-        logData[field] = Array.isArray(logData[field]) 
-          ? `[Array with ${logData[field].length} items]` 
+        logData[field] = Array.isArray(logData[field])
+          ? `[Array with ${logData[field].length} items]`
           : typeof logData[field];
       }
     });
     console.log('[POST /consultations] Prepared data (summary):', JSON.stringify(logData, null, 2));
     console.log('[POST /consultations] Full prepared data keys:', Object.keys(preparedData));
-    
+
     // Build final data object for Prisma
     const dataForPrisma: any = {
       ...preparedData,
@@ -481,20 +501,20 @@ router.post('/', authenticate, async (req: AuthRequest, res, next) => {
       doctorId,
       consultationDate,
     };
-    
+
     // Remove any undefined values
     Object.keys(dataForPrisma).forEach((key) => {
       if (dataForPrisma[key] === undefined) {
         delete dataForPrisma[key];
       }
     });
-    
+
     console.log('[POST /consultations] Final data keys for Prisma:', Object.keys(dataForPrisma));
     console.log('[POST /consultations] PatientId:', dataForPrisma.patientId);
     console.log('[POST /consultations] DoctorId:', dataForPrisma.doctorId);
     console.log('[POST /consultations] hairLossLocalization type:', typeof dataForPrisma.hairLossLocalization, Array.isArray(dataForPrisma.hairLossLocalization) ? '(array)' : '(not array)');
     console.log('[POST /consultations] hairLossLocalization value:', JSON.stringify(dataForPrisma.hairLossLocalization));
-    
+
     try {
       const consultation = await prisma.consultation.create({
         data: dataForPrisma,
@@ -520,7 +540,7 @@ router.post('/', authenticate, async (req: AuthRequest, res, next) => {
       if (dbError.meta) {
         console.error('[POST /consultations] Prisma error meta:', JSON.stringify(dbError.meta, null, 2));
       }
-      
+
       // Extract more details about which field caused the error
       let errorDetails = dbError.meta || {};
       if (dbError.message) {
@@ -531,7 +551,7 @@ router.post('/', authenticate, async (req: AuthRequest, res, next) => {
           errorDetails.providedValue = dataForPrisma[fieldMatch[1]];
         }
       }
-      
+
       return res.status(500).json({
         error: 'Wewnętrzny błąd serwera',
         message: dbError.message,
@@ -559,7 +579,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res, next) => {
     const data = consultationSchema.omit({ patientId: true }).parse(req.body);
 
     const preparedData = prepareDataForDb(data);
-    
+
     // Handle consultationDate - convert date string to Date object
     let consultationDate: Date | undefined = undefined;
     if (data.consultationDate) {
@@ -601,7 +621,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res, next) => {
         updateData.dynamicData = null;
       }
     }
-    
+
     const consultation = await prisma.consultation.update({
       where: { id },
       data: updateData,
@@ -647,7 +667,7 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res, next) => {
       entityId: consultation.id,
     });
 
-    res.json({ 
+    res.json({
       consultation,
       message: 'Konsultacja została zarchiwizowana'
     });
@@ -684,9 +704,9 @@ router.post('/:id/restore', authenticate, async (req: AuthRequest, res, next) =>
       entityId: id,
     });
 
-    res.json({ 
-      consultation: restoredConsultation, 
-      message: 'Konsultacja została przywrócona' 
+    res.json({
+      consultation: restoredConsultation,
+      message: 'Konsultacja została przywrócona'
     });
   } catch (error) {
     next(error);
@@ -721,7 +741,7 @@ router.delete('/:id/permanent', authenticate, requireRole('ADMIN'), async (req: 
       entityId: id,
     });
 
-    res.json({ 
+    res.json({
       message: 'Konsultacja została trwale usunięta zgodnie z RODO',
       deleted: true
     });

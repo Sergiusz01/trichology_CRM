@@ -43,7 +43,8 @@ const fromEnv = (process.env.FRONTEND_URLS ?? process.env.FRONTEND_URL ?? '')
 const corsAllowlist = [...new Set([...defaultOrigins, ...fromEnv])];
 
 // Trust proxy (required for rate limiting behind Nginx)
-app.set('trust proxy', true);
+// 'loopback' = trust 127.0.0.1 only; avoids express-rate-limit validation warning
+app.set('trust proxy', 'loopback');
 
 // Middleware – whitelist only; no open CORS
 app.use(cors({

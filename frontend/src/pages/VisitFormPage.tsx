@@ -60,6 +60,7 @@ export default function VisitFormPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [patients, setPatients] = useState<any[]>([]);
+  const [patientSearch, setPatientSearch] = useState('');
 
   // Check if we're creating a new visit by checking the URL path
   const isNewVisit = location.pathname.includes('/visits/new') || (!id && patientId);
@@ -95,9 +96,9 @@ export default function VisitFormPage() {
   });
 
   useEffect(() => {
-    // Fetch patients list if no patientId is provided
+    // Fetch patients list if no patientId is provided — load first 20 on mount
     if (!actualPatientId) {
-      fetchPatients();
+      fetchPatients('');
     } else {
       setFormData((prev) => ({
         ...prev,
@@ -111,10 +112,12 @@ export default function VisitFormPage() {
     }
   }, [actualVisitId, actualPatientId, isNewVisit]);
 
-  const fetchPatients = async () => {
+  const fetchPatients = async (q = '') => {
     try {
       setLoadingPatients(true);
-      const response = await api.get('/patients');
+      const response = await api.get('/patients', {
+        params: { search: q || undefined, limit: 20, archived: 'false' },
+      });
       setPatients(response.data.patients || []);
     } catch (err: any) {
       showError('Nie udało się załadować listy pacjentów');
@@ -122,6 +125,14 @@ export default function VisitFormPage() {
       setLoadingPatients(false);
     }
   };
+
+  // Debounced patient search
+  useEffect(() => {
+    if (actualPatientId) return;
+    const t = setTimeout(() => fetchPatients(patientSearch), 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patientSearch, actualPatientId]);
 
   const fetchVisit = async () => {
     if (!actualVisitId || isNewVisit) return;
@@ -266,16 +277,21 @@ export default function VisitFormPage() {
                   <Autocomplete
                     options={patients}
                     getOptionLabel={(option) => `${option.firstName} ${option.lastName}`}
+                    filterOptions={(x) => x}    // server handles filtering
                     value={selectedPatient || null}
+                    inputValue={patientSearch}
+                    onInputChange={(_, val) => setPatientSearch(val)}
                     onChange={(_, newValue) => {
                       handleChange('patientId', newValue?.id || '');
                     }}
                     loading={loadingPatients}
+                    noOptionsText={patientSearch.length < 1 ? 'Zacznij pisać, aby wyszukać' : 'Brak wyników'}
                     renderInput={(params) => (
                       <TextField
                         {...params}
                         label="Pacjent *"
                         required
+                        placeholder="Wpisz imię lub nazwisko"
                         InputProps={{
                           ...params.InputProps,
                           endAdornment: (
