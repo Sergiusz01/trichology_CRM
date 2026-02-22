@@ -148,7 +148,7 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
         const startOfWeek = new Date(today);
         startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday
         startOfWeek.setHours(0, 0, 0, 0);
-        
+
         const endOfWeek = new Date(startOfWeek);
         endOfWeek.setDate(startOfWeek.getDate() + 6); // Sunday
         endOfWeek.setHours(23, 59, 59, 999);
@@ -237,7 +237,7 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
     patients.forEach((patient: any) => {
       const createdAt = patient.createdAt instanceof Date ? patient.createdAt : new Date(patient.createdAt);
       const updatedAt = patient.updatedAt instanceof Date ? patient.updatedAt : new Date(patient.updatedAt);
-      
+
       // Dodanie pacjenta
       activities.push({
         id: `patient-create-${patient.id}`,
@@ -266,8 +266,8 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
       const patient = patients.find((p: any) => p.id === consultation.patientId);
       const createdAt = consultation.createdAt instanceof Date ? consultation.createdAt : new Date(consultation.createdAt);
       const updatedAt = consultation.updatedAt instanceof Date ? consultation.updatedAt : new Date(consultation.updatedAt);
-      const consultationDate = consultation.consultationDate instanceof Date 
-        ? consultation.consultationDate 
+      const consultationDate = consultation.consultationDate instanceof Date
+        ? consultation.consultationDate
         : new Date(consultation.consultationDate);
 
       // Dodanie konsultacji
@@ -424,8 +424,8 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
           return dateB.getTime() - dateA.getTime();
         })[0];
       if (!lastConsultation) return false;
-      const lastDate = lastConsultation.consultationDate instanceof Date 
-        ? lastConsultation.consultationDate 
+      const lastDate = lastConsultation.consultationDate instanceof Date
+        ? lastConsultation.consultationDate
         : new Date(lastConsultation.consultationDate);
       return lastDate < thirtyDaysAgo;
     });
@@ -481,4 +481,99 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
   }
 });
 
+// Revenue for a custom date range
+// GET /dashboard/revenue?from=2025-01-01&to=2025-01-31
+router.get('/revenue', authenticate, async (req: AuthRequest, res, next) => {
+  try {
+    const { from, to } = req.query;
+
+    const fromDate = from ? new Date(from as string) : (() => {
+      const d = new Date(); d.setDate(d.getDate() - 30); d.setHours(0, 0, 0, 0); return d;
+    })();
+    const toDate = to ? new Date(to as string) : (() => {
+      const d = new Date(); d.setHours(23, 59, 59, 999); return d;
+    })();
+
+    if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+      return res.status(400).json({ error: 'Nieprawidłowy format daty (użyj YYYY-MM-DD)' });
+    }
+
+    toDate.setHours(23, 59, 59, 999);
+
+    const [plannedVisits, completedVisits, visitsByStatus, newPatients] = await Promise.all([
+      prisma.visit.findMany({
+        where: { data: { gte: fromDate, lte: toDate }, status: 'ZAPLANOWANA', cena: { not: null } },
+        select: { cena: true, data: true },
+      }),
+      prisma.visit.findMany({
+        where: { data: { gte: fromDate, lte: toDate }, status: 'ODBYTA', cena: { not: null } },
+        select: { cena: true, data: true },
+      }),
+      prisma.visit.groupBy({
+        by: ['status'],
+        where: { data: { gte: fromDate, lte: toDate } },
+        _count: { id: true },
+        _sum: { cena: true },
+      }),
+      prisma.patient.count({ where: { createdAt: { gte: fromDate, lte: toDate } } }),
+    ]);
+
+    const plannedRevenue = plannedVisits.reduce((s, v) => s + (Number(v.cena) || 0), 0);
+    const completedRevenue = completedVisits.reduce((s, v) => s + (Number(v.cena) || 0), 0);
+
+    const statusSummary: Record<string, { count: number; revenue: number }> = {};
+    visitsByStatus.forEach(item => {
+      statusSummary[item.status] = {
+        count: item._count.id,
+        revenue: Number(item._sum.cena) || 0,
+      };
+    });
+
+    // Build daily revenue breakdown
+    const dayMs = 24 * 60 * 60 * 1000;
+    const diffDays = Math.ceil((toDate.getTime() - fromDate.getTime()) / dayMs);
+    const useWeekly = diffDays > 62; // >2 months → show weekly buckets instead of daily
+
+    const buckets: Record<string, { planned: number; completed: number }> = {};
+    const allVisits = [...plannedVisits.map(v => ({ ...v, status: 'ZAPLANOWANA' })),
+    ...completedVisits.map(v => ({ ...v, status: 'ODBYTA' }))];
+
+    allVisits.forEach(v => {
+      const d = new Date(v.data);
+      let key: string;
+      if (useWeekly) {
+        // ISO week start (Monday)
+        const dow = d.getDay() || 7;
+        const mon = new Date(d); mon.setDate(d.getDate() - dow + 1);
+        key = mon.toISOString().slice(0, 10);
+      } else {
+        key = d.toISOString().slice(0, 10);
+      }
+      if (!buckets[key]) buckets[key] = { planned: 0, completed: 0 };
+      if (v.status === 'ZAPLANOWANA') buckets[key].planned += Number(v.cena) || 0;
+      else buckets[key].completed += Number(v.cena) || 0;
+    });
+
+    const timeline = Object.entries(buckets)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, vals]) => ({ date, ...vals, total: vals.planned + vals.completed }));
+
+    return res.json({
+      range: { from: fromDate.toISOString(), to: toDate.toISOString() },
+      summary: {
+        plannedRevenue,
+        completedRevenue,
+        totalRevenue: plannedRevenue + completedRevenue,
+        newPatients,
+        statusSummary,
+        granularity: useWeekly ? 'weekly' : 'daily',
+      },
+      timeline,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;
+
