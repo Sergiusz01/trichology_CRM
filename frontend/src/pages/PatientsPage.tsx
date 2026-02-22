@@ -33,6 +33,7 @@ import {
   alpha,
   Container,
 } from '@mui/material';
+import { AppCard, AppButton, AppTextField, PageHeader } from '../ui';
 import { Add, Visibility, Delete, Search, Person, Download, Restore, DeleteForever, Archive, Phone, Email } from '@mui/icons-material';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -222,118 +223,68 @@ export default function PatientsPage() {
   return (
     <Container maxWidth="xl" sx={{ px: { xs: 1, sm: 2, md: 3 } }}>
       <Box sx={{ mb: { xs: 2, sm: 3 } }}>
-        <Box sx={{
-          display: 'flex',
-          flexDirection: { xs: 'column', sm: 'row' },
-          justifyContent: 'space-between',
-          alignItems: { xs: 'flex-start', sm: 'center' },
-          mb: { xs: 1.5, sm: 2 },
-          gap: { xs: 1.5, sm: 2 },
-        }}>
-          <Box sx={{ width: { xs: '100%', sm: 'auto' } }}>
-            <Typography
-              variant="h4"
-              component="h1"
-              sx={{
-                fontWeight: 800,
-                mb: 1,
-                fontSize: { xs: '1.75rem', sm: '2.5rem' },
-                background: 'linear-gradient(135deg, #007AFF 0%, #00C7BE 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-              }}
-            >
-              Pacjenci
-            </Typography>
-            <Typography
-              variant="body1"
-              color="text.secondary"
-              sx={{ fontSize: { xs: '0.875rem', sm: '1rem' }, fontWeight: 500 }}
-            >
-              Zarządzaj bazą pacjentów i ich historią medyczną
-            </Typography>
-          </Box>
-          <Box sx={{
-            display: 'flex',
-            gap: { xs: 1, sm: 2 },
-            flexWrap: 'wrap',
-            width: { xs: '100%', sm: 'auto' },
-            '& > *': {
-              flex: { xs: '1 1 auto', sm: '0 0 auto' },
-              minWidth: { xs: 'auto', sm: '120px' },
-            },
-          }}>
-            <Button
-              variant={showArchived ? 'outlined' : 'contained'}
-              startIcon={<Archive />}
-              onClick={() => {
-                setShowArchived(!showArchived);
-                setPage(0);
-              }}
-              sx={{
-                textTransform: 'none',
-                fontWeight: 600,
-                fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                px: { xs: 1.5, sm: 2 },
-              }}
-              size={isMobile ? 'small' : 'medium'}
-            >
-              {showArchived ? 'Aktywni' : 'Zarchiwizowani'}
-            </Button>
-            {canExport && !showArchived && (
-              <Button
-                variant="outlined"
-                startIcon={exporting ? <CircularProgress size={20} /> : <Download />}
-                onClick={handleExport}
-                disabled={exporting}
-                sx={{
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                  px: { xs: 1.5, sm: 2 },
+        <PageHeader
+          title="Pacjenci"
+          subtitle="Zarządzaj bazą pacjentów i ich historią medyczną"
+          action={
+            <Box sx={{
+              display: 'flex',
+              gap: { xs: 1, sm: 2 },
+              flexWrap: 'wrap',
+              width: { xs: '100%', sm: 'auto' },
+            }}>
+              <AppButton
+                variant={showArchived ? 'outlined' : 'secondary'}
+                startIcon={<Archive />}
+                onClick={() => {
+                  setShowArchived(!showArchived);
+                  setPage(0);
                 }}
                 size={isMobile ? 'small' : 'medium'}
               >
-                {exporting ? (isMobile ? 'Eksport...' : 'Eksportowanie...') : (isMobile ? 'Eksport' : 'Eksportuj dane')}
-              </Button>
-            )}
-            {!showArchived && (
-              <Button
-                variant="contained"
-                startIcon={<Add />}
-                onClick={() => navigate('/patients/new')}
-                sx={{
-                  textTransform: 'none',
-                  fontWeight: 700,
-                  borderRadius: 2,
-                  fontSize: { xs: '0.8125rem', sm: '0.875rem' },
-                  px: { xs: 2, sm: 3 },
-                  py: 1.2,
-                }}
-                size={isMobile ? 'medium' : 'medium'}
-                fullWidth={isMobile}
-              >
-                {isMobile ? 'NOWY PACJENT' : 'NOWY PACJENT'}
-              </Button>
-            )}
-          </Box>
-        </Box>
+                {showArchived ? 'Aktywni' : 'Zarchiwizowani'}
+              </AppButton>
+              {canExport && !showArchived && (
+                <AppButton
+                  variant="outlined"
+                  startIcon={exporting ? <CircularProgress size={20} /> : <Download />}
+                  onClick={handleExport}
+                  disabled={exporting}
+                  size={isMobile ? 'small' : 'medium'}
+                >
+                  {exporting ? (isMobile ? 'Eksport...' : 'Eksportowanie...') : (isMobile ? 'Eksport' : 'Eksportuj dane')}
+                </AppButton>
+              )}
+              {!showArchived && (
+                <AppButton
+                  variant="primary"
+                  startIcon={<Add />}
+                  onClick={() => navigate('/patients/new')}
+                  size={isMobile ? 'medium' : 'medium'}
+                  fullWidth={isMobile}
+                >
+                  NOWY PACJENT
+                </AppButton>
+              )}
+            </Box>
+          }
+        />
 
         {loadError && (
           <ErrorRetry message={loadError} onRetry={fetchPatients} onClose={() => setLoadError(null)} />
         )}
 
-        <Paper
+        <AppCard
           sx={{
             p: { xs: 1, sm: 2 },
             mb: 4,
-            borderRadius: 3,
-            border: '1px solid',
-            borderColor: 'divider',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+            border: 'none',
+            boxShadow: 'none',
+            background: 'transparent',
           }}
         >
-          <TextField
+          <AppTextField
+            name="search"
             fullWidth
             placeholder={isMobile ? "Szukaj pacjenta..." : "Szukaj po imieniu, nazwisku, nr telefonu lub emailu..."}
             value={search}
@@ -351,7 +302,7 @@ export default function PatientsPage() {
               sx: { borderRadius: 2.5 }
             }}
           />
-        </Paper>
+        </AppCard>
 
         {isMobile ? (
           <Grid container spacing={2}>
@@ -375,18 +326,17 @@ export default function PatientsPage() {
             ) : (
               patients.map((patient) => (
                 <Grid size={{ xs: 12 }} key={patient.id}>
-                  <Card
+                  <AppCard
+                    noPadding
                     sx={{
-                      borderRadius: 3,
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-                      transition: 'all 0.2s ease-in-out',
+                      transition: 'transform 0.2s ease-in-out',
+                      cursor: 'pointer',
+                      '&:hover': { transform: 'translateY(-2px)' },
                       '&:active': { transform: 'scale(0.98)' },
                     }}
                     onClick={() => navigate(`/patients/${patient.id}`)}
                   >
-                    <CardContent sx={{ p: 2.5 }}>
+                    <Box sx={{ p: 2.5 }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                           <Avatar
@@ -454,15 +404,15 @@ export default function PatientsPage() {
                           </Box>
                         )}
                       </Stack>
-                    </CardContent>
-                  </Card>
+                    </Box>
+                  </AppCard>
                 </Grid>
               ))
             )}
           </Grid>
         ) : (
           <TableContainer
-            component={Paper}
+            component={AppCard}
             sx={{
               overflowX: 'auto',
               WebkitOverflowScrolling: 'touch',
@@ -699,20 +649,19 @@ export default function PatientsPage() {
             </DialogContentText>
           </DialogContent>
           <DialogActions sx={{ px: { xs: 2, sm: 3 }, pb: { xs: 2, sm: 3 } }}>
-            <Button
+            <AppButton
               onClick={handleDeleteCancel}
               size={isMobile ? 'small' : 'medium'}
             >
               Anuluj
-            </Button>
-            <Button
+            </AppButton>
+            <AppButton
               onClick={handleDeleteConfirm}
-              color="error"
-              variant="contained"
+              variant="danger"
               size={isMobile ? 'small' : 'medium'}
             >
               Zarchiwizuj
-            </Button>
+            </AppButton>
           </DialogActions>
         </Dialog>
 
@@ -738,20 +687,20 @@ export default function PatientsPage() {
             </DialogContentText>
           </DialogContent>
           <DialogActions sx={{ px: { xs: 2, sm: 3 }, pb: { xs: 2, sm: 3 } }}>
-            <Button
+            <AppButton
               onClick={handleRestoreCancel}
               size={isMobile ? 'small' : 'medium'}
             >
               Anuluj
-            </Button>
-            <Button
+            </AppButton>
+            <AppButton
               onClick={handleRestoreConfirm}
               color="success"
-              variant="contained"
+              variant="primary"
               size={isMobile ? 'small' : 'medium'}
             >
               Przywróć
-            </Button>
+            </AppButton>
           </DialogActions>
         </Dialog>
 
@@ -793,20 +742,19 @@ export default function PatientsPage() {
             </DialogContentText>
           </DialogContent>
           <DialogActions sx={{ px: { xs: 2, sm: 3 }, pb: { xs: 2, sm: 3 } }}>
-            <Button
+            <AppButton
               onClick={handlePermanentDeleteCancel}
               size={isMobile ? 'small' : 'medium'}
             >
               Anuluj
-            </Button>
-            <Button
+            </AppButton>
+            <AppButton
               onClick={handlePermanentDeleteConfirm}
-              color="error"
-              variant="contained"
+              variant="danger"
               size={isMobile ? 'small' : 'medium'}
             >
               Trwale usuń
-            </Button>
+            </AppButton>
           </DialogActions>
         </Dialog>
       </Box>

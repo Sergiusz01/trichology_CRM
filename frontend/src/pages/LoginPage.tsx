@@ -1,24 +1,18 @@
 import { useState } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
   Container,
-  Paper,
-  TextField,
-  Button,
   Typography,
   Box,
   Alert,
-  CircularProgress,
-  Avatar,
-  Card,
-  CardContent,
   IconButton,
   InputAdornment,
 } from '@mui/material';
 import { ContentCopy, Visibility, VisibilityOff } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
+import { AppTextField, AppButton, AppCard } from '../ui';
 
 // Schemat walidacji Zod
 const loginSchema = z.object({
@@ -92,206 +86,115 @@ export default function LoginPage() {
         p: 2,
       }}
     >
-      <Container maxWidth="sm" sx={{ px: { xs: 2, sm: 3 } }}>
-        <Paper
-          elevation={3}
-          sx={{
-            p: { xs: 2.5, sm: 4 },
+      <Container maxWidth="xs">
+        <Box sx={{ mb: 4, textAlign: 'center' }}>
+          <Box sx={{
+            width: 48,
+            height: 48,
+            borderRadius: 3,
+            bgcolor: 'primary.main',
             display: 'flex',
-            flexDirection: 'column',
             alignItems: 'center',
-            width: '100%',
-            maxWidth: '100%',
-          }}
-        >
-          <Avatar
-            sx={{
-              m: 1,
-              bgcolor: 'primary.main',
-              width: { xs: 48, sm: 64 },
-              height: { xs: 48, sm: 64 },
-              fontSize: { xs: '1.5rem', sm: '2rem' },
-              fontWeight: 'bold',
-            }}
-          >
-            T
-          </Avatar>
-          <Typography
-            component="h1"
-            variant="h4"
-            sx={{
-              mb: 1,
-              fontWeight: 'bold',
-              fontSize: { xs: '1.5rem', sm: '2.125rem' },
-            }}
-          >
-            Logowanie
-          </Typography>
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{
-              mb: { xs: 2, sm: 3 },
-              textAlign: 'center',
-              fontSize: { xs: '0.75rem', sm: '0.875rem' },
-              px: { xs: 1, sm: 0 },
-            }}
-          >
-            System Zarządzania Konsultacjami Trychologicznymi
-          </Typography>
-
-          {/* Test Account Info - Only visible in development */}
-          {import.meta.env.DEV && (
-            <Card
-              sx={{
-                width: '100%',
-                mb: 2,
-                bgcolor: 'info.light',
-                border: '2px solid',
-                borderColor: 'info.main',
-              }}
-            >
-              <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1.5, color: 'info.dark' }}>
-                  ⚠️ Aplikacja w fazie testowej
-                </Typography>
-                <Typography variant="body2" sx={{ mb: 1.5, color: 'text.primary' }}>
-                  Użyj poniższych danych testowych do logowania:
-                </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'background.paper', p: 1, borderRadius: 1 }}>
-                    <Typography variant="body2" sx={{ flex: 1, fontFamily: 'monospace' }}>
-                      <strong>Email:</strong> {testEmail}
-                    </Typography>
-                    <IconButton
-                      size="small"
-                      onClick={handleCopyEmail}
-                      title="Kopiuj email"
-                    >
-                      <ContentCopy fontSize="small" />
-                    </IconButton>
-                    {copiedEmail && (
-                      <Typography variant="caption" color="success.main">
-                        Skopiowano!
-                      </Typography>
-                    )}
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'background.paper', p: 1, borderRadius: 1 }}>
-                    <Typography variant="body2" sx={{ flex: 1, fontFamily: 'monospace' }}>
-                      <strong>Hasło:</strong> {testPassword}
-                    </Typography>
-                    <IconButton
-                      size="small"
-                      onClick={handleCopyPassword}
-                      title="Kopiuj hasło"
-                    >
-                      <ContentCopy fontSize="small" />
-                    </IconButton>
-                    {copiedPassword && (
-                      <Typography variant="caption" color="success.main">
-                        Skopiowano!
-                      </Typography>
-                    )}
-                  </Box>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    fullWidth
-                    onClick={handleFillTestData}
-                    sx={{ mt: 1 }}
-                  >
-                    Wypełnij dane testowe
-                  </Button>
-                </Box>
-              </CardContent>
-            </Card>
-          )}
-
-          {errors.root && (
-            <Alert severity="error" sx={{ width: '100%', mb: 2 }} onClose={() => { }}>
-              {errors.root.message}
-            </Alert>
-          )}
-
-          <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ width: '100%', mt: 1 }}>
-            <Controller
-              name="email"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  margin="normal"
-                  required
-                  fullWidth
-                  id="email"
-                  label="Adres email"
-                  autoComplete="email"
-                  autoFocus
-                  error={!!errors.email}
-                  helperText={errors.email?.message}
-                  size="medium"
-                  sx={{
-                    '& .MuiInputBase-root': {
-                      fontSize: { xs: '0.875rem', sm: '1rem' },
-                    },
-                  }}
-                />
-              )}
-            />
-            <Controller
-              name="password"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  margin="normal"
-                  required
-                  fullWidth
-                  label="Hasło"
-                  type={showPassword ? 'text' : 'password'}
-                  id="password"
-                  autoComplete="current-password"
-                  error={!!errors.password}
-                  helperText={errors.password?.message}
-                  size="medium"
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          aria-label="toggle password visibility"
-                          onClick={() => setShowPassword(!showPassword)}
-                          edge="end"
-                        >
-                          {showPassword ? <VisibilityOff /> : <Visibility />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{
-                    '& .MuiInputBase-root': {
-                      fontSize: { xs: '0.875rem', sm: '1rem' },
-                    },
-                  }}
-                />
-              )}
-            />
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              sx={{
-                mt: { xs: 2, sm: 3 },
-                mb: 2,
-                py: { xs: 1.25, sm: 1.5 },
-                fontSize: { xs: '0.875rem', sm: '1rem' },
-              }}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? <CircularProgress size={24} color="inherit" /> : 'Zaloguj się'}
-            </Button>
+            justifyContent: 'center',
+            mx: 'auto',
+            mb: 2,
+            boxShadow: '0 4px 14px 0 rgba(59, 130, 246, 0.39)'
+          }}>
+            <Typography variant="h5" sx={{ color: '#fff', fontWeight: 800, lineHeight: 1 }}>T</Typography>
           </Box>
+          <Typography variant="h4" sx={{ fontWeight: 800, mb: 1, letterSpacing: '-0.02em' }}>
+            Zaloguj się
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            System Zarządzania Light Clinic
+          </Typography>
+        </Box>
 
-        </Paper>
+        <AppCard noPadding>
+          <Box sx={{ p: { xs: 3, sm: 4 } }}>
+            {/* Test Account Info - Only visible in development */}
+            {import.meta.env.DEV && (
+              <Box sx={{ mb: 3, p: 2, bgcolor: '#F0F9FF', borderRadius: 2, border: '1px solid #BAE6FD' }}>
+                <Typography variant="caption" sx={{ fontWeight: 600, color: '#0284C7', display: 'block', mb: 1, textTransform: 'uppercase' }}>
+                  Dane testowe (DEV)
+                </Typography>
+
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                  <Typography variant="body2" sx={{ fontFamily: 'monospace', flex: 1, color: '#0F172A' }}>{testEmail}</Typography>
+                  <AppButton size="small" variant="text" onClick={handleCopyEmail} sx={{ minWidth: 0, p: 0.5 }}>
+                    {copiedEmail ? <Typography variant="caption" color="success.main" fontWeight={600}>OK</Typography> : <ContentCopy sx={{ fontSize: 16 }} />}
+                  </AppButton>
+                </Box>
+
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                  <Typography variant="body2" sx={{ fontFamily: 'monospace', flex: 1, color: '#0F172A' }}>{testPassword}</Typography>
+                  <AppButton size="small" variant="text" onClick={handleCopyPassword} sx={{ minWidth: 0, p: 0.5 }}>
+                    {copiedPassword ? <Typography variant="caption" color="success.main" fontWeight={600}>OK</Typography> : <ContentCopy sx={{ fontSize: 16 }} />}
+                  </AppButton>
+                </Box>
+
+                <AppButton variant="outlined" size="small" fullWidth onClick={handleFillTestData} sx={{ bgcolor: '#FFF' }}>
+                  Wypełnij
+                </AppButton>
+              </Box>
+            )}
+
+            {errors.root && (
+              <Alert severity="error" sx={{ mb: 3 }} onClose={() => { }}>
+                {errors.root.message}
+              </Alert>
+            )}
+
+            <Box component="form" onSubmit={handleSubmit(onSubmit)}>
+              <AppTextField
+                name="email"
+                control={control}
+                label="Adres e-mail"
+                placeholder="jan.kowalski@example.com"
+                fullWidth
+                autoComplete="email"
+                autoFocus
+                required
+              />
+
+              <AppTextField
+                name="password"
+                control={control}
+                label="Hasło"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="••••••••"
+                fullWidth
+                autoComplete="current-password"
+                required
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label="toggle password visibility"
+                        onClick={() => setShowPassword(!showPassword)}
+                        edge="end"
+                        size="small"
+                      >
+                        {showPassword ? <VisibilityOff sx={{ fontSize: 20 }} /> : <Visibility sx={{ fontSize: 20 }} />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+
+              <AppButton
+                type="submit"
+                fullWidth
+                variant="contained"
+                loading={isSubmitting}
+                sx={{ mt: 2 }}
+                size="large"
+              >
+                Zaloguj się
+              </AppButton>
+            </Box>
+          </Box>
+        </AppCard>
       </Container>
     </Box>
   );

@@ -35,19 +35,19 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
-const drawerWidth = 280;
+const drawerWidth = 260; // Slightly narrower for a sleeker look
 
 const mainMenuItems = [
-  { text: 'Panel główny', icon: <DashboardIcon />, path: '/' },
-  { text: 'Pacjenci', icon: <People />, path: '/patients' },
-  { text: 'Konsultacje', icon: <EventNote />, path: '/consultations' },
-  { text: 'Przychody', icon: <AttachMoney />, path: '/revenue' },
+  { text: 'Panel główny', icon: <DashboardIcon sx={{ fontSize: 20 }} />, path: '/' },
+  { text: 'Pacjenci', icon: <People sx={{ fontSize: 20 }} />, path: '/patients' },
+  { text: 'Konsultacje', icon: <EventNote sx={{ fontSize: 20 }} />, path: '/consultations' },
+  { text: 'Przychody', icon: <AttachMoney sx={{ fontSize: 20 }} />, path: '/revenue' },
 ];
 
 const templateItems = [
-  { text: 'Szablony konsultacji', icon: <Description fontSize="small" />, path: '/consultation-templates' },
-  { text: 'Wyników badań', icon: <Science fontSize="small" />, path: '/lab-result-templates' },
-  { text: 'Szablony emaili', icon: <FolderSpecial fontSize="small" />, path: '/email/templates' },
+  { text: 'Konsultacje', icon: <Description sx={{ fontSize: 18 }} />, path: '/consultation-templates' },
+  { text: 'Wyniki badań', icon: <Science sx={{ fontSize: 18 }} />, path: '/lab-result-templates' },
+  { text: 'Emaile', icon: <FolderSpecial sx={{ fontSize: 18 }} />, path: '/email/templates' },
 ];
 
 export default function Layout() {
@@ -57,11 +57,9 @@ export default function Layout() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [templatesOpen, setTemplatesOpen] = useState(true);
 
-  const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
-  };
+  const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
 
   const activeRoute = (path: string) => {
     if (path === '/') return location.pathname === '/';
@@ -73,110 +71,83 @@ export default function Layout() {
     if (isMobile) setMobileOpen(false);
   };
 
-  const drawer = (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* Header */}
-      <Toolbar
-        sx={{
+  const drawerContent = (
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: '#FFFFFF' }}>
+      {/* Brand Header */}
+      <Box sx={{ p: 3, display: 'flex', alignItems: 'center' }}>
+        <Box sx={{
+          width: 32,
+          height: 32,
+          borderRadius: 2,
+          bgcolor: 'primary.main',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          px: 2,
-          minHeight: '64px !important',
-          bgcolor: 'primary.main',
-          color: 'primary.contrastText'
-        }}
-      >
-        <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 'bold', letterSpacing: 0.5 }}>
-          Trycho CRM
-        </Typography>
-      </Toolbar>
-
-      {/* User Info */}
-      <Box sx={{ p: 2, bgcolor: theme.palette.grey[50] }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Avatar
-            sx={{
-              bgcolor: 'primary.main',
-              width: 48,
-              height: 48,
-              fontWeight: 'bold',
-              boxShadow: 1
-            }}
-          >
-            {user?.name?.charAt(0).toUpperCase() || 'U'}
-          </Avatar>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography variant="subtitle2" noWrap sx={{ fontWeight: 600 }}>
-              {user?.name || 'Użytkownik'}
-            </Typography>
-            <Typography variant="caption" color="text.secondary" noWrap>
-              {user?.role === 'DOCTOR' ? 'Lekarz' : 'Admin'}
-            </Typography>
-          </Box>
+          mr: 1.5
+        }}>
+          <Typography variant="h6" sx={{ color: '#fff', fontWeight: 800, lineHeight: 1 }}>T</Typography>
         </Box>
+        <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary', letterSpacing: '-0.02em' }}>
+          Light Clinic
+        </Typography>
       </Box>
 
-      <Divider />
-
       {/* Navigation */}
-      <Box sx={{ flex: 1, overflow: 'auto', py: 1.5 }}>
-        <List sx={{ px: 1 }}>
-          <Typography variant="overline" sx={{ px: 2, color: 'text.secondary', fontWeight: 600, display: 'block', mb: 1 }}>
-            MENU GŁÓWNE
+      <Box sx={{ flex: 1, overflowY: 'auto', px: 2, pb: 2 }}>
+        <List disablePadding>
+          <Typography variant="caption" sx={{ px: 1, color: 'text.secondary', fontWeight: 600, mb: 1, display: 'block', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            Menu platformy
           </Typography>
 
           {mainMenuItems.map((item) => {
             const active = activeRoute(item.path);
             return (
-              <ListItem key={item.text} disablePadding>
+              <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
                 <ListItemButton
                   selected={active}
                   onClick={() => handleNavigate(item.path)}
                   sx={{
-                    mb: 0.5,
                     borderRadius: 2,
+                    py: 1,
                     '&.Mui-selected': {
                       bgcolor: 'primary.50',
-                      color: 'primary.main',
-                      '&:hover': { bgcolor: 'primary.100' },
+                      '&:hover': { bgcolor: 'primary.50' },
                       '& .MuiListItemIcon-root': { color: 'primary.main' },
+                      '& .MuiListItemText-primary': { color: 'primary.main', fontWeight: 600 },
                     },
-                    '&:hover': { bgcolor: 'action.hover' },
+                    '&:hover': { bgcolor: '#F1F5F9' },
                   }}
                 >
-                  <ListItemIcon sx={{ minWidth: 40, color: active ? 'primary.main' : 'text.secondary' }}>
+                  <ListItemIcon sx={{ minWidth: 36, color: active ? 'primary.main' : 'text.secondary' }}>
                     {item.icon}
                   </ListItemIcon>
-                  <ListItemText primary={item.text} primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: active ? 600 : 500 }} />
+                  <ListItemText primary={item.text} primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: active ? 600 : 500, color: active ? 'primary.main' : 'text.primary' }} />
                 </ListItemButton>
               </ListItem>
             );
           })}
 
-          <Box sx={{ mt: 2, mb: 1 }}>
-            <Divider />
-          </Box>
+          <Box sx={{ my: 2 }}><Divider sx={{ borderColor: '#F1F5F9' }} /></Box>
 
-          <Typography variant="overline" sx={{ px: 2, color: 'text.secondary', fontWeight: 600, display: 'block', mb: 1 }}>
-            ZARZĄDZANIE
+          <Typography variant="caption" sx={{ px: 1, color: 'text.secondary', fontWeight: 600, mb: 1, display: 'block', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            Konfiguracja
           </Typography>
 
-          <ListItem disablePadding>
+          <ListItem disablePadding sx={{ mb: 0.5 }}>
             <ListItemButton
               onClick={() => setTemplatesOpen(!templatesOpen)}
-              sx={{ mb: 0.5, borderRadius: 2, '&:hover': { bgcolor: 'action.hover' } }}
+              sx={{ borderRadius: 2, py: 1, '&:hover': { bgcolor: '#F1F5F9' } }}
             >
-              <ListItemIcon sx={{ minWidth: 40, color: 'text.secondary' }}>
-                <FolderSpecial />
+              <ListItemIcon sx={{ minWidth: 36, color: 'text.secondary' }}>
+                <FolderSpecial sx={{ fontSize: 20 }} />
               </ListItemIcon>
-              <ListItemText primary="Szablony" primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: 500 }} />
-              {templatesOpen ? <ExpandLess color="action" /> : <ExpandMore color="action" />}
+              <ListItemText primary="Szablony" primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 500, color: 'text.primary' }} />
+              {templatesOpen ? <ExpandLess sx={{ fontSize: 20, color: 'text.secondary' }} /> : <ExpandMore sx={{ fontSize: 20, color: 'text.secondary' }} />}
             </ListItemButton>
           </ListItem>
 
           <Collapse in={templatesOpen} timeout="auto" unmountOnExit>
-            <List component="div" disablePadding sx={{ pl: 2 }}>
+            <List component="div" disablePadding sx={{ pl: 2, mb: 1 }}>
               {templateItems.map((item) => {
                 const active = activeRoute(item.path);
                 return (
@@ -185,19 +156,21 @@ export default function Layout() {
                     selected={active}
                     onClick={() => handleNavigate(item.path)}
                     sx={{
-                      mb: 0.5,
                       borderRadius: 2,
+                      py: 0.75,
+                      mb: 0.5,
                       '&.Mui-selected': {
-                        bgcolor: 'primary.50',
-                        color: 'primary.main',
+                        bgcolor: 'transparent',
                         '& .MuiListItemIcon-root': { color: 'primary.main' },
+                        '& .MuiListItemText-primary': { color: 'primary.main', fontWeight: 600 },
                       },
+                      '&:hover': { bgcolor: '#F1F5F9' },
                     }}
                   >
                     <ListItemIcon sx={{ minWidth: 32, color: active ? 'primary.main' : 'text.secondary' }}>
                       {item.icon}
                     </ListItemIcon>
-                    <ListItemText primary={item.text} primaryTypographyProps={{ fontSize: '0.85rem', fontWeight: active ? 600 : 400 }} />
+                    <ListItemText primary={item.text} primaryTypographyProps={{ fontSize: '0.8125rem', fontWeight: active ? 600 : 500, color: active ? 'primary.main' : 'text.secondary' }} />
                   </ListItemButton>
                 );
               })}
@@ -209,66 +182,74 @@ export default function Layout() {
               selected={activeRoute('/settings')}
               onClick={() => handleNavigate('/settings')}
               sx={{
-                mb: 0.5,
                 borderRadius: 2,
-                '&.Mui-selected': { bgcolor: 'primary.50', color: 'primary.main' },
+                py: 1,
+                '&.Mui-selected': {
+                  bgcolor: 'primary.50',
+                  '& .MuiListItemIcon-root': { color: 'primary.main' },
+                  '& .MuiListItemText-primary': { color: 'primary.main', fontWeight: 600 },
+                },
+                '&:hover': { bgcolor: '#F1F5F9' },
               }}
             >
-              <ListItemIcon sx={{ minWidth: 40, color: activeRoute('/settings') ? 'primary.main' : 'text.secondary' }}>
-                <Settings />
+              <ListItemIcon sx={{ minWidth: 36, color: activeRoute('/settings') ? 'primary.main' : 'text.secondary' }}>
+                <Settings sx={{ fontSize: 20 }} />
               </ListItemIcon>
-              <ListItemText primary="Ustawienia Systemu" primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: activeRoute('/settings') ? 600 : 500 }} />
+              <ListItemText primary="Ustawienia" primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: activeRoute('/settings') ? 600 : 500, color: activeRoute('/settings') ? 'primary.main' : 'text.primary' }} />
             </ListItemButton>
           </ListItem>
 
         </List>
       </Box>
 
-      <Divider />
-
-      {/* Profile and Logout */}
-      <Box sx={{ p: 2, bgcolor: theme.palette.grey[50] }}>
-        <ListItemButton
-          onClick={() => handleNavigate('/profile')}
-          sx={{ mb: 1, borderRadius: 2, '&:hover': { bgcolor: 'action.hover' } }}
-        >
-          <ListItemIcon sx={{ minWidth: 40 }}><AccountCircle /></ListItemIcon>
-          <ListItemText primary="Mój profil" primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: 500 }} />
-        </ListItemButton>
-
-        <ListItemButton
-          onClick={logout}
-          sx={{
-            borderRadius: 2,
-            color: 'error.main',
-            '&:hover': { bgcolor: 'error.50' },
-          }}
-        >
-          <ListItemIcon sx={{ color: 'error.main', minWidth: 40 }}><Logout /></ListItemIcon>
-          <ListItemText primary="Wyloguj" primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: 500 }} />
-        </ListItemButton>
+      {/* User Profile Footer */}
+      <Box sx={{ p: 2, borderTop: '1px solid #F1F5F9' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, px: 1 }}>
+          <Avatar sx={{ width: 36, height: 36, bgcolor: 'primary.light', fontSize: 14, fontWeight: 600 }}>
+            {user?.name?.charAt(0).toUpperCase() || 'U'}
+          </Avatar>
+          <Box sx={{ ml: 1.5, overflow: 'hidden' }}>
+            <Typography variant="subtitle2" noWrap sx={{ fontWeight: 600, fontSize: '0.85rem' }}>
+              {user?.name || 'Użytkownik'}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block', mt: -0.5 }}>
+              {user?.role === 'DOCTOR' ? 'Lekarz specjalista' : 'Administrator'}
+            </Typography>
+          </Box>
+        </Box>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <ListItemButton onClick={() => handleNavigate('/profile')} sx={{ borderRadius: 2, py: 0.5, justifyContent: 'center', bgcolor: '#F8FAFC' }}>
+            <AccountCircle sx={{ fontSize: 18, color: 'text.secondary', mr: 1 }} />
+            <Typography variant="caption" fontWeight={600} color="text.secondary">Profil</Typography>
+          </ListItemButton>
+          <ListItemButton onClick={logout} sx={{ borderRadius: 2, py: 0.5, justifyContent: 'center', bgcolor: '#FEF2F2', '&:hover': { bgcolor: '#FEE2E2' } }}>
+            <Logout sx={{ fontSize: 18, color: 'error.main', mr: 1 }} />
+            <Typography variant="caption" fontWeight={600} color="error.main">Wyjdź</Typography>
+          </ListItemButton>
+        </Box>
       </Box>
     </Box>
   );
 
   return (
-    <Box sx={{ display: 'flex' }}>
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
       {/* Mobile AppBar */}
       <AppBar
         position="fixed"
-        elevation={1}
+        elevation={0}
         sx={{
-          zIndex: (theme) => theme.zIndex.drawer + 1,
+          zIndex: theme.zIndex.drawer + 1,
           display: { md: 'none' },
-          bgcolor: 'primary.main',
+          bgcolor: '#FFFFFF',
+          borderBottom: '1px solid #E2E8F0',
         }}
       >
         <Toolbar>
-          <IconButton color="inherit" aria-label="open drawer" edge="start" onClick={handleDrawerToggle} sx={{ mr: 2 }}>
+          <IconButton color="inherit" aria-label="open drawer" edge="start" onClick={handleDrawerToggle} sx={{ mr: 2, color: 'text.primary' }}>
             <Menu />
           </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, fontWeight: 'bold' }}>
-            Trycho CRM
+          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, fontWeight: 'bold', color: 'text.primary' }}>
+            Light Clinic
           </Typography>
         </Toolbar>
       </AppBar>
@@ -282,20 +263,20 @@ export default function Layout() {
           ModalProps={{ keepMounted: true }}
           sx={{
             display: { xs: 'block', md: 'none' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: { xs: '85vw', sm: drawerWidth }, maxWidth: drawerWidth },
+            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth, borderRight: 'none' },
           }}
         >
-          {drawer}
+          {drawerContent}
         </Drawer>
         <Drawer
           variant="permanent"
           sx={{
             display: { xs: 'none', md: 'block' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth, borderRight: '1px solid #E2E8F0' },
           }}
           open
         >
-          {drawer}
+          {drawerContent}
         </Drawer>
       </Box>
 
@@ -304,15 +285,14 @@ export default function Layout() {
         component="main"
         sx={{
           flexGrow: 1,
-          p: { xs: 1.5, sm: 2, md: 3 },
+          p: { xs: 2, sm: 3, md: 4 },
           width: { xs: '100%', md: `calc(100% - ${drawerWidth}px)` },
           mt: { xs: 7, md: 0 },
-          bgcolor: 'background.default',
-          minWidth: 0,
-          maxWidth: '100%',
         }}
       >
-        <Outlet />
+        <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
+          <Outlet />
+        </Box>
       </Box>
     </Box>
   );

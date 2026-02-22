@@ -52,6 +52,7 @@ import { api } from '../services/api';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { useNotification } from '../hooks/useNotification';
+import { AppCard, AppButton, AppTextField, PageHeader } from '../ui';
 
 interface DashboardStats {
     patientsCount: number;
@@ -146,7 +147,7 @@ export default function DashboardPage() {
 
     const handleSendVisitReminder = async () => {
         if (!reminderDialog.visitId) return;
-        
+
         if (!reminderDialog.recipientEmail) {
             showError('Podaj adres email odbiorcy');
             return;
@@ -396,72 +397,40 @@ export default function DashboardPage() {
     return (
         <Box sx={{ pb: 4 }}>
             {/* Header Section */}
-            <Box sx={{ 
-                mb: { xs: 3, sm: 4 }, 
-                px: { xs: 1, sm: 0 },
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'flex-start',
-                flexWrap: 'wrap',
-                gap: 2,
-            }}>
-                <Box>
-                    <Typography
-                        variant="h4"
-                        sx={{
-                            fontWeight: 600,
-                            fontSize: { xs: '1.75rem', sm: '2rem' },
-                            color: 'text.primary',
-                            mb: 1,
-                        }}
-                    >
-                        Panel Główny
-                    </Typography>
-                    <Typography variant="body1" color="text.secondary" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-                        {format(new Date(), "EEEE, d MMMM yyyy", { locale: pl })}
-                    </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                    <Tooltip title="Odśwież dane">
-                        <IconButton
-                            onClick={() => fetchDashboardData(true)}
-                            disabled={refreshing}
-                            sx={{
-                                bgcolor: alpha('#1976d2', 0.08),
-                                '&:hover': { bgcolor: alpha('#1976d2', 0.12) },
-                            }}
+            <PageHeader
+                title="Panel Główny"
+                subtitle={format(new Date(), "EEEE, d MMMM yyyy", { locale: pl })}
+                action={
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                        <Tooltip title="Odśwież dane">
+                            <IconButton
+                                onClick={() => fetchDashboardData(true)}
+                                disabled={refreshing}
+                                sx={{
+                                    bgcolor: alpha('#1976d2', 0.08),
+                                    '&:hover': { bgcolor: alpha('#1976d2', 0.12) },
+                                }}
+                            >
+                                <Refresh sx={{
+                                    color: '#1976d2',
+                                    animation: refreshing ? 'spin 1s linear infinite' : 'none',
+                                    '@keyframes spin': {
+                                        '0%': { transform: 'rotate(0deg)' },
+                                        '100%': { transform: 'rotate(360deg)' },
+                                    },
+                                }} />
+                            </IconButton>
+                        </Tooltip>
+                        <AppButton
+                            variant="contained"
+                            startIcon={<Add />}
+                            onClick={() => navigate('/patients/new')}
                         >
-                            <Refresh sx={{ 
-                                color: '#1976d2',
-                                animation: refreshing ? 'spin 1s linear infinite' : 'none',
-                                '@keyframes spin': {
-                                    '0%': { transform: 'rotate(0deg)' },
-                                    '100%': { transform: 'rotate(360deg)' },
-                                },
-                            }} />
-                        </IconButton>
-                    </Tooltip>
-                    <Button
-                        variant="contained"
-                        startIcon={<Add />}
-                        onClick={() => navigate('/patients/new')}
-                        sx={{
-                            bgcolor: '#1976d2',
-                            color: 'white',
-                            textTransform: 'none',
-                            fontWeight: 500,
-                            borderRadius: 2,
-                            boxShadow: 'none',
-                            '&:hover': {
-                                bgcolor: '#1565c0',
-                                boxShadow: 'none',
-                            },
-                        }}
-                    >
-                        {isMobile ? 'Dodaj' : 'Dodaj pacjenta'}
-                    </Button>
-                </Box>
-            </Box>
+                            {isMobile ? 'Dodaj' : 'Dodaj pacjenta'}
+                        </AppButton>
+                    </Box>
+                }
+            />
 
             {error && (
                 <Alert severity="error" sx={{ mb: 3, mx: { xs: 1, sm: 0 } }} onClose={() => setError(null)}>
@@ -470,24 +439,13 @@ export default function DashboardPage() {
             )}
 
             {/* Search Bar */}
-            <Paper
-                sx={{
-                    p: { xs: 1.5, sm: 2 },
-                    mb: 4,
-                    mx: { xs: 1, sm: 0 },
-                    background: 'white',
-                    borderRadius: 3,
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-                }}
-            >
+            <AppCard sx={{ mb: 4 }}>
                 <TextField
                     fullWidth
                     placeholder="Szybkie wyszukiwanie pacjenta..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    size={isMobile ? 'small' : 'medium'}
+                    size="medium"
                     InputProps={{
                         startAdornment: (
                             <InputAdornment position="start">
@@ -501,7 +459,10 @@ export default function DashboardPage() {
                     }}
                     sx={{
                         '& .MuiOutlinedInput-root': {
-                            borderRadius: 3,
+                            bgcolor: '#F8FAFC',
+                            '& fieldset': { borderColor: 'transparent' },
+                            '&:hover fieldset': { borderColor: 'transparent' },
+                            '&.Mui-focused fieldset': { borderColor: 'primary.main' },
                         },
                     }}
                 />
@@ -516,21 +477,21 @@ export default function DashboardPage() {
                                     setSearchResults([]);
                                 }}
                                 sx={{
-                                    borderRadius: 3,
-                                    mb: 1,
+                                    borderRadius: 2,
+                                    mb: 0.5,
                                     '&:hover': {
-                                        bgcolor: alpha('#1976d2', 0.05),
+                                        bgcolor: '#F1F5F9',
                                     },
                                 }}
                             >
                                 <ListItemAvatar>
-                                    <Avatar sx={{ bgcolor: alpha('#1976d2', 0.1), color: '#1976d2', fontWeight: 600 }}>
+                                    <Avatar sx={{ bgcolor: 'white', color: 'primary.main', border: '1px solid #E2E8F0', fontWeight: 600 }}>
                                         {patient.firstName[0]}{patient.lastName[0]}
                                     </Avatar>
                                 </ListItemAvatar>
                                 <ListItemText
                                     primary={`${patient.firstName} ${patient.lastName}`}
-                                    primaryTypographyProps={{ fontWeight: 600 }}
+                                    primaryTypographyProps={{ fontWeight: 600, color: '#0F172A' }}
                                     secondary={patient.email || patient.phone}
                                 />
                                 <ArrowForward sx={{ color: 'text.secondary', opacity: 0.5 }} />
@@ -538,48 +499,31 @@ export default function DashboardPage() {
                         ))}
                     </List>
                 )}
-            </Paper>
+            </AppCard>
 
             {/* Stats Cards */}
             <Grid container spacing={3} sx={{ mb: 4, px: { xs: 1, sm: 0 } }}>
                 {statCards.map((stat, index) => (
                     <Grid key={index} size={{ xs: 12, sm: 6, md: 3 }}>
-                        <Card
+                        <AppCard
+                            noPadding
                             onClick={() => stat.link.startsWith('#') ? null : navigate(stat.link)}
                             sx={{
-                                position: 'relative',
-                                overflow: 'hidden',
-                                borderRadius: 3,
-                                border: '1px solid',
-                                borderColor: 'divider',
-                                boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
-                                background: 'white',
                                 height: '100%',
                                 cursor: stat.link.startsWith('#') ? 'default' : 'pointer',
-                                transition: 'all 0.2s',
+                                transition: 'transform 0.2s',
                                 '&:hover': stat.link.startsWith('#') ? {} : {
                                     transform: 'translateY(-4px)',
-                                    boxShadow: '0 8px 24px rgba(0,0,0,0.1)',
-                                },
-                                '&::before': {
-                                    content: '""',
-                                    position: 'absolute',
-                                    top: 0,
-                                    left: 0,
-                                    right: 0,
-                                    height: '3px',
-                                    background: stat.color,
-                                    borderRadius: '16px 16px 0 0',
                                 },
                             }}
                         >
-                            <CardContent sx={{ p: 3, overflow: 'hidden' }}>
+                            <Box sx={{ p: 3, overflow: 'hidden' }}>
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                                     <Box
                                         sx={{
                                             width: 48,
                                             height: 48,
-                                            borderRadius: '8px',
+                                            borderRadius: '12px',
                                             background: alpha(stat.color, 0.1),
                                             display: 'flex',
                                             alignItems: 'center',
@@ -592,10 +536,10 @@ export default function DashboardPage() {
                                 <Typography
                                     variant="h3"
                                     sx={{
-                                        fontWeight: 600,
+                                        fontWeight: 700,
                                         mb: 0.5,
-                                        fontSize: { xs: '2rem', sm: '2.5rem' },
-                                        color: 'text.primary',
+                                        fontSize: { xs: '2rem', sm: '2.25rem' },
+                                        color: '#0F172A',
                                     }}
                                 >
                                     {stat.value}
@@ -612,117 +556,104 @@ export default function DashboardPage() {
                                             variant="determinate"
                                             value={Math.min(stat.progress, 100)}
                                             sx={{
-                                                height: 8,
-                                                borderRadius: 4,
+                                                height: 6,
+                                                borderRadius: 3,
                                                 bgcolor: alpha(stat.color, 0.1),
                                                 '& .MuiLinearProgress-bar': {
                                                     background: stat.color,
-                                                    borderRadius: 4,
+                                                    borderRadius: 3,
                                                 },
                                             }}
                                         />
                                     </Box>
                                 )}
-                            </CardContent>
-                        </Card>
+                            </Box>
+                        </AppCard>
                     </Grid>
                 ))}
             </Grid>
 
-            {/* Quick Actions – pełna szerokość, 3 przyciski */}
+            {/* Quick Actions */}
             <Grid container spacing={3} sx={{ mb: 4, px: { xs: 1, sm: 0 } }}>
                 <Grid size={{ xs: 12 }}>
-                    <Paper
-                        sx={{
-                            p: { xs: 2, sm: 2.5 },
-                            borderRadius: 3,
-                            background: 'white',
-                            border: '1px solid',
-                            borderColor: 'divider',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                        }}
-                    >
-                        <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: 'text.primary' }}>
-                            Szybkie akcje
-                        </Typography>
-                        <Grid container spacing={2}>
-                            <Grid size={{ xs: 12, sm: 4 }}>
-                                <ListItemButton
-                                    onClick={() => navigate('/patients/new')}
-                                    sx={{
-                                        borderRadius: 2,
-                                        border: '1px solid',
-                                        borderColor: 'divider',
-                                        py: 1.5,
-                                        transition: 'all 0.2s',
-                                        '&:hover': {
-                                            bgcolor: alpha('#1976d2', 0.05),
-                                            borderColor: '#1976d2',
-                                        },
-                                    }}
-                                >
-                                    <ListItemIcon>
-                                        <PersonAdd sx={{ color: '#1976d2' }} />
-                                    </ListItemIcon>
-                                    <ListItemText
-                                        primary="Dodaj pacjenta"
-                                        primaryTypographyProps={{ fontWeight: 500, color: 'text.primary' }}
-                                    />
-                                    <ArrowForward sx={{ color: 'text.secondary', opacity: 0.5 }} />
-                                </ListItemButton>
+                    <AppCard title="Szybkie akcje" noPadding>
+                        <Box sx={{ p: { xs: 2, sm: 3 } }}>
+                            <Grid container spacing={2}>
+                                <Grid size={{ xs: 12, sm: 4 }}>
+                                    <ListItemButton
+                                        onClick={() => navigate('/patients/new')}
+                                        sx={{
+                                            borderRadius: 2,
+                                            border: '1px solid #E2E8F0',
+                                            py: 1.5,
+                                            transition: 'all 0.2s',
+                                            '&:hover': {
+                                                bgcolor: '#F8FAFC',
+                                                borderColor: 'primary.main',
+                                            },
+                                        }}
+                                    >
+                                        <ListItemIcon>
+                                            <PersonAdd color="primary" />
+                                        </ListItemIcon>
+                                        <ListItemText
+                                            primary="Dodaj pacjenta"
+                                            primaryTypographyProps={{ fontWeight: 600, color: '#0F172A' }}
+                                        />
+                                        <ArrowForward sx={{ color: 'text.secondary', opacity: 0.5 }} />
+                                    </ListItemButton>
+                                </Grid>
+                                <Grid size={{ xs: 12, sm: 4 }}>
+                                    <ListItemButton
+                                        onClick={() => navigate('/visits/new')}
+                                        sx={{
+                                            borderRadius: 2,
+                                            border: '1px solid #E2E8F0',
+                                            py: 1.5,
+                                            transition: 'all 0.2s',
+                                            '&:hover': {
+                                                bgcolor: '#F8FAFC',
+                                                borderColor: 'primary.main',
+                                            },
+                                        }}
+                                    >
+                                        <ListItemIcon>
+                                            <CalendarToday color="primary" />
+                                        </ListItemIcon>
+                                        <ListItemText
+                                            primary="Nowa wizyta"
+                                            primaryTypographyProps={{ fontWeight: 600, color: '#0F172A' }}
+                                        />
+                                        <ArrowForward sx={{ color: 'text.secondary', opacity: 0.5 }} />
+                                    </ListItemButton>
+                                </Grid>
+                                <Grid size={{ xs: 12, sm: 4 }}>
+                                    <ListItemButton
+                                        onClick={() => navigate('/patients')}
+                                        sx={{
+                                            borderRadius: 2,
+                                            border: '1px solid #E2E8F0',
+                                            py: 1.5,
+                                            transition: 'all 0.2s',
+                                            '&:hover': {
+                                                bgcolor: '#F8FAFC',
+                                                borderColor: 'primary.main',
+                                            },
+                                        }}
+                                    >
+                                        <ListItemIcon>
+                                            <Assessment color="primary" />
+                                        </ListItemIcon>
+                                        <ListItemText
+                                            primary="Lista pacjentów"
+                                            primaryTypographyProps={{ fontWeight: 600, color: '#0F172A' }}
+                                        />
+                                        <ArrowForward sx={{ color: 'text.secondary', opacity: 0.5 }} />
+                                    </ListItemButton>
+                                </Grid>
                             </Grid>
-                            <Grid size={{ xs: 12, sm: 4 }}>
-                                <ListItemButton
-                                    onClick={() => navigate('/visits/new')}
-                                    sx={{
-                                        borderRadius: 2,
-                                        border: '1px solid',
-                                        borderColor: 'divider',
-                                        py: 1.5,
-                                        transition: 'all 0.2s',
-                                        '&:hover': {
-                                            bgcolor: alpha('#1976d2', 0.05),
-                                            borderColor: '#1976d2',
-                                        },
-                                    }}
-                                >
-                                    <ListItemIcon>
-                                        <CalendarToday sx={{ color: '#1976d2' }} />
-                                    </ListItemIcon>
-                                    <ListItemText
-                                        primary="Nowa wizyta"
-                                        primaryTypographyProps={{ fontWeight: 500, color: 'text.primary' }}
-                                    />
-                                    <ArrowForward sx={{ color: 'text.secondary', opacity: 0.5 }} />
-                                </ListItemButton>
-                            </Grid>
-                            <Grid size={{ xs: 12, sm: 4 }}>
-                                <ListItemButton
-                                    onClick={() => navigate('/patients')}
-                                    sx={{
-                                        borderRadius: 2,
-                                        border: '1px solid',
-                                        borderColor: 'divider',
-                                        py: 1.5,
-                                        transition: 'all 0.2s',
-                                        '&:hover': {
-                                            bgcolor: alpha('#1976d2', 0.05),
-                                            borderColor: '#1976d2',
-                                        },
-                                    }}
-                                >
-                                    <ListItemIcon>
-                                        <Assessment sx={{ color: '#1976d2' }} />
-                                    </ListItemIcon>
-                                    <ListItemText
-                                        primary="Lista pacjentów"
-                                        primaryTypographyProps={{ fontWeight: 500, color: 'text.primary' }}
-                                    />
-                                    <ArrowForward sx={{ color: 'text.secondary', opacity: 0.5 }} />
-                                </ListItemButton>
-                            </Grid>
-                        </Grid>
-                    </Paper>
+                        </Box>
+                    </AppCard>
                 </Grid>
             </Grid>
 
@@ -750,14 +681,11 @@ export default function DashboardPage() {
                     <Grid container spacing={3}>
                         {todayVisits.length > 0 && (
                             <Grid size={{ xs: 12, md: 6 }}>
-                                <Paper
+                                <AppCard
                                     sx={{
-                                        p: { xs: 2, sm: 3 },
-                                        background: 'white',
-                                        borderRadius: 3,
                                         border: '2px solid',
-                                        borderColor: '#1976d2',
-                                        boxShadow: `0 8px 24px ${alpha('#1976d2', 0.15)}`,
+                                        borderColor: 'primary.main',
+                                        boxShadow: '0 8px 24px rgba(25, 118, 210, 0.15)',
                                     }}
                                 >
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
@@ -833,7 +761,7 @@ export default function DashboardPage() {
                                                                     e.stopPropagation();
                                                                     openReminderDialog(visit);
                                                                 }}
-                                                                sx={{ 
+                                                                sx={{
                                                                     color: '#FF9500',
                                                                     '&:hover': { bgcolor: alpha('#FF9500', 0.1) }
                                                                 }}
@@ -847,19 +775,16 @@ export default function DashboardPage() {
                                             );
                                         })}
                                     </List>
-                                </Paper>
+                                </AppCard>
                             </Grid>
                         )}
                         {tomorrowVisits.length > 0 && (
                             <Grid size={{ xs: 12, md: 6 }}>
-                                <Paper
+                                <AppCard
                                     sx={{
-                                        p: { xs: 2, sm: 3 },
-                                        background: 'white',
-                                        borderRadius: 3,
                                         border: '1px solid',
-                                        borderColor: alpha('#1976d2', 0.3),
-                                        boxShadow: `0 8px 24px ${alpha('#1976d2', 0.1)}`,
+                                        borderColor: 'divider',
+                                        boxShadow: 'none',
                                     }}
                                 >
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
@@ -935,7 +860,7 @@ export default function DashboardPage() {
                                                                     e.stopPropagation();
                                                                     openReminderDialog(visit);
                                                                 }}
-                                                                sx={{ 
+                                                                sx={{
                                                                     color: '#FF9500',
                                                                     '&:hover': { bgcolor: alpha('#FF9500', 0.1) }
                                                                 }}
@@ -949,19 +874,16 @@ export default function DashboardPage() {
                                             );
                                         })}
                                     </List>
-                                </Paper>
+                                </AppCard>
                             </Grid>
                         )}
                         {todayVisits.length === 0 && tomorrowVisits.length === 0 && upcomingVisits.length > 0 && (
                             <Grid size={{ xs: 12 }}>
-                                <Paper
+                                <AppCard
                                     sx={{
-                                        p: { xs: 2, sm: 3 },
-                                        background: 'white',
-                                        borderRadius: 3,
                                         border: '1px solid',
-                                        borderColor: alpha('#1976d2', 0.3),
-                                        boxShadow: `0 8px 24px ${alpha('#1976d2', 0.1)}`,
+                                        borderColor: 'divider',
+                                        boxShadow: 'none',
                                     }}
                                 >
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
@@ -1042,7 +964,7 @@ export default function DashboardPage() {
                                                                     e.stopPropagation();
                                                                     openReminderDialog(visit);
                                                                 }}
-                                                                sx={{ 
+                                                                sx={{
                                                                     color: '#FF9500',
                                                                     '&:hover': { bgcolor: alpha('#FF9500', 0.1) }
                                                                 }}
@@ -1053,15 +975,15 @@ export default function DashboardPage() {
                                                         </Box>
                                                     </ListItemButton>
                                                 </React.Fragment>
-                                                        );
-                                                    })}
-                                                </List>
-                                            </Paper>
-                                        </Grid>
-                                    )}
-                                </Grid>
-                            </Box>
+                                            );
+                                        })}
+                                    </List>
+                                </AppCard>
+                            </Grid>
                         )}
+                    </Grid>
+                </Box>
+            )}
 
             {/* Patients Needing Attention */}
             {(patientsNeedingAttention.length > 0 || inactivePatientsList.length > 0) && (
@@ -1069,14 +991,11 @@ export default function DashboardPage() {
                     <Grid container spacing={3}>
                         {patientsNeedingAttention.length > 0 && (
                             <Grid size={{ xs: 12, md: 6 }}>
-                                <Paper
+                                <AppCard
                                     sx={{
-                                        p: { xs: 2, sm: 3 },
-                                        background: 'white',
-                                        borderRadius: 3,
                                         border: '1px solid',
-                                        borderColor: alpha('#d32f2f', 0.3),
-                                        boxShadow: `0 8px 24px ${alpha('#d32f2f', 0.1)}`,
+                                        borderColor: '#FECACA',
+                                        boxShadow: 'none',
                                     }}
                                 >
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
@@ -1144,20 +1063,17 @@ export default function DashboardPage() {
                                     >
                                         Zobacz wszystkich
                                     </Button>
-                                </Paper>
+                                </AppCard>
                             </Grid>
                         )}
 
                         {inactivePatientsList.length > 0 && (
                             <Grid size={{ xs: 12, md: 6 }}>
-                                <Paper
+                                <AppCard
                                     sx={{
-                                        p: { xs: 2, sm: 3 },
-                                        background: 'white',
-                                        borderRadius: 3,
                                         border: '1px solid',
-                                        borderColor: alpha('#1976d2', 0.3),
-                                        boxShadow: `0 8px 24px ${alpha('#1976d2', 0.1)}`,
+                                        borderColor: 'divider',
+                                        boxShadow: 'none',
                                     }}
                                 >
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
@@ -1206,7 +1122,7 @@ export default function DashboardPage() {
                                             </React.Fragment>
                                         ))}
                                     </List>
-                                </Paper>
+                                </AppCard>
                             </Grid>
                         )}
                     </Grid>
@@ -1255,7 +1171,8 @@ export default function DashboardPage() {
                         </Typography>
                     </Box>
 
-                    <TextField
+                    <AppTextField
+                        name="email"
                         fullWidth
                         label="Adres email odbiorcy"
                         type="email"
@@ -1266,7 +1183,8 @@ export default function DashboardPage() {
                         helperText={!reminderDialog.patientEmail ? 'Pacjent nie ma zapisanego adresu email' : 'Email pacjenta'}
                     />
 
-                    <TextField
+                    <AppTextField
+                        name="customMessage"
                         fullWidth
                         label="Dodatkowa wiadomość (opcjonalnie)"
                         multiline
@@ -1282,13 +1200,13 @@ export default function DashboardPage() {
                     </Alert>
                 </DialogContent>
                 <DialogActions sx={{ p: 2, pt: 1 }}>
-                    <Button
+                    <AppButton
                         onClick={() => setReminderDialog({ ...reminderDialog, open: false })}
                         disabled={sendingReminder}
                     >
                         Anuluj
-                    </Button>
-                    <Button
+                    </AppButton>
+                    <AppButton
                         onClick={handleSendVisitReminder}
                         variant="contained"
                         startIcon={sendingReminder ? <CircularProgress size={20} /> : <Notifications />}
@@ -1299,7 +1217,7 @@ export default function DashboardPage() {
                         }}
                     >
                         {sendingReminder ? 'Wysyłanie...' : 'Wyślij przypomnienie'}
-                    </Button>
+                    </AppButton>
                 </DialogActions>
             </Dialog>
         </Box>

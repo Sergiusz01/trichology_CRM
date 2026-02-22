@@ -5,8 +5,6 @@ import {
   Paper,
   Typography,
   Button,
-  Tabs,
-  Tab,
   Grid,
   Chip,
   Dialog,
@@ -34,8 +32,8 @@ import {
   InputLabel,
   InputAdornment,
   Tooltip,
-  CardMedia,
 } from '@mui/material';
+import { AppCard, AppButton, Section } from '../ui';
 import {
   Add,
   Edit,
@@ -105,6 +103,15 @@ const formatDateTimeLocal = (dateString: string): string => {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
 
+const sectionTitles = {
+  0: "Przegląd",
+  1: "Konsultacje",
+  2: "Wyniki Badań",
+  3: "Zdjęcia Skóry Głowy",
+  4: "Plany Opieki",
+  5: "Wizyty",
+};
+
 interface TabPanelProps {
   children?: React.ReactNode;
   index: number;
@@ -112,17 +119,12 @@ interface TabPanelProps {
 }
 
 function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
+  const { children, index } = props;
+  const title = sectionTitles[index as keyof typeof sectionTitles] || "Sekcja";
   return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`patient-tabpanel-${index}`}
-      aria-labelledby={`patient-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box sx={{ pt: 5, px: { xs: 2, md: 4 } }}>{children}</Box>}
-    </div>
+    <Section title={title} defaultExpanded={index === 0}>
+      <Box sx={{ pt: 1, px: { xs: 1, md: 2 } }}>{children}</Box>
+    </Section>
   );
 }
 
@@ -608,19 +610,14 @@ export default function PatientDetailPage() {
     }}>
       <Container maxWidth="lg" sx={{ pt: 3 }}>
         {/* Back Button */}
-        <Button
+        <AppButton
+          variant="secondary"
           startIcon={<ArrowBack />}
           onClick={() => navigate('/patients')}
-          sx={{
-            mb: 3,
-            color: '#1d1d1f',
-            '&:hover': {
-              bgcolor: alpha('#000', 0.05),
-            },
-          }}
+          sx={{ mb: 3 }}
         >
           Powrót do listy pacjentów
-        </Button>
+        </AppButton>
 
         {/* Loading Error with Retry */}
         {loadError && (
@@ -628,15 +625,13 @@ export default function PatientDetailPage() {
         )}
 
         {/* Header Card */}
-        <Paper
-          elevation={0}
+        <AppCard
           sx={{
             p: 4,
             mb: 3,
-            borderRadius: 3,
-            bgcolor: 'white',
             border: '1px solid',
             borderColor: 'divider',
+            boxShadow: 'none'
           }}
         >
           <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: { xs: 'center', md: 'flex-start' }, gap: { xs: 2.5, md: 4 }, mb: 4, textAlign: { xs: 'center', md: 'left' } }}>
@@ -702,76 +697,39 @@ export default function PatientDetailPage() {
           {/* Action Buttons */}
           <Grid container spacing={2}>
             <Grid size={{ xs: 12, sm: 4 }}>
-              <Button
+              <AppButton
                 fullWidth
-                variant="contained"
+                variant="primary"
                 startIcon={<Add />}
                 onClick={() => navigate(`/patients/${id}/consultations/new`)}
-                sx={{
-                  bgcolor: '#007AFF',
-                  color: 'white',
-                  textTransform: 'none',
-                  fontWeight: 700,
-                  py: { xs: 1.2, sm: 1.5 },
-                  borderRadius: 2.5,
-                  boxShadow: `0 4px 14px ${alpha('#007AFF', 0.4)}`,
-                  '&:hover': {
-                    bgcolor: '#0051D5',
-                    boxShadow: `0 6px 20px ${alpha('#007AFF', 0.5)}`,
-                  },
-                }}
               >
                 Nowa konsultacja
-              </Button>
+              </AppButton>
             </Grid>
             <Grid size={{ xs: 12, sm: 4 }}>
-              <Button
+              <AppButton
                 fullWidth
                 variant="outlined"
                 startIcon={<Edit />}
                 onClick={() => navigate(`/patients/${id}/edit`)}
-                sx={{
-                  borderColor: alpha('#1d1d1f', 0.15),
-                  color: '#1d1d1f',
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  py: { xs: 1.2, sm: 1.5 },
-                  borderRadius: 2.5,
-                  '&:hover': {
-                    borderColor: '#1d1d1f',
-                    bgcolor: alpha('#000', 0.02),
-                  },
-                }}
               >
                 Edytuj dane
-              </Button>
+              </AppButton>
             </Grid>
             {patient.email && (
               <Grid size={{ xs: 12, sm: 4 }}>
-                <Button
+                <AppButton
                   fullWidth
                   variant="outlined"
                   startIcon={<Email />}
                   onClick={() => navigate(`/patients/${id}/email`)}
-                  sx={{
-                    borderColor: alpha('#1d1d1f', 0.15),
-                    color: '#1d1d1f',
-                    textTransform: 'none',
-                    fontWeight: 600,
-                    py: { xs: 1.2, sm: 1.5 },
-                    borderRadius: 2.5,
-                    '&:hover': {
-                      borderColor: '#1d1d1f',
-                      bgcolor: alpha('#000', 0.02),
-                    },
-                  }}
                 >
                   Email
-                </Button>
+                </AppButton>
               </Grid>
             )}
           </Grid>
-        </Paper>
+        </AppCard>
 
         {/* Stats Grid */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -853,52 +811,7 @@ export default function PatientDetailPage() {
           })}
         </Grid>
 
-        {/* Tabs */}
-        <Paper
-          elevation={0}
-          sx={{
-            borderRadius: 3,
-            bgcolor: 'white',
-            border: '1px solid',
-            borderColor: 'divider',
-            overflow: 'hidden',
-          }}
-        >
-          <Tabs
-            value={tabValue}
-            onChange={(_, newValue) => setTabValue(newValue)}
-            variant="scrollable"
-            scrollButtons="auto"
-            allowScrollButtonsMobile
-            sx={{
-              borderBottom: '1px solid',
-              borderColor: 'divider',
-              px: { xs: 1, sm: 2 },
-              '& .MuiTab-root': {
-                textTransform: 'none',
-                fontWeight: 700,
-                fontSize: { xs: '0.9rem', sm: '1rem' },
-                color: '#86868b',
-                minHeight: { xs: 56, sm: 64 },
-                minWidth: { xs: 100, sm: 120 },
-                '&.Mui-selected': {
-                  color: '#007AFF',
-                },
-              },
-              '& .MuiTabs-indicator': {
-                height: 3,
-                borderRadius: '3px 3px 0 0',
-                bgcolor: '#007AFF',
-              },
-            }}
-          >
-            <Tab label="Przegląd" />
-            <Tab label="Konsultacje" />
-            <Tab label="Wyniki" />
-            <Tab label="Zdjęcia" />
-            <Tab label="Plany" />
-            <Tab label="Wizyty" />
-          </Tabs>
+        <Box sx={{ mt: 4 }}>
 
           {/* Tab Panel 0: Overview */}
           <TabPanel value={tabValue} index={0}>
@@ -1960,7 +1873,7 @@ export default function PatientDetailPage() {
               </TableContainer>
             )}
           </TabPanel>
-        </Paper>
+        </Box>
       </Container>
 
       {/* Visit Dialog */}

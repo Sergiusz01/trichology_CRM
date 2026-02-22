@@ -7,7 +7,6 @@ import { theme } from './theme';
 import { SnackbarProvider } from 'notistack';
 import { AuthProvider } from './contexts/AuthContext';
 import { ApiErrorHandler } from './components/ApiErrorHandler';
-import 'bootstrap/dist/css/bootstrap.min.css';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
