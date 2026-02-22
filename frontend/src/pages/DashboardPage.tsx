@@ -53,6 +53,7 @@ import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { useNotification } from '../hooks/useNotification';
 import { AppCard, AppButton, AppTextField, PageHeader } from '../ui';
+import { ErrorState } from '../ui/ErrorState';
 
 interface DashboardStats {
     patientsCount: number;
@@ -351,6 +352,14 @@ export default function DashboardPage() {
                 minHeight: '60vh'
             }}>
                 <CircularProgress size={60} thickness={4} />
+            </Box>
+        );
+    }
+
+    if (error && stats.patientsCount === 0 && todayVisits.length === 0 && tomorrowVisits.length === 0) {
+        return (
+            <Box sx={{ pt: 10, pb: 4 }}>
+                <ErrorState message={error} onRetry={() => fetchDashboardData()} />
             </Box>
         );
     }

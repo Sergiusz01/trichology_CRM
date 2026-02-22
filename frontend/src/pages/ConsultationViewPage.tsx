@@ -14,7 +14,7 @@ import {
   CircularProgress,
   Alert,
 } from '@mui/material';
-import { Edit, GetApp, ArrowBack } from '@mui/icons-material';
+import { Edit, GetApp, ArrowBack, ContentCopy } from '@mui/icons-material';
 import { api } from '../services/api';
 import { useNotification } from '../hooks/useNotification';
 
@@ -345,6 +345,15 @@ export default function ConsultationViewPage() {
           </Button>
           <Button
             fullWidth={isMobile}
+            variant="outlined"
+            onClick={() => navigate(`/patients/${consultation.patient.id}/consultations/new`, { state: { sourceConsultation: consultation } })}
+            startIcon={<ContentCopy />}
+            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+          >
+            Duplikuj
+          </Button>
+          <Button
+            fullWidth={isMobile}
             variant="contained"
             startIcon={<Edit />}
             onClick={() => navigate(`/consultations/${id}/edit`)}
@@ -633,106 +642,106 @@ export default function ConsultationViewPage() {
 
         {/* Section: Diagnosis and Recommendations */}
         {!hasTemplate && (
-        <Grid container spacing={2} sx={{ mt: 2 }}>
-          <Grid size={{ xs: 12, md: 6 }}>
-            <Box sx={{
-              backgroundColor: '#e0e0e0',
-              fontWeight: 'bold',
-              fontSize: '1rem',
-              p: 1,
-              mb: 2,
-              borderLeft: '5px solid #333',
-              textTransform: 'uppercase'
-            }}>
-              Rozpoznanie (Diagnoza)
-            </Box>
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
-                {consultation.diagnosis || 'Brak wpisu'}
-              </Typography>
-              {consultation.alopeciaTypes && (
-                <Typography variant="body2">Typ: {formatJsonField(consultation.alopeciaTypes)}</Typography>
-              )}
-              {consultation.alopeciaType && (
-                <Typography variant="body2">Klasyfikacja: {consultation.alopeciaType}</Typography>
-              )}
-              {consultation.degreeOfThinning && (
-                <Typography variant="body2">Przerzedzenie: {consultation.degreeOfThinning}</Typography>
-              )}
-              {consultation.alopeciaAffectedAreas && (
-                <Typography variant="body2">Obszary: {formatJsonField(consultation.alopeciaAffectedAreas)}</Typography>
-              )}
-              {consultation.miniaturization && (
-                <Typography variant="body2">Miniaturyzacja: {consultation.miniaturization}</Typography>
-              )}
-              {consultation.follicularUnits && (
-                <Typography variant="body2">Jednostki: {consultation.follicularUnits}</Typography>
-              )}
-              {consultation.pullTest && (
-                <Typography variant="body2">Pull Test: {consultation.pullTest}</Typography>
-              )}
-              {consultation.alopeciaOther && (
-                <Typography variant="body2">Inne: {consultation.alopeciaOther}</Typography>
-              )}
-              {consultation.norwoodHamiltonStage && (
-                <Typography variant="body2" sx={{ mt: 1 }}>
-                  Norwood-Hamilton: {consultation.norwoodHamiltonStage}
-                  {consultation.norwoodHamiltonNotes && ` (${consultation.norwoodHamiltonNotes})`}
-                </Typography>
-              )}
-              {consultation.ludwigStage && (
-                <Typography variant="body2">
-                  Ludwig: {consultation.ludwigStage}
-                  {consultation.ludwigNotes && ` (${consultation.ludwigNotes})`}
-                </Typography>
-              )}
-            </Box>
-          </Grid>
-          <Grid size={{ xs: 12, md: 6 }}>
-            <Box sx={{
-              backgroundColor: '#f9f9f9',
-              border: '1px solid #ddd',
-              p: 2,
-              borderRadius: 1
-            }}>
+          <Grid container spacing={2} sx={{ mt: 2 }}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Box sx={{
+                backgroundColor: '#e0e0e0',
                 fontWeight: 'bold',
                 fontSize: '1rem',
+                p: 1,
                 mb: 2,
+                borderLeft: '5px solid #333',
                 textTransform: 'uppercase'
               }}>
-                Zalecenia Domowe
+                Rozpoznanie (Diagnoza)
               </Box>
-              <Box sx={{ fontSize: '0.875rem' }}>
-                {consultation.careRecommendationsWashing && (
-                  <Box sx={{ mb: 1 }}>
-                    <Typography component="strong">Mycie:</Typography> {consultation.careRecommendationsWashing}
-                  </Box>
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
+                  {consultation.diagnosis || 'Brak wpisu'}
+                </Typography>
+                {consultation.alopeciaTypes && (
+                  <Typography variant="body2">Typ: {formatJsonField(consultation.alopeciaTypes)}</Typography>
                 )}
-                {consultation.careRecommendationsTopical && (
-                  <Box sx={{ mb: 1 }}>
-                    <Typography component="strong">Wcierki:</Typography> {consultation.careRecommendationsTopical}
-                  </Box>
+                {consultation.alopeciaType && (
+                  <Typography variant="body2">Klasyfikacja: {consultation.alopeciaType}</Typography>
                 )}
-                {consultation.careRecommendationsSupplement && (
-                  <Box sx={{ mb: 1 }}>
-                    <Typography component="strong">Suplementy:</Typography> {consultation.careRecommendationsSupplement}
-                  </Box>
+                {consultation.degreeOfThinning && (
+                  <Typography variant="body2">Przerzedzenie: {consultation.degreeOfThinning}</Typography>
                 )}
-                {consultation.careRecommendationsBehavior && (
-                  <Box sx={{ mb: 1 }}>
-                    <Typography component="strong">Zachowanie:</Typography> {consultation.careRecommendationsBehavior}
-                  </Box>
+                {consultation.alopeciaAffectedAreas && (
+                  <Typography variant="body2">Obszary: {formatJsonField(consultation.alopeciaAffectedAreas)}</Typography>
                 )}
-                {consultation.visitsProcedures && (
-                  <Box sx={{ mb: 1 }}>
-                    <Typography component="strong">Gabinet:</Typography> {consultation.visitsProcedures}
-                  </Box>
+                {consultation.miniaturization && (
+                  <Typography variant="body2">Miniaturyzacja: {consultation.miniaturization}</Typography>
+                )}
+                {consultation.follicularUnits && (
+                  <Typography variant="body2">Jednostki: {consultation.follicularUnits}</Typography>
+                )}
+                {consultation.pullTest && (
+                  <Typography variant="body2">Pull Test: {consultation.pullTest}</Typography>
+                )}
+                {consultation.alopeciaOther && (
+                  <Typography variant="body2">Inne: {consultation.alopeciaOther}</Typography>
+                )}
+                {consultation.norwoodHamiltonStage && (
+                  <Typography variant="body2" sx={{ mt: 1 }}>
+                    Norwood-Hamilton: {consultation.norwoodHamiltonStage}
+                    {consultation.norwoodHamiltonNotes && ` (${consultation.norwoodHamiltonNotes})`}
+                  </Typography>
+                )}
+                {consultation.ludwigStage && (
+                  <Typography variant="body2">
+                    Ludwig: {consultation.ludwigStage}
+                    {consultation.ludwigNotes && ` (${consultation.ludwigNotes})`}
+                  </Typography>
                 )}
               </Box>
-            </Box>
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Box sx={{
+                backgroundColor: '#f9f9f9',
+                border: '1px solid #ddd',
+                p: 2,
+                borderRadius: 1
+              }}>
+                <Box sx={{
+                  fontWeight: 'bold',
+                  fontSize: '1rem',
+                  mb: 2,
+                  textTransform: 'uppercase'
+                }}>
+                  Zalecenia Domowe
+                </Box>
+                <Box sx={{ fontSize: '0.875rem' }}>
+                  {consultation.careRecommendationsWashing && (
+                    <Box sx={{ mb: 1 }}>
+                      <Typography component="strong">Mycie:</Typography> {consultation.careRecommendationsWashing}
+                    </Box>
+                  )}
+                  {consultation.careRecommendationsTopical && (
+                    <Box sx={{ mb: 1 }}>
+                      <Typography component="strong">Wcierki:</Typography> {consultation.careRecommendationsTopical}
+                    </Box>
+                  )}
+                  {consultation.careRecommendationsSupplement && (
+                    <Box sx={{ mb: 1 }}>
+                      <Typography component="strong">Suplementy:</Typography> {consultation.careRecommendationsSupplement}
+                    </Box>
+                  )}
+                  {consultation.careRecommendationsBehavior && (
+                    <Box sx={{ mb: 1 }}>
+                      <Typography component="strong">Zachowanie:</Typography> {consultation.careRecommendationsBehavior}
+                    </Box>
+                  )}
+                  {consultation.visitsProcedures && (
+                    <Box sx={{ mb: 1 }}>
+                      <Typography component="strong">Gabinet:</Typography> {consultation.visitsProcedures}
+                    </Box>
+                  )}
+                </Box>
+              </Box>
+            </Grid>
           </Grid>
-        </Grid>
         )}
 
         {/* General Remarks */}

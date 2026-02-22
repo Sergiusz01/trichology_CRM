@@ -22,6 +22,7 @@ import {
   Image as ImageIcon,
 } from '@mui/icons-material';
 import { api } from '../services/api';
+import SecureImage from '../components/SecureImage';
 
 export default function ScalpPhotosPage() {
   const { id } = useParams<{ id: string }>();

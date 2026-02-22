@@ -52,15 +52,36 @@ export default function ConsultationFormPage() {
     if (actualConsultationId && !isNewConsultation) {
       fetchConsultation();
     } else if (actualPatientId) {
-      // When creating new consultation, ensure patientId is set
-      setFormData((prev: any) => ({
-        ...prev,
-        patientId: actualPatientId,
-      }));
-      // Load templates for new consultation
-      fetchTemplates();
+      if (location.state?.sourceConsultation) {
+        // Pre-fill form with source consultation for duplication
+        const src = location.state.sourceConsultation;
+        const initialData = {
+          ...src,
+          ...(src.dynamicData || {}),
+          id: undefined, // remove old IDs
+          consultationDate: new Date().toISOString().split('T')[0],
+          patientId: actualPatientId,
+        };
+
+        if (src.template) {
+          setSelectedTemplate(src.template);
+          setUseTemplate(true);
+        } else {
+          // If the source wasn't using a template, we need to load templates just in case they decide to switch
+          fetchTemplates();
+        }
+        setFormData(initialData);
+      } else {
+        // When creating new consultation naturally
+        setFormData((prev: any) => ({
+          ...prev,
+          patientId: actualPatientId,
+        }));
+        // Load templates for new consultation
+        fetchTemplates();
+      }
     }
-  }, [actualConsultationId, actualPatientId, isNewConsultation]);
+  }, [actualConsultationId, actualPatientId, isNewConsultation, location.state]);
 
   const fetchTemplates = async () => {
     try {

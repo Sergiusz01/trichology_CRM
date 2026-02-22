@@ -37,7 +37,7 @@ const patientSchema = z.object({
     .or(z.literal('')),
   gender: z.enum(['MALE', 'FEMALE', 'OTHER', '']).optional(),
   phone: z.string()
-    .regex(/^[0-9\s\-\+\(\)]*$/, 'Nieprawidłowy format telefonu')
+    .regex(/^(?:\+48|48)?[\s-]*(?:\d[\s-]*){9}$/, 'Wpisz poprawny polski numer (np. +48 123 456 789)')
     .optional()
     .or(z.literal('')),
   email: z.string()

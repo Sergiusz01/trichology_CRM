@@ -34,6 +34,7 @@ import {
 import { api } from '../services/api';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
+import { ErrorState } from '../ui/ErrorState';
 
 interface Consultation {
   id: string;
@@ -46,6 +47,7 @@ interface Consultation {
 export default function ConsultationsPage() {
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);              // MUI is 0-indexed
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [total, setTotal] = useState(0);
@@ -62,8 +64,10 @@ export default function ConsultationsPage() {
       });
       setConsultations(res.data.consultations || []);
       setTotal(res.data.pagination?.total ?? 0);
-    } catch (e) {
+      setError(null);
+    } catch (e: any) {
       console.error('Błąd pobierania konsultacji:', e);
+      setError(e.response?.data?.error || 'Nie udało się załadować konsultacji. Spróbuj ponownie.');
     } finally {
       setLoading(false);
     }
@@ -155,10 +159,11 @@ export default function ConsultationsPage() {
       />
 
       {loading ? (
-
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 280 }}>
           <CircularProgress />
         </Box>
+      ) : error ? (
+        <ErrorState message={error} onRetry={() => fetchConsultations()} />
       ) : consultations.length === 0 ? (
         <Paper
           sx={{
