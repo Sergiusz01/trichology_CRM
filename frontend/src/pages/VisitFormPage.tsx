@@ -25,7 +25,7 @@ import { useNotification } from '../hooks/useNotification';
 import { VISIT_STATUS_CONFIG } from '../constants/visitStatus';
 
 const MINUTE_OPTIONS = ['00', '15', '30', '45'] as const;
-const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
+const HOUR_OPTIONS = Array.from({ length: 9 }, (_, i) => String(i + 8).padStart(2, '0')); // 08 to 16
 
 function roundToNearestMinutes(date: Date): { h: string; m: string } {
   const m = date.getMinutes();
