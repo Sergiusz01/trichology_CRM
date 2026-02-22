@@ -275,14 +275,22 @@ export default function VisitFormPage() {
               {!actualPatientId && (
                 <Grid size={{ xs: 12 }}>
                   <Autocomplete
-                    options={patients}
+                    options={selectedPatient ? [selectedPatient, ...patients.filter(p => p.id !== selectedPatient.id)] : patients}
                     getOptionLabel={(option) => `${option.firstName} ${option.lastName}`}
-                    filterOptions={(x) => x}    // server handles filtering
+                    filterOptions={(x) => x}
                     value={selectedPatient || null}
                     inputValue={patientSearch}
-                    onInputChange={(_, val) => setPatientSearch(val)}
+                    onInputChange={(_, val, reason) => {
+                      // Only update search text when the user is actually typing
+                      // Ignore 'reset' (option selected) and 'clear' (x button)
+                      if (reason === 'input') {
+                        setPatientSearch(val);
+                      }
+                    }}
                     onChange={(_, newValue) => {
                       handleChange('patientId', newValue?.id || '');
+                      // Update the visible input text to the selected patient's name
+                      setPatientSearch(newValue ? `${newValue.firstName} ${newValue.lastName}` : '');
                     }}
                     loading={loadingPatients}
                     noOptionsText={patientSearch.length < 1 ? 'Zacznij pisać, aby wyszukać' : 'Brak wyników'}
