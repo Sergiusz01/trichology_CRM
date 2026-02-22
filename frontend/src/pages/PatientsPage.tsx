@@ -32,9 +32,12 @@ import {
   Stack,
   alpha,
   Container,
+  FormControl,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import { AppCard, AppButton, AppTextField, PageHeader } from '../ui';
-import { Add, Visibility, Delete, Search, Person, Download, Restore, DeleteForever, Archive, Phone, Email } from '@mui/icons-material';
+import { Add, Visibility, Delete, Search, Person, Download, Restore, DeleteForever, Archive, Phone, Email, ArrowUpward, ArrowDownward } from '@mui/icons-material';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../hooks/useNotification';
@@ -61,6 +64,8 @@ export default function PatientsPage() {
   const [search, setSearch] = useState('');
   const [total, setTotal] = useState(0);
   const [showArchived, setShowArchived] = useState(false);
+  const [sortBy, setSortBy] = useState<'createdAt' | 'lastName' | 'lastVisit'>('createdAt');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [deleteDialog, setDeleteDialog] = useState<{
     open: boolean;
     patientId: string | null;
@@ -90,7 +95,7 @@ export default function PatientsPage() {
 
   useEffect(() => {
     fetchPatients();
-  }, [page, rowsPerPage, search, showArchived]);
+  }, [page, rowsPerPage, search, showArchived, sortBy, sortOrder]);
 
   const fetchPatients = async () => {
     try {
@@ -102,6 +107,8 @@ export default function PatientsPage() {
           limit: rowsPerPage,
           search,
           archived: showArchived,
+          sortBy,
+          sortOrder,
         },
         _skipErrorToast: true,
       });
@@ -220,6 +227,38 @@ export default function PatientsPage() {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
 
+  const isEmptyDb = total === 0 && !search && !showArchived;
+
+  if (!loading && isEmptyDb) {
+    return (
+      <Container maxWidth="xl" sx={{ px: { xs: 1, sm: 2, md: 3 } }}>
+        <Box sx={{ mb: { xs: 2, sm: 3 } }}>
+          <PageHeader title="Pacjenci" subtitle="Zarządzaj bazą pacjentów i ich historią medyczną" />
+          <Box sx={{ mt: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', p: { xs: 3, md: 8 }, bgcolor: 'white', borderRadius: 4, border: '2px dashed', borderColor: alpha('#1976d2', 0.2) }}>
+            <Avatar sx={{ width: 80, height: 80, bgcolor: alpha('#1976d2', 0.1), color: '#1976d2', mb: 3 }}>
+              <Person sx={{ fontSize: 40 }} />
+            </Avatar>
+            <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F172A', mb: 2, fontSize: { xs: '1.75rem', md: '2.5rem' } }}>
+              Brak pacjentów w bazie
+            </Typography>
+            <Typography variant="body1" sx={{ color: 'text.secondary', mb: 4, maxWidth: 600, fontSize: '1.1rem', lineHeight: 1.6 }}>
+              Twoja lista pacjentów jest obecnie pusta. Dodaj pierwszego pacjenta, aby rozpocząć budowanie bazy i historii leczenia.
+            </Typography>
+            <AppButton
+              variant="primary"
+              startIcon={<Add />}
+              onClick={() => navigate('/patients/new')}
+              size="large"
+              sx={{ px: 4, py: 1.5, fontSize: '1.1rem' }}
+            >
+              DODAJ PIERWSZEGO PACJENTA
+            </AppButton>
+          </Box>
+        </Box>
+      </Container>
+    );
+  }
+
   return (
     <Container maxWidth="xl" sx={{ px: { xs: 1, sm: 2, md: 3 } }}>
       <Box sx={{ mb: { xs: 2, sm: 3 } }}>
@@ -283,25 +322,46 @@ export default function PatientsPage() {
             background: 'transparent',
           }}
         >
-          <AppTextField
-            name="search"
-            fullWidth
-            placeholder={isMobile ? "Szukaj pacjenta..." : "Szukaj po imieniu, nazwisku, nr telefonu lub emailu..."}
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(0);
-            }}
-            size={isMobile ? 'small' : 'medium'}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search sx={{ color: 'primary.main' }} fontSize={isMobile ? 'small' : 'medium'} />
-                </InputAdornment>
-              ),
-              sx: { borderRadius: 2.5 }
-            }}
-          />
+          <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
+            <AppTextField
+              name="search"
+              fullWidth
+              placeholder={isMobile ? "Szukaj pacjenta..." : "Szukaj po imieniu, nazwisku, nr telefonu lub emailu..."}
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(0);
+              }}
+              size={isMobile ? 'small' : 'medium'}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Search sx={{ color: 'primary.main' }} fontSize={isMobile ? 'small' : 'medium'} />
+                  </InputAdornment>
+                ),
+                sx: { borderRadius: 2.5 }
+              }}
+            />
+            <Box sx={{ display: 'flex', gap: 1, minWidth: { md: 240 } }}>
+              <FormControl size={isMobile ? 'small' : 'medium'} fullWidth>
+                <Select
+                  value={sortBy}
+                  onChange={(e) => { setSortBy(e.target.value as any); setPage(0); }}
+                  sx={{ borderRadius: 2.5, bgcolor: 'white' }}
+                >
+                  <MenuItem value="createdAt">Data dodania</MenuItem>
+                  <MenuItem value="lastName">Nazwisko</MenuItem>
+                  <MenuItem value="lastVisit">Ostatnia wizyta</MenuItem>
+                </Select>
+              </FormControl>
+              <IconButton
+                onClick={() => { setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc'); setPage(0); }}
+                sx={{ bgcolor: 'white', borderRadius: 2.5, border: '1px solid', borderColor: 'divider' }}
+              >
+                {sortOrder === 'asc' ? <ArrowUpward /> : <ArrowDownward />}
+              </IconButton>
+            </Box>
+          </Box>
         </AppCard>
 
         {isMobile ? (
@@ -317,8 +377,8 @@ export default function PatientsPage() {
                 <Card>
                   <CardContent>
                     <Box sx={{ textAlign: 'center', py: 4 }}>
-                      <Person sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-                      <Typography color="text.secondary">Brak pacjentów</Typography>
+                      <Search sx={{ fontSize: 64, color: 'text.secondary', mb: 2, opacity: 0.5 }} />
+                      <Typography color="text.secondary">Nie znaleziono pasujących pacjentów</Typography>
                     </Box>
                   </CardContent>
                 </Card>
@@ -471,9 +531,9 @@ export default function PatientsPage() {
                   </TableRow>
                 ) : patients.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
-                      <Person sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-                      <Typography color="text.secondary">Brak pacjentów</Typography>
+                    <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
+                      <Search sx={{ fontSize: 64, color: 'text.secondary', mb: 2, opacity: 0.5 }} />
+                      <Typography color="text.secondary" sx={{ fontWeight: 500 }}>Nie znaleziono pasujących pacjentów</Typography>
                     </TableCell>
                   </TableRow>
                 ) : (

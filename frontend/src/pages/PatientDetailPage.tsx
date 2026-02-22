@@ -55,9 +55,10 @@ import {
   CalendarToday,
   EventAvailable,
   Notifications,
-  Send,
   GetApp,
-  Visibility
+  Visibility,
+  Check,
+  Close,
 } from '@mui/icons-material';
 import { api, BASE_URL } from '../services/api';
 import { useNotification } from '../hooks/useNotification';
@@ -74,6 +75,7 @@ interface Patient {
   email?: string;
   occupation?: string;
   address?: string;
+  notes?: string;
 }
 
 interface Visit {
@@ -204,6 +206,8 @@ export default function PatientDetailPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const [tempNotes, setTempNotes] = useState('');
 
   useEffect(() => {
     if (id) {
@@ -563,6 +567,28 @@ export default function PatientDetailPage() {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
 
+  const handleSaveNotes = async () => {
+    if (!patient) return;
+    try {
+      await api.put(`/patients/${id}`, {
+        firstName: patient.firstName,
+        lastName: patient.lastName,
+        age: patient.age,
+        gender: patient.gender,
+        phone: patient.phone,
+        email: patient.email,
+        occupation: patient.occupation,
+        address: patient.address,
+        notes: tempNotes,
+      });
+      showSuccess('Notatki zapisane');
+      setIsEditingNotes(false);
+      fetchPatient();
+    } catch (err: any) {
+      showError(err.response?.data?.error || 'Błąd podczas zapisywania notatek');
+    }
+  };
+
   if (loading) {
     return (
       <Box sx={{
@@ -694,6 +720,43 @@ export default function PatientDetailPage() {
                       px: 0.5,
                     }}
                   />
+                )}
+              </Box>
+
+              {/* Quick Notes Section */}
+              <Box sx={{ mt: 3, p: 2, bgcolor: alpha('#F5A623', 0.05), borderLeft: '3px solid', borderColor: '#F5A623', borderRadius: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#d48a1b', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.5px' }}>
+                    Szybkie notatki (widoczne tylko tutaj)
+                  </Typography>
+                  {!isEditingNotes && (
+                    <IconButton size="small" onClick={() => { setTempNotes(patient.notes || ''); setIsEditingNotes(true); }} sx={{ color: '#d48a1b' }}>
+                      <Edit fontSize="small" />
+                    </IconButton>
+                  )}
+                </Box>
+                {isEditingNotes ? (
+                  <Box>
+                    <TextField
+                      fullWidth
+                      multiline
+                      minRows={2}
+                      value={tempNotes}
+                      onChange={(e) => setTempNotes(e.target.value)}
+                      variant="outlined"
+                      size="small"
+                      placeholder="Wpisz ważne uwagi o pacjencie..."
+                      sx={{ bgcolor: 'white', mb: 1 }}
+                    />
+                    <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                      <Button size="small" variant="text" color="inherit" onClick={() => setIsEditingNotes(false)}>Anuluj</Button>
+                      <Button size="small" variant="contained" color="warning" onClick={handleSaveNotes} disableElevation>Zapisz</Button>
+                    </Box>
+                  </Box>
+                ) : (
+                  <Typography variant="body2" sx={{ color: '#555', whiteSpace: 'pre-wrap' }}>
+                    {patient.notes || 'Brak wpisanych uwag. Dodaj, klikając na ikonę edycji.'}
+                  </Typography>
                 )}
               </Box>
             </Box>

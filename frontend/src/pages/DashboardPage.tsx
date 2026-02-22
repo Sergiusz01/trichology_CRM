@@ -403,6 +403,39 @@ export default function DashboardPage() {
         },
     ];
 
+    const isEmptyDb = stats.patientsCount === 0 && !searchQuery;
+
+    if (isEmptyDb) {
+        return (
+            <Box sx={{ pb: 4, px: { xs: 1, sm: 2, md: 3 } }}>
+                <PageHeader
+                    title="Witaj w Light Clinic 2026!"
+                    subtitle={format(new Date(), "EEEE, d MMMM yyyy", { locale: pl })}
+                />
+                <Box sx={{ mt: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', p: { xs: 3, md: 8 }, bgcolor: 'white', borderRadius: 4, border: '2px dashed', borderColor: alpha('#1976d2', 0.2) }}>
+                    <Avatar sx={{ width: 80, height: 80, bgcolor: alpha('#1976d2', 0.1), color: '#1976d2', mb: 3 }}>
+                        <PersonAdd sx={{ fontSize: 40 }} />
+                    </Avatar>
+                    <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F172A', mb: 2, fontSize: { xs: '1.75rem', md: '2.5rem' } }}>
+                        Twój system jest gotowy do pracy
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: 'text.secondary', mb: 4, maxWidth: 600, fontSize: '1.1rem', lineHeight: 1.6 }}>
+                        Wygląda na to, że nie masz jeszcze żadnych pacjentów w swojej bazie. Rozpocznij pracę, dodając pierwszą osobę, a następnie zaplanuj dla niej konsultację lub wizytę w kalendarzu.
+                    </Typography>
+                    <AppButton
+                        variant="primary"
+                        startIcon={<Add />}
+                        onClick={() => navigate('/patients/new')}
+                        size="large"
+                        sx={{ px: 4, py: 1.5, fontSize: '1.1rem' }}
+                    >
+                        DODAJ PIERWSZEGO PACJENTA
+                    </AppButton>
+                </Box>
+            </Box>
+        );
+    }
+
     return (
         <Box sx={{ pb: 4 }}>
             {/* Header Section */}

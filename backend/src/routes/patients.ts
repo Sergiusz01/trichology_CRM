@@ -17,12 +17,13 @@ const patientSchema = z.object({
   address: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().email().optional().or(z.literal('')),
+  notes: z.string().optional(),
 });
 
 // Get all patients (with search and pagination)
 router.get('/', authenticate, async (req: AuthRequest, res, next) => {
   try {
-    const { search, page = '1', limit = '50', archived = 'false' } = req.query;
+    const { search, page = '1', limit = '50', archived = 'false', sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
     const pageNum = parseInt(page as string, 10);
     const limitNum = parseInt(limit as string, 10);
     const skip = (pageNum - 1) * limitNum;
@@ -42,12 +43,13 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
       ];
     }
 
-    const [patients, total] = await Promise.all([
-      prisma.patient.findMany({
+    let patients;
+    const total = await prisma.patient.count({ where });
+
+    if (sortBy === 'lastVisit') {
+      // JS Sorting fallback for relation aggregate
+      let allPatients = await prisma.patient.findMany({
         where,
-        skip,
-        take: limitNum,
-        orderBy: { createdAt: 'desc' },
         select: {
           id: true,
           firstName: true,
@@ -58,13 +60,53 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
           email: true,
           occupation: true,
           address: true,
+          notes: true,
+          isArchived: true,
+          createdAt: true,
+          updatedAt: true,
+          visits: {
+            orderBy: { data: 'desc' },
+            take: 1,
+            select: { data: true }
+          }
+        }
+      });
+
+      allPatients.sort((a: any, b: any) => {
+        const aDate = a.visits?.[0]?.data ? new Date(a.visits[0].data).getTime() : 0;
+        const bDate = b.visits?.[0]?.data ? new Date(b.visits[0].data).getTime() : 0;
+        return sortOrder === 'asc' ? aDate - bDate : bDate - aDate;
+      });
+
+      // Map to remove 'visits' payload to match usual schema
+      patients = allPatients.slice(skip, skip + limitNum).map(({ visits, ...rest }: any) => rest);
+    } else {
+      let orderByObj: any = { createdAt: 'desc' };
+      if (sortBy === 'lastName') orderByObj = { lastName: sortOrder };
+      else if (sortBy === 'createdAt') orderByObj = { createdAt: sortOrder };
+
+      patients = await prisma.patient.findMany({
+        where,
+        skip,
+        take: limitNum,
+        orderBy: orderByObj,
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          age: true,
+          gender: true,
+          phone: true,
+          email: true,
+          occupation: true,
+          address: true,
+          notes: true,
           isArchived: true,
           createdAt: true,
           updatedAt: true,
         },
-      }),
-      prisma.patient.count({ where }),
-    ]);
+      });
+    }
 
     res.json({
       patients,
