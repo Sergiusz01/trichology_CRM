@@ -101,7 +101,7 @@ router.get('/stats/weekly-revenue', authenticate, async (req: AuthRequest, res, 
     const startOfWeek = new Date(today);
     startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday
     startOfWeek.setHours(0, 0, 0, 0);
-    
+
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(startOfWeek.getDate() + 6); // Sunday
     endOfWeek.setHours(23, 59, 59, 999);
@@ -225,7 +225,7 @@ router.post('/', authenticate, async (req: AuthRequest, res, next) => {
       const [datePart, timePart] = data.data.split('T');
       const [year, month, day] = datePart.split('-').map(Number);
       const [hours, minutes] = timePart.split(':').map(Number);
-      
+
       // Create date as UTC to preserve the exact hour/minute
       // This ensures that when read back and displayed, it shows the same time
       visitDate = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0, 0));
@@ -325,7 +325,7 @@ router.put('/:id', authenticate, requireWriteAccess(), async (req: AuthRequest, 
         const [datePart, timePart] = data.data.split('T');
         const [year, month, day] = datePart.split('-').map(Number);
         const [hours, minutes] = timePart.split(':').map(Number);
-        
+
         // Create date as UTC to preserve the exact hour/minute
         // This ensures that when read back and displayed, it shows the same time
         visitDate = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0, 0));
@@ -528,6 +528,7 @@ router.post('/:id/reminder', authenticate, async (req: AuthRequest, res, next) =
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
+      timeZone: 'UTC',
     });
 
     // Generate calendar links
@@ -618,14 +619,14 @@ router.post('/:id/reminder', authenticate, async (req: AuthRequest, res, next) =
         },
       });
 
-      res.json({ 
+      res.json({
         message: 'Przypomnienie wysłane pomyślnie',
         googleCalendarURL,
         outlookCalendarURL,
       });
     } catch (emailError: any) {
       console.error('Błąd wysyłania przypomnienia:', emailError);
-      
+
       // Save failed email to history
       await prisma.emailHistory.create({
         data: {
@@ -638,7 +639,7 @@ router.post('/:id/reminder', authenticate, async (req: AuthRequest, res, next) =
         },
       });
 
-      return res.status(500).json({ 
+      return res.status(500).json({
         error: 'Błąd wysyłania emaila',
         details: emailError.message,
       });
