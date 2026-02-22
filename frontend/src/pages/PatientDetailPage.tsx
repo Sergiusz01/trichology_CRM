@@ -112,18 +112,33 @@ const sectionTitles = {
   5: "Wizyty",
 };
 
+const sectionIds = [
+  'section-overview',
+  'section-consultations',
+  'section-lab-results',
+  'section-scalp-photos',
+  'section-care-plans',
+  'section-visits',
+];
+
 interface TabPanelProps {
   children?: React.ReactNode;
   index: number;
   value: number;
+  activeSection?: number | null;
 }
 
 function TabPanel(props: TabPanelProps) {
-  const { children, index } = props;
+  const { children, index, activeSection } = props;
   const title = sectionTitles[index as keyof typeof sectionTitles] || "Sekcja";
   return (
-    <Section title={title} defaultExpanded={index === 0}>
-      <Box sx={{ pt: 1, px: { xs: 1, md: 2 } }}>{children}</Box>
+    <Section
+      id={sectionIds[index]}
+      title={title}
+      defaultExpanded={index === 0}
+      forceExpand={activeSection === index}
+    >
+      <Box sx={{ pt: 1, px: { xs: 0.5, md: 2 } }}>{children}</Box>
     </Section>
   );
 }
@@ -136,6 +151,7 @@ export default function PatientDetailPage() {
   const [patient, setPatient] = useState<Patient | null>(null);
   const [loading, setLoading] = useState(true);
   const [tabValue, setTabValue] = useState(0);
+  const [activeSection, setActiveSection] = useState<number | null>(null);
   const [consultations, setConsultations] = useState<any[]>([]);
   const [labResults, setLabResults] = useState<any[]>([]);
   const [scalpPhotos, setScalpPhotos] = useState<any[]>([]);
@@ -602,13 +618,27 @@ export default function PatientDetailPage() {
     { label: 'Wizyty', value: visits.length, icon: EventAvailable, color: '#AF52DE' },
   ];
 
+  const scrollToSection = (index: number) => {
+    const sectionIndex = index + 1; // stats map to sections 1-5
+    setActiveSection(sectionIndex);
+    setTabValue(sectionIndex);
+    setTimeout(() => {
+      const el = document.getElementById(sectionIds[sectionIndex]);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      // Reset forceExpand after a short delay
+      setTimeout(() => setActiveSection(null), 1000);
+    }, 100);
+  };
+
   return (
     <Box sx={{
       bgcolor: '#f5f5f7',
       minHeight: '100vh',
       pb: 6,
     }}>
-      <Container maxWidth="lg" sx={{ pt: 3 }}>
+      <Container maxWidth="lg" sx={{ pt: { xs: 2, md: 3 }, px: { xs: 1.5, md: 3 } }}>
         {/* Back Button */}
         <AppButton
           variant="secondary"
@@ -627,7 +657,7 @@ export default function PatientDetailPage() {
         {/* Header Card */}
         <AppCard
           sx={{
-            p: 4,
+            p: { xs: 2.5, md: 4 },
             mb: 3,
             border: '1px solid',
             borderColor: 'divider',
@@ -732,55 +762,55 @@ export default function PatientDetailPage() {
         </AppCard>
 
         {/* Stats Grid */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid container spacing={{ xs: 1.5, md: 3 }} sx={{ mb: { xs: 2, md: 4 } }}>
           {stats.map((stat, index) => {
-            const isActive = tabValue === (index + 1); // Stats correspond to tabs 1-4
+            const isActive = tabValue === (index + 1);
             return (
-              <Grid key={index} size={{ xs: 6, md: 3 }}>
+              <Grid key={index} size={{ xs: 6, sm: 4, md: 'auto' }} sx={{ flex: { md: 1 } }}>
                 <Paper
                   elevation={0}
-                  onClick={() => setTabValue(index + 1)}
+                  onClick={() => scrollToSection(index)}
                   sx={{
-                    p: { xs: 2, sm: 3 },
-                    borderRadius: 4,
+                    p: { xs: 1.5, sm: 2, md: 3 },
+                    borderRadius: 3,
                     bgcolor: 'white',
                     border: '1px solid',
                     borderColor: isActive ? stat.color : 'divider',
                     cursor: 'pointer',
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    boxShadow: isActive ? `0 8px 24px ${alpha(stat.color, 0.15)}` : 'none',
+                    transition: 'all 0.25s ease',
+                    boxShadow: isActive ? `0 4px 16px ${alpha(stat.color, 0.15)}` : 'none',
                     position: 'relative',
                     overflow: 'hidden',
+                    height: '100%',
                     '&:hover': {
                       borderColor: stat.color,
-                      transform: 'translateY(-4px)',
-                      boxShadow: `0 12px 30px ${alpha(stat.color, 0.12)}`,
+                      transform: 'translateY(-2px)',
+                      boxShadow: `0 8px 20px ${alpha(stat.color, 0.12)}`,
                     },
                     '&::before': isActive ? {
                       content: '""',
                       position: 'absolute',
                       top: 0,
                       left: 0,
-                      width: 4,
+                      width: 3,
                       height: '100%',
                       bgcolor: stat.color
                     } : {}
                   }}
                 >
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                    <Box
-                      sx={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: 2.5,
-                        bgcolor: alpha(stat.color, 0.1),
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <stat.icon sx={{ color: stat.color, fontSize: 24 }} />
-                    </Box>
+                  <Box
+                    sx={{
+                      width: { xs: 36, md: 44 },
+                      height: { xs: 36, md: 44 },
+                      borderRadius: 2,
+                      bgcolor: alpha(stat.color, 0.1),
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      mb: { xs: 1, md: 2 },
+                    }}
+                  >
+                    <stat.icon sx={{ color: stat.color, fontSize: { xs: 18, md: 24 } }} />
                   </Box>
                   <Typography
                     variant="h3"
@@ -788,7 +818,8 @@ export default function PatientDetailPage() {
                       fontWeight: 800,
                       color: '#1d1d1f',
                       mb: 0.5,
-                      fontSize: { xs: '1.75rem', md: '2.25rem' },
+                      fontSize: { xs: '1.4rem', sm: '1.75rem', md: '2.25rem' },
+                      lineHeight: 1,
                     }}
                   >
                     {stat.value}
@@ -797,10 +828,11 @@ export default function PatientDetailPage() {
                     variant="body2"
                     sx={{
                       color: '#86868b',
-                      fontSize: '0.875rem',
+                      fontSize: { xs: '0.7rem', md: '0.875rem' },
                       fontWeight: 600,
                       textTransform: 'uppercase',
-                      letterSpacing: '0.02em'
+                      letterSpacing: '0.02em',
+                      mt: 0.5,
                     }}
                   >
                     {stat.label}
@@ -811,10 +843,10 @@ export default function PatientDetailPage() {
           })}
         </Grid>
 
-        <Box sx={{ mt: 4 }}>
+        <Box sx={{ mt: { xs: 2, md: 4 } }}>
 
           {/* Tab Panel 0: Overview */}
-          <TabPanel value={tabValue} index={0}>
+          <TabPanel value={tabValue} index={0} activeSection={activeSection}>
             <Grid container spacing={3}>
               {/* Contact Information */}
               <Grid size={{ xs: 12, md: 6 }}>
@@ -975,7 +1007,7 @@ export default function PatientDetailPage() {
           </TabPanel>
 
           {/* Tab Panel 1: Consultations */}
-          <TabPanel value={tabValue} index={1}>
+          <TabPanel value={tabValue} index={1} activeSection={activeSection}>
             <Box sx={{ mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
               <Button
                 variant="contained"
@@ -1137,7 +1169,7 @@ export default function PatientDetailPage() {
           </TabPanel>
 
           {/* Tab Panel 2: Lab Results */}
-          <TabPanel value={tabValue} index={2}>
+          <TabPanel value={tabValue} index={2} activeSection={activeSection}>
             <Box sx={{ mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
               <Button
                 variant="contained"
@@ -1353,7 +1385,7 @@ export default function PatientDetailPage() {
           </TabPanel>
 
           {/* Tab Panel 3: Photos */}
-          <TabPanel value={tabValue} index={3}>
+          <TabPanel value={tabValue} index={3} activeSection={activeSection}>
             <Box sx={{ mb: 3 }}>
               <Button
                 variant="contained"
@@ -1478,7 +1510,7 @@ export default function PatientDetailPage() {
           </TabPanel>
 
           {/* Tab Panel 4: Care Plans */}
-          <TabPanel value={tabValue} index={4}>
+          <TabPanel value={tabValue} index={4} activeSection={activeSection}>
             <Box sx={{ mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
               <Button
                 variant="contained"
@@ -1692,7 +1724,7 @@ export default function PatientDetailPage() {
           </TabPanel>
 
           {/* Tab Panel 5: Visits */}
-          <TabPanel value={tabValue} index={5}>
+          <TabPanel value={tabValue} index={5} activeSection={activeSection}>
             <Box sx={{ mb: 3 }}>
               <Button
                 variant="contained"
