@@ -33,6 +33,39 @@ const updateVisitSchema = z.object({
   cena: z.number().nonnegative().optional().nullable(),
 });
 
+// Get all visits (optionally filtered by date range)
+router.get('/', authenticate, async (req: AuthRequest, res, next) => {
+  try {
+    const { start, end } = req.query;
+
+    const where: any = {};
+    if (start && end) {
+      where.data = {
+        gte: new Date(start as string),
+        lte: new Date(end as string),
+      };
+    }
+
+    const visits = await prisma.visit.findMany({
+      where,
+      orderBy: { data: 'asc' },
+      include: {
+        patient: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+    });
+
+    res.json({ data: visits });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Get all visits for a specific patient
 router.get('/patient/:id', authenticate, async (req: AuthRequest, res, next) => {
   try {
@@ -482,6 +515,59 @@ router.delete('/:id', authenticate, requireWriteAccess(), async (req: AuthReques
     });
 
     res.json({ message: 'Wizyta została usunięta' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Download ICS for visit
+router.get('/:id/ics', authenticate, async (req: AuthRequest, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const visit = await prisma.visit.findUnique({
+      where: { id },
+      include: {
+        patient: { select: { firstName: true, lastName: true } }
+      }
+    });
+
+    if (!visit) {
+      return res.status(404).json({ error: 'Wizyta nie znaleziona' });
+    }
+
+    const calendarVisitObj = visit as any;
+    const icsContent = generateVisitICS(calendarVisitObj);
+
+    res.setHeader('Content-Type', 'text/calendar');
+    res.setHeader('Content-Disposition', `attachment; filename="wizyta_${id}.ics"`);
+    res.send(icsContent);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get Calendar Links for visit
+router.get('/:id/calendar-links', authenticate, async (req: AuthRequest, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const visit = await prisma.visit.findUnique({
+      where: { id },
+      include: {
+        patient: { select: { firstName: true, lastName: true } }
+      }
+    });
+
+    if (!visit) {
+      return res.status(404).json({ error: 'Wizyta nie znaleziona' });
+    }
+
+    const calendarVisitObj = visit as any;
+    const googleCalendarURL = generateGoogleCalendarURL(calendarVisitObj);
+    const outlookCalendarURL = generateOutlookCalendarURL(calendarVisitObj);
+
+    res.json({ googleCalendarURL, outlookCalendarURL });
   } catch (error) {
     next(error);
   }

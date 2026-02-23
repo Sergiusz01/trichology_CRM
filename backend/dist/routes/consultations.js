@@ -150,24 +150,42 @@ const consultationSchema = zod_1.z.object({
     ludwigStage: zod_1.z.string().optional(),
     ludwigNotes: zod_1.z.string().optional(),
 });
-// Get all consultations (for dashboard and reports)
+// Get all consultations (paginated, with optional search)
 router.get('/', auth_1.authenticate, async (req, res, next) => {
     try {
-        const { limit = '100' } = req.query;
-        const limitNum = parseInt(limit, 10);
-        const consultations = await prisma_1.prisma.consultation.findMany({
-            take: limitNum,
-            orderBy: { consultationDate: 'desc' },
-            include: {
-                patient: {
-                    select: { id: true, firstName: true, lastName: true, email: true },
+        const { limit = '25', page = '1', search = '' } = req.query;
+        const limitNum = Math.min(parseInt(limit, 10) || 25, 100);
+        const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+        const skip = (pageNum - 1) * limitNum;
+        const where = {};
+        if (search) {
+            const s = search.trim();
+            where.OR = [
+                { patient: { firstName: { contains: s, mode: 'insensitive' } } },
+                { patient: { lastName: { contains: s, mode: 'insensitive' } } },
+            ];
+        }
+        const [consultations, total] = await Promise.all([
+            prisma_1.prisma.consultation.findMany({
+                where,
+                skip,
+                take: limitNum,
+                orderBy: { consultationDate: 'desc' },
+                include: {
+                    patient: {
+                        select: { id: true, firstName: true, lastName: true, email: true },
+                    },
+                    doctor: {
+                        select: { id: true, name: true, email: true },
+                    },
                 },
-                doctor: {
-                    select: { id: true, name: true, email: true },
-                },
-            },
+            }),
+            prisma_1.prisma.consultation.count({ where }),
+        ]);
+        res.json({
+            consultations,
+            pagination: { page: pageNum, limit: limitNum, total, totalPages: Math.ceil(total / limitNum) },
         });
-        res.json({ consultations });
     }
     catch (error) {
         next(error);

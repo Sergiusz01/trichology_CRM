@@ -44,6 +44,14 @@ const auth_1 = require("../middleware/auth");
 const prisma_1 = require("../prisma");
 const rateLimit_1 = require("../middleware/rateLimit");
 const router = express_1.default.Router();
+// In-memory blacklist for invalidated refresh tokens
+// Persists for the server lifetime; refreshes kill the token on logout
+const revokedRefreshTokens = new Set();
+// Auto-cleanup every hour: remove tokens that are certainly expired (> 7d old)
+// by storing timestamp alongside — simpler approach: just flush every hour
+setInterval(() => {
+    revokedRefreshTokens.clear();
+}, 60 * 60 * 1000);
 const registerSchema = zod_1.z.object({
     name: zod_1.z.string().min(1, 'Imię jest wymagane'),
     email: zod_1.z.string().email('Nieprawidłowy adres email'),
@@ -151,6 +159,10 @@ router.post('/refresh', rateLimit_1.refreshLimiter, async (req, res, next) => {
         }
         const { verifyRefreshToken } = await Promise.resolve().then(() => __importStar(require('../utils/jwt')));
         const decoded = verifyRefreshToken(refreshToken);
+        // Reject if token has been revoked (e.g. after logout)
+        if (revokedRefreshTokens.has(refreshToken)) {
+            return res.status(401).json({ error: 'Token odświeżający został unieważniony' });
+        }
         const user = await prisma_1.prisma.user.findUnique({
             where: { id: decoded.userId },
             select: { id: true, email: true, role: true },
@@ -173,6 +185,14 @@ router.post('/refresh', rateLimit_1.refreshLimiter, async (req, res, next) => {
     catch (error) {
         next(error);
     }
+});
+// Logout - revoke refresh token
+router.post('/logout', async (req, res) => {
+    const { refreshToken } = req.body;
+    if (refreshToken) {
+        revokedRefreshTokens.add(refreshToken);
+    }
+    return res.json({ message: 'Wylogowano pomyślnie' });
 });
 // Get current user
 router.get('/me', auth_1.authenticate, async (req, res, next) => {

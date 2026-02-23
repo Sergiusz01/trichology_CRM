@@ -34,6 +34,8 @@ const VisitFormPage = lazy(() => import('./pages/VisitFormPage'));
 const RevenuePage = lazy(() => import('./pages/RevenuePage'));
 const ActivityLogPage = lazy(() => import('./pages/ActivityLogPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const CalendarPage = lazy(() => import('./pages/CalendarPage'));
+const VisitsPage = lazy(() => import('./pages/VisitsPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 // Loading component for Suspense fallback
@@ -96,7 +98,9 @@ function App() {
             <Route path="patients/:id/edit" element={<PatientFormPage />} />
             <Route path="patients/:id/consultations/new" element={<ConsultationFormPage />} />
             <Route path="patients/:id/visits/new" element={<VisitFormPage />} />
+            <Route path="visits" element={<VisitsPage />} />
             <Route path="visits/new" element={<VisitFormPage />} />
+            <Route path="calendar" element={<CalendarPage />} />
             <Route path="consultations" element={<ConsultationsPage />} />
             <Route path="consultations/:id" element={<ConsultationViewPage />} />
             <Route path="consultations/:id/edit" element={<ConsultationFormPage />} />

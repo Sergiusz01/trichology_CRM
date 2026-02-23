@@ -2,6 +2,7 @@ import { sendEmail } from './emailService';
 import { generateCarePlanPDF } from './pdfService';
 import { getLogoHTML } from '../utils/logo';
 import { prisma } from '../prisma';
+import { generateVisitICS, generateGoogleCalendarURL, generateOutlookCalendarURL } from '../utils/icalendar';
 
 const checkAndSendReminders = async () => {
   try {
@@ -115,15 +116,139 @@ const checkAndSendReminders = async () => {
   }
 };
 
+const checkAndSendVisitReminders = async () => {
+  try {
+    const now = new Date();
+    const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const in3Days = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+    const in1Day = new Date(now.getTime() + 1 * 24 * 60 * 60 * 1000);
+
+    const upcomingVisits = await prisma.visit.findMany({
+      where: {
+        status: 'ZAPLANOWANA',
+        data: { gt: now },
+        OR: [
+          { data: { lte: in7Days }, reminder7DaysSent: false },
+          { data: { lte: in3Days }, reminder3DaysSent: false },
+          { data: { lte: in1Day }, reminder1DaySent: false },
+        ]
+      },
+      include: {
+        patient: { select: { id: true, firstName: true, email: true } },
+      }
+    });
+
+    for (const visit of upcomingVisits) {
+      if (!visit.patient.email) continue;
+
+      const timeDiff = visit.data.getTime() - now.getTime();
+      const daysDiff = timeDiff / (1000 * 60 * 60 * 24);
+
+      let reminderType = '';
+      let updateData = {};
+
+      if (daysDiff <= 1 && !visit.reminder1DaySent) {
+        reminderType = '1 dzień';
+        updateData = { reminder1DaySent: true, reminder3DaysSent: true, reminder7DaysSent: true };
+      } else if (daysDiff <= 3 && !visit.reminder3DaysSent) {
+        reminderType = '3 dni';
+        updateData = { reminder3DaysSent: true, reminder7DaysSent: true };
+      } else if (daysDiff <= 7 && !visit.reminder7DaysSent) {
+        reminderType = '7 dni';
+        updateData = { reminder7DaysSent: true };
+      } else {
+        continue;
+      }
+
+      // Hack to adapt visit object to calendar format generator which expects a structure
+      const calendarVisitObj = visit as any;
+      const googleCalendarURL = generateGoogleCalendarURL(calendarVisitObj);
+      const outlookCalendarURL = generateOutlookCalendarURL(calendarVisitObj);
+      const icsContent = generateVisitICS(calendarVisitObj);
+
+      const emailHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background-color: #1976d2; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+          .content { background-color: #f9f9f9; padding: 30px; border-radius: 0 0 5px 5px; }
+          .visit-info { background-color: white; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #1976d2; }
+          .calendar-buttons { margin: 30px 0; text-align: center; }
+          .calendar-button { display: inline-block; margin: 10px; padding: 12px 24px; background-color: #1976d2; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; }
+          .calendar-button:hover { background-color: #1565c0; }
+          .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666; text-align: center; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          ${getLogoHTML()}
+          <div class="header">
+            <h1>Przypomnienie o wizycie (za ${reminderType})</h1>
+          </div>
+          <div class="content">
+            <p>Dzień dobry ${visit.patient.firstName},</p>
+            <p>Przypominamy o zbliżającej się wizycie:</p>
+            <div class="visit-info">
+              <p><strong>Rodzaj zabiegu:</strong> ${visit.rodzajZabiegu}</p>
+              <p><strong>Data:</strong> ${visit.data.toLocaleDateString('pl-PL')}</p>
+              <p><strong>Godzina:</strong> ${visit.data.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}</p>
+            </div>
+            
+            <div class="calendar-buttons">
+              <a href="${googleCalendarURL}" class="calendar-button" target="_blank">Google Calendar</a>
+              <a href="${outlookCalendarURL}" class="calendar-button" target="_blank">Outlook</a>
+            </div>
+          </div>
+          <div class="footer">
+            Wiadomość wygenerowana automatycznie.
+          </div>
+        </div>
+      </body>
+      </html>
+      `;
+
+      try {
+        await sendEmail({
+          to: visit.patient.email,
+          subject: `Przypomnienie o wizycie - za ${reminderType}`,
+          html: emailHtml,
+          attachments: [{
+            filename: 'wizyta.ics',
+            content: Buffer.from(icsContent, 'utf-8')
+          }]
+        });
+
+        await prisma.visit.update({
+          where: { id: visit.id },
+          data: updateData
+        });
+
+        console.log(`✅ Wysłano przypomnienie (${reminderType}) o wizycie do: ${visit.patient.email}`);
+      } catch (e) {
+        console.error('Błąd wysyłania automatycznego przypomnienia (wizyta):', e);
+      }
+    }
+
+  } catch (error) {
+    console.error('Błąd w checkAndSendVisitReminders:', error);
+  }
+};
+
 export const startReminderWorker = () => {
   console.log('🔄 Reminder worker uruchomiony');
 
   // Check immediately
   checkAndSendReminders();
+  checkAndSendVisitReminders();
 
   // Then check every 5 minutes
   setInterval(() => {
     checkAndSendReminders();
+    checkAndSendVisitReminders();
   }, 5 * 60 * 1000);
 };
 

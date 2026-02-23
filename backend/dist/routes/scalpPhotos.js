@@ -8,46 +8,66 @@ const zod_1 = require("zod");
 const multer_1 = __importDefault(require("multer"));
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
+const uuid_1 = require("uuid");
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const auth_1 = require("../middleware/auth");
 const prisma_1 = require("../prisma");
 const router = express_1.default.Router();
-// Configure multer for file uploads
-const uploadDir = process.env.UPLOAD_DIR || './storage/uploads';
-if (!fs_1.default.existsSync(uploadDir)) {
-    fs_1.default.mkdirSync(uploadDir, { recursive: true });
+const UPLOAD_DIR = process.env.UPLOAD_DIR || path_1.default.join(process.cwd(), 'storage/uploads');
+if (!fs_1.default.existsSync(UPLOAD_DIR)) {
+    fs_1.default.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
+// Ensure the directory is fully resolved
+const normalizedUploadDir = path_1.default.resolve(UPLOAD_DIR);
 const storage = multer_1.default.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, uploadDir);
-    },
+    destination: (req, file, cb) => cb(null, normalizedUploadDir),
     filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-        const ext = path_1.default.extname(file.originalname);
-        cb(null, `scalp-${uniqueSuffix}${ext}`);
+        const ext = path_1.default.extname(file.originalname).toLowerCase();
+        cb(null, `scalp-${(0, uuid_1.v4)()}${ext}`);
     },
 });
 const upload = (0, multer_1.default)({
     storage,
-    limits: {
-        fileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760', 10), // 10MB default
-    },
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB Limit
     fileFilter: (req, file, cb) => {
-        const allowedTypes = /jpeg|jpg|png|webp/;
-        const extname = allowedTypes.test(path_1.default.extname(file.originalname).toLowerCase());
-        const mimetype = allowedTypes.test(file.mimetype);
-        if (extname && mimetype) {
+        const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp'];
+        if (allowedMimeTypes.includes(file.mimetype)) {
             cb(null, true);
         }
         else {
-            cb(new Error('Tylko pliki obrazów (JPEG, PNG, WEBP) są dozwolone'));
+            cb(new Error('Niedozwolony format pliku. Tylko JPG, PNG, WEBP.'));
         }
     },
 });
 const annotationSchema = zod_1.z.object({
     type: zod_1.z.enum(['PROBLEM_AREA', 'NOTE', 'OTHER']),
     shapeType: zod_1.z.enum(['RECT', 'CIRCLE', 'POLYGON']),
-    coordinates: zod_1.z.any(), // JSON object
+    coordinates: zod_1.z.any(),
     label: zod_1.z.string().min(1, 'Etykieta jest wymagana'),
+});
+// Secure image download endpoint
+router.get('/secure/:filename', async (req, res) => {
+    const { filename } = req.params;
+    const token = req.query.token;
+    if (!token)
+        return res.status(401).json({ error: 'Brak tokenu autoryzacyjnego' });
+    try {
+        jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
+        const normalizedFilePath = path_1.default.resolve(path_1.default.join(normalizedUploadDir, filename));
+        if (!normalizedFilePath.startsWith(normalizedUploadDir)) {
+            return res.status(403).json({ error: 'Odmowa dostępu: niedozwolona ścieżka' });
+        }
+        if (!fs_1.default.existsSync(normalizedFilePath)) {
+            return res.status(404).json({ error: 'Plik nie istnieje' });
+        }
+        res.setHeader('Cache-Control', 'private, max-age=86400');
+        // Security header to avoid XSS issues
+        res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+        res.sendFile(normalizedFilePath);
+    }
+    catch (err) {
+        return res.status(401).json({ error: 'Nieprawidłowy lub wygasły token' });
+    }
 });
 // Upload scalp photo
 router.post('/patient/:patientId', auth_1.authenticate, upload.single('photo'), async (req, res, next) => {
@@ -55,42 +75,39 @@ router.post('/patient/:patientId', auth_1.authenticate, upload.single('photo'), 
         const { patientId } = req.params;
         const { consultationId, notes } = req.body;
         if (!req.file) {
-            return res.status(400).json({ error: 'Brak pliku' });
+            return res.status(400).json({ error: 'Brak pliku lub zły format' });
         }
-        // Verify patient exists
         const patient = await prisma_1.prisma.patient.findUnique({
             where: { id: patientId },
         });
         if (!patient) {
-            // Delete uploaded file if patient doesn't exist
             fs_1.default.unlinkSync(req.file.path);
             return res.status(404).json({ error: 'Pacjent nie znaleziony' });
         }
-        const scalpPhoto = await prisma_1.prisma.scalpPhoto.create({
-            data: {
-                patientId,
-                consultationId: consultationId || undefined,
-                uploadedByUserId: req.user.id,
-                filePath: req.file.path,
-                originalFilename: req.file.originalname,
-                mimeType: req.file.mimetype,
-                notes: notes || undefined,
-            },
-            include: {
-                patient: {
-                    select: { id: true, firstName: true, lastName: true },
+        try {
+            const scalpPhoto = await prisma_1.prisma.scalpPhoto.create({
+                data: {
+                    patientId,
+                    consultationId: consultationId || undefined,
+                    uploadedByUserId: req.user.id,
+                    filename: req.file.filename,
+                    filePath: req.file.path, // deprecated legacy fallback
+                    originalFilename: req.file.originalname,
+                    mimeType: req.file.mimetype,
+                    notes: notes || undefined,
                 },
-                uploadedBy: {
-                    select: { id: true, name: true },
+                include: {
+                    patient: { select: { id: true, firstName: true, lastName: true } },
+                    uploadedBy: { select: { id: true, name: true } },
                 },
-            },
-        });
-        // Add URL field for frontend (use secured route)
-        const photoWithUrl = {
-            ...scalpPhoto,
-            url: `/uploads/${path_1.default.basename(scalpPhoto.filePath)}`,
-        };
-        res.status(201).json({ scalpPhoto: photoWithUrl });
+            });
+            res.status(201).json({ scalpPhoto });
+        }
+        catch (dbError) {
+            if (fs_1.default.existsSync(req.file.path))
+                fs_1.default.unlinkSync(req.file.path);
+            throw dbError;
+        }
     }
     catch (error) {
         next(error);
@@ -109,20 +126,11 @@ router.get('/patient/:patientId', auth_1.authenticate, async (req, res, next) =>
             where,
             orderBy: { createdAt: 'desc' },
             include: {
-                uploadedBy: {
-                    select: { id: true, name: true },
-                },
-                annotations: {
-                    orderBy: { createdAt: 'asc' },
-                },
+                uploadedBy: { select: { id: true, name: true } },
+                annotations: { orderBy: { createdAt: 'asc' } },
             },
         });
-        // Convert file paths to URLs (use secured route)
-        const photosWithUrls = scalpPhotos.map(photo => ({
-            ...photo,
-            url: `/uploads/${path_1.default.basename(photo.filePath)}`,
-        }));
-        res.json({ scalpPhotos: photosWithUrls });
+        res.json({ scalpPhotos });
     }
     catch (error) {
         next(error);
@@ -145,7 +153,7 @@ router.get('/:id/file', auth_1.authenticate, async (req, res, next) => {
             return res.status(404).json({ error: 'Zdjęcie nie znalezione' });
         }
         // Verify file exists on disk
-        if (!fs_1.default.existsSync(scalpPhoto.filePath)) {
+        if (!scalpPhoto.filePath || !fs_1.default.existsSync(scalpPhoto.filePath)) {
             return res.status(404).json({ error: 'Plik nie istnieje na serwerze' });
         }
         // All authenticated users can access patient photos in this system
@@ -185,7 +193,7 @@ router.get('/:id', auth_1.authenticate, async (req, res, next) => {
         // Use secured file route instead of /uploads
         const photoWithUrl = {
             ...scalpPhoto,
-            url: `/uploads/${path_1.default.basename(scalpPhoto.filePath)}`,
+            url: scalpPhoto.filename ? `/api/uploads/secure/${scalpPhoto.filename}` : (scalpPhoto.filePath ? `/uploads/${path_1.default.basename(scalpPhoto.filePath)}` : null),
         };
         res.json({ scalpPhoto: photoWithUrl });
     }
@@ -217,7 +225,7 @@ router.put('/:id', auth_1.authenticate, async (req, res, next) => {
         });
         const photoWithUrl = {
             ...scalpPhoto,
-            url: `/uploads/${path_1.default.basename(scalpPhoto.filePath)}`,
+            url: scalpPhoto.filename ? `/api/uploads/secure/${scalpPhoto.filename}` : (scalpPhoto.filePath ? `/uploads/${path_1.default.basename(scalpPhoto.filePath)}` : null),
         };
         res.json({ scalpPhoto: photoWithUrl });
     }
@@ -236,7 +244,7 @@ router.delete('/:id', auth_1.authenticate, async (req, res, next) => {
             return res.status(404).json({ error: 'Zdjęcie nie znalezione' });
         }
         // Delete file from filesystem
-        if (fs_1.default.existsSync(scalpPhoto.filePath)) {
+        if (scalpPhoto.filePath && fs_1.default.existsSync(scalpPhoto.filePath)) {
             fs_1.default.unlinkSync(scalpPhoto.filePath);
         }
         // Delete from database (cascade will delete annotations)

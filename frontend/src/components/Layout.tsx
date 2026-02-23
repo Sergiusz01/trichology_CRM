@@ -32,6 +32,8 @@ import {
   ExpandLess,
   ExpandMore,
   FolderSpecial,
+  CalendarMonth,
+  EventAvailable,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -40,7 +42,9 @@ const drawerWidth = 260; // Slightly narrower for a sleeker look
 const mainMenuItems = [
   { text: 'Panel główny', icon: <DashboardIcon sx={{ fontSize: 20 }} />, path: '/' },
   { text: 'Pacjenci', icon: <People sx={{ fontSize: 20 }} />, path: '/patients' },
+  { text: 'Kalendarz', icon: <CalendarMonth sx={{ fontSize: 20 }} />, path: '/calendar' },
   { text: 'Konsultacje', icon: <EventNote sx={{ fontSize: 20 }} />, path: '/consultations' },
+  { text: 'Wizyty / Zabiegi', icon: <EventAvailable sx={{ fontSize: 20 }} />, path: '/visits' },
   { text: 'Przychody', icon: <AttachMoney sx={{ fontSize: 20 }} />, path: '/revenue' },
 ];
 

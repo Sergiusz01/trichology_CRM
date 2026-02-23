@@ -37,7 +37,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const client_1 = require("@prisma/client");
 const zod_1 = require("zod");
 const auth_1 = require("../middleware/auth");
 const emailService_1 = require("../services/emailService");
@@ -46,8 +45,8 @@ const emailTemplateRenderer_1 = require("../utils/emailTemplateRenderer");
 const multer_1 = __importDefault(require("multer"));
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
+const prisma_1 = require("../prisma");
 const router = express_1.default.Router();
-const prisma = new client_1.PrismaClient();
 // Configure multer for file uploads
 const uploadDir = path_1.default.join(__dirname, '../../storage/email-attachments');
 if (!fs_1.default.existsSync(uploadDir)) {
@@ -82,7 +81,7 @@ router.post('/consultation/:id', auth_1.authenticate, async (req, res, next) => 
         if (!recipientEmail) {
             return res.status(400).json({ error: 'Adres email odbiorcy jest wymagany' });
         }
-        const consultation = await prisma.consultation.findUnique({
+        const consultation = await prisma_1.prisma.consultation.findUnique({
             where: { id },
             include: {
                 patient: true,
@@ -96,7 +95,7 @@ router.post('/consultation/:id', auth_1.authenticate, async (req, res, next) => 
         }
         const pdfBuffer = await (0, pdfService_1.generateConsultationPDF)(consultation);
         // Try to get email template, fallback to default if not found
-        let template = await prisma.emailTemplate.findFirst({
+        let template = await prisma_1.prisma.emailTemplate.findFirst({
             where: {
                 type: 'CONSULTATION',
                 isDefault: true,
@@ -146,7 +145,7 @@ router.post('/consultation/:id', auth_1.authenticate, async (req, res, next) => 
                 ],
             });
             // Save to email history
-            await prisma.emailHistory.create({
+            await prisma_1.prisma.emailHistory.create({
                 data: {
                     patientId: consultation.patientId,
                     sentByUserId: req.user.id,
@@ -163,7 +162,7 @@ router.post('/consultation/:id', auth_1.authenticate, async (req, res, next) => 
         }
         catch (emailError) {
             // Save failed email to history
-            await prisma.emailHistory.create({
+            await prisma_1.prisma.emailHistory.create({
                 data: {
                     patientId: consultation.patientId,
                     sentByUserId: req.user.id,
@@ -192,7 +191,7 @@ router.post('/care-plan/:id', auth_1.authenticate, async (req, res, next) => {
         if (!recipientEmail) {
             return res.status(400).json({ error: 'Adres email odbiorcy jest wymagany' });
         }
-        const carePlan = await prisma.carePlan.findUnique({
+        const carePlan = await prisma_1.prisma.carePlan.findUnique({
             where: { id },
             include: {
                 patient: true,
@@ -209,7 +208,7 @@ router.post('/care-plan/:id', auth_1.authenticate, async (req, res, next) => {
         }
         const pdfBuffer = await (0, pdfService_1.generateCarePlanPDF)(carePlan);
         // Try to get email template, fallback to default if not found
-        let template = await prisma.emailTemplate.findFirst({
+        let template = await prisma_1.prisma.emailTemplate.findFirst({
             where: {
                 type: 'CARE_PLAN',
                 isDefault: true,
@@ -258,7 +257,7 @@ router.post('/care-plan/:id', auth_1.authenticate, async (req, res, next) => {
                 ],
             });
             // Save to email history
-            await prisma.emailHistory.create({
+            await prisma_1.prisma.emailHistory.create({
                 data: {
                     patientId: carePlan.patientId,
                     sentByUserId: req.user.id,
@@ -275,7 +274,7 @@ router.post('/care-plan/:id', auth_1.authenticate, async (req, res, next) => {
         }
         catch (emailError) {
             // Save failed email to history
-            await prisma.emailHistory.create({
+            await prisma_1.prisma.emailHistory.create({
                 data: {
                     patientId: carePlan.patientId,
                     sentByUserId: req.user.id,
@@ -305,7 +304,7 @@ router.post('/reminders', auth_1.authenticate, async (req, res, next) => {
         // For now, assume carePlanId is provided and we get patient from there
         let patientId;
         if (data.carePlanId) {
-            const carePlan = await prisma.carePlan.findUnique({
+            const carePlan = await prisma_1.prisma.carePlan.findUnique({
                 where: { id: data.carePlanId },
                 select: { patientId: true },
             });
@@ -322,7 +321,7 @@ router.post('/reminders', auth_1.authenticate, async (req, res, next) => {
             }
             patientId = reqPatientId;
         }
-        const reminder = await prisma.emailReminder.create({
+        const reminder = await prisma_1.prisma.emailReminder.create({
             data: {
                 ...data,
                 patientId,
@@ -341,7 +340,7 @@ router.post('/reminders', auth_1.authenticate, async (req, res, next) => {
 router.get('/reminders/patient/:patientId', auth_1.authenticate, async (req, res, next) => {
     try {
         const { patientId } = req.params;
-        const reminders = await prisma.emailReminder.findMany({
+        const reminders = await prisma_1.prisma.emailReminder.findMany({
             where: { patientId },
             orderBy: { sendAt: 'asc' },
             include: {
@@ -361,7 +360,7 @@ router.put('/reminders/:id', auth_1.authenticate, async (req, res, next) => {
     try {
         const { id } = req.params;
         const data = reminderSchema.partial().parse(req.body);
-        const reminder = await prisma.emailReminder.update({
+        const reminder = await prisma_1.prisma.emailReminder.update({
             where: { id },
             data: {
                 ...data,
@@ -378,7 +377,7 @@ router.put('/reminders/:id', auth_1.authenticate, async (req, res, next) => {
 router.delete('/reminders/:id', auth_1.authenticate, async (req, res, next) => {
     try {
         const { id } = req.params;
-        await prisma.emailReminder.delete({
+        await prisma_1.prisma.emailReminder.delete({
             where: { id },
         });
         res.json({ message: 'Przypomnienie usunięte' });
@@ -443,7 +442,7 @@ router.get('/history/patient/:patientId', auth_1.authenticate, async (req, res, 
         const limitNum = parseInt(limit, 10);
         const skip = (pageNum - 1) * limitNum;
         const [emails, total] = await Promise.all([
-            prisma.emailHistory.findMany({
+            prisma_1.prisma.emailHistory.findMany({
                 where: { patientId },
                 skip,
                 take: limitNum,
@@ -454,7 +453,7 @@ router.get('/history/patient/:patientId', auth_1.authenticate, async (req, res, 
                     carePlan: { select: { id: true, title: true } },
                 },
             }),
-            prisma.emailHistory.count({ where: { patientId } }),
+            prisma_1.prisma.emailHistory.count({ where: { patientId } }),
         ]);
         res.json({
             emails,
@@ -485,7 +484,7 @@ router.get('/history', auth_1.authenticate, async (req, res, next) => {
             where.status = status;
         }
         const [emails, total] = await Promise.all([
-            prisma.emailHistory.findMany({
+            prisma_1.prisma.emailHistory.findMany({
                 where,
                 skip,
                 take: limitNum,
@@ -497,7 +496,7 @@ router.get('/history', auth_1.authenticate, async (req, res, next) => {
                     carePlan: { select: { id: true, title: true } },
                 },
             }),
-            prisma.emailHistory.count({ where }),
+            prisma_1.prisma.emailHistory.count({ where }),
         ]);
         res.json({
             emails,
@@ -517,7 +516,7 @@ router.get('/history', auth_1.authenticate, async (req, res, next) => {
 router.get('/history/:id', auth_1.authenticate, async (req, res, next) => {
     try {
         const { id } = req.params;
-        const email = await prisma.emailHistory.findUnique({
+        const email = await prisma_1.prisma.emailHistory.findUnique({
             where: { id },
             include: {
                 patient: true,
@@ -579,7 +578,7 @@ router.post('/send', auth_1.authenticate, upload.array('attachments', 5), async 
         const data = sendEmailSchema.parse(req.body);
         const files = req.files;
         // Get patient
-        const patient = await prisma.patient.findUnique({
+        const patient = await prisma_1.prisma.patient.findUnique({
             where: { id: data.patientId },
         });
         if (!patient) {
@@ -592,7 +591,7 @@ router.post('/send', auth_1.authenticate, upload.array('attachments', 5), async 
         const attachments = [];
         // Attach consultation PDF if requested
         if (data.attachConsultationId) {
-            const consultation = await prisma.consultation.findUnique({
+            const consultation = await prisma_1.prisma.consultation.findUnique({
                 where: { id: data.attachConsultationId },
                 include: {
                     patient: true,
@@ -609,7 +608,7 @@ router.post('/send', auth_1.authenticate, upload.array('attachments', 5), async 
         }
         // Attach care plan PDF if requested
         if (data.attachCarePlanId) {
-            const carePlan = await prisma.carePlan.findUnique({
+            const carePlan = await prisma_1.prisma.carePlan.findUnique({
                 where: { id: data.attachCarePlanId },
                 include: {
                     patient: true,
@@ -638,7 +637,7 @@ router.post('/send', auth_1.authenticate, upload.array('attachments', 5), async 
             }
         }
         // Get current user (doctor)
-        const doctor = await prisma.user.findUnique({
+        const doctor = await prisma_1.prisma.user.findUnique({
             where: { id: req.user.id },
             select: { name: true, email: true },
         });
@@ -668,7 +667,7 @@ router.post('/send', auth_1.authenticate, upload.array('attachments', 5), async 
                 attachments,
             });
             // Save to email history
-            await prisma.emailHistory.create({
+            await prisma_1.prisma.emailHistory.create({
                 data: {
                     patientId: data.patientId,
                     sentByUserId: req.user.id,
@@ -686,7 +685,7 @@ router.post('/send', auth_1.authenticate, upload.array('attachments', 5), async 
         }
         catch (emailError) {
             // Save failed email to history
-            await prisma.emailHistory.create({
+            await prisma_1.prisma.emailHistory.create({
                 data: {
                     patientId: data.patientId,
                     sentByUserId: req.user.id,
@@ -716,7 +715,7 @@ router.post('/lab-result/:id', auth_1.authenticate, async (req, res, next) => {
         if (!recipientEmail) {
             return res.status(400).json({ error: 'Adres email odbiorcy jest wymagany' });
         }
-        const labResult = await prisma.labResult.findUnique({
+        const labResult = await prisma_1.prisma.labResult.findUnique({
             where: { id },
             include: {
                 patient: true,
@@ -758,7 +757,7 @@ router.post('/lab-result/:id', auth_1.authenticate, async (req, res, next) => {
             labSummary += `\nUwagi: ${labResult.notes}`;
         }
         // Try to get email template, fallback to default if not found
-        let template = await prisma.emailTemplate.findFirst({
+        let template = await prisma_1.prisma.emailTemplate.findFirst({
             where: {
                 type: 'LAB_RESULT',
                 isDefault: true,
@@ -803,7 +802,7 @@ router.post('/lab-result/:id', auth_1.authenticate, async (req, res, next) => {
                 html: htmlBody,
             });
             // Save to email history
-            await prisma.emailHistory.create({
+            await prisma_1.prisma.emailHistory.create({
                 data: {
                     patientId: labResult.patientId,
                     sentByUserId: req.user.id,
@@ -819,7 +818,7 @@ router.post('/lab-result/:id', auth_1.authenticate, async (req, res, next) => {
         }
         catch (emailError) {
             // Save failed email to history
-            await prisma.emailHistory.create({
+            await prisma_1.prisma.emailHistory.create({
                 data: {
                     patientId: labResult.patientId,
                     sentByUserId: req.user.id,
@@ -847,7 +846,7 @@ router.post('/scalp-photo/:id', auth_1.authenticate, async (req, res, next) => {
         if (!recipientEmail) {
             return res.status(400).json({ error: 'Adres email odbiorcy jest wymagany' });
         }
-        const scalpPhoto = await prisma.scalpPhoto.findUnique({
+        const scalpPhoto = await prisma_1.prisma.scalpPhoto.findUnique({
             where: { id },
             include: {
                 patient: true,
@@ -858,7 +857,7 @@ router.post('/scalp-photo/:id', auth_1.authenticate, async (req, res, next) => {
         }
         // Read the image file
         const imagePath = scalpPhoto.filePath;
-        if (!fs_1.default.existsSync(imagePath)) {
+        if (!imagePath || !fs_1.default.existsSync(imagePath)) {
             return res.status(404).json({ error: 'Plik zdjęcia nie istnieje' });
         }
         const imageBuffer = fs_1.default.readFileSync(imagePath);
@@ -888,7 +887,7 @@ router.post('/scalp-photo/:id', auth_1.authenticate, async (req, res, next) => {
                 ],
             });
             // Save to email history
-            await prisma.emailHistory.create({
+            await prisma_1.prisma.emailHistory.create({
                 data: {
                     patientId: scalpPhoto.patientId,
                     sentByUserId: req.user.id,
@@ -904,7 +903,7 @@ router.post('/scalp-photo/:id', auth_1.authenticate, async (req, res, next) => {
         }
         catch (emailError) {
             // Save failed email to history
-            await prisma.emailHistory.create({
+            await prisma_1.prisma.emailHistory.create({
                 data: {
                     patientId: scalpPhoto.patientId,
                     sentByUserId: req.user.id,

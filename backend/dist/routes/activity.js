@@ -92,9 +92,9 @@ router.get('/', auth_1.authenticate, async (req, res, next) => {
                 })
                 : [],
         ]);
-        const visitPatientMap = new Map(visits.map((v) => [v.id, v.patientId]));
-        const labPatientMap = new Map(labResults.map((r) => [r.id, r.patientId]));
-        const carePlanPatientMap = new Map(carePlans.map((c) => [c.id, c.patientId]));
+        const visitPatientMap = new Map(visits.filter((v) => v.id && v.patientId).map((v) => [v.id, v.patientId]));
+        const labPatientMap = new Map(labResults.filter((r) => r.id && r.patientId).map((r) => [r.id, r.patientId]));
+        const carePlanPatientMap = new Map(carePlans.filter((c) => c.id && c.patientId).map((c) => [c.id, c.patientId]));
         const maps = {
             visitPatient: visitPatientMap,
             labPatient: labPatientMap,

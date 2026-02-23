@@ -1,0 +1,1 @@
+import{aL as P,aM as S,V as c,aN as u}from"./index-eZby6m63.js";function g(e){var s;const{elementType:t,externalSlotProps:n,ownerState:r,skipResolvingSlotProps:p=!1,...a}=e,o=p?{}:P(n,r),{props:l,internalRef:f}=S({...a,externalSlotProps:o}),i=c(f,o==null?void 0:o.ref,(s=e.additionalProps)==null?void 0:s.ref);return u(t,{...l,ref:i},r)}export{g as u};

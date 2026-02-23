@@ -26,6 +26,7 @@ model User {
   refreshTokens         RefreshToken[]
   pdfJobs               PdfJob[]        @relation("PdfJobRequestor")
   auditLogs             AuditLog[]
+  pushSubscriptions     PushSubscription[]
 
   @@index([email])
 }
@@ -65,11 +66,14 @@ model Visit {
   rodzajZabiegu String
   notatki       String?
   status        VisitStatus @default(ZAPLANOWANA)
-  numerWSerii   Int?
-  liczbaSerii   Int?
-  cena          Decimal?    @db.Decimal(10, 2)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  numerWSerii       Int?
+  liczbaSerii       Int?
+  cena              Decimal?    @db.Decimal(10, 2)
+  reminder7DaysSent Boolean     @default(false)
+  reminder3DaysSent Boolean     @default(false)
+  reminder1DaySent  Boolean     @default(false)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
   patient       Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
   @@index([patientId])
@@ -634,4 +638,16 @@ model ConsultationTemplate {
   @@index([doctorId])
   @@index([isDefault])
   @@index([isActive])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

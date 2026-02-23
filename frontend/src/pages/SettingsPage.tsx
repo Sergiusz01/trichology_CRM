@@ -15,7 +15,9 @@ import {
     useTheme,
     Tabs,
     Tab,
-    Paper
+    Paper,
+    Switch,
+    FormControlLabel
 } from '@mui/material';
 import {
     Info,
@@ -25,8 +27,10 @@ import {
     CloudDone,
     History,
     Email,
-    Speed
+    Speed,
+    DarkMode
 } from '@mui/icons-material';
+import { useCustomTheme } from '../contexts/ThemeContext';
 
 import ActivityLogPage from './ActivityLogPage';
 import EmailHistoryPage from './EmailHistoryPage';
@@ -68,6 +72,7 @@ function a11yProps(index: number) {
 
 export default function SettingsPage() {
     const theme = useTheme();
+    const { mode, toggleColorMode } = useCustomTheme();
     const [tabValue, setTabValue] = useState(0);
 
     // Variables injected by GitHub Actions CI/CD
@@ -202,6 +207,20 @@ export default function SettingsPage() {
                                     <Typography variant="body2" color="text.secondary">
                                         Moduł systemowy weryfikuje poprawne działanie komponentów pobocznych witryny.
                                     </Typography>
+                                </Box>
+
+                                <Divider sx={{ my: 2 }} />
+
+                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                        <DarkMode sx={{ mr: 1, color: theme.palette.text.secondary }} />
+                                        <Typography variant="body1">Ciemny motyw</Typography>
+                                    </Box>
+                                    <Switch
+                                        checked={mode === 'dark'}
+                                        onChange={toggleColorMode}
+                                        color="primary"
+                                    />
                                 </Box>
                             </CardContent>
                         </Card>

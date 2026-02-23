@@ -24,6 +24,8 @@ async function main() {
         });
         if (DELETE_FILES) {
             for (const photo of photos) {
+                if (!photo.filePath)
+                    continue;
                 const fp = path_1.default.resolve(photo.filePath);
                 if (fs_1.default.existsSync(fp)) {
                     try {

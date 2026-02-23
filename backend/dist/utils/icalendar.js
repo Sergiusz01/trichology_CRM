@@ -10,7 +10,7 @@ function generateVisitICS(visit) {
     const startDate = new Date(visit.data);
     const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // 1 hour duration
     const now = new Date();
-    // Format dates to ICS format (YYYYMMDDTHHmmssZ)
+    // Format dates to ICS format (YYYYMMDDTHHmmss) without Z (floating time)
     const formatICSDate = (date) => {
         const year = date.getUTCFullYear();
         const month = String(date.getUTCMonth() + 1).padStart(2, '0');
@@ -18,7 +18,7 @@ function generateVisitICS(visit) {
         const hours = String(date.getUTCHours()).padStart(2, '0');
         const minutes = String(date.getUTCMinutes()).padStart(2, '0');
         const seconds = String(date.getUTCSeconds()).padStart(2, '0');
-        return `${year}${month}${day}T${hours}${minutes}${seconds}Z`;
+        return `${year}${month}${day}T${hours}${minutes}${seconds}`;
     };
     const escapeICS = (text) => {
         return text
@@ -78,7 +78,7 @@ function generateGoogleCalendarURL(visit) {
     const startDate = new Date(visit.data);
     const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // 1 hour duration
     const formatGoogleDate = (date) => {
-        return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+        return date.toISOString().replace(/[-:]/g, '').split('.')[0];
     };
     const params = new URLSearchParams({
         action: 'TEMPLATE',

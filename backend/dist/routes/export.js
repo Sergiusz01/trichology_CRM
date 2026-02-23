@@ -168,7 +168,10 @@ router.get('/patients/zip', auth_1.authenticate, (0, auth_1.requireRole)('ADMIN'
             if (patient.scalpPhotos.length > 0) {
                 // Copy actual image files
                 for (const photo of patient.scalpPhotos) {
-                    const photoPath = path_1.default.join(__dirname, '../../storage/uploads', path_1.default.basename(photo.filePath));
+                    const fileName = photo.filename || (photo.filePath ? path_1.default.basename(photo.filePath) : '');
+                    if (!fileName)
+                        continue;
+                    const photoPath = path_1.default.join(__dirname, '../../storage/uploads', fileName);
                     if (fs_1.default.existsSync(photoPath)) {
                         const fileBuffer = fs_1.default.readFileSync(photoPath);
                         const photoFileName = photo.originalFilename || `zdjecie_${photo.id.slice(0, 8)}.jpg`;

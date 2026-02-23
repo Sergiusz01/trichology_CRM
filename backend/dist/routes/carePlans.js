@@ -4,13 +4,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const client_1 = require("@prisma/client");
 const zod_1 = require("zod");
 const auth_1 = require("../middleware/auth");
 const pdfService_1 = require("../services/pdfService");
 const auditService_1 = require("../services/auditService");
+const prisma_1 = require("../prisma");
 const router = express_1.default.Router();
-const prisma = new client_1.PrismaClient();
 const carePlanSchema = zod_1.z.object({
     patientId: zod_1.z.string(),
     consultationId: zod_1.z.string().optional().nullable().transform(val => val === '' || !val ? undefined : val),
@@ -41,7 +40,7 @@ router.get('/patient/:patientId', auth_1.authenticate, async (req, res, next) =>
         if (active === 'true') {
             where.isActive = true;
         }
-        const carePlans = await prisma.carePlan.findMany({
+        const carePlans = await prisma_1.prisma.carePlan.findMany({
             where,
             orderBy: { createdAt: 'desc' },
             include: {
@@ -63,7 +62,7 @@ router.get('/patient/:patientId', auth_1.authenticate, async (req, res, next) =>
 router.get('/:id', auth_1.authenticate, async (req, res, next) => {
     try {
         const { id } = req.params;
-        const carePlan = await prisma.carePlan.findUnique({
+        const carePlan = await prisma_1.prisma.carePlan.findUnique({
             where: { id },
             include: {
                 patient: true,
@@ -93,7 +92,7 @@ router.post('/', auth_1.authenticate, async (req, res, next) => {
         const data = carePlanSchema.parse(req.body);
         const createdByUserId = req.user.id;
         // Verify patient exists
-        const patient = await prisma.patient.findUnique({
+        const patient = await prisma_1.prisma.patient.findUnique({
             where: { id: data.patientId },
         });
         if (!patient) {
@@ -102,7 +101,7 @@ router.post('/', auth_1.authenticate, async (req, res, next) => {
         // Verify consultation exists if provided
         let consultationId = data.consultationId;
         if (consultationId && consultationId.trim() !== '') {
-            const consultation = await prisma.consultation.findUnique({
+            const consultation = await prisma_1.prisma.consultation.findUnique({
                 where: { id: consultationId },
             });
             if (!consultation) {
@@ -113,7 +112,7 @@ router.post('/', auth_1.authenticate, async (req, res, next) => {
             consultationId = undefined; // Set to undefined if empty string
         }
         const { weeks, consultationId: _, ...planData } = data;
-        const carePlan = await prisma.carePlan.create({
+        const carePlan = await prisma_1.prisma.carePlan.create({
             data: {
                 ...planData,
                 consultationId, // Use validated consultationId
@@ -150,25 +149,25 @@ router.put('/:id', auth_1.authenticate, async (req, res, next) => {
         const data = carePlanSchema.omit({ patientId: true }).parse(req.body);
         const { weeks, ...planData } = data;
         // Update plan
-        const carePlan = await prisma.carePlan.update({
+        const carePlan = await prisma_1.prisma.carePlan.update({
             where: { id },
             data: planData,
         });
         // Update weeks if provided
         if (weeks) {
             // Delete existing weeks
-            await prisma.carePlanWeek.deleteMany({
+            await prisma_1.prisma.carePlanWeek.deleteMany({
                 where: { carePlanId: id },
             });
             // Create new weeks
-            await prisma.carePlanWeek.createMany({
+            await prisma_1.prisma.carePlanWeek.createMany({
                 data: weeks.map(week => ({
                     ...week,
                     carePlanId: id,
                 })),
             });
         }
-        const updatedPlan = await prisma.carePlan.findUnique({
+        const updatedPlan = await prisma_1.prisma.carePlan.findUnique({
             where: { id },
             include: {
                 patient: true,
@@ -195,7 +194,7 @@ router.put('/:id', auth_1.authenticate, async (req, res, next) => {
 router.delete('/:id', auth_1.authenticate, async (req, res, next) => {
     try {
         const { id } = req.params;
-        const carePlan = await prisma.carePlan.update({
+        const carePlan = await prisma_1.prisma.carePlan.update({
             where: { id },
             data: { isArchived: true },
         });
@@ -217,7 +216,7 @@ router.delete('/:id', auth_1.authenticate, async (req, res, next) => {
 router.post('/:id/restore', auth_1.authenticate, async (req, res, next) => {
     try {
         const { id } = req.params;
-        const carePlan = await prisma.carePlan.findUnique({
+        const carePlan = await prisma_1.prisma.carePlan.findUnique({
             where: { id },
         });
         if (!carePlan) {
@@ -226,7 +225,7 @@ router.post('/:id/restore', auth_1.authenticate, async (req, res, next) => {
         if (!carePlan.isArchived) {
             return res.status(400).json({ error: 'Plan opieki nie jest zarchiwizowany' });
         }
-        const restoredCarePlan = await prisma.carePlan.update({
+        const restoredCarePlan = await prisma_1.prisma.carePlan.update({
             where: { id },
             data: { isArchived: false },
         });
@@ -248,7 +247,7 @@ router.post('/:id/restore', auth_1.authenticate, async (req, res, next) => {
 router.delete('/:id/permanent', auth_1.authenticate, (0, auth_1.requireRole)('ADMIN'), async (req, res, next) => {
     try {
         const { id } = req.params;
-        const carePlan = await prisma.carePlan.findUnique({
+        const carePlan = await prisma_1.prisma.carePlan.findUnique({
             where: { id },
         });
         if (!carePlan) {
@@ -258,7 +257,7 @@ router.delete('/:id/permanent', auth_1.authenticate, (0, auth_1.requireRole)('AD
         // - CarePlanWeek (onDelete: Cascade)
         // - EmailReminder (onDelete: SetNull - carePlanId will be set to null)
         // - EmailHistory (onDelete: SetNull - carePlanId will be set to null)
-        await prisma.carePlan.delete({
+        await prisma_1.prisma.carePlan.delete({
             where: { id },
         });
         await (0, auditService_1.writeAuditLog)(req, {
@@ -280,7 +279,7 @@ router.get('/:id/pdf', auth_1.authenticate, async (req, res, next) => {
     try {
         const { id } = req.params;
         console.log(`Generowanie PDF dla planu opieki ${id}...`);
-        const carePlan = await prisma.carePlan.findUnique({
+        const carePlan = await prisma_1.prisma.carePlan.findUnique({
             where: { id },
             include: {
                 patient: true,

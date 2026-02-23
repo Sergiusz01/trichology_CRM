@@ -1,0 +1,1 @@
+const n=s=>{if(!s)return"";const t=s.split(/[/\\]/).pop();if(!t)return"";const e="",o=localStorage.getItem("accessToken")||"";return`${e.endsWith("/")?e.slice(0,-1):e}/api/uploads/secure/${t}?token=${o}`};export{n as b};

@@ -451,5 +451,98 @@ router.get('/', auth_1.authenticate, async (req, res, next) => {
         next(error);
     }
 });
+// Revenue for a custom date range
+// GET /dashboard/revenue?from=2025-01-01&to=2025-01-31
+router.get('/revenue', auth_1.authenticate, async (req, res, next) => {
+    try {
+        const { from, to } = req.query;
+        const fromDate = from ? new Date(from) : (() => {
+            const d = new Date();
+            d.setDate(d.getDate() - 30);
+            d.setHours(0, 0, 0, 0);
+            return d;
+        })();
+        const toDate = to ? new Date(to) : (() => {
+            const d = new Date();
+            d.setHours(23, 59, 59, 999);
+            return d;
+        })();
+        if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+            return res.status(400).json({ error: 'Nieprawidłowy format daty (użyj YYYY-MM-DD)' });
+        }
+        toDate.setHours(23, 59, 59, 999);
+        const [plannedVisits, completedVisits, visitsByStatus, newPatients] = await Promise.all([
+            prisma_1.prisma.visit.findMany({
+                where: { data: { gte: fromDate, lte: toDate }, status: 'ZAPLANOWANA', cena: { not: null } },
+                select: { cena: true, data: true },
+            }),
+            prisma_1.prisma.visit.findMany({
+                where: { data: { gte: fromDate, lte: toDate }, status: 'ODBYTA', cena: { not: null } },
+                select: { cena: true, data: true },
+            }),
+            prisma_1.prisma.visit.groupBy({
+                by: ['status'],
+                where: { data: { gte: fromDate, lte: toDate } },
+                _count: { id: true },
+                _sum: { cena: true },
+            }),
+            prisma_1.prisma.patient.count({ where: { createdAt: { gte: fromDate, lte: toDate } } }),
+        ]);
+        const plannedRevenue = plannedVisits.reduce((s, v) => s + (Number(v.cena) || 0), 0);
+        const completedRevenue = completedVisits.reduce((s, v) => s + (Number(v.cena) || 0), 0);
+        const statusSummary = {};
+        visitsByStatus.forEach(item => {
+            statusSummary[item.status] = {
+                count: item._count.id,
+                revenue: Number(item._sum.cena) || 0,
+            };
+        });
+        // Build daily revenue breakdown
+        const dayMs = 24 * 60 * 60 * 1000;
+        const diffDays = Math.ceil((toDate.getTime() - fromDate.getTime()) / dayMs);
+        const useWeekly = diffDays > 62; // >2 months → show weekly buckets instead of daily
+        const buckets = {};
+        const allVisits = [...plannedVisits.map(v => ({ ...v, status: 'ZAPLANOWANA' })),
+            ...completedVisits.map(v => ({ ...v, status: 'ODBYTA' }))];
+        allVisits.forEach(v => {
+            const d = new Date(v.data);
+            let key;
+            if (useWeekly) {
+                // ISO week start (Monday)
+                const dow = d.getDay() || 7;
+                const mon = new Date(d);
+                mon.setDate(d.getDate() - dow + 1);
+                key = mon.toISOString().slice(0, 10);
+            }
+            else {
+                key = d.toISOString().slice(0, 10);
+            }
+            if (!buckets[key])
+                buckets[key] = { planned: 0, completed: 0 };
+            if (v.status === 'ZAPLANOWANA')
+                buckets[key].planned += Number(v.cena) || 0;
+            else
+                buckets[key].completed += Number(v.cena) || 0;
+        });
+        const timeline = Object.entries(buckets)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([date, vals]) => ({ date, ...vals, total: vals.planned + vals.completed }));
+        return res.json({
+            range: { from: fromDate.toISOString(), to: toDate.toISOString() },
+            summary: {
+                plannedRevenue,
+                completedRevenue,
+                totalRevenue: plannedRevenue + completedRevenue,
+                newPatients,
+                statusSummary,
+                granularity: useWeekly ? 'weekly' : 'daily',
+            },
+            timeline,
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+});
 exports.default = router;
 //# sourceMappingURL=dashboard.js.map

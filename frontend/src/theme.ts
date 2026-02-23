@@ -7,9 +7,9 @@ const textPrimary = '#0F172A';
 const textSecondary = '#64748B';
 const borderLight = '#E2E8F0';
 
-export const theme = createTheme({
+export const getThemeOptions = (mode: 'light' | 'dark') => ({
   palette: {
-    mode: 'light',
+    mode,
     primary: {
       main: brandAccent,
       light: '#60A5FA',
@@ -17,18 +17,18 @@ export const theme = createTheme({
       contrastText: '#FFFFFF',
     },
     secondary: {
-      main: '#10B981', // Emerald for success/secondary acts
+      main: '#10B981',
       contrastText: '#FFFFFF',
     },
     background: {
-      default: neutralBg,
-      paper: cardBg,
+      default: mode === 'light' ? neutralBg : '#0f172a',
+      paper: mode === 'light' ? cardBg : '#1e293b',
     },
     text: {
-      primary: textPrimary,
-      secondary: textSecondary,
+      primary: mode === 'light' ? textPrimary : '#f8fafc',
+      secondary: mode === 'light' ? textSecondary : '#94a3b8',
     },
-    divider: borderLight,
+    divider: mode === 'light' ? borderLight : '#334155',
     success: { main: '#10B981' },
     warning: { main: '#F59E0B' },
     error: { main: '#EF4444' },
@@ -69,31 +69,30 @@ export const theme = createTheme({
           },
         },
         outlined: {
-          borderColor: borderLight,
-          color: textPrimary,
+          borderColor: mode === 'light' ? borderLight : '#334155',
+          color: mode === 'light' ? textPrimary : '#f8fafc',
           '&:hover': {
-            backgroundColor: '#F1F5F9',
-            borderColor: '#CBD5E1',
+            backgroundColor: mode === 'light' ? '#F1F5F9' : '#334155',
+            borderColor: mode === 'light' ? '#CBD5E1' : '#475569',
           },
         },
       },
     },
     MuiTextField: {
       defaultProps: {
-        variant: 'outlined',
-        size: 'small',
+        variant: 'outlined' as const,
+        size: 'small' as const,
       },
       styleOverrides: {
         root: {
           '& .MuiOutlinedInput-root': {
             borderRadius: 10,
-            backgroundColor: '#FFFFFF',
             transition: 'all 0.2s',
             '& fieldset': {
-              borderColor: borderLight,
+              borderColor: mode === 'light' ? borderLight : '#334155',
             },
             '&:hover fieldset': {
-              borderColor: '#CBD5E1',
+              borderColor: mode === 'light' ? '#CBD5E1' : '#475569',
             },
             '&.Mui-focused fieldset': {
               borderColor: brandAccent,
@@ -110,8 +109,8 @@ export const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 16,
-          border: `1px solid ${borderLight}`,
-          boxShadow: '0 1px 3px 0 rgba(0,0,0,0.02), 0 0 0 1px rgba(0,0,0,0.02)', // Minimal shadows (Notion/Stripe style)
+          border: `1px solid ${mode === 'light' ? borderLight : '#334155'}`,
+          boxShadow: '0 1px 3px 0 rgba(0,0,0,0.02), 0 0 0 1px rgba(0,0,0,0.02)',
           backgroundImage: 'none',
           '&:hover': {
             // Remove the aggressive hover jump from previous theme
@@ -127,7 +126,7 @@ export const theme = createTheme({
         },
         elevation1: {
           boxShadow: '0 1px 3px 0 rgba(0,0,0,0.02), 0 0 0 1px rgba(0,0,0,0.02)',
-          border: `1px solid ${borderLight}`,
+          border: `1px solid ${mode === 'light' ? borderLight : '#334155'}`,
         }
       },
     },
@@ -136,14 +135,14 @@ export const theme = createTheme({
         root: {
           '& .MuiTableCell-head': {
             fontWeight: 600,
-            color: textSecondary,
-            backgroundColor: neutralBg,
-            borderBottom: `2px solid ${borderLight}`,
+            color: mode === 'light' ? textSecondary : '#94a3b8',
+            backgroundColor: mode === 'light' ? neutralBg : '#0f172a',
+            borderBottom: `2px solid ${mode === 'light' ? borderLight : '#334155'}`,
             fontSize: '0.875rem',
             padding: '12px 16px',
           },
           '& .MuiTableCell-body': {
-            borderBottom: `1px solid ${borderLight}`,
+            borderBottom: `1px solid ${mode === 'light' ? borderLight : '#334155'}`,
             padding: '12px 16px',
             fontSize: '0.875rem',
           }
@@ -174,7 +173,7 @@ export const theme = createTheme({
     MuiTabs: {
       styleOverrides: {
         root: {
-          borderBottom: `1px solid ${borderLight}`,
+          borderBottom: `1px solid ${mode === 'light' ? borderLight : '#334155'}`,
           minHeight: 40,
         },
         indicator: {
@@ -190,9 +189,9 @@ export const theme = createTheme({
           textTransform: 'none',
           fontWeight: 600,
           minHeight: 40,
-          color: textSecondary,
+          color: mode === 'light' ? textSecondary : '#94a3b8',
           '&.Mui-selected': {
-            color: textPrimary,
+            color: mode === 'light' ? textPrimary : '#f8fafc',
           }
         }
       }

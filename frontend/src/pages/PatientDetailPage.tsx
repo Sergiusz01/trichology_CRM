@@ -48,6 +48,7 @@ import {
   ArrowBack,
   Restore,
   DeleteForever,
+  CalendarMonth,
   Archive,
   Phone,
   LocationOn,
@@ -209,6 +210,12 @@ export default function PatientDetailPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [tempNotes, setTempNotes] = useState('');
+  const [visitFilters, setVisitFilters] = useState({
+    status: '',
+    startDate: '',
+    endDate: '',
+    search: '',
+  });
 
   useEffect(() => {
     if (id) {
@@ -414,6 +421,21 @@ export default function PatientDetailPage() {
       showError(err.response?.data?.error || 'Błąd wysyłania przypomnienia');
     } finally {
       setSendingReminder(false);
+    }
+  };
+
+  const handleDownloadICS = async (visitId: string) => {
+    try {
+      const response = await api.get(`/visits/${visitId}/ics`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `wizyta_${visitId}.ics`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+    } catch (err) {
+      showError('Błąd podczas pobierania pliku kalendarza');
     }
   };
 
@@ -1865,6 +1887,60 @@ export default function PatientDetailPage() {
                 Dodaj wizytę / zabieg
               </Button>
             </Box>
+
+            {/* Visit Filters */}
+            <Paper elevation={0} sx={{ p: 2, mb: 3, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+              <Grid container spacing={2} alignItems="center">
+                <Grid size={{ xs: 12, sm: 3 }}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    placeholder="Szukaj po rodzaju zabiegu..."
+                    value={visitFilters.search}
+                    onChange={(e) => setVisitFilters({ ...visitFilters, search: e.target.value })}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 3 }}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Status</InputLabel>
+                    <Select
+                      value={visitFilters.status}
+                      label="Status"
+                      onChange={(e) => setVisitFilters({ ...visitFilters, status: e.target.value })}
+                    >
+                      <MenuItem value="">Wszystkie</MenuItem>
+                      <MenuItem value="ZAPLANOWANA">Zaplanowana</MenuItem>
+                      <MenuItem value="ODBYTA">Odbyta</MenuItem>
+                      <MenuItem value="NIEOBECNOSC">Nieobecność</MenuItem>
+                      <MenuItem value="ANULOWANA">Anulowana</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 3 }}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    type="date"
+                    label="Od"
+                    InputLabelProps={{ shrink: true }}
+                    value={visitFilters.startDate}
+                    onChange={(e) => setVisitFilters({ ...visitFilters, startDate: e.target.value })}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 3 }}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    type="date"
+                    label="Do"
+                    InputLabelProps={{ shrink: true }}
+                    value={visitFilters.endDate}
+                    onChange={(e) => setVisitFilters({ ...visitFilters, endDate: e.target.value })}
+                  />
+                </Grid>
+              </Grid>
+            </Paper>
+
             {visits.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 8 }}>
                 <EventAvailable sx={{ fontSize: 64, color: '#d2d2d7', mb: 2 }} />
@@ -1887,7 +1963,13 @@ export default function PatientDetailPage() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {visits.map((visit) => {
+                    {visits.filter(v => {
+                      if (visitFilters.status && v.status !== visitFilters.status) return false;
+                      if (visitFilters.search && !v.rodzajZabiegu.toLowerCase().includes(visitFilters.search.toLowerCase())) return false;
+                      if (visitFilters.startDate && new Date(v.data) < new Date(visitFilters.startDate)) return false;
+                      if (visitFilters.endDate && new Date(v.data) > new Date(visitFilters.endDate + 'T23:59:59')) return false;
+                      return true;
+                    }).map((visit) => {
                       const statusConfig = VISIT_STATUS_CONFIG[visit.status] || VISIT_STATUS_CONFIG.ZAPLANOWANA;
                       return (
                         <TableRow key={visit.id} hover>
@@ -1997,6 +2079,17 @@ export default function PatientDetailPage() {
                                     sx={{ color: '#FF9500' }}
                                   >
                                     <Notifications fontSize="small" />
+                                  </IconButton>
+                                </Tooltip>
+                              )}
+                              {visit.status === 'ZAPLANOWANA' && (
+                                <Tooltip title="Dodaj do kalendarza (.ics)">
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => handleDownloadICS(visit.id)}
+                                    sx={{ color: '#34C759' }}
+                                  >
+                                    <CalendarMonth fontSize="small" />
                                   </IconButton>
                                 </Tooltip>
                               )}

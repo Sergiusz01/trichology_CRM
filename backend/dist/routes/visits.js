@@ -32,6 +32,36 @@ const updateVisitSchema = zod_1.z.object({
     liczbaSerii: zod_1.z.number().int().positive().optional().nullable(),
     cena: zod_1.z.number().nonnegative().optional().nullable(),
 });
+// Get all visits (optionally filtered by date range)
+router.get('/', auth_1.authenticate, async (req, res, next) => {
+    try {
+        const { start, end } = req.query;
+        const where = {};
+        if (start && end) {
+            where.data = {
+                gte: new Date(start),
+                lte: new Date(end),
+            };
+        }
+        const visits = await prisma_1.prisma.visit.findMany({
+            where,
+            orderBy: { data: 'asc' },
+            include: {
+                patient: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                    },
+                },
+            },
+        });
+        res.json({ data: visits });
+    }
+    catch (error) {
+        next(error);
+    }
+});
 // Get all visits for a specific patient
 router.get('/patient/:id', auth_1.authenticate, async (req, res, next) => {
     try {
@@ -481,6 +511,7 @@ router.post('/:id/reminder', auth_1.authenticate, async (req, res, next) => {
             day: 'numeric',
             hour: '2-digit',
             minute: '2-digit',
+            timeZone: 'UTC',
         });
         // Generate calendar links
         const googleCalendarURL = (0, icalendar_1.generateGoogleCalendarURL)(visit);

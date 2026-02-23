@@ -14,17 +14,18 @@ const router = express_1.default.Router();
 const patientSchema = zod_1.z.object({
     firstName: zod_1.z.string().min(1, 'Imię jest wymagane'),
     lastName: zod_1.z.string().min(1, 'Nazwisko jest wymagane'),
-    age: zod_1.z.number().int().positive().optional(),
-    gender: zod_1.z.enum(['MALE', 'FEMALE', 'OTHER']).optional(),
-    occupation: zod_1.z.string().optional(),
-    address: zod_1.z.string().optional(),
-    phone: zod_1.z.string().optional(),
-    email: zod_1.z.string().email().optional().or(zod_1.z.literal('')),
+    age: zod_1.z.number().int().positive().optional().nullable(),
+    gender: zod_1.z.enum(['MALE', 'FEMALE', 'OTHER']).optional().nullable(),
+    occupation: zod_1.z.string().optional().nullable(),
+    address: zod_1.z.string().optional().nullable(),
+    phone: zod_1.z.string().optional().nullable(),
+    email: zod_1.z.string().email().optional().nullable().or(zod_1.z.literal('')),
+    notes: zod_1.z.string().optional().nullable(),
 });
 // Get all patients (with search and pagination)
 router.get('/', auth_1.authenticate, async (req, res, next) => {
     try {
-        const { search, page = '1', limit = '50', archived = 'false' } = req.query;
+        const { search, page = '1', limit = '50', archived = 'false', sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
         const pageNum = parseInt(page, 10);
         const limitNum = parseInt(limit, 10);
         const skip = (pageNum - 1) * limitNum;
@@ -41,12 +42,12 @@ router.get('/', auth_1.authenticate, async (req, res, next) => {
                 { email: { contains: searchStr, mode: 'insensitive' } },
             ];
         }
-        const [patients, total] = await Promise.all([
-            prisma_1.prisma.patient.findMany({
+        let patients;
+        const total = await prisma_1.prisma.patient.count({ where });
+        if (sortBy === 'lastVisit') {
+            // JS Sorting fallback for relation aggregate
+            let allPatients = await prisma_1.prisma.patient.findMany({
                 where,
-                skip,
-                take: limitNum,
-                orderBy: { createdAt: 'desc' },
                 select: {
                     id: true,
                     firstName: true,
@@ -57,13 +58,53 @@ router.get('/', auth_1.authenticate, async (req, res, next) => {
                     email: true,
                     occupation: true,
                     address: true,
+                    notes: true,
+                    isArchived: true,
+                    createdAt: true,
+                    updatedAt: true,
+                    visits: {
+                        orderBy: { data: 'desc' },
+                        take: 1,
+                        select: { data: true }
+                    }
+                }
+            });
+            allPatients.sort((a, b) => {
+                const aDate = a.visits?.[0]?.data ? new Date(a.visits[0].data).getTime() : 0;
+                const bDate = b.visits?.[0]?.data ? new Date(b.visits[0].data).getTime() : 0;
+                return sortOrder === 'asc' ? aDate - bDate : bDate - aDate;
+            });
+            // Map to remove 'visits' payload to match usual schema
+            patients = allPatients.slice(skip, skip + limitNum).map(({ visits, ...rest }) => rest);
+        }
+        else {
+            let orderByObj = { createdAt: 'desc' };
+            if (sortBy === 'lastName')
+                orderByObj = { lastName: sortOrder };
+            else if (sortBy === 'createdAt')
+                orderByObj = { createdAt: sortOrder };
+            patients = await prisma_1.prisma.patient.findMany({
+                where,
+                skip,
+                take: limitNum,
+                orderBy: orderByObj,
+                select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    age: true,
+                    gender: true,
+                    phone: true,
+                    email: true,
+                    occupation: true,
+                    address: true,
+                    notes: true,
                     isArchived: true,
                     createdAt: true,
                     updatedAt: true,
                 },
-            }),
-            prisma_1.prisma.patient.count({ where }),
-        ]);
+            });
+        }
         res.json({
             patients,
             pagination: {
@@ -233,7 +274,10 @@ router.delete('/:id/permanent', auth_1.authenticate, (0, auth_1.requireRole)('AD
         // Delete all scalp photo files from filesystem
         for (const photo of patient.scalpPhotos) {
             try {
-                const photoPath = path_1.default.join(__dirname, '../../storage/uploads', path_1.default.basename(photo.filePath));
+                const fileName = photo.filename || (photo.filePath ? path_1.default.basename(photo.filePath) : '');
+                if (!fileName)
+                    continue;
+                const photoPath = path_1.default.join(__dirname, '../../storage/uploads', fileName);
                 if (fs_1.default.existsSync(photoPath)) {
                     fs_1.default.unlinkSync(photoPath);
                 }

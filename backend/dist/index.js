@@ -38,9 +38,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
-const dotenv_1 = __importDefault(require("dotenv"));
+require("dotenv/config");
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const auth_1 = __importDefault(require("./routes/auth"));
 const patients_1 = __importDefault(require("./routes/patients"));
 const consultations_1 = __importDefault(require("./routes/consultations"));
@@ -61,19 +62,23 @@ const reminderWorker_1 = require("./services/reminderWorker");
 const prisma_1 = require("./prisma");
 const initializeDefaultConsultationTemplate_1 = require("./utils/initializeDefaultConsultationTemplate");
 const rateLimit_1 = require("./middleware/rateLimit");
-dotenv_1.default.config();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 3001;
 // CORS: allow multiple origins (FRONTEND_URLS comma-separated) or single FRONTEND_URL.
 // Always allow localhost for dev. Production: add http://<VPS_IP>, https://<DOMAIN>, etc.
-const defaultOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:3000', 'http://127.0.0.1:3000'];
+const defaultOrigins = [
+    'http://localhost:5173', 'http://127.0.0.1:5173',
+    'http://localhost:3000', 'http://127.0.0.1:3000',
+    'https://001246.xyz', 'https://www.001246.xyz',
+];
 const fromEnv = (process.env.FRONTEND_URLS ?? process.env.FRONTEND_URL ?? '')
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
 const corsAllowlist = [...new Set([...defaultOrigins, ...fromEnv])];
 // Trust proxy (required for rate limiting behind Nginx)
-app.set('trust proxy', true);
+// 'loopback' = trust 127.0.0.1 only; avoids express-rate-limit validation warning
+app.set('trust proxy', 'loopback');
 // Middleware – whitelist only; no open CORS
 app.use((0, cors_1.default)({
     origin: (origin, cb) => {
@@ -89,14 +94,29 @@ app.use((0, cors_1.default)({
 }));
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
-// Serve static files from uploads directory
-const uploadDir = process.env.UPLOAD_DIR || './storage/uploads';
+// Resolve uploads directory to an absolute path to ensure consistency
+const uploadDir = path_1.default.resolve(process.env.UPLOAD_DIR || './storage/uploads');
 if (!fs_1.default.existsSync(uploadDir)) {
     fs_1.default.mkdirSync(uploadDir, { recursive: true });
 }
-app.use('/uploads', express_1.default.static(uploadDir, {
+// Legacy /uploads static route with JWT auth (kept for backward compat)
+app.use('/uploads', async (req, res, next) => {
+    try {
+        const token = req.query.token;
+        if (!token) {
+            return res.status(401).send('Brak tokenu autoryzacyjnego');
+        }
+        const jwtSecret = process.env.JWT_SECRET;
+        if (!jwtSecret)
+            throw new Error('JWT_SECRET nie jest ustawiony');
+        jsonwebtoken_1.default.verify(token, jwtSecret);
+        next();
+    }
+    catch (err) {
+        return res.status(401).send('Nieprawidłowy lub wygasły token');
+    }
+}, express_1.default.static(uploadDir, {
     setHeaders: (res, filePath) => {
-        // Set appropriate content type for images
         if (filePath.endsWith('.jpg') || filePath.endsWith('.jpeg')) {
             res.setHeader('Content-Type', 'image/jpeg');
         }
@@ -106,8 +126,7 @@ app.use('/uploads', express_1.default.static(uploadDir, {
         else if (filePath.endsWith('.webp')) {
             res.setHeader('Content-Type', 'image/webp');
         }
-        // Cache control for uploaded files
-        res.setHeader('Cache-Control', 'public, max-age=31536000');
+        res.setHeader('Cache-Control', 'private, max-age=86400');
     },
 }));
 // Serve static files from public directory (for logo and other assets)
@@ -146,6 +165,8 @@ app.use('/api/consultation-templates', consultationTemplates_1.default);
 app.use('/api/lab-results', labResults_1.default);
 app.use('/api/lab-result-templates', labResultTemplates_1.default);
 app.use('/api/scalp-photos', scalpPhotos_1.default);
+// /api/uploads/secure/:filename → handled by scalpPhotos router (/secure/:filename)
+app.use('/api/uploads', scalpPhotos_1.default);
 app.use('/api/care-plans', carePlans_1.default);
 app.use('/api/email', email_1.default);
 app.use('/api/email-templates', emailTemplates_1.default);
