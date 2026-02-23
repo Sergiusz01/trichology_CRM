@@ -6,8 +6,8 @@ import interactionPlugin from '@fullcalendar/interaction';
 import plLocale from '@fullcalendar/core/locales/pl';
 import listPlugin from '@fullcalendar/list';
 import { Box, Typography, Paper, CircularProgress } from '@mui/material';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { api } from '../services/api';
 import { PageHeader } from '../ui/PageHeader';
 
 interface VisitEvent {
@@ -35,13 +35,12 @@ export default function CalendarPage() {
     const fetchEvents = async () => {
         try {
             setLoading(true);
-            // Ensure backend returns visits in a compatible format or we map it here
-            const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/visits`);
-            const apiVisits = res.data.data || res.data;
+            const res = await api.get(`/visits`);
+            const apiVisits = res.data.visits || res.data;
 
             const mappedEvents = apiVisits.map((v: any) => ({
                 id: v.id,
-                title: `${v.patient?.firstName} ${v.patient?.lastName} - ${v.visitType}`,
+                title: `${v.patient?.firstName || ''} ${v.patient?.lastName || ''} - ${v.visitType}`,
                 start: v.scheduledDate,
                 end: new Date(new Date(v.scheduledDate).getTime() + (v.durationMinutes || 60) * 60000).toISOString(),
                 extendedProps: {

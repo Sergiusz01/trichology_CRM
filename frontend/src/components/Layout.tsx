@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
+  alpha,
   Box,
   Drawer,
   AppBar,
@@ -104,7 +105,7 @@ export default function Layout() {
   };
 
   const drawerContent = (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: '#FFFFFF' }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'background.paper' }}>
       {/* Brand Header */}
       <Box sx={{ p: 3, display: 'flex', alignItems: 'center' }}>
         <Box sx={{
@@ -142,12 +143,12 @@ export default function Layout() {
                     borderRadius: 2,
                     py: 1,
                     '&.Mui-selected': {
-                      bgcolor: 'primary.50',
-                      '&:hover': { bgcolor: 'primary.50' },
+                      bgcolor: theme.palette.mode === 'dark' ? alpha(theme.palette.primary.main, 0.1) : 'primary.50',
+                      '&:hover': { bgcolor: theme.palette.mode === 'dark' ? alpha(theme.palette.primary.main, 0.2) : 'primary.50' },
                       '& .MuiListItemIcon-root': { color: 'primary.main' },
                       '& .MuiListItemText-primary': { color: 'primary.main', fontWeight: 600 },
                     },
-                    '&:hover': { bgcolor: '#F1F5F9' },
+                    '&:hover': { bgcolor: 'action.hover' },
                   }}
                 >
                   <ListItemIcon sx={{ minWidth: 36, color: active ? 'primary.main' : 'text.secondary' }}>
@@ -159,7 +160,7 @@ export default function Layout() {
             );
           })}
 
-          <Box sx={{ my: 2 }}><Divider sx={{ borderColor: '#F1F5F9' }} /></Box>
+          <Box sx={{ my: 2 }}><Divider /></Box>
 
           <Typography variant="caption" sx={{ px: 1, color: 'text.secondary', fontWeight: 600, mb: 1, display: 'block', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
             Konfiguracja
@@ -168,7 +169,7 @@ export default function Layout() {
           <ListItem disablePadding sx={{ mb: 0.5 }}>
             <ListItemButton
               onClick={() => setTemplatesOpen(!templatesOpen)}
-              sx={{ borderRadius: 2, py: 1, '&:hover': { bgcolor: '#F1F5F9' } }}
+              sx={{ borderRadius: 2, py: 1, '&:hover': { bgcolor: 'action.hover' } }}
             >
               <ListItemIcon sx={{ minWidth: 36, color: 'text.secondary' }}>
                 <FolderSpecial sx={{ fontSize: 20 }} />
@@ -196,7 +197,7 @@ export default function Layout() {
                         '& .MuiListItemIcon-root': { color: 'primary.main' },
                         '& .MuiListItemText-primary': { color: 'primary.main', fontWeight: 600 },
                       },
-                      '&:hover': { bgcolor: '#F1F5F9' },
+                      '&:hover': { bgcolor: 'action.hover' },
                     }}
                   >
                     <ListItemIcon sx={{ minWidth: 32, color: active ? 'primary.main' : 'text.secondary' }}>
@@ -217,11 +218,11 @@ export default function Layout() {
                 borderRadius: 2,
                 py: 1,
                 '&.Mui-selected': {
-                  bgcolor: 'primary.50',
+                  bgcolor: theme.palette.mode === 'dark' ? alpha(theme.palette.primary.main, 0.1) : 'primary.50',
                   '& .MuiListItemIcon-root': { color: 'primary.main' },
                   '& .MuiListItemText-primary': { color: 'primary.main', fontWeight: 600 },
                 },
-                '&:hover': { bgcolor: '#F1F5F9' },
+                '&:hover': { bgcolor: 'action.hover' },
               }}
             >
               <ListItemIcon sx={{ minWidth: 36, color: activeRoute('/settings') ? 'primary.main' : 'text.secondary' }}>
@@ -240,11 +241,11 @@ export default function Layout() {
                   borderRadius: 2,
                   py: 1,
                   '&.Mui-selected': {
-                    bgcolor: 'primary.50',
+                    bgcolor: theme.palette.mode === 'dark' ? alpha(theme.palette.primary.main, 0.1) : 'primary.50',
                     '& .MuiListItemIcon-root': { color: 'primary.main' },
                     '& .MuiListItemText-primary': { color: 'primary.main', fontWeight: 600 },
                   },
-                  '&:hover': { bgcolor: '#F1F5F9' },
+                  '&:hover': { bgcolor: 'action.hover' },
                 }}
               >
                 <ListItemIcon sx={{ minWidth: 36, color: activeRoute('/users') ? 'primary.main' : 'text.secondary' }}>
@@ -259,9 +260,9 @@ export default function Layout() {
       </Box>
 
       {/* User Profile Footer */}
-      <Box sx={{ p: 2, borderTop: '1px solid #F1F5F9' }}>
+      <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, px: 1 }}>
-          <Avatar sx={{ width: 36, height: 36, bgcolor: 'primary.light', fontSize: 14, fontWeight: 600 }}>
+          <Avatar sx={{ width: 36, height: 36, bgcolor: 'primary.main', color: '#fff', fontSize: 14, fontWeight: 600 }}>
             {user?.name?.charAt(0).toUpperCase() || 'U'}
           </Avatar>
           <Box sx={{ ml: 1.5, overflow: 'hidden' }}>
@@ -274,11 +275,11 @@ export default function Layout() {
           </Box>
         </Box>
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <ListItemButton onClick={() => handleNavigate('/profile')} sx={{ borderRadius: 2, py: 0.5, justifyContent: 'center', bgcolor: '#F8FAFC' }}>
+          <ListItemButton onClick={() => handleNavigate('/profile')} sx={{ borderRadius: 2, py: 0.5, justifyContent: 'center', bgcolor: 'action.selected' }}>
             <AccountCircle sx={{ fontSize: 18, color: 'text.secondary', mr: 1 }} />
             <Typography variant="caption" fontWeight={600} color="text.secondary">Profil</Typography>
           </ListItemButton>
-          <ListItemButton onClick={logout} sx={{ borderRadius: 2, py: 0.5, justifyContent: 'center', bgcolor: '#FEF2F2', '&:hover': { bgcolor: '#FEE2E2' } }}>
+          <ListItemButton onClick={logout} sx={{ borderRadius: 2, py: 0.5, justifyContent: 'center', bgcolor: theme.palette.mode === 'dark' ? alpha(theme.palette.error.main, 0.1) : '#FEF2F2', '&:hover': { bgcolor: theme.palette.mode === 'dark' ? alpha(theme.palette.error.main, 0.2) : '#FEE2E2' } }}>
             <Logout sx={{ fontSize: 18, color: 'error.main', mr: 1 }} />
             <Typography variant="caption" fontWeight={600} color="error.main">Wyjdź</Typography>
           </ListItemButton>
@@ -296,8 +297,9 @@ export default function Layout() {
         sx={{
           zIndex: theme.zIndex.drawer + 1,
           display: { md: 'none' },
-          bgcolor: '#FFFFFF',
-          borderBottom: '1px solid #E2E8F0',
+          bgcolor: 'background.paper',
+          borderBottom: 1,
+          borderColor: 'divider',
         }}
       >
         <Toolbar>
@@ -328,7 +330,7 @@ export default function Layout() {
           variant="permanent"
           sx={{
             display: { xs: 'none', md: 'block' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth, borderRight: '1px solid #E2E8F0' },
+            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth, borderRight: 1, borderColor: 'divider' },
           }}
           open
         >

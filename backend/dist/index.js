@@ -59,6 +59,7 @@ const dashboard_1 = __importDefault(require("./routes/dashboard"));
 const activity_1 = __importDefault(require("./routes/activity"));
 const webPush_1 = __importDefault(require("./routes/webPush"));
 const reports_1 = __importDefault(require("./routes/reports"));
+const users_1 = __importDefault(require("./routes/users"));
 const errorHandler_1 = require("./middleware/errorHandler");
 const reminderWorker_1 = require("./services/reminderWorker");
 const prisma_1 = require("./prisma");
@@ -179,6 +180,7 @@ app.use('/api/dashboard', dashboard_1.default);
 app.use('/api/activity', activity_1.default);
 app.use('/api/web-push', webPush_1.default);
 app.use('/api/reports', reports_1.default);
+app.use('/api/users', users_1.default);
 // Error handler
 app.use(errorHandler_1.errorHandler);
 // Start server

@@ -13,8 +13,16 @@ import {
   alpha,
   CircularProgress,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  List,
+  ListItem,
+  ListItemText,
+  Divider
 } from '@mui/material';
-import { Edit, GetApp, ArrowBack, ContentCopy } from '@mui/icons-material';
+import { Edit, GetApp, ArrowBack, ContentCopy, History } from '@mui/icons-material';
 import { api } from '../services/api';
 import { useNotification } from '../hooks/useNotification';
 
@@ -106,6 +114,8 @@ export default function ConsultationViewPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [downloadingPDF, setDownloadingPDF] = useState(false);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [auditModalOpen, setAuditModalOpen] = useState(false);
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -190,6 +200,16 @@ export default function ConsultationViewPage() {
       showError(errorMessage);
     } finally {
       setDownloadingPDF(false);
+    }
+  };
+
+  const fetchAuditLogs = async () => {
+    try {
+      const response = await api.get(`/consultations/${id}/audit-logs`);
+      setAuditLogs(response.data.logs || []);
+      setAuditModalOpen(true);
+    } catch (error: any) {
+      showError(error.response?.data?.error || 'Błąd pobierania historii edycji');
     }
   };
 
@@ -351,6 +371,15 @@ export default function ConsultationViewPage() {
             sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
           >
             Duplikuj
+          </Button>
+          <Button
+            fullWidth={isMobile}
+            variant="outlined"
+            startIcon={<History />}
+            onClick={fetchAuditLogs}
+            sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
+          >
+            Historia
           </Button>
           <Button
             fullWidth={isMobile}
@@ -771,6 +800,49 @@ export default function ConsultationViewPage() {
           </Typography>
         </Box>
       </Paper>
+
+      {/* Audit Log Modal */}
+      <Dialog open={auditModalOpen} onClose={() => setAuditModalOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 'bold' }}>Historia edycji konsultacji</DialogTitle>
+        <DialogContent dividers>
+          {auditLogs.length === 0 ? (
+            <Typography color="text.secondary">Brak historii modyfikacji.</Typography>
+          ) : (
+            <List disablePadding>
+              {auditLogs.map((log, index) => (
+                <Box key={log.id}>
+                  <ListItem sx={{ py: 1.5 }}>
+                    <ListItemText
+                      primary={
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                          <Typography variant="body2" fontWeight="bold">
+                            {log.action === 'CREATE_CONSULTATION' ? 'Utworzono' :
+                              log.action === 'UPDATE_CONSULTATION' ? 'Zaktualizowano' :
+                                log.action === 'ARCHIVE_CONSULTATION' ? 'Zarchiwizowano' :
+                                  log.action === 'RESTORE_CONSULTATION' ? 'Przywrócono z archiwum' : log.action}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {formatDateTime(log.createdAt)}
+                          </Typography>
+                        </Box>
+                      }
+                      secondary={
+                        <Typography variant="caption" color="text.secondary">
+                          Użytkownik: {log.user?.name || 'Autor'} ({log.user?.email || 'brak emaila'})
+                        </Typography>
+                      }
+                    />
+                  </ListItem>
+                  {index < auditLogs.length - 1 && <Divider />}
+                </Box>
+              ))}
+            </List>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAuditModalOpen(false)}>Zamknij</Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }

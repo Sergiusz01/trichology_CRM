@@ -1,1 +1,0 @@
-import{j as t,m as i,f as a}from"./index-_IqiH6x2.js";const x=({children:o,loading:s=!1,disabled:r,...e})=>t.jsxs(i,{disabled:r||s,...e,sx:{position:"relative",...e.sx},children:[s&&t.jsx(a,{size:24,sx:{position:"absolute",top:"50%",left:"50%",marginTop:"-12px",marginLeft:"-12px"}}),t.jsx("span",{style:{opacity:s?0:1},children:o})]});export{x as A};

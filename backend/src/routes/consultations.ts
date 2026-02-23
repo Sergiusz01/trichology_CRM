@@ -298,6 +298,26 @@ router.get('/:id', authenticate, async (req: AuthRequest, res, next) => {
   }
 });
 
+// Get audit logs for consultation
+router.get('/:id/audit-logs', authenticate, async (req: AuthRequest, res, next) => {
+  try {
+    const { id } = req.params;
+    const logs = await prisma.auditLog.findMany({
+      where: {
+        entity: 'Consultation',
+        entityId: id,
+      },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: { select: { id: true, name: true, email: true } }
+      }
+    });
+    res.json({ logs });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Helper function to convert arrays/JSON strings to proper format for Prisma
 // Prisma Json type expects JavaScript objects/arrays, not JSON strings
 const prepareDataForDb = (data: any) => {
