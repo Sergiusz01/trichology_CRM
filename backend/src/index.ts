@@ -21,6 +21,7 @@ import dashboardRoutes from './routes/dashboard';
 import activityRoutes from './routes/activity';
 import webPushRoutes from './routes/webPush';
 import reportsRoutes from './routes/reports';
+import usersRoutes from './routes/users';
 import { errorHandler } from './middleware/errorHandler';
 import { startReminderWorker } from './services/reminderWorker';
 import { prisma } from './prisma';
@@ -144,6 +145,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/activity', activityRoutes);
 app.use('/api/web-push', webPushRoutes);
 app.use('/api/reports', reportsRoutes);
+app.use('/api/users', usersRoutes);
 
 // Error handler
 app.use(errorHandler);

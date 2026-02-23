@@ -34,6 +34,7 @@ const VisitFormPage = lazy(() => import('./pages/VisitFormPage'));
 const RevenuePage = lazy(() => import('./pages/RevenuePage'));
 const ActivityLogPage = lazy(() => import('./pages/ActivityLogPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const UsersPage = lazy(() => import('./pages/UsersPage'));
 const CalendarPage = lazy(() => import('./pages/CalendarPage'));
 const VisitsPage = lazy(() => import('./pages/VisitsPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
@@ -122,6 +123,7 @@ function App() {
             <Route path="lab-result-templates" element={<LabResultTemplatesPage />} />
             <Route path="profile" element={<UserProfilePage />} />
             <Route path="settings" element={<SettingsPage />} />
+            <Route path="users" element={<UsersPage />} />
             <Route path="care-plans/:id" element={<CarePlanDetailPage />} />
             <Route path="scalp-photos/:photoId" element={<ScalpPhotoDetailPage />} />
             <Route path="*" element={<NotFoundPage />} />

@@ -34,6 +34,7 @@ import {
   FolderSpecial,
   CalendarMonth,
   EventAvailable,
+  AdminPanelSettings,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -229,6 +230,30 @@ export default function Layout() {
               <ListItemText primary="Ustawienia" primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: activeRoute('/settings') ? 600 : 500, color: activeRoute('/settings') ? 'primary.main' : 'text.primary' }} />
             </ListItemButton>
           </ListItem>
+
+          {user?.role === 'ADMIN' && (
+            <ListItem disablePadding>
+              <ListItemButton
+                selected={activeRoute('/users')}
+                onClick={() => handleNavigate('/users')}
+                sx={{
+                  borderRadius: 2,
+                  py: 1,
+                  '&.Mui-selected': {
+                    bgcolor: 'primary.50',
+                    '& .MuiListItemIcon-root': { color: 'primary.main' },
+                    '& .MuiListItemText-primary': { color: 'primary.main', fontWeight: 600 },
+                  },
+                  '&:hover': { bgcolor: '#F1F5F9' },
+                }}
+              >
+                <ListItemIcon sx={{ minWidth: 36, color: activeRoute('/users') ? 'primary.main' : 'text.secondary' }}>
+                  <AdminPanelSettings sx={{ fontSize: 20 }} />
+                </ListItemIcon>
+                <ListItemText primary="Użytkownicy" primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: activeRoute('/users') ? 600 : 500, color: activeRoute('/users') ? 'primary.main' : 'text.primary' }} />
+              </ListItemButton>
+            </ListItem>
+          )}
 
         </List>
       </Box>
