@@ -228,7 +228,37 @@ export default function PatientDetailPage() {
       fetchPatient();
       navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [location.state, id]);
+
+    // Check URL parameters for deep linking
+    const searchParams = new URLSearchParams(location.search);
+    const targetTab = searchParams.get('tab');
+
+    if (targetTab === 'visits') {
+      setTabValue(5);
+    }
+  }, [location.state, location.search, id, navigate]);
+
+  // Second effect to scroll to specific items after visits data loads
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const targetVisitId = searchParams.get('visitId');
+
+    if (tabValue === 5 && targetVisitId && visits.length > 0) {
+      // Need a slight delay to ensure DOM is fully painted after tab switch
+      setTimeout(() => {
+        const element = document.getElementById(`visit-${targetVisitId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Optional: Add a brief highlight effect
+          element.style.transition = 'background-color 1.5s ease-out';
+          element.style.backgroundColor = alpha('#007AFF', 0.15);
+          setTimeout(() => {
+            element.style.backgroundColor = '';
+          }, 2000);
+        }
+      }, 300);
+    }
+  }, [tabValue, visits, location.search]);
 
   const fetchPatient = async () => {
     try {
@@ -1972,7 +2002,7 @@ export default function PatientDetailPage() {
                     }).map((visit) => {
                       const statusConfig = VISIT_STATUS_CONFIG[visit.status] || VISIT_STATUS_CONFIG.ZAPLANOWANA;
                       return (
-                        <TableRow key={visit.id} hover>
+                        <TableRow id={`visit-${visit.id}`} key={visit.id} hover>
                           <TableCell>
                             <Typography variant="body2" sx={{ fontWeight: 600 }}>
                               {(() => {

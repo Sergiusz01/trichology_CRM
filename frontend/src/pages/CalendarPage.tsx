@@ -67,7 +67,7 @@ export default function CalendarPage() {
     const handleEventClick = (info: any) => {
         const { patientId } = info.event.extendedProps;
         if (patientId) {
-            navigate(`/patients/${patientId}`);
+            navigate(`/patients/${patientId}?tab=visits&visitId=${info.event.id}`);
         }
     };
 
