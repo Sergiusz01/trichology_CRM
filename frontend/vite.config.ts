@@ -44,6 +44,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         // Exclude API requests from getting cached by the static asset service worker
         navigateFallbackDenylist: [/^\/api/, /^\/uploads/],
+        importScripts: ['/custom-sw.js']
       },
     }),
   ],

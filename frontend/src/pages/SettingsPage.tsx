@@ -17,7 +17,8 @@ import {
     Tab,
     Paper,
     Switch,
-    FormControlLabel
+    FormControlLabel,
+    Button
 } from '@mui/material';
 import {
     Info,
@@ -28,9 +29,11 @@ import {
     History,
     Email,
     Speed,
-    DarkMode
+    DarkMode,
+    NotificationsActive
 } from '@mui/icons-material';
 import { useCustomTheme } from '../contexts/ThemeContext';
+import { useWebPush } from '../hooks/useWebPush';
 
 import ActivityLogPage from './ActivityLogPage';
 import EmailHistoryPage from './EmailHistoryPage';
@@ -74,6 +77,7 @@ export default function SettingsPage() {
     const theme = useTheme();
     const { mode, toggleColorMode } = useCustomTheme();
     const [tabValue, setTabValue] = useState(0);
+    const { isSupported, isSubscribed, loading: pushLoading, subscribe, unsubscribe, sendTestNotification } = useWebPush();
 
     // Variables injected by GitHub Actions CI/CD
     const appVersion = import.meta.env.VITE_APP_VERSION || 'DEV-LOCAL';
@@ -82,6 +86,14 @@ export default function SettingsPage() {
 
     const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
         setTabValue(newValue);
+    };
+
+    const handlePushToggle = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (event.target.checked) {
+            await subscribe();
+        } else {
+            await unsubscribe();
+        }
     };
 
     return (
@@ -111,6 +123,7 @@ export default function SettingsPage() {
             {/* Tab 0: System Information (Original Settings view) */}
             <CustomTabPanel value={tabValue} index={0}>
                 <Grid container spacing={3}>
+                    {/* @ts-ignore */}
                     <Grid item xs={12} md={6}>
                         <Card elevation={2} sx={{ height: '100%', borderRadius: 2 }}>
                             <CardContent>
@@ -183,6 +196,7 @@ export default function SettingsPage() {
                         </Card>
                     </Grid>
 
+                    {/* @ts-ignore */}
                     <Grid item xs={12} md={6}>
                         <Card elevation={2} sx={{ height: '100%', borderRadius: 2 }}>
                             <CardContent>
@@ -222,6 +236,38 @@ export default function SettingsPage() {
                                         color="primary"
                                     />
                                 </Box>
+
+                                {isSupported && (
+                                    <>
+                                        <Divider sx={{ my: 2 }} />
+                                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                                <NotificationsActive sx={{ mr: 1, color: theme.palette.text.secondary }} />
+                                                <Typography variant="body1">Powiadomienia Push (Przeglądarka)</Typography>
+                                            </Box>
+                                            <Switch
+                                                checked={isSubscribed}
+                                                onChange={handlePushToggle}
+                                                disabled={pushLoading}
+                                                color="success"
+                                            />
+                                        </Box>
+                                        {isSubscribed && (
+                                            <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+                                                <Button
+                                                    variant="outlined"
+                                                    color="primary"
+                                                    size="small"
+                                                    onClick={sendTestNotification}
+                                                    disabled={pushLoading}
+                                                    startIcon={<NotificationsActive />}
+                                                >
+                                                    Wyślij Powiadomienie Testowe
+                                                </Button>
+                                            </Box>
+                                        )}
+                                    </>
+                                )}
                             </CardContent>
                         </Card>
                     </Grid>
