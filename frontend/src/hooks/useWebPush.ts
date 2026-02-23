@@ -51,6 +51,12 @@ export function useWebPush() {
 
             // Get VAPID public key from backend
             const { data } = await api.get('/web-push/vapid-public-key');
+
+            if (!data || !data.publicKey) {
+                console.error('VAPID public key is missing from the server request. Ensure backend environment variables are configured.');
+                return false;
+            }
+
             const convertedVapidKey = urlBase64ToUint8Array(data.publicKey);
 
             // Ask user for permission and subscribe
