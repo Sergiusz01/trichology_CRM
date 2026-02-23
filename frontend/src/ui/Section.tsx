@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useTheme,  Box, Typography, Accordion, AccordionSummary, AccordionDetails, alpha  } from '@mui/material';
+import { Box, Typography, Accordion, AccordionSummary, AccordionDetails, alpha } from '@mui/material';
 import { ExpandMore } from '@mui/icons-material';
 
 export interface SectionProps {
@@ -13,7 +13,6 @@ export interface SectionProps {
 }
 
 export const Section: React.FC<SectionProps> = ({ title, description, children, action, defaultExpanded = true, id, forceExpand }) => {
-  const theme = useTheme();
     const [expanded, setExpanded] = useState(defaultExpanded);
 
     useEffect(() => {
@@ -44,7 +43,7 @@ export const Section: React.FC<SectionProps> = ({ title, description, children, 
                 sx={{
                     px: { xs: 2, md: 3 },
                     py: { xs: 1, md: 1.5 },
-                    bgcolor: alpha('#000000', 0.01),
+                    bgcolor: alpha('#000', 0.01),
                     borderBottom: expanded ? '1px solid' : 'none',
                     borderColor: 'divider',
                     '& .MuiAccordionSummary-content': {

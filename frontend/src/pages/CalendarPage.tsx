@@ -35,12 +35,12 @@ export default function CalendarPage() {
     const fetchEvents = async () => {
         try {
             setLoading(true);
-            const res = await api.get(`/visits`);
+            const res = await api.get('/visits');
             const apiVisits = res.data.data || res.data;
 
             const mappedEvents = apiVisits.map((v: any) => {
                 const startDate = new Date(v.data);
-                const endDate = new Date(startDate.getTime() + 60 * 60000); // 60 minutes default
+                const endDate = new Date(startDate.getTime() + 60 * 60000); // 60 min default
 
                 return {
                     id: v.id,

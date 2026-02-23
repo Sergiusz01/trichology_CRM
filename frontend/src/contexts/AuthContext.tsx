@@ -216,7 +216,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             onClick={handleStayLoggedIn}
             variant="contained"
             autoFocus
-            sx={{ textTransform: 'none', fontWeight: 700, bgcolor: 'primary.main', '&:hover': { bgcolor: '#0056D6' } }}
+            sx={{ textTransform: 'none', fontWeight: 700, bgcolor: '#007AFF', '&:hover': { bgcolor: '#0056D6' } }}
           >
             Zostań zalogowany
           </Button>

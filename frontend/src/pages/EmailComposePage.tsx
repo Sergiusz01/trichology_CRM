@@ -411,8 +411,8 @@ export default function EmailComposePage() {
                     disabled={loading || !formData.subject || !formData.message}
                     fullWidth={isMobile}
                     sx={{
-                      bgcolor: 'primary.main',
-                      '&:hover': { bgcolor: 'primary.dark' },
+                      bgcolor: '#1976d2',
+                      '&:hover': { bgcolor: '#1565c0' },
                     }}
                   >
                     {loading ? 'Wysyłanie...' : 'Wyślij email'}

@@ -7,9 +7,9 @@ const textPrimary = '#0F172A';
 const textSecondary = '#64748B';
 const borderLight = '#E2E8F0';
 
-export const getThemeOptions = (mode: 'light' | 'dark') => ({
+export const theme = createTheme({
   palette: {
-    mode,
+    mode: 'light',
     primary: {
       main: brandAccent,
       light: '#60A5FA',
@@ -21,14 +21,14 @@ export const getThemeOptions = (mode: 'light' | 'dark') => ({
       contrastText: '#FFFFFF',
     },
     background: {
-      default: mode === 'light' ? neutralBg : '#0f172a',
-      paper: mode === 'light' ? cardBg : '#1e293b',
+      default: neutralBg,
+      paper: cardBg,
     },
     text: {
-      primary: mode === 'light' ? textPrimary : '#f8fafc',
-      secondary: mode === 'light' ? textSecondary : '#94a3b8',
+      primary: textPrimary,
+      secondary: textSecondary,
     },
-    divider: mode === 'light' ? borderLight : '#334155',
+    divider: borderLight,
     success: { main: '#10B981' },
     warning: { main: '#F59E0B' },
     error: { main: '#EF4444' },
@@ -69,11 +69,11 @@ export const getThemeOptions = (mode: 'light' | 'dark') => ({
           },
         },
         outlined: {
-          borderColor: mode === 'light' ? borderLight : '#334155',
-          color: mode === 'light' ? textPrimary : '#f8fafc',
+          borderColor: borderLight,
+          color: textPrimary,
           '&:hover': {
-            backgroundColor: mode === 'light' ? '#F1F5F9' : '#334155',
-            borderColor: mode === 'light' ? '#CBD5E1' : '#475569',
+            backgroundColor: '#F1F5F9',
+            borderColor: '#CBD5E1',
           },
         },
       },
@@ -89,10 +89,10 @@ export const getThemeOptions = (mode: 'light' | 'dark') => ({
             borderRadius: 10,
             transition: 'all 0.2s',
             '& fieldset': {
-              borderColor: mode === 'light' ? borderLight : '#334155',
+              borderColor: borderLight,
             },
             '&:hover fieldset': {
-              borderColor: mode === 'light' ? '#CBD5E1' : '#475569',
+              borderColor: '#CBD5E1',
             },
             '&.Mui-focused fieldset': {
               borderColor: brandAccent,
@@ -109,7 +109,7 @@ export const getThemeOptions = (mode: 'light' | 'dark') => ({
       styleOverrides: {
         root: {
           borderRadius: 16,
-          border: `1px solid ${mode === 'light' ? borderLight : '#334155'}`,
+          border: `1px solid ${borderLight}`,
           boxShadow: '0 1px 3px 0 rgba(0,0,0,0.02), 0 0 0 1px rgba(0,0,0,0.02)',
           backgroundImage: 'none',
           '&:hover': {
@@ -126,7 +126,7 @@ export const getThemeOptions = (mode: 'light' | 'dark') => ({
         },
         elevation1: {
           boxShadow: '0 1px 3px 0 rgba(0,0,0,0.02), 0 0 0 1px rgba(0,0,0,0.02)',
-          border: `1px solid ${mode === 'light' ? borderLight : '#334155'}`,
+          border: `1px solid ${borderLight}`,
         }
       },
     },
@@ -135,14 +135,14 @@ export const getThemeOptions = (mode: 'light' | 'dark') => ({
         root: {
           '& .MuiTableCell-head': {
             fontWeight: 600,
-            color: mode === 'light' ? textSecondary : '#94a3b8',
-            backgroundColor: mode === 'light' ? neutralBg : '#0f172a',
-            borderBottom: `2px solid ${mode === 'light' ? borderLight : '#334155'}`,
+            color: textSecondary,
+            backgroundColor: neutralBg,
+            borderBottom: `2px solid ${borderLight}`,
             fontSize: '0.875rem',
             padding: '12px 16px',
           },
           '& .MuiTableCell-body': {
-            borderBottom: `1px solid ${mode === 'light' ? borderLight : '#334155'}`,
+            borderBottom: `1px solid ${borderLight}`,
             padding: '12px 16px',
             fontSize: '0.875rem',
           }
@@ -173,7 +173,7 @@ export const getThemeOptions = (mode: 'light' | 'dark') => ({
     MuiTabs: {
       styleOverrides: {
         root: {
-          borderBottom: `1px solid ${mode === 'light' ? borderLight : '#334155'}`,
+          borderBottom: `1px solid ${borderLight}`,
           minHeight: 40,
         },
         indicator: {
@@ -189,9 +189,9 @@ export const getThemeOptions = (mode: 'light' | 'dark') => ({
           textTransform: 'none',
           fontWeight: 600,
           minHeight: 40,
-          color: mode === 'light' ? textSecondary : '#94a3b8',
+          color: textSecondary,
           '&.Mui-selected': {
-            color: mode === 'light' ? textPrimary : '#f8fafc',
+            color: textPrimary,
           }
         }
       }

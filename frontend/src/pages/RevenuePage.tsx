@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useTheme, 
+import {
     Box,
     Grid,
     Paper,
@@ -13,7 +13,7 @@ import { useTheme,
     Stack,
     TextField,
     Chip,
- } from '@mui/material';
+} from '@mui/material';
 import {
     AttachMoney,
     Refresh,
@@ -64,8 +64,6 @@ function toInputDate(d: Date) {
 }
 
 export default function RevenuePage() {
-  const theme = useTheme();
-
     const { error: showError, success: showSuccess } = useNotification();
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -178,17 +176,17 @@ export default function RevenuePage() {
                             disabled={loading}
                             sx={{ bgcolor: alpha('#AF52DE', 0.08), '&:hover': { bgcolor: alpha('#AF52DE', 0.14) } }}
                         >
-                            <PictureAsPdf sx={{ color: 'secondary.main' }} />
+                            <PictureAsPdf sx={{ color: '#AF52DE' }} />
                         </IconButton>
                     </Tooltip>
                     <Tooltip title="Odśwież">
                         <IconButton
                             onClick={() => fetchRevenue(fromDate, toDate, true)}
                             disabled={refreshing}
-                            sx={{ bgcolor: alpha('#1976d2', 0.08), '&:hover': { bgcolor: alpha('#1976d2', 0.14) } }}
+                            sx={{ bgcolor: alpha('#007AFF', 0.08), '&:hover': { bgcolor: alpha('#007AFF', 0.14) } }}
                         >
                             <Refresh sx={{
-                                color: 'primary.main',
+                                color: '#007AFF',
                                 animation: refreshing ? 'spin 1s linear infinite' : 'none',
                                 '@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } },
                             }} />
@@ -215,7 +213,7 @@ export default function RevenuePage() {
                                     bgcolor: activePreset === idx ? '#007AFF' : 'transparent',
                                     color: activePreset === idx ? 'white' : 'inherit',
                                     borderColor: activePreset === idx ? '#007AFF' : 'divider',
-                                    '&:hover': { bgcolor: activePreset === idx ? '#0056D6' : alpha('#1976d2', 0.08) },
+                                    '&:hover': { bgcolor: activePreset === idx ? '#0056D6' : alpha('#007AFF', 0.08) },
                                 }}
                             />
                         ))}
@@ -246,8 +244,8 @@ export default function RevenuePage() {
                                 onClick={handleApplyCustom}
                                 sx={{
                                     fontWeight: 700, cursor: 'pointer',
-                                    bgcolor: 'success.main', color: 'white',
-                                    '&:hover': { bgcolor: 'success.dark' },
+                                    bgcolor: '#34C759', color: 'white',
+                                    '&:hover': { bgcolor: '#2DA047' },
                                 }}
                             />
                         </Stack>
@@ -258,12 +256,12 @@ export default function RevenuePage() {
             {/* KPI Cards */}
             <Grid container spacing={{ xs: 1.5, md: 2.5 }} sx={{ mb: 3 }}>
                 {[
-                    { label: 'Łączny przychód', value: `${fmt(summary?.totalRevenue ?? 0)} zł`, color: 'primary.main', icon: AttachMoney },
-                    { label: 'Zrealizowany', value: `${fmt(summary?.completedRevenue ?? 0)} zł`, color: 'success.main', icon: CheckCircle },
-                    { label: 'Zaplanowany', value: `${fmt(summary?.plannedRevenue ?? 0)} zł`, color: 'warning.main', icon: TrendingUp },
-                    { label: 'Nowi pacjenci', value: summary?.newPatients ?? 0, color: 'secondary.main', icon: PersonAdd },
-                    { label: 'Wizyty odbyte', value: summary?.statusSummary?.['ODBYTA']?.count ?? 0, color: 'success.main', icon: EventNote },
-                    { label: 'Anulowane', value: summary?.statusSummary?.['ANULOWANA']?.count ?? 0, color: 'error.main', icon: Cancel },
+                    { label: 'Łączny przychód', value: `${fmt(summary?.totalRevenue ?? 0)} zł`, color: '#007AFF', icon: AttachMoney },
+                    { label: 'Zrealizowany', value: `${fmt(summary?.completedRevenue ?? 0)} zł`, color: '#34C759', icon: CheckCircle },
+                    { label: 'Zaplanowany', value: `${fmt(summary?.plannedRevenue ?? 0)} zł`, color: '#FF9500', icon: TrendingUp },
+                    { label: 'Nowi pacjenci', value: summary?.newPatients ?? 0, color: '#AF52DE', icon: PersonAdd },
+                    { label: 'Wizyty odbyte', value: summary?.statusSummary?.['ODBYTA']?.count ?? 0, color: '#34C759', icon: EventNote },
+                    { label: 'Anulowane', value: summary?.statusSummary?.['ANULOWANA']?.count ?? 0, color: '#FF3B30', icon: Cancel },
                 ].map((kpi, i) => (
                     <Grid key={i} size={{ xs: 6, sm: 4, md: 2 }}>
                         <Paper elevation={0} sx={{ p: { xs: 1.5, md: 2.5 }, border: '1px solid', borderColor: 'divider', borderRadius: 3, height: '100%' }}>
@@ -290,11 +288,11 @@ export default function RevenuePage() {
                     {summary?.granularity === 'weekly' ? 'Tygodniowo' : 'Dziennie'} •{' '}
                     <Box component="span" sx={{ display: 'inline-flex', gap: 2, alignItems: 'center' }}>
                         <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
-                            <Box component="span" sx={{ width: 10, height: 10, borderRadius: '2px', bgcolor: 'success.main', display: 'inline-block' }} />
+                            <Box component="span" sx={{ width: 10, height: 10, borderRadius: '2px', bgcolor: '#34C759', display: 'inline-block' }} />
                             Zrealizowane
                         </Box>
                         <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
-                            <Box component="span" sx={{ width: 10, height: 10, borderRadius: '2px', bgcolor: alpha('#1976d2', 0.5), display: 'inline-block' }} />
+                            <Box component="span" sx={{ width: 10, height: 10, borderRadius: '2px', bgcolor: alpha('#007AFF', 0.5), display: 'inline-block' }} />
                             Zaplanowane
                         </Box>
                     </Box>
@@ -326,8 +324,8 @@ export default function RevenuePage() {
                                         title={
                                             <Box>
                                                 <Typography variant="caption" sx={{ fontWeight: 700, display: 'block' }}>{fmtDate(bucket.date)}</Typography>
-                                                <Typography variant="caption" sx={{ display: 'block', color: 'success.main' }}>Zrealizowane: {fmt(bucket.completed)} zł</Typography>
-                                                <Typography variant="caption" sx={{ display: 'block', color: 'primary.main' }}>Zaplanowane: {fmt(bucket.planned)} zł</Typography>
+                                                <Typography variant="caption" sx={{ display: 'block', color: '#34C759' }}>Zrealizowane: {fmt(bucket.completed)} zł</Typography>
+                                                <Typography variant="caption" sx={{ display: 'block', color: '#007AFF' }}>Zaplanowane: {fmt(bucket.planned)} zł</Typography>
                                                 <Typography variant="caption" sx={{ display: 'block', fontWeight: 700 }}>Razem: {fmt(bucket.total)} zł</Typography>
                                             </Box>
                                         }
@@ -338,20 +336,20 @@ export default function RevenuePage() {
                                             {bucket.planned > 0 && (
                                                 <Box sx={{
                                                     height: `${(bucket.planned / maxVal) * 100}%`,
-                                                    bgcolor: alpha('#1976d2', 0.45),
+                                                    bgcolor: alpha('#007AFF', 0.45),
                                                     borderRadius: '4px 4px 0 0',
                                                     transition: 'all 0.3s ease',
-                                                    '&:hover': { bgcolor: alpha('#1976d2', 0.65) },
+                                                    '&:hover': { bgcolor: alpha('#007AFF', 0.65) },
                                                 }} />
                                             )}
                                             {/* Completed */}
                                             <Box sx={{
                                                 height: `${(bucket.completed / maxVal) * 100}%`,
-                                                bgcolor: 'success.main',
+                                                bgcolor: '#34C759',
                                                 borderRadius: bucket.planned > 0 ? '0' : '4px 4px 0 0',
                                                 minHeight: bucket.completed > 0 ? 2 : 0,
                                                 transition: 'all 0.3s ease',
-                                                '&:hover': { bgcolor: 'success.dark' },
+                                                '&:hover': { bgcolor: '#2DA047' },
                                             }} />
                                         </Box>
                                     </Tooltip>

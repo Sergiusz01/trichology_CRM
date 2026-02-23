@@ -235,10 +235,10 @@ export default function PatientsPage() {
         <Box sx={{ mb: { xs: 2, sm: 3 } }}>
           <PageHeader title="Pacjenci" subtitle="Zarządzaj bazą pacjentów i ich historią medyczną" />
           <Box sx={{ mt: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', p: { xs: 3, md: 8 }, bgcolor: 'white', borderRadius: 4, border: '2px dashed', borderColor: alpha('#1976d2', 0.2) }}>
-            <Avatar sx={{ width: 80, height: 80, bgcolor: alpha('#1976d2', 0.1), color: 'primary.main', mb: 3 }}>
+            <Avatar sx={{ width: 80, height: 80, bgcolor: alpha('#1976d2', 0.1), color: '#1976d2', mb: 3 }}>
               <Person sx={{ fontSize: 40 }} />
             </Avatar>
-            <Typography variant="h4" sx={{ fontWeight: 800, color: 'text.primary', mb: 2, fontSize: { xs: '1.75rem', md: '2.5rem' } }}>
+            <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F172A', mb: 2, fontSize: { xs: '1.75rem', md: '2.5rem' } }}>
               Brak pacjentów w bazie
             </Typography>
             <Typography variant="body1" sx={{ color: 'text.secondary', mb: 4, maxWidth: 600, fontSize: '1.1rem', lineHeight: 1.6 }}>
@@ -403,11 +403,11 @@ export default function PatientsPage() {
                             sx={{
                               width: 50,
                               height: 50,
-                              bgcolor: alpha('#1976d2', 0.1),
+                              bgcolor: alpha(theme.palette.primary.main, 0.1),
                               color: 'primary.main',
                               fontWeight: 700,
                               fontSize: '1.2rem',
-                              border: `2px solid ${alpha('#1976d2', 0.2)}`
+                              border: `2px solid ${alpha(theme.palette.primary.main, 0.2)}`
                             }}
                           >
                             {getInitials(patient.firstName, patient.lastName)}
@@ -428,7 +428,7 @@ export default function PatientsPage() {
                               e.stopPropagation();
                               navigate(`/patients/${patient.id}`);
                             }}
-                            sx={{ color: 'primary.main', bgcolor: alpha('#1976d2', 0.05), mr: 0.5 }}
+                            sx={{ color: 'primary.main', bgcolor: alpha(theme.palette.primary.main, 0.05), mr: 0.5 }}
                           >
                             <Visibility fontSize="small" />
                           </IconButton>
@@ -439,7 +439,7 @@ export default function PatientsPage() {
                               e.stopPropagation();
                               handleDeleteClick(patient.id, `${patient.firstName} ${patient.lastName}`);
                             }}
-                            sx={{ bgcolor: alpha('#FF3B30', 0.05) }}
+                            sx={{ bgcolor: alpha(theme.palette.error.main, 0.05) }}
                           >
                             <Delete fontSize="small" />
                           </IconButton>

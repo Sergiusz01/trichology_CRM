@@ -52,10 +52,10 @@ interface Visit {
 }
 
 const VISIT_STATUS_CONFIG = {
-    ZAPLANOWANA: { color: 'primary.main', bgColor: 'rgba(0, 122, 255, 0.1)', label: 'Zaplanowana' },
-    ODBYTA: { color: 'success.main', bgColor: 'rgba(52, 199, 89, 0.1)', label: 'Odbyta' },
-    NIEOBECNOSC: { color: 'warning.main', bgColor: 'rgba(255, 149, 0, 0.1)', label: 'Nieobecność' },
-    ANULOWANA: { color: 'error.main', bgColor: 'rgba(255, 59, 48, 0.1)', label: 'Anulowana' },
+    ZAPLANOWANA: { color: '#007AFF', bgColor: alpha('#007AFF', 0.1), label: 'Zaplanowana' },
+    ODBYTA: { color: '#34C759', bgColor: alpha('#34C759', 0.1), label: 'Odbyta' },
+    NIEOBECNOSC: { color: '#FF9500', bgColor: alpha('#FF9500', 0.1), label: 'Nieobecność' },
+    ANULOWANA: { color: '#FF3B30', bgColor: alpha('#FF3B30', 0.1), label: 'Anulowana' },
 };
 
 export default function VisitsPage() {
@@ -140,7 +140,7 @@ export default function VisitsPage() {
                             fontSize: { xs: '1.5rem', sm: '1.75rem' },
                         }}
                     >
-                        <EventAvailable fontSize="large" sx={{ color: 'secondary.main' }} />
+                        <EventAvailable fontSize="large" sx={{ color: '#AF52DE' }} />
                         Wizyty i zabiegi
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
@@ -155,8 +155,8 @@ export default function VisitsPage() {
                         borderRadius: 2,
                         textTransform: 'none',
                         fontWeight: 600,
-                        bgcolor: 'secondary.main',
-                        '&:hover': { bgcolor: 'secondary.dark' },
+                        bgcolor: '#AF52DE',
+                        '&:hover': { bgcolor: '#9B30D9' },
                     }}
                 >
                     Nowa wizyta
@@ -275,14 +275,14 @@ export default function VisitsPage() {
                                         transition: 'all 0.2s',
                                         '&:hover': {
                                             boxShadow: 2,
-                                            borderColor: 'secondary.main',
+                                            borderColor: '#AF52DE',
                                             bgcolor: alpha('#AF52DE', 0.02),
                                         },
                                     }}
                                 >
                                     <CardContent sx={{ py: 2, '&:last-child': { pb: 2 } }}>
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-                                            <Avatar sx={{ bgcolor: alpha('#AF52DE', 0.1), color: 'secondary.main' }}>
+                                            <Avatar sx={{ bgcolor: alpha('#AF52DE', 0.1), color: '#AF52DE' }}>
                                                 {v.patient.firstName[0]}
                                                 {v.patient.lastName[0]}
                                             </Avatar>
@@ -359,7 +359,7 @@ export default function VisitsPage() {
                                         </TableCell>
                                         <TableCell>
                                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                                <Avatar sx={{ width: 32, height: 32, bgcolor: alpha('#AF52DE', 0.1), color: 'secondary.main', fontSize: '0.875rem' }}>
+                                                <Avatar sx={{ width: 32, height: 32, bgcolor: alpha('#AF52DE', 0.1), color: '#AF52DE', fontSize: '0.875rem' }}>
                                                     {v.patient.firstName[0]}
                                                     {v.patient.lastName[0]}
                                                 </Avatar>

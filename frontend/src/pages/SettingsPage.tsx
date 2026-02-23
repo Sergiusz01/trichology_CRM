@@ -29,10 +29,8 @@ import {
     History,
     Email,
     Speed,
-    DarkMode,
     NotificationsActive
 } from '@mui/icons-material';
-import { useCustomTheme } from '../contexts/ThemeContext';
 import { useWebPush } from '../hooks/useWebPush';
 
 import ActivityLogPage from './ActivityLogPage';
@@ -75,7 +73,6 @@ function a11yProps(index: number) {
 
 export default function SettingsPage() {
     const theme = useTheme();
-    const { mode, toggleColorMode } = useCustomTheme();
     const [tabValue, setTabValue] = useState(0);
     const { isSupported, isSubscribed, loading: pushLoading, subscribe, unsubscribe, sendTestNotification } = useWebPush();
 
@@ -224,18 +221,6 @@ export default function SettingsPage() {
                                 </Box>
 
                                 <Divider sx={{ my: 2 }} />
-
-                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                        <DarkMode sx={{ mr: 1, color: theme.palette.text.secondary }} />
-                                        <Typography variant="body1">Ciemny motyw</Typography>
-                                    </Box>
-                                    <Switch
-                                        checked={mode === 'dark'}
-                                        onChange={toggleColorMode}
-                                        color="primary"
-                                    />
-                                </Box>
 
                                 {isSupported && (
                                     <>

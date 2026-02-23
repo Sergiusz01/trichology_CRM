@@ -120,14 +120,14 @@ export default function LoginPage() {
                 </Typography>
 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                  <Typography variant="body2" sx={{ fontFamily: 'monospace', flex: 1, color: 'text.primary' }}>{testEmail}</Typography>
+                  <Typography variant="body2" sx={{ fontFamily: 'monospace', flex: 1, color: '#0F172A' }}>{testEmail}</Typography>
                   <AppButton size="small" variant="text" onClick={handleCopyEmail} sx={{ minWidth: 0, p: 0.5 }}>
                     {copiedEmail ? <Typography variant="caption" color="success.main" fontWeight={600}>OK</Typography> : <ContentCopy sx={{ fontSize: 16 }} />}
                   </AppButton>
                 </Box>
 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-                  <Typography variant="body2" sx={{ fontFamily: 'monospace', flex: 1, color: 'text.primary' }}>{testPassword}</Typography>
+                  <Typography variant="body2" sx={{ fontFamily: 'monospace', flex: 1, color: '#0F172A' }}>{testPassword}</Typography>
                   <AppButton size="small" variant="text" onClick={handleCopyPassword} sx={{ minWidth: 0, p: 0.5 }}>
                     {copiedPassword ? <Typography variant="caption" color="success.main" fontWeight={600}>OK</Typography> : <ContentCopy sx={{ fontSize: 16 }} />}
                   </AppButton>

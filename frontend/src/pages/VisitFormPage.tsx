@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useTheme, 
+import {
   Box,
   Paper,
   Typography,
@@ -18,7 +18,7 @@ import { useTheme,
   IconButton,
   InputAdornment,
   alpha,
- } from '@mui/material';
+} from '@mui/material';
 import { Save, ArrowBack } from '@mui/icons-material';
 import { api } from '../services/api';
 import { useNotification } from '../hooks/useNotification';
@@ -51,8 +51,6 @@ function roundToNearestMinutesUTC(date: Date): { h: string; m: string } {
 }
 
 export default function VisitFormPage() {
-  const theme = useTheme();
-
   const { id, patientId } = useParams<{ id?: string; patientId?: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -251,7 +249,7 @@ export default function VisitFormPage() {
       <Container maxWidth="lg" sx={{ py: 4, px: { xs: 2, sm: 3 } }}>
         <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
           <IconButton onClick={() => navigate(-1)} sx={{ bgcolor: alpha('#1976d2', 0.1), '&:hover': { bgcolor: alpha('#1976d2', 0.2) } }}>
-            <ArrowBack sx={{ color: 'primary.main' }} />
+            <ArrowBack sx={{ color: '#1976d2' }} />
           </IconButton>
           <Typography variant="h4" sx={{ fontWeight: 600, color: 'text.primary' }}>
             {actualVisitId && !isNewVisit ? 'Edytuj wizytę' : 'Nowa wizyta / zabieg'}
@@ -465,8 +463,8 @@ export default function VisitFormPage() {
                     startIcon={loading ? <CircularProgress size={20} /> : <Save />}
                     disabled={loading}
                     sx={{
-                      bgcolor: 'primary.main',
-                      '&:hover': { bgcolor: 'primary.dark' },
+                      bgcolor: '#1976d2',
+                      '&:hover': { bgcolor: '#1565c0' },
                     }}
                   >
                     {loading ? 'Zapisywanie...' : 'Zapisz'}

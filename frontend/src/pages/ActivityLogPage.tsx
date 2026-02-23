@@ -285,7 +285,7 @@ export default function ActivityLogPage() {
                             '&:hover': { bgcolor: alpha('#1976d2', 0.2) },
                           }}
                         >
-                          <ArrowForward sx={{ color: 'primary.main' }} />
+                          <ArrowForward sx={{ color: '#1976d2' }} />
                         </IconButton>
                       ) : null
                     }
@@ -418,7 +418,7 @@ export default function ActivityLogPage() {
                               '&:hover': { bgcolor: alpha('#1976d2', 0.2) },
                             }}
                           >
-                            <ArrowForward sx={{ color: 'primary.main', fontSize: 18 }} />
+                            <ArrowForward sx={{ color: '#1976d2', fontSize: 18 }} />
                           </IconButton>
                         ) : (
                           '—'
