@@ -138,10 +138,10 @@ export default function ScalpPhotoFormPage() {
                           textAlign: 'center',
                           cursor: 'pointer',
                           transition: 'all 0.2s',
-                          bgcolor: selectedFile ? alpha('#34C759', 0.02) : alpha('#f5f5f7', 0.5),
+                          bgcolor: selectedFile ? alpha(theme.palette.success.main, 0.02) : alpha(theme.palette.background.default, 0.5),
                           '&:hover': {
-                            borderColor: '#007AFF',
-                            bgcolor: alpha('#007AFF', 0.02),
+                            borderColor: 'primary.main',
+                            bgcolor: alpha(theme.palette.primary.main, 0.02),
                           }
                         }}
                       >
@@ -156,7 +156,7 @@ export default function ScalpPhotoFormPage() {
                           component="span"
                           sx={{
                             mt: 3,
-                            bgcolor: '#007AFF',
+                            bgcolor: 'primary.main',
                             textTransform: 'none',
                             fontWeight: 600,
                             borderRadius: 2
@@ -226,18 +226,18 @@ export default function ScalpPhotoFormPage() {
                   sx={{
                     flex: 1,
                     py: 1.5,
-                    bgcolor: '#1d1d1f',
+                    bgcolor: 'background.paper',
                     color: 'white',
                     textTransform: 'none',
                     fontWeight: 700,
                     borderRadius: 3,
                     boxShadow: 'none',
                     '&:hover': {
-                      bgcolor: '#000',
+                      bgcolor: 'background.paper',
                       boxShadow: 'none',
                     },
                     '&.Mui-disabled': {
-                      bgcolor: '#f5f5f7'
+                      bgcolor: 'background.default'
                     }
                   }}
                 >
@@ -255,7 +255,7 @@ export default function ScalpPhotoFormPage() {
                     borderRadius: 3,
                     '&:hover': {
                       borderColor: '#1d1d1f',
-                      bgcolor: alpha('#000', 0.02),
+                      bgcolor: alpha(theme.palette.common.black, 0.02),
                     }
                   }}
                 >

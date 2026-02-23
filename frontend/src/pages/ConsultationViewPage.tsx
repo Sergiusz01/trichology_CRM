@@ -347,7 +347,7 @@ export default function ConsultationViewPage() {
             color: 'text.secondary',
             textTransform: 'none',
             fontWeight: 600,
-            '&:hover': { bgcolor: alpha('#000', 0.04) }
+            '&:hover': { bgcolor: alpha(theme.palette.common.black, 0.04) }
           }}
         >
           Powrót do pacjenta

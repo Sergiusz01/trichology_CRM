@@ -52,10 +52,10 @@ interface Visit {
 }
 
 const VISIT_STATUS_CONFIG = {
-    ZAPLANOWANA: { color: '#007AFF', bgColor: alpha('#007AFF', 0.1), label: 'Zaplanowana' },
-    ODBYTA: { color: '#34C759', bgColor: alpha('#34C759', 0.1), label: 'Odbyta' },
-    NIEOBECNOSC: { color: '#FF9500', bgColor: alpha('#FF9500', 0.1), label: 'Nieobecność' },
-    ANULOWANA: { color: '#FF3B30', bgColor: alpha('#FF3B30', 0.1), label: 'Anulowana' },
+    ZAPLANOWANA: { color: 'primary.main', bgColor: 'rgba(0, 122, 255, 0.1)', label: 'Zaplanowana' },
+    ODBYTA: { color: 'success.main', bgColor: 'rgba(52, 199, 89, 0.1)', label: 'Odbyta' },
+    NIEOBECNOSC: { color: 'warning.main', bgColor: 'rgba(255, 149, 0, 0.1)', label: 'Nieobecność' },
+    ANULOWANA: { color: 'error.main', bgColor: 'rgba(255, 59, 48, 0.1)', label: 'Anulowana' },
 };
 
 export default function VisitsPage() {
@@ -140,7 +140,7 @@ export default function VisitsPage() {
                             fontSize: { xs: '1.5rem', sm: '1.75rem' },
                         }}
                     >
-                        <EventAvailable fontSize="large" sx={{ color: '#AF52DE' }} />
+                        <EventAvailable fontSize="large" sx={{ color: 'secondary.main' }} />
                         Wizyty i zabiegi
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
@@ -155,8 +155,8 @@ export default function VisitsPage() {
                         borderRadius: 2,
                         textTransform: 'none',
                         fontWeight: 600,
-                        bgcolor: '#AF52DE',
-                        '&:hover': { bgcolor: '#9B30D9' },
+                        bgcolor: 'secondary.main',
+                        '&:hover': { bgcolor: 'secondary.dark' },
                     }}
                 >
                     Nowa wizyta
@@ -275,14 +275,14 @@ export default function VisitsPage() {
                                         transition: 'all 0.2s',
                                         '&:hover': {
                                             boxShadow: 2,
-                                            borderColor: '#AF52DE',
-                                            bgcolor: alpha('#AF52DE', 0.02),
+                                            borderColor: 'secondary.main',
+                                            bgcolor: alpha(theme.palette.secondary.main, 0.02),
                                         },
                                     }}
                                 >
                                     <CardContent sx={{ py: 2, '&:last-child': { pb: 2 } }}>
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-                                            <Avatar sx={{ bgcolor: alpha('#AF52DE', 0.1), color: '#AF52DE' }}>
+                                            <Avatar sx={{ bgcolor: alpha(theme.palette.secondary.main, 0.1), color: 'secondary.main' }}>
                                                 {v.patient.firstName[0]}
                                                 {v.patient.lastName[0]}
                                             </Avatar>
@@ -322,7 +322,7 @@ export default function VisitsPage() {
                 <TableContainer component={Paper} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
                     <Table>
                         <TableHead>
-                            <TableRow sx={{ bgcolor: alpha('#AF52DE', 0.04) }}>
+                            <TableRow sx={{ bgcolor: alpha(theme.palette.secondary.main, 0.04) }}>
                                 <TableCell sx={{ fontWeight: 600 }}>Data i godzina</TableCell>
                                 <TableCell sx={{ fontWeight: 600 }}>Pacjent</TableCell>
                                 <TableCell sx={{ fontWeight: 600 }}>Rodzaj zabiegu</TableCell>
@@ -339,7 +339,7 @@ export default function VisitsPage() {
                                         onClick={() => navigate(`/patients/${v.patient.id}`)}
                                         sx={{
                                             cursor: 'pointer',
-                                            '&:hover': { bgcolor: alpha('#AF52DE', 0.04) },
+                                            '&:hover': { bgcolor: alpha(theme.palette.secondary.main, 0.04) },
                                         }}
                                     >
                                         <TableCell>
@@ -359,7 +359,7 @@ export default function VisitsPage() {
                                         </TableCell>
                                         <TableCell>
                                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                                <Avatar sx={{ width: 32, height: 32, bgcolor: alpha('#AF52DE', 0.1), color: '#AF52DE', fontSize: '0.875rem' }}>
+                                                <Avatar sx={{ width: 32, height: 32, bgcolor: alpha(theme.palette.secondary.main, 0.1), color: 'secondary.main', fontSize: '0.875rem' }}>
                                                     {v.patient.firstName[0]}
                                                     {v.patient.lastName[0]}
                                                 </Avatar>

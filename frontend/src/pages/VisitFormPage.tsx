@@ -248,8 +248,8 @@ export default function VisitFormPage() {
     <Box sx={{ width: '100%', maxWidth: '100%', overflow: 'hidden' }}>
       <Container maxWidth="lg" sx={{ py: 4, px: { xs: 2, sm: 3 } }}>
         <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
-          <IconButton onClick={() => navigate(-1)} sx={{ bgcolor: alpha('#1976d2', 0.1), '&:hover': { bgcolor: alpha('#1976d2', 0.2) } }}>
-            <ArrowBack sx={{ color: '#1976d2' }} />
+          <IconButton onClick={() => navigate(-1)} sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.2) } }}>
+            <ArrowBack sx={{ color: 'primary.main' }} />
           </IconButton>
           <Typography variant="h4" sx={{ fontWeight: 600, color: 'text.primary' }}>
             {actualVisitId && !isNewVisit ? 'Edytuj wizytę' : 'Nowa wizyta / zabieg'}
@@ -463,8 +463,8 @@ export default function VisitFormPage() {
                     startIcon={loading ? <CircularProgress size={20} /> : <Save />}
                     disabled={loading}
                     sx={{
-                      bgcolor: '#1976d2',
-                      '&:hover': { bgcolor: '#1565c0' },
+                      bgcolor: 'primary.main',
+                      '&:hover': { bgcolor: 'primary.dark' },
                     }}
                   >
                     {loading ? 'Zapisywanie...' : 'Zapisz'}

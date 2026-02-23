@@ -43,7 +43,7 @@ export const Section: React.FC<SectionProps> = ({ title, description, children, 
                 sx={{
                     px: { xs: 2, md: 3 },
                     py: { xs: 1, md: 1.5 },
-                    bgcolor: alpha('#000', 0.01),
+                    bgcolor: alpha(theme.palette.common.black, 0.01),
                     borderBottom: expanded ? '1px solid' : 'none',
                     borderColor: 'divider',
                     '& .MuiAccordionSummary-content': {

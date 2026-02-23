@@ -145,7 +145,7 @@ export default function ScalpPhotosPage() {
                         position: 'absolute',
                         top: 12,
                         left: 12,
-                        bgcolor: alpha('#000', 0.6),
+                        bgcolor: alpha(theme.palette.common.black, 0.6),
                         backdropFilter: 'blur(4px)',
                         color: 'white',
                         px: 1.5,

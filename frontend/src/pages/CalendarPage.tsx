@@ -36,7 +36,7 @@ export default function CalendarPage() {
         try {
             setLoading(true);
             const res = await api.get(`/visits`);
-            const apiVisits = res.data.visits || res.data;
+            const apiVisits = res.data.data || res.data;
 
             const mappedEvents = apiVisits.map((v: any) => ({
                 id: v.id,

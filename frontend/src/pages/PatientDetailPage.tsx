@@ -642,16 +642,16 @@ export default function PatientDetailPage() {
   }
 
   const stats = [
-    { label: 'Konsultacje', value: consultations.length, icon: Assignment, color: '#007AFF' },
-    { label: 'Wyniki badań', value: labResults.length, icon: Science, color: '#34C759' },
-    { label: 'Zdjęcia', value: scalpPhotos.length, icon: PhotoCamera, color: '#FF9500' },
-    { label: 'Plany opieki', value: carePlans.length, icon: LocalHospital, color: '#FF3B30' },
-    { label: 'Wizyty', value: visits.length, icon: EventAvailable, color: '#AF52DE' },
+    { label: 'Konsultacje', value: consultations.length, icon: Assignment, color: 'primary.main' },
+    { label: 'Wyniki badań', value: labResults.length, icon: Science, color: 'success.main' },
+    { label: 'Zdjęcia', value: scalpPhotos.length, icon: PhotoCamera, color: 'warning.main' },
+    { label: 'Plany opieki', value: carePlans.length, icon: LocalHospital, color: 'error.main' },
+    { label: 'Wizyty', value: visits.length, icon: EventAvailable, color: 'secondary.main' },
   ];
 
   return (
     <Box sx={{
-      bgcolor: '#f5f5f7',
+      bgcolor: 'background.default',
       minHeight: '100vh',
       pb: 6,
     }}>
@@ -664,7 +664,7 @@ export default function PatientDetailPage() {
             mb: 3,
             color: '#1d1d1f',
             '&:hover': {
-              bgcolor: alpha('#000', 0.05),
+              bgcolor: alpha(theme.palette.common.black, 0.05),
             },
           }}
         >
@@ -691,14 +691,14 @@ export default function PatientDetailPage() {
           <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: { xs: 'center', md: 'flex-start' }, gap: { xs: 2.5, md: 4 }, mb: 4, textAlign: { xs: 'center', md: 'left' } }}>
             <Avatar
               sx={{
-                bgcolor: alpha('#007AFF', 0.1),
-                color: '#007AFF',
+                bgcolor: alpha(theme.palette.primary.main, 0.1),
+                color: 'primary.main',
                 width: { xs: 80, md: 100 },
                 height: { xs: 80, md: 100 },
                 fontSize: { xs: '1.75rem', md: '2.5rem' },
                 fontWeight: 700,
                 border: '2px solid',
-                borderColor: alpha('#007AFF', 0.2),
+                borderColor: alpha(theme.palette.primary.main, 0.2),
               }}
             >
               {getInitials(patient.firstName, patient.lastName)}
@@ -723,8 +723,8 @@ export default function PatientDetailPage() {
                     label={`${patient.age} lat`}
                     size="small"
                     sx={{
-                      bgcolor: alpha('#007AFF', 0.08),
-                      color: '#007AFF',
+                      bgcolor: alpha(theme.palette.primary.main, 0.08),
+                      color: 'primary.main',
                       border: 'none',
                       fontWeight: 600,
                       px: 0.5,
@@ -736,7 +736,7 @@ export default function PatientDetailPage() {
                     label={patient.gender === 'MALE' ? 'Mężczyzna' : patient.gender === 'FEMALE' ? 'Kobieta' : 'Inna'}
                     size="small"
                     sx={{
-                      bgcolor: patient.gender === 'MALE' ? alpha('#007AFF', 0.08) : alpha('#FF2D55', 0.08),
+                      bgcolor: patient.gender === 'MALE' ? alpha(theme.palette.primary.main, 0.08) : alpha('#FF2D55', 0.08),
                       color: patient.gender === 'MALE' ? '#007AFF' : '#FF2D55',
                       border: 'none',
                       fontWeight: 600,
@@ -794,16 +794,16 @@ export default function PatientDetailPage() {
                 startIcon={<Add />}
                 onClick={() => navigate(`/patients/${id}/consultations/new`)}
                 sx={{
-                  bgcolor: '#007AFF',
+                  bgcolor: 'primary.main',
                   color: 'white',
                   textTransform: 'none',
                   fontWeight: 700,
                   py: { xs: 1.2, sm: 1.5 },
                   borderRadius: 2.5,
-                  boxShadow: `0 4px 14px ${alpha('#007AFF', 0.4)}`,
+                  boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.4)}`,
                   '&:hover': {
-                    bgcolor: '#0051D5',
-                    boxShadow: `0 6px 20px ${alpha('#007AFF', 0.5)}`,
+                    bgcolor: 'primary.dark',
+                    boxShadow: `0 6px 20px ${alpha(theme.palette.primary.main, 0.5)}`,
                   },
                 }}
               >
@@ -825,7 +825,7 @@ export default function PatientDetailPage() {
                   borderRadius: 2.5,
                   '&:hover': {
                     borderColor: '#1d1d1f',
-                    bgcolor: alpha('#000', 0.02),
+                    bgcolor: alpha(theme.palette.common.black, 0.02),
                   },
                 }}
               >
@@ -848,7 +848,7 @@ export default function PatientDetailPage() {
                     borderRadius: 2.5,
                     '&:hover': {
                       borderColor: '#1d1d1f',
-                      bgcolor: alpha('#000', 0.02),
+                      bgcolor: alpha(theme.palette.common.black, 0.02),
                     },
                   }}
                 >
@@ -968,13 +968,13 @@ export default function PatientDetailPage() {
                 minHeight: { xs: 56, sm: 64 },
                 minWidth: { xs: 100, sm: 120 },
                 '&.Mui-selected': {
-                  color: '#007AFF',
+                  color: 'primary.main',
                 },
               },
               '& .MuiTabs-indicator': {
                 height: 3,
                 borderRadius: '3px 3px 0 0',
-                bgcolor: '#007AFF',
+                bgcolor: 'primary.main',
               },
             }}
           >
@@ -1010,14 +1010,14 @@ export default function PatientDetailPage() {
                             width: 48,
                             height: 48,
                             borderRadius: 2,
-                            bgcolor: alpha('#007AFF', 0.1),
+                            bgcolor: alpha(theme.palette.primary.main, 0.1),
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             flexShrink: 0,
                           }}
                         >
-                          <Phone sx={{ color: '#007AFF', fontSize: 24 }} />
+                          <Phone sx={{ color: 'primary.main', fontSize: 24 }} />
                         </Box>
                         <Box>
                           <Typography variant="caption" sx={{ color: '#86868b', fontWeight: 500, fontSize: '0.8rem', mb: 0.5, display: 'block' }}>
@@ -1036,14 +1036,14 @@ export default function PatientDetailPage() {
                             width: 48,
                             height: 48,
                             borderRadius: 2,
-                            bgcolor: alpha('#34C759', 0.1),
+                            bgcolor: alpha(theme.palette.success.main, 0.1),
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             flexShrink: 0,
                           }}
                         >
-                          <Email sx={{ color: '#34C759', fontSize: 24 }} />
+                          <Email sx={{ color: 'success.main', fontSize: 24 }} />
                         </Box>
                         <Box sx={{ minWidth: 0, flex: 1 }}>
                           <Typography variant="caption" sx={{ color: '#86868b', fontWeight: 500, fontSize: '0.8rem', mb: 0.5, display: 'block' }}>
@@ -1070,14 +1070,14 @@ export default function PatientDetailPage() {
                             width: 48,
                             height: 48,
                             borderRadius: 2,
-                            bgcolor: alpha('#FF9500', 0.1),
+                            bgcolor: alpha(theme.palette.warning.main, 0.1),
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             flexShrink: 0,
                           }}
                         >
-                          <LocationOn sx={{ color: '#FF9500', fontSize: 24 }} />
+                          <LocationOn sx={{ color: 'warning.main', fontSize: 24 }} />
                         </Box>
                         <Box sx={{ minWidth: 0, flex: 1 }}>
                           <Typography variant="caption" sx={{ color: '#86868b', fontWeight: 500, fontSize: '0.8rem', mb: 0.5, display: 'block' }}>
@@ -1122,14 +1122,14 @@ export default function PatientDetailPage() {
                             width: 48,
                             height: 48,
                             borderRadius: 2,
-                            bgcolor: alpha('#FF3B30', 0.1),
+                            bgcolor: alpha(theme.palette.error.main, 0.1),
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             flexShrink: 0,
                           }}
                         >
-                          <Work sx={{ color: '#FF3B30', fontSize: 24 }} />
+                          <Work sx={{ color: 'error.main', fontSize: 24 }} />
                         </Box>
                         <Box>
                           <Typography variant="caption" sx={{ color: '#86868b', fontWeight: 500, fontSize: '0.8rem', mb: 0.5, display: 'block' }}>
@@ -1155,14 +1155,14 @@ export default function PatientDetailPage() {
                 startIcon={<Add />}
                 onClick={() => navigate(`/patients/${id}/consultations/new`)}
                 sx={{
-                  bgcolor: '#007AFF',
+                  bgcolor: 'primary.main',
                   color: 'white',
                   textTransform: 'none',
                   fontWeight: 600,
                   borderRadius: 2,
                   boxShadow: 'none',
                   '&:hover': {
-                    bgcolor: '#0051D5',
+                    bgcolor: 'primary.dark',
                     boxShadow: 'none',
                   },
                 }}
@@ -1185,7 +1185,7 @@ export default function PatientDetailPage() {
                   boxShadow: 'none',
                   '&:hover': {
                     borderColor: '#1d1d1f',
-                    bgcolor: showArchived.consultations ? '#0051D5' : alpha('#000', 0.02),
+                    bgcolor: showArchived.consultations ? '#0051D5' : alpha(theme.palette.common.black, 0.02),
                     boxShadow: 'none',
                   },
                 }}
@@ -1213,7 +1213,7 @@ export default function PatientDetailPage() {
                       borderColor: 'divider',
                       transition: 'all 0.2s',
                       '&:hover': {
-                        borderColor: '#007AFF',
+                        borderColor: 'primary.main',
                         transform: 'translateY(-2px)',
                       },
                     }}
@@ -1246,7 +1246,7 @@ export default function PatientDetailPage() {
                             borderRadius: 1.5,
                             '&:hover': {
                               borderColor: '#1d1d1f',
-                              bgcolor: alpha('#000', 0.02),
+                              bgcolor: alpha(theme.palette.common.black, 0.02),
                             },
                           }}
                         >
@@ -1260,14 +1260,14 @@ export default function PatientDetailPage() {
                             onClick={() => handleSendEmail('consultation', consultation.id, 'Konsultacja')}
                             disabled={loading}
                             sx={{
-                              bgcolor: '#007AFF',
+                              bgcolor: 'primary.main',
                               color: 'white',
                               textTransform: 'none',
                               fontWeight: 600,
                               borderRadius: 1.5,
                               boxShadow: 'none',
                               '&:hover': {
-                                bgcolor: '#0051D5',
+                                bgcolor: 'primary.dark',
                                 boxShadow: 'none',
                               },
                             }}
@@ -1280,14 +1280,14 @@ export default function PatientDetailPage() {
                             <IconButton
                               size="small"
                               onClick={() => handleRestoreClick('consultation', consultation.id, 'Konsultacja')}
-                              sx={{ color: '#34C759' }}
+                              sx={{ color: 'success.main' }}
                             >
                               <Restore />
                             </IconButton>
                             <IconButton
                               size="small"
                               onClick={() => handlePermanentDeleteClick('consultation', consultation.id, 'Konsultacja')}
-                              sx={{ color: '#FF3B30' }}
+                              sx={{ color: 'error.main' }}
                             >
                               <DeleteForever />
                             </IconButton>
@@ -1296,7 +1296,7 @@ export default function PatientDetailPage() {
                           <IconButton
                             size="small"
                             onClick={() => handleDeleteClick('consultation', consultation.id, 'Konsultacja')}
-                            sx={{ color: '#FF3B30' }}
+                            sx={{ color: 'error.main' }}
                           >
                             <Delete />
                           </IconButton>
@@ -1317,14 +1317,14 @@ export default function PatientDetailPage() {
                 startIcon={<Add />}
                 onClick={() => navigate(`/patients/${id}/lab-results/new`)}
                 sx={{
-                  bgcolor: '#007AFF',
+                  bgcolor: 'primary.main',
                   color: 'white',
                   textTransform: 'none',
                   fontWeight: 600,
                   borderRadius: 2,
                   boxShadow: 'none',
                   '&:hover': {
-                    bgcolor: '#0051D5',
+                    bgcolor: 'primary.dark',
                     boxShadow: 'none',
                   },
                 }}
@@ -1347,7 +1347,7 @@ export default function PatientDetailPage() {
                   boxShadow: 'none',
                   '&:hover': {
                     borderColor: '#1d1d1f',
-                    bgcolor: showArchived.labResults ? '#0051D5' : alpha('#000', 0.02),
+                    bgcolor: showArchived.labResults ? '#0051D5' : alpha(theme.palette.common.black, 0.02),
                     boxShadow: 'none',
                   },
                 }}
@@ -1407,7 +1407,7 @@ export default function PatientDetailPage() {
                             borderRadius: 1.5,
                             '&:hover': {
                               borderColor: '#1d1d1f',
-                              bgcolor: alpha('#000', 0.02),
+                              bgcolor: alpha(theme.palette.common.black, 0.02),
                             },
                           }}
                         >
@@ -1426,7 +1426,7 @@ export default function PatientDetailPage() {
                             borderRadius: 1.5,
                             '&:hover': {
                               borderColor: '#1d1d1f',
-                              bgcolor: alpha('#000', 0.02),
+                              bgcolor: alpha(theme.palette.common.black, 0.02),
                             },
                           }}
                         >
@@ -1462,7 +1462,7 @@ export default function PatientDetailPage() {
                             borderRadius: 1.5,
                             '&:hover': {
                               borderColor: '#1d1d1f',
-                              bgcolor: alpha('#000', 0.02),
+                              bgcolor: alpha(theme.palette.common.black, 0.02),
                             },
                           }}
                         >
@@ -1476,14 +1476,14 @@ export default function PatientDetailPage() {
                             onClick={() => handleSendEmail('labResult', result.id, 'Wynik badania')}
                             disabled={loading}
                             sx={{
-                              bgcolor: '#007AFF',
+                              bgcolor: 'primary.main',
                               color: 'white',
                               textTransform: 'none',
                               fontWeight: 600,
                               borderRadius: 1.5,
                               boxShadow: 'none',
                               '&:hover': {
-                                bgcolor: '#0051D5',
+                                bgcolor: 'primary.dark',
                                 boxShadow: 'none',
                               },
                             }}
@@ -1496,14 +1496,14 @@ export default function PatientDetailPage() {
                             <IconButton
                               size="small"
                               onClick={() => handleRestoreClick('labResult', result.id, 'Wynik badania')}
-                              sx={{ color: '#34C759' }}
+                              sx={{ color: 'success.main' }}
                             >
                               <Restore />
                             </IconButton>
                             <IconButton
                               size="small"
                               onClick={() => handlePermanentDeleteClick('labResult', result.id, 'Wynik badania')}
-                              sx={{ color: '#FF3B30' }}
+                              sx={{ color: 'error.main' }}
                             >
                               <DeleteForever />
                             </IconButton>
@@ -1512,7 +1512,7 @@ export default function PatientDetailPage() {
                           <IconButton
                             size="small"
                             onClick={() => handleDeleteClick('labResult', result.id, 'Wynik badania')}
-                            sx={{ color: '#FF3B30' }}
+                            sx={{ color: 'error.main' }}
                           >
                             <Delete />
                           </IconButton>
@@ -1533,14 +1533,14 @@ export default function PatientDetailPage() {
                 startIcon={<Add />}
                 onClick={() => navigate(`/patients/${id}/scalp-photos/new`)}
                 sx={{
-                  bgcolor: '#007AFF',
+                  bgcolor: 'primary.main',
                   color: 'white',
                   textTransform: 'none',
                   fontWeight: 600,
                   borderRadius: 2,
                   boxShadow: 'none',
                   '&:hover': {
-                    bgcolor: '#0051D5',
+                    bgcolor: 'primary.dark',
                     boxShadow: 'none',
                   },
                 }}
@@ -1579,7 +1579,7 @@ export default function PatientDetailPage() {
                         sx={{
                           width: '100%',
                           height: 200,
-                          bgcolor: '#f5f5f7',
+                          bgcolor: 'background.default',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -1624,7 +1624,7 @@ export default function PatientDetailPage() {
                               borderRadius: 1.5,
                               '&:hover': {
                                 borderColor: '#1d1d1f',
-                                bgcolor: alpha('#000', 0.02),
+                                bgcolor: alpha(theme.palette.common.black, 0.02),
                               },
                             }}
                           >
@@ -1634,9 +1634,9 @@ export default function PatientDetailPage() {
                             size="small"
                             onClick={() => handleDeleteClick('scalpPhoto', photo.id, 'Zdjęcie')}
                             sx={{
-                              color: '#FF3B30',
-                              bgcolor: alpha('#FF3B30', 0.05),
-                              '&:hover': { bgcolor: alpha('#FF3B30', 0.1) }
+                              color: 'error.main',
+                              bgcolor: alpha(theme.palette.error.main, 0.05),
+                              '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.1) }
                             }}
                           >
                             <Delete />
@@ -1658,14 +1658,14 @@ export default function PatientDetailPage() {
                 startIcon={<Add />}
                 onClick={() => navigate(`/patients/${id}/care-plans/new`)}
                 sx={{
-                  bgcolor: '#007AFF',
+                  bgcolor: 'primary.main',
                   color: 'white',
                   textTransform: 'none',
                   fontWeight: 600,
                   borderRadius: 2,
                   boxShadow: 'none',
                   '&:hover': {
-                    bgcolor: '#0051D5',
+                    bgcolor: 'primary.dark',
                     boxShadow: 'none',
                   },
                 }}
@@ -1688,7 +1688,7 @@ export default function PatientDetailPage() {
                   boxShadow: 'none',
                   '&:hover': {
                     borderColor: '#1d1d1f',
-                    bgcolor: showArchived.carePlans ? '#0051D5' : alpha('#000', 0.02),
+                    bgcolor: showArchived.carePlans ? '#0051D5' : alpha(theme.palette.common.black, 0.02),
                     boxShadow: 'none',
                   },
                 }}
@@ -1746,7 +1746,7 @@ export default function PatientDetailPage() {
                             borderRadius: 1.5,
                             '&:hover': {
                               borderColor: '#1d1d1f',
-                              bgcolor: alpha('#000', 0.02),
+                              bgcolor: alpha(theme.palette.common.black, 0.02),
                             },
                           }}
                         >
@@ -1765,7 +1765,7 @@ export default function PatientDetailPage() {
                             borderRadius: 1.5,
                             '&:hover': {
                               borderColor: '#1d1d1f',
-                              bgcolor: alpha('#000', 0.02),
+                              bgcolor: alpha(theme.palette.common.black, 0.02),
                             },
                           }}
                         >
@@ -1801,7 +1801,7 @@ export default function PatientDetailPage() {
                             borderRadius: 1.5,
                             '&:hover': {
                               borderColor: '#1d1d1f',
-                              bgcolor: alpha('#000', 0.02),
+                              bgcolor: alpha(theme.palette.common.black, 0.02),
                             },
                           }}
                         >
@@ -1815,14 +1815,14 @@ export default function PatientDetailPage() {
                             onClick={() => handleSendEmail('carePlan', plan.id, 'Plan opieki')}
                             disabled={loading}
                             sx={{
-                              bgcolor: '#007AFF',
+                              bgcolor: 'primary.main',
                               color: 'white',
                               textTransform: 'none',
                               fontWeight: 600,
                               borderRadius: 1.5,
                               boxShadow: 'none',
                               '&:hover': {
-                                bgcolor: '#0051D5',
+                                bgcolor: 'primary.dark',
                                 boxShadow: 'none',
                               },
                             }}
@@ -1835,14 +1835,14 @@ export default function PatientDetailPage() {
                             <IconButton
                               size="small"
                               onClick={() => handleRestoreClick('carePlan', plan.id, 'Plan opieki')}
-                              sx={{ color: '#34C759' }}
+                              sx={{ color: 'success.main' }}
                             >
                               <Restore />
                             </IconButton>
                             <IconButton
                               size="small"
                               onClick={() => handlePermanentDeleteClick('carePlan', plan.id, 'Plan opieki')}
-                              sx={{ color: '#FF3B30' }}
+                              sx={{ color: 'error.main' }}
                             >
                               <DeleteForever />
                             </IconButton>
@@ -1851,7 +1851,7 @@ export default function PatientDetailPage() {
                           <IconButton
                             size="small"
                             onClick={() => handleDeleteClick('carePlan', plan.id, 'Plan opieki')}
-                            sx={{ color: '#FF3B30' }}
+                            sx={{ color: 'error.main' }}
                           >
                             <Delete />
                           </IconButton>
@@ -1872,14 +1872,14 @@ export default function PatientDetailPage() {
                 startIcon={<Add />}
                 onClick={openAddVisitDialog}
                 sx={{
-                  bgcolor: '#AF52DE',
+                  bgcolor: 'secondary.main',
                   color: 'white',
                   textTransform: 'none',
                   fontWeight: 600,
                   borderRadius: 2,
                   boxShadow: 'none',
                   '&:hover': {
-                    bgcolor: '#9B30D9',
+                    bgcolor: 'secondary.dark',
                     boxShadow: 'none',
                   },
                 }}
@@ -1952,7 +1952,7 @@ export default function PatientDetailPage() {
               <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
                 <Table>
                   <TableHead>
-                    <TableRow sx={{ bgcolor: alpha('#000', 0.02) }}>
+                    <TableRow sx={{ bgcolor: alpha(theme.palette.common.black, 0.02) }}>
                       <TableCell sx={{ fontWeight: 700, color: '#1d1d1f' }}>Data i godzina</TableCell>
                       <TableCell sx={{ fontWeight: 700, color: '#1d1d1f' }}>Rodzaj zabiegu</TableCell>
                       <TableCell sx={{ fontWeight: 700, color: '#1d1d1f' }}>Status</TableCell>
@@ -2030,8 +2030,8 @@ export default function PatientDetailPage() {
                                 label={`${visit.numerWSerii} z ${visit.liczbaSerii}`}
                                 size="small"
                                 sx={{
-                                  bgcolor: alpha('#007AFF', 0.1),
-                                  color: '#007AFF',
+                                  bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                  color: 'primary.main',
                                   fontWeight: 600,
                                 }}
                               />
@@ -2041,7 +2041,7 @@ export default function PatientDetailPage() {
                           </TableCell>
                           <TableCell>
                             {visit.cena ? (
-                              <Typography variant="body2" sx={{ fontWeight: 600, color: '#34C759' }}>
+                              <Typography variant="body2" sx={{ fontWeight: 600, color: 'success.main' }}>
                                 {Number(visit.cena).toFixed(2)} zł
                               </Typography>
                             ) : (
@@ -2076,7 +2076,7 @@ export default function PatientDetailPage() {
                                   <IconButton
                                     size="small"
                                     onClick={() => openReminderDialog(visit)}
-                                    sx={{ color: '#FF9500' }}
+                                    sx={{ color: 'warning.main' }}
                                   >
                                     <Notifications fontSize="small" />
                                   </IconButton>
@@ -2087,7 +2087,7 @@ export default function PatientDetailPage() {
                                   <IconButton
                                     size="small"
                                     onClick={() => handleDownloadICS(visit.id)}
-                                    sx={{ color: '#34C759' }}
+                                    sx={{ color: 'success.main' }}
                                   >
                                     <CalendarMonth fontSize="small" />
                                   </IconButton>
@@ -2096,14 +2096,14 @@ export default function PatientDetailPage() {
                               <IconButton
                                 size="small"
                                 onClick={() => openEditVisitDialog(visit)}
-                                sx={{ color: '#007AFF' }}
+                                sx={{ color: 'primary.main' }}
                               >
                                 <Edit fontSize="small" />
                               </IconButton>
                               <IconButton
                                 size="small"
                                 onClick={() => handleDeleteClick('visit', visit.id, visit.rodzajZabiegu)}
-                                sx={{ color: '#FF3B30' }}
+                                sx={{ color: 'error.main' }}
                               >
                                 <Delete fontSize="small" />
                               </IconButton>
@@ -2226,13 +2226,13 @@ export default function PatientDetailPage() {
             onClick={handleVisitSubmit}
             variant="contained"
             sx={{
-              bgcolor: '#AF52DE',
+              bgcolor: 'secondary.main',
               color: 'white',
               textTransform: 'none',
               fontWeight: 600,
               boxShadow: 'none',
               '&:hover': {
-                bgcolor: '#9B30D9',
+                bgcolor: 'secondary.dark',
                 boxShadow: 'none',
               },
             }}
@@ -2276,7 +2276,7 @@ export default function PatientDetailPage() {
             onClick={handleDeleteConfirm}
             variant="contained"
             sx={{
-              bgcolor: '#FF3B30',
+              bgcolor: 'error.main',
               color: 'white',
               textTransform: 'none',
               fontWeight: 600,
@@ -2326,7 +2326,7 @@ export default function PatientDetailPage() {
             onClick={handleRestoreConfirm}
             variant="contained"
             sx={{
-              bgcolor: '#34C759',
+              bgcolor: 'success.main',
               color: 'white',
               textTransform: 'none',
               fontWeight: 600,
@@ -2353,7 +2353,7 @@ export default function PatientDetailPage() {
           },
         }}
       >
-        <DialogTitle sx={{ fontWeight: 700, color: '#FF3B30' }}>
+        <DialogTitle sx={{ fontWeight: 700, color: 'error.main' }}>
           Trwałe usunięcie
         </DialogTitle>
         <DialogContent>
@@ -2376,7 +2376,7 @@ export default function PatientDetailPage() {
             onClick={handlePermanentDeleteConfirm}
             variant="contained"
             sx={{
-              bgcolor: '#FF3B30',
+              bgcolor: 'error.main',
               color: 'white',
               textTransform: 'none',
               fontWeight: 600,
@@ -2468,8 +2468,8 @@ export default function PatientDetailPage() {
             startIcon={sendingReminder ? <CircularProgress size={20} /> : <Send />}
             disabled={sendingReminder || !reminderDialog.recipientEmail}
             sx={{
-              bgcolor: '#FF9500',
-              '&:hover': { bgcolor: '#E68900' },
+              bgcolor: 'warning.main',
+              '&:hover': { bgcolor: 'warning.dark' },
             }}
           >
             {sendingReminder ? 'Wysyłanie...' : 'Wyślij przypomnienie'}
