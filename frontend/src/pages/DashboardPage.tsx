@@ -748,7 +748,7 @@ export default function DashboardPage() {
                                                 <React.Fragment key={visit.id}>
                                                     {index > 0 && <Divider sx={{ my: 1 }} />}
                                                     <ListItemButton
-                                                        onClick={() => navigate(`/patients/${visit.patient.id}`)}
+                                                        onClick={() => navigate(`/patients/${visit.patient.id}?tab=visits&visitId=${visit.id}`)}
                                                         sx={{
                                                             borderRadius: 2,
                                                             '&:hover': {
@@ -847,7 +847,7 @@ export default function DashboardPage() {
                                                 <React.Fragment key={visit.id}>
                                                     {index > 0 && <Divider sx={{ my: 1 }} />}
                                                     <ListItemButton
-                                                        onClick={() => navigate(`/patients/${visit.patient.id}`)}
+                                                        onClick={() => navigate(`/patients/${visit.patient.id}?tab=visits&visitId=${visit.id}`)}
                                                         sx={{
                                                             borderRadius: 2,
                                                             '&:hover': {
@@ -946,7 +946,7 @@ export default function DashboardPage() {
                                                 <React.Fragment key={visit.id}>
                                                     {index > 0 && <Divider sx={{ my: 1 }} />}
                                                     <ListItemButton
-                                                        onClick={() => navigate(`/patients/${visit.patient.id}`)}
+                                                        onClick={() => navigate(`/patients/${visit.patient.id}?tab=visits&visitId=${visit.id}`)}
                                                         sx={{
                                                             borderRadius: 2,
                                                             '&:hover': {

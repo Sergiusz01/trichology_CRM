@@ -266,7 +266,7 @@ export default function VisitsPage() {
                         return (
                             <Grid key={v.id} size={{ xs: 12 }}>
                                 <Card
-                                    onClick={() => navigate(`/patients/${v.patient.id}`)}
+                                    onClick={() => navigate(`/patients/${v.patient.id}?tab=visits&visitId=${v.id}`)}
                                     sx={{
                                         borderRadius: 3,
                                         border: '1px solid',
@@ -336,7 +336,7 @@ export default function VisitsPage() {
                                 return (
                                     <TableRow
                                         key={v.id}
-                                        onClick={() => navigate(`/patients/${v.patient.id}`)}
+                                        onClick={() => navigate(`/patients/${v.patient.id}?tab=visits&visitId=${v.id}`)}
                                         sx={{
                                             cursor: 'pointer',
                                             '&:hover': { bgcolor: alpha('#AF52DE', 0.04) },
