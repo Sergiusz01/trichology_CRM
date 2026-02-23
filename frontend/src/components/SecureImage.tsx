@@ -34,3 +34,6 @@ export function SecureImage({ filename, alt, style }: Props) {
         />
     );
 }
+
+export default SecureImage;
+
