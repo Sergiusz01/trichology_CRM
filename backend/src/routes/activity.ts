@@ -86,27 +86,33 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
     const [visits, labResults, carePlans] = await Promise.all([
       visitIds.length
         ? prisma.visit.findMany({
-            where: { id: { in: visitIds } },
-            select: { id: true, patientId: true },
-          })
+          where: { id: { in: visitIds } },
+          select: { id: true, patientId: true },
+        })
         : [],
       labIds.length
         ? prisma.labResult.findMany({
-            where: { id: { in: labIds } },
-            select: { id: true, patientId: true },
-          })
+          where: { id: { in: labIds } },
+          select: { id: true, patientId: true },
+        })
         : [],
       carePlanIds.length
         ? prisma.carePlan.findMany({
-            where: { id: { in: carePlanIds } },
-            select: { id: true, patientId: true },
-          })
+          where: { id: { in: carePlanIds } },
+          select: { id: true, patientId: true },
+        })
         : [],
     ]);
 
-    const visitPatientMap = new Map(visits.map((v) => [v.id, v.patientId]));
-    const labPatientMap = new Map(labResults.map((r) => [r.id, r.patientId]));
-    const carePlanPatientMap = new Map(carePlans.map((c) => [c.id, c.patientId]));
+    const visitPatientMap = new Map<string, string>(
+      visits.filter((v) => v.id && v.patientId).map((v) => [v.id, v.patientId] as [string, string])
+    );
+    const labPatientMap = new Map<string, string>(
+      labResults.filter((r) => r.id && r.patientId).map((r) => [r.id, r.patientId] as [string, string])
+    );
+    const carePlanPatientMap = new Map<string, string>(
+      carePlans.filter((c) => c.id && c.patientId).map((c) => [c.id, c.patientId] as [string, string])
+    );
     const maps = {
       visitPatient: visitPatientMap,
       labPatient: labPatientMap,
