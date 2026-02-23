@@ -902,7 +902,7 @@ router.post('/scalp-photo/:id', authenticate, async (req: AuthRequest, res, next
 
     // Read the image file
     const imagePath = scalpPhoto.filePath;
-    if (!fs.existsSync(imagePath)) {
+    if (!imagePath || !fs.existsSync(imagePath)) {
       return res.status(404).json({ error: 'Plik zdjęcia nie istnieje' });
     }
 

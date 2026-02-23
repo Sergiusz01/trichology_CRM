@@ -60,7 +60,7 @@ jobs:
 
             npm install --production=false
             npx prisma generate
-            npx prisma migrate deploy || npx prisma db push
+            npx prisma db push
             npm run build
             pm2 restart trichology-backend
 
