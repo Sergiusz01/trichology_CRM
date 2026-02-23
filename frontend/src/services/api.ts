@@ -44,8 +44,12 @@ export const setupApiErrorHandler = (errorHandler: (message: string, variant: 'e
 
 // Helper function to format error messages
 const formatErrorMessage = (error: any): string => {
+  if (!navigator.onLine) {
+    return 'Jesteś w trybie offline. Sprawdź połączenie z internetem.';
+  }
+
   if (!error.response) {
-    return 'Brak połączenia z serwerem. Sprawdź połączenie i czy backend działa (GET /health). Przy cross-origin upewnij się, że CORS obejmuje tę domenę (FRONTEND_URL / FRONTEND_URLS).';
+    return 'Brak połączenia z serwerem. Sprawdź internet lub status backendu.';
   }
 
   const { status, data } = error.response;
@@ -117,20 +121,21 @@ api.interceptors.response.use(
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
         delete api.defaults.headers.common['Authorization'];
-        
+
         // Dispatch custom event for AuthContext to handle navigation
         window.dispatchEvent(new CustomEvent('auth:logout', { detail: { reason: 'token_refresh_failed' } }));
-        
+
         return Promise.reject(refreshError);
       }
     }
 
     // Show error toast for non-401 errors (401 is handled above or will trigger logout)
-    // Skip showing toast for requests that explicitly disable it via custom config
+    // Also show toast if it's a network error (no response)
     const skipToast = (originalRequest as any)._skipErrorToast;
-    if (error.response && !skipToast && globalErrorHandler) {
+    if (!skipToast && globalErrorHandler && (!error.response || error.response.status !== 401)) {
       const message = formatErrorMessage(error);
-      const variant = error.response.status >= 500 ? 'error' : error.response.status === 404 ? 'warning' : 'error';
+      const isNetworkError = !error.response;
+      const variant = isNetworkError || error.response?.status >= 500 ? 'error' : error.response?.status === 404 ? 'warning' : 'error';
       globalErrorHandler(message, variant);
     }
 
