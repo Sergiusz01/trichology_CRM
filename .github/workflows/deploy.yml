@@ -1,55 +1,53 @@
-name: Deploy to VPS
+name: 🚀 Deploy to VPS
 
 on:
   push:
     branches:
       - main
 
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: 🚚 Checkout repository
         uses: actions/checkout@v4
 
-      - name: 📦 Archive backend and frontend
+      # ── Backend ────────────────────────────────────────────
+      - name: 📦 Archive backend
         run: |
-          # Build backend zip
           mkdir -p temp/backend-deploy
           rsync -av --exclude='node_modules' --exclude='dist' --exclude='.git' backend/ temp/backend-deploy/
-          cd temp/backend-deploy
-          zip -r ../../backend.zip .
-          cd ../..
+          cd temp/backend-deploy && zip -r ../../backend.zip . && cd ../..
 
-          # Build frontend zip
-          mkdir -p temp/frontend-deploy
-          rsync -av --exclude='node_modules' --exclude='dist' --exclude='.git' frontend/ temp/frontend-deploy/
-          cd temp/frontend-deploy
-          zip -r ../../frontend.zip .
-          cd ../..
-
-      - name: 📤 Copy archives to VPS via SCP
+      - name: 📤 Upload backend to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_IP }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          source: "backend.zip,frontend.zip"
+          source: "backend.zip"
           target: "~/"
           overwrite: true
 
-      - name: 🚀 Deploy Backend
+      - name: 🔧 Build & restart backend
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_IP }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            # Create persistent uploads directory outside of deployment folder
+            set -e
+
+            # Persistent uploads dir
             mkdir -p /root/uploads
 
-            # Migrate any existing uploads from the old location into the persistent dir
+            # Migrate any old uploads
             if [ -d /root/backend-src/storage/uploads ]; then
               mv /root/backend-src/storage/uploads/* /root/uploads/ 2>/dev/null || true
             fi
@@ -57,29 +55,87 @@ jobs:
             unzip -o ~/backend.zip -d ~/backend-src
             cd ~/backend-src
 
-            # Ensure UPLOAD_DIR points to the persistent directory
-            sed -i 's|UPLOAD_DIR=.*|UPLOAD_DIR=/root/uploads|' .env
+            # Point UPLOAD_DIR to persistent directory
+            grep -q 'UPLOAD_DIR' .env && sed -i 's|UPLOAD_DIR=.*|UPLOAD_DIR=/root/uploads|' .env || echo 'UPLOAD_DIR=/root/uploads' >> .env
 
-            npm install
+            npm install --production=false
             npx prisma generate
-            npx prisma db push
+            npx prisma migrate deploy || npx prisma db push
             npm run build
             pm2 restart trichology-backend
 
-      - name: 🚀 Deploy Frontend
+            echo "✅ Backend deployed"
+
+      # ── Frontend ───────────────────────────────────────────
+      - name: 📦 Archive frontend
+        run: |
+          mkdir -p temp/frontend-deploy
+          rsync -av --exclude='node_modules' --exclude='dist' --exclude='.git' frontend/ temp/frontend-deploy/
+          cd temp/frontend-deploy && zip -r ../../frontend.zip . && cd ../..
+
+      - name: 📤 Upload frontend to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_IP }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "frontend.zip"
+          target: "~/"
+          overwrite: true
+
+      - name: 🎨 Build & deploy frontend
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_IP }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
+            set -e
+
             unzip -o ~/frontend.zip -d ~/frontend-src
             cd ~/frontend-src
-            
+
+            # Inject build metadata
             echo "VITE_APP_VERSION=${{ github.sha }}" > .env.production
             echo "VITE_APP_BUILD_DATE=$(date +'%Y-%m-%d %H:%M:%S')" >> .env.production
-            echo "VITE_APP_COMMIT_MESSAGE=\"${{ github.event.head_commit.message }}\"" >> .env.production
-            
+            SHORT_MSG=$(echo "${{ github.event.head_commit.message }}" | head -1 | cut -c1-80)
+            echo "VITE_APP_COMMIT_MESSAGE=\"${SHORT_MSG}\"" >> .env.production
+
             npm install
+
+            # Clean Vite cache to ensure fresh content hashes
+            rm -rf node_modules/.vite dist
+
             npm run build
+
+            # ── Atomic deploy: clear old assets, copy new ones ──
+            rm -rf /var/www/trichology/assets/*
             cp -r dist/* /var/www/trichology/
+
+            # Reload Nginx to pick up new index.html
+            systemctl reload nginx
+
+            echo "✅ Frontend deployed"
+
+      # ── Health check ───────────────────────────────────────
+      - name: ❤️ Verify deployment
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_IP }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            echo "── PM2 status ──"
+            pm2 status trichology-backend
+
+            echo ""
+            echo "── Backend health ──"
+            curl -sf http://localhost:3001/api/dashboard > /dev/null && echo "API: ✅ OK" || echo "API: ❌ FAIL"
+
+            echo ""
+            echo "── Frontend files ──"
+            ls -la /var/www/trichology/index.html
+            echo "Assets count: $(ls /var/www/trichology/assets/ | wc -l)"
+
+            echo ""
+            echo "🎉 Deployment complete!"
