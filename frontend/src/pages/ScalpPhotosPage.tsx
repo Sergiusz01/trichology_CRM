@@ -90,7 +90,7 @@ export default function ScalpPhotosPage() {
             fontWeight: 700,
             py: 1.2,
             px: 3,
-            boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.2)}`,
+            boxShadow: `0 4px 12px ${alpha('#1976d2', 0.2)}`,
           }}
         >
           {isMobile ? 'DODAJ ZDJĘCIE' : 'Dodaj zdjęcie'}
@@ -105,7 +105,7 @@ export default function ScalpPhotosPage() {
         <Grid container spacing={3}>
           {photos.length === 0 ? (
             <Grid size={{ xs: 12 }}>
-              <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 4, bgcolor: alpha(theme.palette.primary.main, 0.02) }}>
+              <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 4, bgcolor: alpha('#1976d2', 0.02) }}>
                 <ImageIcon sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
                 <Typography variant="h6" color="text.secondary" gutterBottom>Brak zdjęć</Typography>
                 <Typography variant="body2" color="text.disabled">Nie dodano jeszcze żadnej dokumentacji fotograficznej.</Typography>
@@ -145,7 +145,7 @@ export default function ScalpPhotosPage() {
                         position: 'absolute',
                         top: 12,
                         left: 12,
-                        bgcolor: alpha(theme.palette.common.black, 0.6),
+                        bgcolor: alpha('#000000', 0.6),
                         backdropFilter: 'blur(4px)',
                         color: 'white',
                         px: 1.5,

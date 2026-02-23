@@ -117,7 +117,7 @@ export default function LabResultsPage() {
               fontWeight: 700,
               py: 1.2,
               px: 3,
-              boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.2)}`,
+              boxShadow: `0 4px 12px ${alpha('#1976d2', 0.2)}`,
             }}
           >
             Dodaj wynik
@@ -126,7 +126,7 @@ export default function LabResultsPage() {
       </Box>
 
       {labResults.length === 0 ? (
-        <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 4, bgcolor: alpha(theme.palette.primary.main, 0.02) }}>
+        <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 4, bgcolor: alpha('#1976d2', 0.02) }}>
           <Science sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
           <Typography variant="h6" color="text.secondary" gutterBottom>Brak wyników badań</Typography>
           <Typography variant="body2" color="text.disabled">Nie wprowadzono jeszcze żadnych wyników dla tego pacjenta.</Typography>
@@ -151,7 +151,7 @@ export default function LabResultsPage() {
                 <CardContent sx={{ p: 3 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main' }}>
+                      <Avatar sx={{ bgcolor: alpha('#1976d2', 0.1), color: 'primary.main' }}>
                         <Event fontSize="small" />
                       </Avatar>
                       <Box>
@@ -166,7 +166,7 @@ export default function LabResultsPage() {
                     <IconButton
                       size="small"
                       onClick={() => navigate(`/patients/${id}/lab-results/${result.id}/edit`)}
-                      sx={{ bgcolor: alpha(theme.palette.primary.main, 0.05), color: 'primary.main' }}
+                      sx={{ bgcolor: alpha('#1976d2', 0.05), color: 'primary.main' }}
                     >
                       <Edit fontSize="small" />
                     </IconButton>
@@ -207,8 +207,8 @@ export default function LabResultsPage() {
                       px: 2,
                       py: 1,
                       borderRadius: 2,
-                      bgcolor: alpha(theme.palette.primary.main, 0.03),
-                      '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.08) }
+                      bgcolor: alpha('#1976d2', 0.03),
+                      '&:hover': { bgcolor: alpha('#1976d2', 0.08) }
                     }}
                   >
                     Szczegóły badania

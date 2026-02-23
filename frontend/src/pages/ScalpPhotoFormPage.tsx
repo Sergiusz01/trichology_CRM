@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import {
+import { useTheme, 
   Box,
   Paper,
   TextField,
@@ -14,7 +14,7 @@ import {
   CircularProgress,
   Container,
   alpha,
-} from '@mui/material';
+ } from '@mui/material';
 import { useSnackbar } from 'notistack';
 import { api } from '../services/api';
 
@@ -29,6 +29,8 @@ const scalpPhotoSchema = z.object({
 type ScalpPhotoFormData = z.infer<typeof scalpPhotoSchema>;
 
 export default function ScalpPhotoFormPage() {
+  const theme = useTheme();
+
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
@@ -138,10 +140,10 @@ export default function ScalpPhotoFormPage() {
                           textAlign: 'center',
                           cursor: 'pointer',
                           transition: 'all 0.2s',
-                          bgcolor: selectedFile ? alpha(theme.palette.success.main, 0.02) : alpha(theme.palette.background.default, 0.5),
+                          bgcolor: selectedFile ? alpha('#34C759', 0.02) : alpha('#F8FAFC', 0.5),
                           '&:hover': {
                             borderColor: 'primary.main',
-                            bgcolor: alpha(theme.palette.primary.main, 0.02),
+                            bgcolor: alpha('#1976d2', 0.02),
                           }
                         }}
                       >
@@ -255,7 +257,7 @@ export default function ScalpPhotoFormPage() {
                     borderRadius: 3,
                     '&:hover': {
                       borderColor: '#1d1d1f',
-                      bgcolor: alpha(theme.palette.common.black, 0.02),
+                      bgcolor: alpha('#000000', 0.02),
                     }
                   }}
                 >

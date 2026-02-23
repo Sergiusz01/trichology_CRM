@@ -91,7 +91,7 @@ export default function CarePlansPage() {
             fontWeight: 700,
             py: 1.2,
             px: 3,
-            boxShadow: `0 4px 12px ${alpha(theme.palette.secondary.main, 0.2)}`,
+            boxShadow: `0 4px 12px ${alpha('#AF52DE', 0.2)}`,
           }}
         >
           Nowy plan
@@ -103,7 +103,7 @@ export default function CarePlansPage() {
           <CircularProgress />
         </Box>
       ) : carePlans.length === 0 ? (
-        <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 4, bgcolor: alpha(theme.palette.secondary.main, 0.02) }}>
+        <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 4, bgcolor: alpha('#AF52DE', 0.02) }}>
           <LocalHospital sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
           <Typography variant="h6" color="text.secondary" gutterBottom>Brak planów opieki</Typography>
           <Typography variant="body2" color="text.disabled">Nie utworzono jeszcze żadnego planu kuracji.</Typography>
@@ -135,7 +135,7 @@ export default function CarePlansPage() {
                   >
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Avatar sx={{ bgcolor: alpha(theme.palette.secondary.main, 0.1), color: 'secondary.main' }}>
+                        <Avatar sx={{ bgcolor: alpha('#AF52DE', 0.1), color: 'secondary.main' }}>
                           <EventNote fontSize="small" />
                         </Avatar>
                         <Box>
@@ -152,7 +152,7 @@ export default function CarePlansPage() {
                       </Box>
                       <IconButton
                         size="small"
-                        sx={{ bgcolor: alpha(theme.palette.secondary.main, 0.05), color: 'secondary.main' }}
+                        sx={{ bgcolor: alpha('#AF52DE', 0.05), color: 'secondary.main' }}
                       >
                         <ChevronRight />
                       </IconButton>

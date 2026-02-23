@@ -205,13 +205,13 @@ export default function ConsultationsPage() {
                   '&:hover': {
                     boxShadow: 2,
                     borderColor: 'primary.main',
-                    bgcolor: alpha(theme.palette.primary.main, 0.02),
+                    bgcolor: alpha('#1976d2', 0.02),
                   },
                 }}
               >
                 <CardContent sx={{ py: 2, '&:last-child': { pb: 2 } }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main' }}>
+                    <Avatar sx={{ bgcolor: alpha('#1976d2', 0.1), color: 'primary.main' }}>
                       {c.patient.firstName[0]}
                       {c.patient.lastName[0]}
                     </Avatar>
@@ -238,7 +238,7 @@ export default function ConsultationsPage() {
         <TableContainer component={Paper} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
           <Table>
             <TableHead>
-              <TableRow sx={{ bgcolor: alpha(theme.palette.primary.main, 0.04) }}>
+              <TableRow sx={{ bgcolor: alpha('#1976d2', 0.04) }}>
                 <TableCell sx={{ fontWeight: 600 }}>Pacjent</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Data konsultacji</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Lekarz</TableCell>
@@ -252,12 +252,12 @@ export default function ConsultationsPage() {
                   onClick={() => navigate(`/consultations/${c.id}`)}
                   sx={{
                     cursor: 'pointer',
-                    '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.04) },
+                    '&:hover': { bgcolor: alpha('#1976d2', 0.04) },
                   }}
                 >
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <Avatar sx={{ width: 36, height: 36, bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main', fontSize: '0.875rem' }}>
+                      <Avatar sx={{ width: 36, height: 36, bgcolor: alpha('#1976d2', 0.1), color: 'primary.main', fontSize: '0.875rem' }}>
                         {c.patient.firstName[0]}
                         {c.patient.lastName[0]}
                       </Avatar>

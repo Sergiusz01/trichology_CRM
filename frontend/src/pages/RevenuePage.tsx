@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import {
+import { useTheme, 
     Box,
     Grid,
     Paper,
@@ -13,7 +13,7 @@ import {
     Stack,
     TextField,
     Chip,
-} from '@mui/material';
+ } from '@mui/material';
 import {
     AttachMoney,
     Refresh,
@@ -64,6 +64,8 @@ function toInputDate(d: Date) {
 }
 
 export default function RevenuePage() {
+  const theme = useTheme();
+
     const { error: showError, success: showSuccess } = useNotification();
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -174,7 +176,7 @@ export default function RevenuePage() {
                         <IconButton
                             onClick={handleDownloadReport}
                             disabled={loading}
-                            sx={{ bgcolor: alpha(theme.palette.secondary.main, 0.08), '&:hover': { bgcolor: alpha(theme.palette.secondary.main, 0.14) } }}
+                            sx={{ bgcolor: alpha('#AF52DE', 0.08), '&:hover': { bgcolor: alpha('#AF52DE', 0.14) } }}
                         >
                             <PictureAsPdf sx={{ color: 'secondary.main' }} />
                         </IconButton>
@@ -183,7 +185,7 @@ export default function RevenuePage() {
                         <IconButton
                             onClick={() => fetchRevenue(fromDate, toDate, true)}
                             disabled={refreshing}
-                            sx={{ bgcolor: alpha(theme.palette.primary.main, 0.08), '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.14) } }}
+                            sx={{ bgcolor: alpha('#1976d2', 0.08), '&:hover': { bgcolor: alpha('#1976d2', 0.14) } }}
                         >
                             <Refresh sx={{
                                 color: 'primary.main',
@@ -213,7 +215,7 @@ export default function RevenuePage() {
                                     bgcolor: activePreset === idx ? '#007AFF' : 'transparent',
                                     color: activePreset === idx ? 'white' : 'inherit',
                                     borderColor: activePreset === idx ? '#007AFF' : 'divider',
-                                    '&:hover': { bgcolor: activePreset === idx ? '#0056D6' : alpha(theme.palette.primary.main, 0.08) },
+                                    '&:hover': { bgcolor: activePreset === idx ? '#0056D6' : alpha('#1976d2', 0.08) },
                                 }}
                             />
                         ))}
@@ -292,7 +294,7 @@ export default function RevenuePage() {
                             Zrealizowane
                         </Box>
                         <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
-                            <Box component="span" sx={{ width: 10, height: 10, borderRadius: '2px', bgcolor: alpha(theme.palette.primary.main, 0.5), display: 'inline-block' }} />
+                            <Box component="span" sx={{ width: 10, height: 10, borderRadius: '2px', bgcolor: alpha('#1976d2', 0.5), display: 'inline-block' }} />
                             Zaplanowane
                         </Box>
                     </Box>
@@ -336,10 +338,10 @@ export default function RevenuePage() {
                                             {bucket.planned > 0 && (
                                                 <Box sx={{
                                                     height: `${(bucket.planned / maxVal) * 100}%`,
-                                                    bgcolor: alpha(theme.palette.primary.main, 0.45),
+                                                    bgcolor: alpha('#1976d2', 0.45),
                                                     borderRadius: '4px 4px 0 0',
                                                     transition: 'all 0.3s ease',
-                                                    '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.65) },
+                                                    '&:hover': { bgcolor: alpha('#1976d2', 0.65) },
                                                 }} />
                                             )}
                                             {/* Completed */}

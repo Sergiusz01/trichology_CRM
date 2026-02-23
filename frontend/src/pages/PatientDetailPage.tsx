@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import {
+import { useTheme, 
   Box,
   Paper,
   Typography,
@@ -35,7 +35,7 @@ import {
   InputAdornment,
   Tooltip,
   CardMedia,
-} from '@mui/material';
+ } from '@mui/material';
 import {
   Add,
   Edit,
@@ -131,6 +131,8 @@ function TabPanel(props: TabPanelProps) {
 }
 
 export default function PatientDetailPage() {
+  const theme = useTheme();
+
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -664,7 +666,7 @@ export default function PatientDetailPage() {
             mb: 3,
             color: '#1d1d1f',
             '&:hover': {
-              bgcolor: alpha(theme.palette.common.black, 0.05),
+              bgcolor: alpha('#000000', 0.05),
             },
           }}
         >
@@ -691,14 +693,14 @@ export default function PatientDetailPage() {
           <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: { xs: 'center', md: 'flex-start' }, gap: { xs: 2.5, md: 4 }, mb: 4, textAlign: { xs: 'center', md: 'left' } }}>
             <Avatar
               sx={{
-                bgcolor: alpha(theme.palette.primary.main, 0.1),
+                bgcolor: alpha('#1976d2', 0.1),
                 color: 'primary.main',
                 width: { xs: 80, md: 100 },
                 height: { xs: 80, md: 100 },
                 fontSize: { xs: '1.75rem', md: '2.5rem' },
                 fontWeight: 700,
                 border: '2px solid',
-                borderColor: alpha(theme.palette.primary.main, 0.2),
+                borderColor: alpha('#1976d2', 0.2),
               }}
             >
               {getInitials(patient.firstName, patient.lastName)}
@@ -723,7 +725,7 @@ export default function PatientDetailPage() {
                     label={`${patient.age} lat`}
                     size="small"
                     sx={{
-                      bgcolor: alpha(theme.palette.primary.main, 0.08),
+                      bgcolor: alpha('#1976d2', 0.08),
                       color: 'primary.main',
                       border: 'none',
                       fontWeight: 600,
@@ -736,7 +738,7 @@ export default function PatientDetailPage() {
                     label={patient.gender === 'MALE' ? 'Mężczyzna' : patient.gender === 'FEMALE' ? 'Kobieta' : 'Inna'}
                     size="small"
                     sx={{
-                      bgcolor: patient.gender === 'MALE' ? alpha(theme.palette.primary.main, 0.08) : alpha('#FF2D55', 0.08),
+                      bgcolor: patient.gender === 'MALE' ? alpha('#1976d2', 0.08) : alpha('#FF2D55', 0.08),
                       color: patient.gender === 'MALE' ? '#007AFF' : '#FF2D55',
                       border: 'none',
                       fontWeight: 600,
@@ -800,10 +802,10 @@ export default function PatientDetailPage() {
                   fontWeight: 700,
                   py: { xs: 1.2, sm: 1.5 },
                   borderRadius: 2.5,
-                  boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.4)}`,
+                  boxShadow: `0 4px 14px ${alpha('#1976d2', 0.4)}`,
                   '&:hover': {
                     bgcolor: 'primary.dark',
-                    boxShadow: `0 6px 20px ${alpha(theme.palette.primary.main, 0.5)}`,
+                    boxShadow: `0 6px 20px ${alpha('#1976d2', 0.5)}`,
                   },
                 }}
               >
@@ -825,7 +827,7 @@ export default function PatientDetailPage() {
                   borderRadius: 2.5,
                   '&:hover': {
                     borderColor: '#1d1d1f',
-                    bgcolor: alpha(theme.palette.common.black, 0.02),
+                    bgcolor: alpha('#000000', 0.02),
                   },
                 }}
               >
@@ -848,7 +850,7 @@ export default function PatientDetailPage() {
                     borderRadius: 2.5,
                     '&:hover': {
                       borderColor: '#1d1d1f',
-                      bgcolor: alpha(theme.palette.common.black, 0.02),
+                      bgcolor: alpha('#000000', 0.02),
                     },
                   }}
                 >
@@ -1010,7 +1012,7 @@ export default function PatientDetailPage() {
                             width: 48,
                             height: 48,
                             borderRadius: 2,
-                            bgcolor: alpha(theme.palette.primary.main, 0.1),
+                            bgcolor: alpha('#1976d2', 0.1),
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -1036,7 +1038,7 @@ export default function PatientDetailPage() {
                             width: 48,
                             height: 48,
                             borderRadius: 2,
-                            bgcolor: alpha(theme.palette.success.main, 0.1),
+                            bgcolor: alpha('#34C759', 0.1),
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -1070,7 +1072,7 @@ export default function PatientDetailPage() {
                             width: 48,
                             height: 48,
                             borderRadius: 2,
-                            bgcolor: alpha(theme.palette.warning.main, 0.1),
+                            bgcolor: alpha('#FF9500', 0.1),
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -1122,7 +1124,7 @@ export default function PatientDetailPage() {
                             width: 48,
                             height: 48,
                             borderRadius: 2,
-                            bgcolor: alpha(theme.palette.error.main, 0.1),
+                            bgcolor: alpha('#FF3B30', 0.1),
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -1185,7 +1187,7 @@ export default function PatientDetailPage() {
                   boxShadow: 'none',
                   '&:hover': {
                     borderColor: '#1d1d1f',
-                    bgcolor: showArchived.consultations ? '#0051D5' : alpha(theme.palette.common.black, 0.02),
+                    bgcolor: showArchived.consultations ? '#0051D5' : alpha('#000000', 0.02),
                     boxShadow: 'none',
                   },
                 }}
@@ -1246,7 +1248,7 @@ export default function PatientDetailPage() {
                             borderRadius: 1.5,
                             '&:hover': {
                               borderColor: '#1d1d1f',
-                              bgcolor: alpha(theme.palette.common.black, 0.02),
+                              bgcolor: alpha('#000000', 0.02),
                             },
                           }}
                         >
@@ -1347,7 +1349,7 @@ export default function PatientDetailPage() {
                   boxShadow: 'none',
                   '&:hover': {
                     borderColor: '#1d1d1f',
-                    bgcolor: showArchived.labResults ? '#0051D5' : alpha(theme.palette.common.black, 0.02),
+                    bgcolor: showArchived.labResults ? '#0051D5' : alpha('#000000', 0.02),
                     boxShadow: 'none',
                   },
                 }}
@@ -1407,7 +1409,7 @@ export default function PatientDetailPage() {
                             borderRadius: 1.5,
                             '&:hover': {
                               borderColor: '#1d1d1f',
-                              bgcolor: alpha(theme.palette.common.black, 0.02),
+                              bgcolor: alpha('#000000', 0.02),
                             },
                           }}
                         >
@@ -1426,7 +1428,7 @@ export default function PatientDetailPage() {
                             borderRadius: 1.5,
                             '&:hover': {
                               borderColor: '#1d1d1f',
-                              bgcolor: alpha(theme.palette.common.black, 0.02),
+                              bgcolor: alpha('#000000', 0.02),
                             },
                           }}
                         >
@@ -1462,7 +1464,7 @@ export default function PatientDetailPage() {
                             borderRadius: 1.5,
                             '&:hover': {
                               borderColor: '#1d1d1f',
-                              bgcolor: alpha(theme.palette.common.black, 0.02),
+                              bgcolor: alpha('#000000', 0.02),
                             },
                           }}
                         >
@@ -1624,7 +1626,7 @@ export default function PatientDetailPage() {
                               borderRadius: 1.5,
                               '&:hover': {
                                 borderColor: '#1d1d1f',
-                                bgcolor: alpha(theme.palette.common.black, 0.02),
+                                bgcolor: alpha('#000000', 0.02),
                               },
                             }}
                           >
@@ -1635,8 +1637,8 @@ export default function PatientDetailPage() {
                             onClick={() => handleDeleteClick('scalpPhoto', photo.id, 'Zdjęcie')}
                             sx={{
                               color: 'error.main',
-                              bgcolor: alpha(theme.palette.error.main, 0.05),
-                              '&:hover': { bgcolor: alpha(theme.palette.error.main, 0.1) }
+                              bgcolor: alpha('#FF3B30', 0.05),
+                              '&:hover': { bgcolor: alpha('#FF3B30', 0.1) }
                             }}
                           >
                             <Delete />
@@ -1688,7 +1690,7 @@ export default function PatientDetailPage() {
                   boxShadow: 'none',
                   '&:hover': {
                     borderColor: '#1d1d1f',
-                    bgcolor: showArchived.carePlans ? '#0051D5' : alpha(theme.palette.common.black, 0.02),
+                    bgcolor: showArchived.carePlans ? '#0051D5' : alpha('#000000', 0.02),
                     boxShadow: 'none',
                   },
                 }}
@@ -1746,7 +1748,7 @@ export default function PatientDetailPage() {
                             borderRadius: 1.5,
                             '&:hover': {
                               borderColor: '#1d1d1f',
-                              bgcolor: alpha(theme.palette.common.black, 0.02),
+                              bgcolor: alpha('#000000', 0.02),
                             },
                           }}
                         >
@@ -1765,7 +1767,7 @@ export default function PatientDetailPage() {
                             borderRadius: 1.5,
                             '&:hover': {
                               borderColor: '#1d1d1f',
-                              bgcolor: alpha(theme.palette.common.black, 0.02),
+                              bgcolor: alpha('#000000', 0.02),
                             },
                           }}
                         >
@@ -1801,7 +1803,7 @@ export default function PatientDetailPage() {
                             borderRadius: 1.5,
                             '&:hover': {
                               borderColor: '#1d1d1f',
-                              bgcolor: alpha(theme.palette.common.black, 0.02),
+                              bgcolor: alpha('#000000', 0.02),
                             },
                           }}
                         >
@@ -1952,7 +1954,7 @@ export default function PatientDetailPage() {
               <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
                 <Table>
                   <TableHead>
-                    <TableRow sx={{ bgcolor: alpha(theme.palette.common.black, 0.02) }}>
+                    <TableRow sx={{ bgcolor: alpha('#000000', 0.02) }}>
                       <TableCell sx={{ fontWeight: 700, color: '#1d1d1f' }}>Data i godzina</TableCell>
                       <TableCell sx={{ fontWeight: 700, color: '#1d1d1f' }}>Rodzaj zabiegu</TableCell>
                       <TableCell sx={{ fontWeight: 700, color: '#1d1d1f' }}>Status</TableCell>
@@ -2030,7 +2032,7 @@ export default function PatientDetailPage() {
                                 label={`${visit.numerWSerii} z ${visit.liczbaSerii}`}
                                 size="small"
                                 sx={{
-                                  bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                  bgcolor: alpha('#1976d2', 0.1),
                                   color: 'primary.main',
                                   fontWeight: 600,
                                 }}

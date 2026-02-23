@@ -276,13 +276,13 @@ export default function VisitsPage() {
                                         '&:hover': {
                                             boxShadow: 2,
                                             borderColor: 'secondary.main',
-                                            bgcolor: alpha(theme.palette.secondary.main, 0.02),
+                                            bgcolor: alpha('#AF52DE', 0.02),
                                         },
                                     }}
                                 >
                                     <CardContent sx={{ py: 2, '&:last-child': { pb: 2 } }}>
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-                                            <Avatar sx={{ bgcolor: alpha(theme.palette.secondary.main, 0.1), color: 'secondary.main' }}>
+                                            <Avatar sx={{ bgcolor: alpha('#AF52DE', 0.1), color: 'secondary.main' }}>
                                                 {v.patient.firstName[0]}
                                                 {v.patient.lastName[0]}
                                             </Avatar>
@@ -322,7 +322,7 @@ export default function VisitsPage() {
                 <TableContainer component={Paper} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
                     <Table>
                         <TableHead>
-                            <TableRow sx={{ bgcolor: alpha(theme.palette.secondary.main, 0.04) }}>
+                            <TableRow sx={{ bgcolor: alpha('#AF52DE', 0.04) }}>
                                 <TableCell sx={{ fontWeight: 600 }}>Data i godzina</TableCell>
                                 <TableCell sx={{ fontWeight: 600 }}>Pacjent</TableCell>
                                 <TableCell sx={{ fontWeight: 600 }}>Rodzaj zabiegu</TableCell>
@@ -339,7 +339,7 @@ export default function VisitsPage() {
                                         onClick={() => navigate(`/patients/${v.patient.id}`)}
                                         sx={{
                                             cursor: 'pointer',
-                                            '&:hover': { bgcolor: alpha(theme.palette.secondary.main, 0.04) },
+                                            '&:hover': { bgcolor: alpha('#AF52DE', 0.04) },
                                         }}
                                     >
                                         <TableCell>
@@ -359,7 +359,7 @@ export default function VisitsPage() {
                                         </TableCell>
                                         <TableCell>
                                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                                <Avatar sx={{ width: 32, height: 32, bgcolor: alpha(theme.palette.secondary.main, 0.1), color: 'secondary.main', fontSize: '0.875rem' }}>
+                                                <Avatar sx={{ width: 32, height: 32, bgcolor: alpha('#AF52DE', 0.1), color: 'secondary.main', fontSize: '0.875rem' }}>
                                                     {v.patient.firstName[0]}
                                                     {v.patient.lastName[0]}
                                                 </Avatar>

@@ -273,7 +273,7 @@ export default function ActivityLogPage() {
                     sx={{
                       py: 2,
                       alignItems: 'flex-start',
-                      '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.04) },
+                      '&:hover': { bgcolor: alpha('#1976d2', 0.04) },
                     }}
                     secondaryAction={
                       a.link ? (
@@ -281,8 +281,8 @@ export default function ActivityLogPage() {
                           edge="end"
                           onClick={() => navigate(a.link)}
                           sx={{
-                            bgcolor: alpha(theme.palette.primary.main, 0.1),
-                            '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.2) },
+                            bgcolor: alpha('#1976d2', 0.1),
+                            '&:hover': { bgcolor: alpha('#1976d2', 0.2) },
                           }}
                         >
                           <ArrowForward sx={{ color: 'primary.main' }} />
@@ -366,7 +366,7 @@ export default function ActivityLogPage() {
                       key={a.id}
                       hover
                       sx={{
-                        '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.04) },
+                        '&:hover': { bgcolor: alpha('#1976d2', 0.04) },
                       }}
                     >
                       <TableCell>
@@ -414,8 +414,8 @@ export default function ActivityLogPage() {
                             size="small"
                             onClick={() => navigate(a.link)}
                             sx={{
-                              bgcolor: alpha(theme.palette.primary.main, 0.1),
-                              '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.2) },
+                              bgcolor: alpha('#1976d2', 0.1),
+                              '&:hover': { bgcolor: alpha('#1976d2', 0.2) },
                             }}
                           >
                             <ArrowForward sx={{ color: 'primary.main', fontSize: 18 }} />

@@ -143,8 +143,8 @@ export default function Layout() {
                     borderRadius: 2,
                     py: 1,
                     '&.Mui-selected': {
-                      bgcolor: theme.palette.mode === 'dark' ? alpha(theme.palette.primary.main, 0.1) : 'primary.50',
-                      '&:hover': { bgcolor: theme.palette.mode === 'dark' ? alpha(theme.palette.primary.main, 0.2) : 'primary.50' },
+                      bgcolor: theme.palette.mode === 'dark' ? alpha('#1976d2', 0.1) : 'primary.50',
+                      '&:hover': { bgcolor: theme.palette.mode === 'dark' ? alpha('#1976d2', 0.2) : 'primary.50' },
                       '& .MuiListItemIcon-root': { color: 'primary.main' },
                       '& .MuiListItemText-primary': { color: 'primary.main', fontWeight: 600 },
                     },
@@ -218,7 +218,7 @@ export default function Layout() {
                 borderRadius: 2,
                 py: 1,
                 '&.Mui-selected': {
-                  bgcolor: theme.palette.mode === 'dark' ? alpha(theme.palette.primary.main, 0.1) : 'primary.50',
+                  bgcolor: theme.palette.mode === 'dark' ? alpha('#1976d2', 0.1) : 'primary.50',
                   '& .MuiListItemIcon-root': { color: 'primary.main' },
                   '& .MuiListItemText-primary': { color: 'primary.main', fontWeight: 600 },
                 },
@@ -241,7 +241,7 @@ export default function Layout() {
                   borderRadius: 2,
                   py: 1,
                   '&.Mui-selected': {
-                    bgcolor: theme.palette.mode === 'dark' ? alpha(theme.palette.primary.main, 0.1) : 'primary.50',
+                    bgcolor: theme.palette.mode === 'dark' ? alpha('#1976d2', 0.1) : 'primary.50',
                     '& .MuiListItemIcon-root': { color: 'primary.main' },
                     '& .MuiListItemText-primary': { color: 'primary.main', fontWeight: 600 },
                   },
@@ -279,7 +279,7 @@ export default function Layout() {
             <AccountCircle sx={{ fontSize: 18, color: 'text.secondary', mr: 1 }} />
             <Typography variant="caption" fontWeight={600} color="text.secondary">Profil</Typography>
           </ListItemButton>
-          <ListItemButton onClick={logout} sx={{ borderRadius: 2, py: 0.5, justifyContent: 'center', bgcolor: theme.palette.mode === 'dark' ? alpha(theme.palette.error.main, 0.1) : '#FEF2F2', '&:hover': { bgcolor: theme.palette.mode === 'dark' ? alpha(theme.palette.error.main, 0.2) : '#FEE2E2' } }}>
+          <ListItemButton onClick={logout} sx={{ borderRadius: 2, py: 0.5, justifyContent: 'center', bgcolor: theme.palette.mode === 'dark' ? alpha('#FF3B30', 0.1) : '#FEF2F2', '&:hover': { bgcolor: theme.palette.mode === 'dark' ? alpha('#FF3B30', 0.2) : '#FEE2E2' } }}>
             <Logout sx={{ fontSize: 18, color: 'error.main', mr: 1 }} />
             <Typography variant="caption" fontWeight={600} color="error.main">Wyjdź</Typography>
           </ListItemButton>

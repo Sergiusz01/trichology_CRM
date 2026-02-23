@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import {
+import { useTheme, 
   Box,
   Paper,
   Typography,
@@ -18,7 +18,7 @@ import {
   IconButton,
   InputAdornment,
   alpha,
-} from '@mui/material';
+ } from '@mui/material';
 import { Save, ArrowBack } from '@mui/icons-material';
 import { api } from '../services/api';
 import { useNotification } from '../hooks/useNotification';
@@ -51,6 +51,8 @@ function roundToNearestMinutesUTC(date: Date): { h: string; m: string } {
 }
 
 export default function VisitFormPage() {
+  const theme = useTheme();
+
   const { id, patientId } = useParams<{ id?: string; patientId?: string }>();
   const navigate = useNavigate();
   const location = useLocation();
@@ -248,7 +250,7 @@ export default function VisitFormPage() {
     <Box sx={{ width: '100%', maxWidth: '100%', overflow: 'hidden' }}>
       <Container maxWidth="lg" sx={{ py: 4, px: { xs: 2, sm: 3 } }}>
         <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
-          <IconButton onClick={() => navigate(-1)} sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.2) } }}>
+          <IconButton onClick={() => navigate(-1)} sx={{ bgcolor: alpha('#1976d2', 0.1), '&:hover': { bgcolor: alpha('#1976d2', 0.2) } }}>
             <ArrowBack sx={{ color: 'primary.main' }} />
           </IconButton>
           <Typography variant="h4" sx={{ fontWeight: 600, color: 'text.primary' }}>
