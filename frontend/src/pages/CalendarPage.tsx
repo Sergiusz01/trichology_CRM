@@ -38,19 +38,24 @@ export default function CalendarPage() {
             const res = await api.get(`/visits`);
             const apiVisits = res.data.data || res.data;
 
-            const mappedEvents = apiVisits.map((v: any) => ({
-                id: v.id,
-                title: `${v.patient?.firstName || ''} ${v.patient?.lastName || ''} - ${v.visitType}`,
-                start: v.scheduledDate,
-                end: new Date(new Date(v.scheduledDate).getTime() + (v.durationMinutes || 60) * 60000).toISOString(),
-                extendedProps: {
-                    patientId: v.patientId,
-                    patientName: `${v.patient?.firstName} ${v.patient?.lastName}`,
-                    visitType: v.visitType,
-                    status: v.status
-                },
-                color: v.status === 'COMPLETED' ? '#4caf50' : v.status === 'CANCELLED' ? '#f44336' : '#2196f3'
-            }));
+            const mappedEvents = apiVisits.map((v: any) => {
+                const startDate = new Date(v.data);
+                const endDate = new Date(startDate.getTime() + 60 * 60000); // 60 minutes default
+
+                return {
+                    id: v.id,
+                    title: `${v.patient?.firstName || ''} ${v.patient?.lastName || ''} - ${v.rodzajZabiegu || v.visitType || 'Wizyta'}`,
+                    start: startDate.toISOString(),
+                    end: endDate.toISOString(),
+                    extendedProps: {
+                        patientId: v.patientId,
+                        patientName: `${v.patient?.firstName} ${v.patient?.lastName}`,
+                        visitType: v.visitType,
+                        status: v.status
+                    },
+                    color: v.status === 'COMPLETED' ? '#4caf50' : v.status === 'CANCELLED' ? '#f44336' : '#2196f3'
+                };
+            });
             setEvents(mappedEvents);
         } catch (error) {
             console.error('Failed to fetch visits for calendar:', error);
