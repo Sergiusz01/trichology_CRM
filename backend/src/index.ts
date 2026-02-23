@@ -20,6 +20,7 @@ import visitRoutes from './routes/visits';
 import dashboardRoutes from './routes/dashboard';
 import activityRoutes from './routes/activity';
 import webPushRoutes from './routes/webPush';
+import reportsRoutes from './routes/reports';
 import { errorHandler } from './middleware/errorHandler';
 import { startReminderWorker } from './services/reminderWorker';
 import { prisma } from './prisma';
@@ -142,6 +143,7 @@ app.use('/api/visits', visitRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/activity', activityRoutes);
 app.use('/api/web-push', webPushRoutes);
+app.use('/api/reports', reportsRoutes);
 
 // Error handler
 app.use(errorHandler);

@@ -475,6 +475,51 @@ router.delete('/:id', auth_1.authenticate, (0, auth_1.requireWriteAccess)(), asy
         next(error);
     }
 });
+// Download ICS for visit
+router.get('/:id/ics', auth_1.authenticate, async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const visit = await prisma_1.prisma.visit.findUnique({
+            where: { id },
+            include: {
+                patient: { select: { firstName: true, lastName: true } }
+            }
+        });
+        if (!visit) {
+            return res.status(404).json({ error: 'Wizyta nie znaleziona' });
+        }
+        const calendarVisitObj = visit;
+        const icsContent = (0, icalendar_1.generateVisitICS)(calendarVisitObj);
+        res.setHeader('Content-Type', 'text/calendar');
+        res.setHeader('Content-Disposition', `attachment; filename="wizyta_${id}.ics"`);
+        res.send(icsContent);
+    }
+    catch (error) {
+        next(error);
+    }
+});
+// Get Calendar Links for visit
+router.get('/:id/calendar-links', auth_1.authenticate, async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const visit = await prisma_1.prisma.visit.findUnique({
+            where: { id },
+            include: {
+                patient: { select: { firstName: true, lastName: true } }
+            }
+        });
+        if (!visit) {
+            return res.status(404).json({ error: 'Wizyta nie znaleziona' });
+        }
+        const calendarVisitObj = visit;
+        const googleCalendarURL = (0, icalendar_1.generateGoogleCalendarURL)(calendarVisitObj);
+        const outlookCalendarURL = (0, icalendar_1.generateOutlookCalendarURL)(calendarVisitObj);
+        res.json({ googleCalendarURL, outlookCalendarURL });
+    }
+    catch (error) {
+        next(error);
+    }
+});
 // Send visit reminder email
 router.post('/:id/reminder', auth_1.authenticate, async (req, res, next) => {
     try {

@@ -22,6 +22,7 @@ import {
     PersonAdd,
     CheckCircle,
     Cancel,
+    PictureAsPdf,
 } from '@mui/icons-material';
 import { api } from '../services/api';
 import { format, subDays, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
@@ -63,7 +64,7 @@ function toInputDate(d: Date) {
 }
 
 export default function RevenuePage() {
-    const { error: showError } = useNotification();
+    const { error: showError, success: showSuccess } = useNotification();
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -112,6 +113,27 @@ export default function RevenuePage() {
         fetchRevenue(fromDate, toDate);
     };
 
+    const handleDownloadReport = async () => {
+        try {
+            setLoading(true);
+            const monthStr = fromDate.substring(0, 7); // Extracts YYYY-MM
+            const response = await api.get(`/reports/monthly?month=${monthStr}`, { responseType: 'blob' });
+
+            const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `Raport_${monthStr}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode?.removeChild(link);
+            showSuccess('Raport został pobrany pomyślnie.');
+        } catch (err: any) {
+            showError('Błąd podczas generowania raportu PDF');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const fmt = (n: number) => n.toLocaleString('pl-PL', { maximumFractionDigits: 0 });
     const fmtDate = (s: string) => {
         const d = new Date(s);
@@ -147,19 +169,30 @@ export default function RevenuePage() {
                         </Typography>
                     )}
                 </Box>
-                <Tooltip title="Odśwież">
-                    <IconButton
-                        onClick={() => fetchRevenue(fromDate, toDate, true)}
-                        disabled={refreshing}
-                        sx={{ bgcolor: alpha('#007AFF', 0.08), '&:hover': { bgcolor: alpha('#007AFF', 0.14) } }}
-                    >
-                        <Refresh sx={{
-                            color: '#007AFF',
-                            animation: refreshing ? 'spin 1s linear infinite' : 'none',
-                            '@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } },
-                        }} />
-                    </IconButton>
-                </Tooltip>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Tooltip title="Pobierz Raport PDF (dla wybranego miesiąca)">
+                        <IconButton
+                            onClick={handleDownloadReport}
+                            disabled={loading}
+                            sx={{ bgcolor: alpha('#AF52DE', 0.08), '&:hover': { bgcolor: alpha('#AF52DE', 0.14) } }}
+                        >
+                            <PictureAsPdf sx={{ color: '#AF52DE' }} />
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Odśwież">
+                        <IconButton
+                            onClick={() => fetchRevenue(fromDate, toDate, true)}
+                            disabled={refreshing}
+                            sx={{ bgcolor: alpha('#007AFF', 0.08), '&:hover': { bgcolor: alpha('#007AFF', 0.14) } }}
+                        >
+                            <Refresh sx={{
+                                color: '#007AFF',
+                                animation: refreshing ? 'spin 1s linear infinite' : 'none',
+                                '@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } },
+                            }} />
+                        </IconButton>
+                    </Tooltip>
+                </Box>
             </Box>
 
             {error && <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>{error}</Alert>}
