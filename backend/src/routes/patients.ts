@@ -11,13 +11,13 @@ const router = express.Router();
 const patientSchema = z.object({
   firstName: z.string().min(1, 'Imię jest wymagane'),
   lastName: z.string().min(1, 'Nazwisko jest wymagane'),
-  age: z.number().int().positive().optional(),
-  gender: z.enum(['MALE', 'FEMALE', 'OTHER']).optional(),
-  occupation: z.string().optional(),
-  address: z.string().optional(),
-  phone: z.string().optional(),
-  email: z.string().email().optional().or(z.literal('')),
-  notes: z.string().optional(),
+  age: z.number().int().positive().optional().nullable(),
+  gender: z.enum(['MALE', 'FEMALE', 'OTHER']).optional().nullable(),
+  occupation: z.string().optional().nullable(),
+  address: z.string().optional().nullable(),
+  phone: z.string().optional().nullable(),
+  email: z.string().email().optional().nullable().or(z.literal('')),
+  notes: z.string().optional().nullable(),
 });
 
 // Get all patients (with search and pagination)
