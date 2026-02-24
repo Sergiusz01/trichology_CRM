@@ -46,10 +46,12 @@ const createTransporter = (): nodemailer.Transporter => {
   };
 
   // Add TLS options for STARTTLS (port 587)
+  // SMTP_TLS_REJECT_UNAUTHORIZED=false tylko dla środowisk deweloperskich z self-signed cert
+  const rejectUnauthorized = process.env.SMTP_TLS_REJECT_UNAUTHORIZED !== 'false';
   if (requireTLS && !isSecure) {
     smtpConfig.requireTLS = true;
     smtpConfig.tls = {
-      rejectUnauthorized: false, // Allow self-signed certificates if needed
+      rejectUnauthorized,
     };
   }
 

@@ -2,7 +2,7 @@ import express from 'express';
 import { z } from 'zod';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { prisma } from '../prisma';
-import bcrypt from 'bcrypt';
+import { hashPassword } from '../utils/password';
 
 const router = express.Router();
 
@@ -60,7 +60,7 @@ router.post('/', async (req, res, next) => {
             return res.status(400).json({ error: 'Użytkownik o tym adresie email już istnieje' });
         }
 
-        const passwordHash = await bcrypt.hash(password, 10);
+        const passwordHash = await hashPassword(password);
         const newUser = await prisma.user.create({
             data: {
                 name,
@@ -83,6 +83,11 @@ router.put('/:id', async (req, res, next) => {
         const { id } = req.params;
         const data = updateUserSchema.parse(req.body);
 
+        const existing = await prisma.user.findUnique({ where: { id } });
+        if (!existing) {
+            return res.status(404).json({ error: 'Użytkownik nie znaleziony' });
+        }
+
         const updated = await prisma.user.update({
             where: { id },
             data,
@@ -101,11 +106,16 @@ router.post('/:id/reset-password', async (req, res, next) => {
         const { id } = req.params;
         const { newPassword } = req.body;
 
-        if (!newPassword || newPassword.length < 6) {
-            return res.status(400).json({ error: 'Hasło musi mieć co najmniej 6 znaków' });
+        if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 6 || newPassword.length > 128) {
+            return res.status(400).json({ error: 'Hasło musi mieć od 6 do 128 znaków' });
         }
 
-        const passwordHash = await bcrypt.hash(newPassword, 10);
+        const existing = await prisma.user.findUnique({ where: { id } });
+        if (!existing) {
+            return res.status(404).json({ error: 'Użytkownik nie znaleziony' });
+        }
+
+        const passwordHash = await hashPassword(newPassword);
         await prisma.user.update({
             where: { id },
             data: { passwordHash }

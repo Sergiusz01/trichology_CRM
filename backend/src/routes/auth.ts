@@ -1,7 +1,7 @@
 import express from 'express';
 import { z } from 'zod';
 import { hashPassword, comparePassword } from '../utils/password';
-import { generateAccessToken, generateRefreshToken } from '../utils/jwt';
+import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 import { prisma } from '../prisma';
 import { authLimiter, refreshLimiter } from '../middleware/rateLimit';
@@ -161,7 +161,6 @@ router.post('/refresh', refreshLimiter, async (req, res, next) => {
       return res.status(401).json({ error: 'Token odświeżający został unieważniony' });
     }
 
-    const { verifyRefreshToken } = await import('../utils/jwt');
     const decoded = verifyRefreshToken(refreshToken);
 
     const user = await prisma.user.findUnique({
@@ -182,6 +181,9 @@ router.post('/refresh', refreshLimiter, async (req, res, next) => {
     const newAccessToken = generateAccessToken(tokenPayload);
     const newRefreshToken = generateRefreshToken(tokenPayload);
 
+    // Unieważnij stary token po wystawieniu nowego (rotacja tokenów)
+    revokedRefreshTokens.add(refreshToken);
+
     res.json({
       accessToken: newAccessToken,
       refreshToken: newRefreshToken,
@@ -194,8 +196,14 @@ router.post('/refresh', refreshLimiter, async (req, res, next) => {
 // Logout - revoke refresh token
 router.post('/logout', async (req, res) => {
   const { refreshToken } = req.body;
-  if (refreshToken) {
-    revokedRefreshTokens.add(refreshToken);
+  if (refreshToken && typeof refreshToken === 'string') {
+    try {
+      // Weryfikuj token przed dodaniem do czarnej listy — zapobiega zaśmiecaniu pamięci
+      verifyRefreshToken(refreshToken);
+      revokedRefreshTokens.add(refreshToken);
+    } catch {
+      // Nieprawidłowy lub wygasły token — ignoruj, sesja i tak jest zakończona
+    }
   }
   return res.json({ message: 'Wylogowano pomyślnie' });
 });

@@ -404,9 +404,6 @@ router.get('/test-connection', authenticate, async (req: AuthRequest, res, next)
         success: true,
         message: 'Połączenie z serwerem SMTP działa poprawnie',
         config: {
-          host: process.env.SMTP_HOST,
-          port: process.env.SMTP_PORT,
-          secure: process.env.SMTP_SECURE,
           user: process.env.SMTP_USER ? '***' : 'BRAK',
           from: process.env.EMAIL_FROM,
         },
@@ -416,9 +413,6 @@ router.get('/test-connection', authenticate, async (req: AuthRequest, res, next)
         success: false,
         message: 'Nie można połączyć się z serwerem SMTP',
         config: {
-          host: process.env.SMTP_HOST,
-          port: process.env.SMTP_PORT,
-          secure: process.env.SMTP_SECURE,
           user: process.env.SMTP_USER ? '***' : 'BRAK',
           from: process.env.EMAIL_FROM,
         },
@@ -429,13 +423,6 @@ router.get('/test-connection', authenticate, async (req: AuthRequest, res, next)
       success: false,
       message: 'Błąd testowania połączenia email',
       error: error.message,
-      config: {
-        host: process.env.SMTP_HOST,
-        port: process.env.SMTP_PORT,
-        secure: process.env.SMTP_SECURE,
-        user: process.env.SMTP_USER ? '***' : 'BRAK',
-        from: process.env.EMAIL_FROM,
-      },
     });
   }
 });

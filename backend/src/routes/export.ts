@@ -8,6 +8,9 @@ import fs from 'fs';
 
 const router = express.Router();
 
+// Dopuszcza tylko bezpieczne nazwy plików bez sekwencji path-traversal
+const isSafeFileName = (name: string): boolean => /^[a-zA-Z0-9._-]+$/.test(name);
+
 // Export all patients data to ZIP
 // Only ADMIN and DOCTOR can export data
 router.get('/patients/zip', authenticate, requireRole('ADMIN', 'DOCTOR'), async (req: AuthRequest, res, next) => {
@@ -172,7 +175,7 @@ router.get('/patients/zip', authenticate, requireRole('ADMIN', 'DOCTOR'), async 
         // Copy actual image files
         for (const photo of patient.scalpPhotos) {
           const fileName = photo.filename || (photo.filePath ? path.basename(photo.filePath) : '');
-          if (!fileName) continue;
+          if (!fileName || !isSafeFileName(fileName)) continue;
 
           const photoPath = path.join(__dirname, '../../storage/uploads', fileName);
           if (fs.existsSync(photoPath)) {

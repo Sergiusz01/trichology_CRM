@@ -8,6 +8,8 @@ import fs from 'fs';
 
 const router = express.Router();
 
+const isSafeFileName = (name: string): boolean => /^[a-zA-Z0-9._-]+$/.test(name);
+
 const patientSchema = z.object({
   firstName: z.string().min(1, 'Imię jest wymagane'),
   lastName: z.string().min(1, 'Nazwisko jest wymagane'),
@@ -303,7 +305,7 @@ router.delete('/:id/permanent', authenticate, requireRole('ADMIN'), async (req: 
     for (const photo of patient.scalpPhotos) {
       try {
         const fileName = photo.filename || (photo.filePath ? path.basename(photo.filePath) : '');
-        if (!fileName) continue;
+        if (!fileName || !isSafeFileName(fileName)) continue;
         const photoPath = path.join(__dirname, '../../storage/uploads', fileName);
         if (fs.existsSync(photoPath)) {
           fs.unlinkSync(photoPath);
