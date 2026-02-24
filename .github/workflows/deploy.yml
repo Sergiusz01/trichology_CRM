@@ -64,7 +64,11 @@ jobs:
             npx prisma generate
             npx prisma db push
             npm run build
-            pm2 restart trichology-backend
+
+            # Reload PM2 using ecosystem.config.js so all env vars (incl. IMAP, VAPID)
+            # are re-read from .env and NODE_ENV=production is guaranteed.
+            # startOrReload: starts fresh if not running, reloads (0-downtime) if already up.
+            pm2 startOrReload ecosystem.config.js --update-env
 
             echo "✅ Backend deployed"
 
