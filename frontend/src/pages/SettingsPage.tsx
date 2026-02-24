@@ -101,6 +101,11 @@ interface SystemStatus {
         loadAvg: number[];
         cpus: number;
     };
+    disk: {
+        total: number;
+        used: number;
+        available: number;
+    } | null;
 }
 
 const formatBytes = (bytes: number): string => {
@@ -413,6 +418,43 @@ export default function SettingsPage() {
                                         </ListItem>
 
                                         <Divider component="li" />
+
+                                        {/* Dysk SSD */}
+                                        {systemStatus.disk && (
+                                            <>
+                                                <ListItem sx={{ px: 0, py: 0.75, flexDirection: 'column', alignItems: 'flex-start' }}>
+                                                    <Box sx={{ display: 'flex', width: '100%', alignItems: 'center', mb: 0.5 }}>
+                                                        <Storage fontSize="small" color="action" sx={{ mr: 1.5 }} />
+                                                        <Typography variant="body2" color="text.secondary" sx={{ flex: 1 }}>
+                                                            Dysk (SSD / HDD)
+                                                        </Typography>
+                                                        <Typography variant="body2" fontWeight={600}>
+                                                            {formatBytes(systemStatus.disk.used)}
+                                                            {' / '}
+                                                            {formatBytes(systemStatus.disk.total)}
+                                                        </Typography>
+                                                    </Box>
+                                                    <Box sx={{ width: '100%', pl: 3.5 }}>
+                                                        <LinearProgress
+                                                            variant="determinate"
+                                                            value={Math.min(
+                                                                (systemStatus.disk.used / systemStatus.disk.total) * 100,
+                                                                100
+                                                            )}
+                                                            sx={{ height: 6, borderRadius: 3 }}
+                                                            color={
+                                                                systemStatus.disk.used / systemStatus.disk.total > 0.9
+                                                                    ? 'error'
+                                                                    : systemStatus.disk.used / systemStatus.disk.total > 0.75
+                                                                        ? 'warning'
+                                                                        : 'info'
+                                                            }
+                                                        />
+                                                    </Box>
+                                                </ListItem>
+                                                <Divider component="li" />
+                                            </>
+                                        )}
 
                                         {/* CPU */}
                                         <ListItem sx={{ px: 0, py: 0.75 }}>
