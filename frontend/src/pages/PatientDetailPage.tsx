@@ -35,6 +35,8 @@ import {
   InputAdornment,
   Tooltip,
   CardMedia,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import {
   Add,
@@ -125,7 +127,7 @@ function TabPanel(props: TabPanelProps) {
       aria-labelledby={`patient-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ pt: 5, px: { xs: 2, md: 4 } }}>{children}</Box>}
+      {value === index && <Box sx={{ pt: { xs: 2, sm: 5 }, px: { xs: 1.5, sm: 2, md: 4 } }}>{children}</Box>}
     </div>
   );
 }
@@ -135,6 +137,8 @@ export default function PatientDetailPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { success: showSuccess, error: showError } = useNotification();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [patient, setPatient] = useState<Patient | null>(null);
   const [loading, setLoading] = useState(true);
   const [tabValue, setTabValue] = useState(0);
@@ -710,7 +714,7 @@ export default function PatientDetailPage() {
         <Paper
           elevation={0}
           sx={{
-            p: 4,
+            p: { xs: 2, sm: 4 },
             mb: 3,
             borderRadius: 3,
             bgcolor: 'white',
@@ -1978,7 +1982,118 @@ export default function PatientDetailPage() {
                   Brak wizyt i zabiegów
                 </Typography>
               </Box>
+            ) : isMobile ? (
+              /* ── Mobile: karty ── */
+              <Stack spacing={1.5}>
+                {visits.filter(v => {
+                  if (visitFilters.status && v.status !== visitFilters.status) return false;
+                  if (visitFilters.search && !v.rodzajZabiegu.toLowerCase().includes(visitFilters.search.toLowerCase())) return false;
+                  if (visitFilters.startDate && new Date(v.data) < new Date(visitFilters.startDate)) return false;
+                  if (visitFilters.endDate && new Date(v.data) > new Date(visitFilters.endDate + 'T23:59:59')) return false;
+                  return true;
+                }).map((visit) => {
+                  const statusConfig = VISIT_STATUS_CONFIG[visit.status] || VISIT_STATUS_CONFIG.ZAPLANOWANA;
+                  return (
+                    <Paper
+                      id={`visit-${visit.id}`}
+                      key={visit.id}
+                      elevation={0}
+                      sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
+                    >
+                      {/* Nagłówek karty: data + przyciski akcji */}
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                        <Box>
+                          <Typography variant="body2" sx={{ fontWeight: 700, color: '#1d1d1f' }}>
+                            {(() => {
+                              const date = new Date(visit.data);
+                              return date.toLocaleDateString('pl-PL', { year: 'numeric', month: 'long', day: 'numeric' });
+                            })()}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: '#86868b' }}>
+                            {(() => {
+                              const date = new Date(visit.data);
+                              const hours = String(date.getUTCHours()).padStart(2, '0');
+                              const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+                              return `${hours}:${minutes}`;
+                            })()}
+                          </Typography>
+                        </Box>
+                        <Stack direction="row" spacing={0.5}>
+                          {visit.status === 'ZAPLANOWANA' && patient?.email && (
+                            <Tooltip title="Wyślij przypomnienie">
+                              <IconButton size="small" onClick={() => openReminderDialog(visit)} sx={{ color: '#FF9500' }}>
+                                <Notifications fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                          {visit.status === 'ZAPLANOWANA' && (
+                            <Tooltip title="Dodaj do kalendarza (.ics)">
+                              <IconButton size="small" onClick={() => handleDownloadICS(visit.id)} sx={{ color: '#34C759' }}>
+                                <CalendarMonth fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                          <IconButton size="small" onClick={() => openEditVisitDialog(visit)} sx={{ color: '#007AFF' }}>
+                            <Edit fontSize="small" />
+                          </IconButton>
+                          <IconButton size="small" onClick={() => handleDeleteClick('visit', visit.id, visit.rodzajZabiegu)} sx={{ color: '#FF3B30' }}>
+                            <Delete fontSize="small" />
+                          </IconButton>
+                        </Stack>
+                      </Box>
+
+                      {/* Rodzaj zabiegu */}
+                      <Typography variant="body2" sx={{ fontWeight: 600, color: '#1d1d1f', mb: 1.5 }}>
+                        {visit.rodzajZabiegu}
+                      </Typography>
+
+                      {/* Status + Seria + Cena */}
+                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', mb: visit.notatki ? 1 : 0 }}>
+                        <FormControl size="small" sx={{ minWidth: 140 }}>
+                          <Select
+                            value={visit.status}
+                            onChange={(e) => handleStatusChange(visit.id, e.target.value)}
+                            sx={{
+                              bgcolor: statusConfig.bgColor,
+                              color: statusConfig.color,
+                              fontWeight: 600,
+                              fontSize: '0.8rem',
+                              '& .MuiOutlinedInput-notchedOutline': { borderColor: statusConfig.color },
+                              '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: statusConfig.color },
+                            }}
+                          >
+                            <MenuItem value="ZAPLANOWANA">Zaplanowana</MenuItem>
+                            <MenuItem value="ODBYTA">Odbyta</MenuItem>
+                            <MenuItem value="NIEOBECNOSC">Nieobecność</MenuItem>
+                            <MenuItem value="ANULOWANA">Anulowana</MenuItem>
+                          </Select>
+                        </FormControl>
+                        {visit.numerWSerii && visit.liczbaSerii && (
+                          <Chip
+                            label={`${visit.numerWSerii} z ${visit.liczbaSerii}`}
+                            size="small"
+                            sx={{ bgcolor: alpha('#007AFF', 0.1), color: '#007AFF', fontWeight: 600 }}
+                          />
+                        )}
+                        {visit.cena ? (
+                          <Typography variant="body2" sx={{ fontWeight: 700, color: '#34C759' }}>
+                            {Number(visit.cena).toFixed(2)} zł
+                          </Typography>
+                        ) : null}
+                      </Box>
+
+                      {/* Notatki */}
+                      {visit.notatki && (
+                        <Typography variant="body2" sx={{ color: '#86868b', fontSize: '0.78rem', mt: 0.5 }}>
+                          {visit.notatki}
+                        </Typography>
+                      )}
+                    </Paper>
+                  );
+                })}
+              </Stack>
             ) : (
+              /* ── Desktop: tabela ── */
               <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
                 <Table>
                   <TableHead>
@@ -2017,7 +2132,6 @@ export default function PatientDetailPage() {
                             <Typography variant="caption" sx={{ color: '#86868b' }}>
                               {(() => {
                                 const date = new Date(visit.data);
-                                // Use UTC hours/minutes to preserve the exact time stored
                                 const hours = String(date.getUTCHours()).padStart(2, '0');
                                 const minutes = String(date.getUTCMinutes()).padStart(2, '0');
                                 return `${hours}:${minutes}`;
@@ -2208,7 +2322,7 @@ export default function PatientDetailPage() {
                 startAdornment: <InputAdornment position="start">PLN</InputAdornment>,
               }}
             />
-            <Box sx={{ display: 'flex', gap: 2 }}>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
               <TextField
                 label="Numer w serii"
                 type="number"
@@ -2241,9 +2355,10 @@ export default function PatientDetailPage() {
             />
           </Stack>
         </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
+        <DialogActions sx={{ p: 2, flexDirection: { xs: 'column-reverse', sm: 'row' }, gap: { xs: 1, sm: 0 } }}>
           <Button
             onClick={() => setVisitDialog({ ...visitDialog, open: false })}
+            fullWidth={isMobile}
             sx={{
               color: '#1d1d1f',
               textTransform: 'none',
@@ -2255,6 +2370,7 @@ export default function PatientDetailPage() {
           <Button
             onClick={handleVisitSubmit}
             variant="contained"
+            fullWidth={isMobile}
             sx={{
               bgcolor: '#AF52DE',
               color: 'white',
@@ -2485,16 +2601,18 @@ export default function PatientDetailPage() {
             Pacjent otrzyma email z przypomnieniem oraz możliwością zapisania wizyty do kalendarza (Google Calendar, Outlook, lub plik .ics).
           </Alert>
         </DialogContent>
-        <DialogActions sx={{ p: 2, pt: 1 }}>
+        <DialogActions sx={{ p: 2, pt: 1, flexDirection: { xs: 'column-reverse', sm: 'row' }, gap: { xs: 1, sm: 0 } }}>
           <Button
             onClick={() => setReminderDialog({ ...reminderDialog, open: false })}
             disabled={sendingReminder}
+            fullWidth={isMobile}
           >
             Anuluj
           </Button>
           <Button
             onClick={handleSendVisitReminder}
             variant="contained"
+            fullWidth={isMobile}
             startIcon={sendingReminder ? <CircularProgress size={20} /> : <Send />}
             disabled={sendingReminder || !reminderDialog.recipientEmail}
             sx={{
