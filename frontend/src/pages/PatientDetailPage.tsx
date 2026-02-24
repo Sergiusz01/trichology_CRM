@@ -1036,7 +1036,7 @@ export default function PatientDetailPage() {
                   >
                     Informacje kontaktowe
                   </Typography>
-                  <Stack spacing={4}>
+                  <Stack spacing={{ xs: 2.5, sm: 4 }}>
                     {patient.phone && (
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                         <Box
@@ -1148,7 +1148,7 @@ export default function PatientDetailPage() {
                   >
                     Dodatkowe informacje
                   </Typography>
-                  <Stack spacing={4}>
+                  <Stack spacing={{ xs: 2.5, sm: 4 }}>
                     {patient.occupation && (
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                         <Box
@@ -1241,7 +1241,7 @@ export default function PatientDetailPage() {
                     key={consultation.id}
                     elevation={0}
                     sx={{
-                      p: 3,
+                      p: { xs: 2, sm: 3 },
                       borderRadius: 2,
                       border: '1px solid',
                       borderColor: 'divider',
@@ -1252,7 +1252,7 @@ export default function PatientDetailPage() {
                       },
                     }}
                   >
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2 }}>
+                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: 'flex-start', gap: 2 }}>
                       <Box sx={{ flex: 1 }}>
                         <Typography variant="h6" sx={{ fontWeight: 700, color: '#1d1d1f', mb: 1, fontSize: '1.15rem' }}>
                           {new Date(consultation.consultationDate).toLocaleDateString('pl-PL', {
@@ -1267,7 +1267,7 @@ export default function PatientDetailPage() {
                           </Typography>
                         )}
                       </Box>
-                      <Stack direction="row" spacing={1}>
+                      <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
                         <Button
                           size="small"
                           variant="outlined"
@@ -1403,7 +1403,7 @@ export default function PatientDetailPage() {
                     key={result.id}
                     elevation={0}
                     sx={{
-                      p: 3,
+                      p: { xs: 2, sm: 3 },
                       borderRadius: 2,
                       border: '1px solid',
                       borderColor: 'divider',
@@ -1414,7 +1414,7 @@ export default function PatientDetailPage() {
                       },
                     }}
                   >
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2 }}>
+                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: 'flex-start', gap: 2 }}>
                       <Box sx={{ flex: 1, cursor: 'pointer' }} onClick={() => navigate(`/patients/${id}/lab-results/${result.id}`)}>
                         <Typography variant="h6" sx={{ fontWeight: 700, color: '#1d1d1f', mb: 1, fontSize: '1.15rem' }}>
                           {result.testName || 'Wynik badania'}
@@ -1427,7 +1427,7 @@ export default function PatientDetailPage() {
                           })}
                         </Typography>
                       </Box>
-                      <Stack direction="row" spacing={1}>
+                      <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
                         <Button
                           size="small"
                           variant="outlined"
@@ -1744,7 +1744,7 @@ export default function PatientDetailPage() {
                     key={plan.id}
                     elevation={0}
                     sx={{
-                      p: 3,
+                      p: { xs: 2, sm: 3 },
                       borderRadius: 2,
                       border: '1px solid',
                       borderColor: 'divider',
@@ -1755,7 +1755,7 @@ export default function PatientDetailPage() {
                       },
                     }}
                   >
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2 }}>
+                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: 'flex-start', gap: 2 }}>
                       <Box sx={{ flex: 1 }}>
                         <Typography variant="h6" sx={{ fontWeight: 700, color: '#1d1d1f', mb: 1 }}>
                           {plan.title || 'Plan opieki'}
@@ -1766,7 +1766,7 @@ export default function PatientDetailPage() {
                           </Typography>
                         )}
                       </Box>
-                      <Stack direction="row" spacing={1} flexWrap="wrap">
+                      <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
                         <Button
                           size="small"
                           variant="outlined"
