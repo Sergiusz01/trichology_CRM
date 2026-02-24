@@ -30,6 +30,7 @@ import {
     DialogTitle,
     DialogContent,
     DialogActions,
+    ButtonBase,
 } from '@mui/material';
 import {
     PersonAdd,
@@ -437,7 +438,7 @@ export default function DashboardPage() {
     }
 
     return (
-        <Box sx={{ pb: 4 }}>
+        <Box sx={{ pb: 4, display: 'flex', flexDirection: 'column' }}>
             {/* Header Section */}
             <PageHeader
                 title="Panel Główny"
@@ -544,9 +545,9 @@ export default function DashboardPage() {
             </AppCard>
 
             {/* Stats Cards */}
-            <Grid container spacing={3} sx={{ mb: 4, px: { xs: 1, sm: 0 } }}>
+            <Grid container spacing={{ xs: 1.5, sm: 3 }} sx={{ mb: 4, px: { xs: 1, sm: 0 }, order: { xs: 5, md: 3 } }}>
                 {statCards.map((stat, index) => (
-                    <Grid key={index} size={{ xs: 12, sm: 6, md: 3 }}>
+                    <Grid key={index} size={{ xs: 6, sm: 6, md: 3 }}>
                         <AppCard
                             noPadding
                             onClick={() => stat.link.startsWith('#') ? null : navigate(stat.link)}
@@ -559,12 +560,12 @@ export default function DashboardPage() {
                                 },
                             }}
                         >
-                            <Box sx={{ p: 3, overflow: 'hidden' }}>
+                            <Box sx={{ p: { xs: 1.5, sm: 3 }, overflow: 'hidden' }}>
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                                     <Box
                                         sx={{
-                                            width: 48,
-                                            height: 48,
+                                            width: { xs: 36, sm: 48 },
+                                            height: { xs: 36, sm: 48 },
                                             borderRadius: '12px',
                                             background: alpha(stat.color, 0.1),
                                             display: 'flex',
@@ -572,7 +573,7 @@ export default function DashboardPage() {
                                             justifyContent: 'center',
                                         }}
                                     >
-                                        <stat.icon sx={{ color: stat.color, fontSize: 24 }} />
+                                        <stat.icon sx={{ color: stat.color, fontSize: { xs: 18, sm: 24 } }} />
                                     </Box>
                                 </Box>
                                 <Typography
@@ -580,7 +581,7 @@ export default function DashboardPage() {
                                     sx={{
                                         fontWeight: 700,
                                         mb: 0.5,
-                                        fontSize: { xs: '2rem', sm: '2.25rem' },
+                                        fontSize: { xs: '1.6rem', sm: '2.25rem' },
                                         color: '#0F172A',
                                     }}
                                 >
@@ -616,84 +617,121 @@ export default function DashboardPage() {
             </Grid>
 
             {/* Quick Actions */}
-            <Grid container spacing={3} sx={{ mb: 4, px: { xs: 1, sm: 0 } }}>
+            <Grid container spacing={3} sx={{ mb: 4, px: { xs: 1, sm: 0 }, order: { xs: 3, md: 4 } }}>
                 <Grid size={{ xs: 12 }}>
                     <AppCard title="Szybkie akcje" noPadding>
                         <Box sx={{ p: { xs: 2, sm: 3 } }}>
-                            <Grid container spacing={2}>
-                                <Grid size={{ xs: 12, sm: 4 }}>
-                                    <ListItemButton
-                                        onClick={() => navigate('/patients/new')}
-                                        sx={{
-                                            borderRadius: 2,
-                                            border: '1px solid #E2E8F0',
-                                            py: 1.5,
-                                            transition: 'all 0.2s',
-                                            '&:hover': {
-                                                bgcolor: '#F8FAFC',
-                                                borderColor: 'primary.main',
-                                            },
-                                        }}
-                                    >
-                                        <ListItemIcon>
-                                            <PersonAdd color="primary" />
-                                        </ListItemIcon>
-                                        <ListItemText
-                                            primary="Dodaj pacjenta"
-                                            primaryTypographyProps={{ fontWeight: 600, color: '#0F172A' }}
-                                        />
-                                        <ArrowForward sx={{ color: 'text.secondary', opacity: 0.5 }} />
-                                    </ListItemButton>
+                            {isMobile ? (
+                                <Grid container spacing={1.5}>
+                                    {[
+                                        { label: 'Nowy pacjent', icon: PersonAdd, path: '/patients/new' },
+                                        { label: 'Nowa wizyta', icon: CalendarToday, path: '/visits/new' },
+                                        { label: 'Pacjenci', icon: Assessment, path: '/patients' },
+                                    ].map((action) => (
+                                        <Grid key={action.path} size={{ xs: 4 }}>
+                                            <ButtonBase
+                                                onClick={() => navigate(action.path)}
+                                                sx={{
+                                                    width: '100%',
+                                                    display: 'flex',
+                                                    flexDirection: 'column',
+                                                    alignItems: 'center',
+                                                    gap: 1,
+                                                    py: 2,
+                                                    px: 1,
+                                                    borderRadius: 2,
+                                                    border: '1px solid #E2E8F0',
+                                                    transition: 'all 0.15s',
+                                                    '&:hover': { bgcolor: alpha('#1976d2', 0.04), borderColor: 'primary.main' },
+                                                    '&:active': { bgcolor: alpha('#1976d2', 0.1) },
+                                                }}
+                                            >
+                                                <Avatar sx={{ bgcolor: alpha('#1976d2', 0.1), color: 'primary.main', width: 44, height: 44 }}>
+                                                    <action.icon />
+                                                </Avatar>
+                                                <Typography variant="caption" sx={{ fontWeight: 700, textAlign: 'center', color: '#0F172A', lineHeight: 1.3 }}>
+                                                    {action.label}
+                                                </Typography>
+                                            </ButtonBase>
+                                        </Grid>
+                                    ))}
                                 </Grid>
-                                <Grid size={{ xs: 12, sm: 4 }}>
-                                    <ListItemButton
-                                        onClick={() => navigate('/visits/new')}
-                                        sx={{
-                                            borderRadius: 2,
-                                            border: '1px solid #E2E8F0',
-                                            py: 1.5,
-                                            transition: 'all 0.2s',
-                                            '&:hover': {
-                                                bgcolor: '#F8FAFC',
-                                                borderColor: 'primary.main',
-                                            },
-                                        }}
-                                    >
-                                        <ListItemIcon>
-                                            <CalendarToday color="primary" />
-                                        </ListItemIcon>
-                                        <ListItemText
-                                            primary="Nowa wizyta"
-                                            primaryTypographyProps={{ fontWeight: 600, color: '#0F172A' }}
-                                        />
-                                        <ArrowForward sx={{ color: 'text.secondary', opacity: 0.5 }} />
-                                    </ListItemButton>
+                            ) : (
+                                <Grid container spacing={2}>
+                                    <Grid size={{ xs: 12, sm: 4 }}>
+                                        <ListItemButton
+                                            onClick={() => navigate('/patients/new')}
+                                            sx={{
+                                                borderRadius: 2,
+                                                border: '1px solid #E2E8F0',
+                                                py: 1.5,
+                                                transition: 'all 0.2s',
+                                                '&:hover': {
+                                                    bgcolor: '#F8FAFC',
+                                                    borderColor: 'primary.main',
+                                                },
+                                            }}
+                                        >
+                                            <ListItemIcon>
+                                                <PersonAdd color="primary" />
+                                            </ListItemIcon>
+                                            <ListItemText
+                                                primary="Dodaj pacjenta"
+                                                primaryTypographyProps={{ fontWeight: 600, color: '#0F172A' }}
+                                            />
+                                            <ArrowForward sx={{ color: 'text.secondary', opacity: 0.5 }} />
+                                        </ListItemButton>
+                                    </Grid>
+                                    <Grid size={{ xs: 12, sm: 4 }}>
+                                        <ListItemButton
+                                            onClick={() => navigate('/visits/new')}
+                                            sx={{
+                                                borderRadius: 2,
+                                                border: '1px solid #E2E8F0',
+                                                py: 1.5,
+                                                transition: 'all 0.2s',
+                                                '&:hover': {
+                                                    bgcolor: '#F8FAFC',
+                                                    borderColor: 'primary.main',
+                                                },
+                                            }}
+                                        >
+                                            <ListItemIcon>
+                                                <CalendarToday color="primary" />
+                                            </ListItemIcon>
+                                            <ListItemText
+                                                primary="Nowa wizyta"
+                                                primaryTypographyProps={{ fontWeight: 600, color: '#0F172A' }}
+                                            />
+                                            <ArrowForward sx={{ color: 'text.secondary', opacity: 0.5 }} />
+                                        </ListItemButton>
+                                    </Grid>
+                                    <Grid size={{ xs: 12, sm: 4 }}>
+                                        <ListItemButton
+                                            onClick={() => navigate('/patients')}
+                                            sx={{
+                                                borderRadius: 2,
+                                                border: '1px solid #E2E8F0',
+                                                py: 1.5,
+                                                transition: 'all 0.2s',
+                                                '&:hover': {
+                                                    bgcolor: '#F8FAFC',
+                                                    borderColor: 'primary.main',
+                                                },
+                                            }}
+                                        >
+                                            <ListItemIcon>
+                                                <Assessment color="primary" />
+                                            </ListItemIcon>
+                                            <ListItemText
+                                                primary="Lista pacjentów"
+                                                primaryTypographyProps={{ fontWeight: 600, color: '#0F172A' }}
+                                            />
+                                            <ArrowForward sx={{ color: 'text.secondary', opacity: 0.5 }} />
+                                        </ListItemButton>
+                                    </Grid>
                                 </Grid>
-                                <Grid size={{ xs: 12, sm: 4 }}>
-                                    <ListItemButton
-                                        onClick={() => navigate('/patients')}
-                                        sx={{
-                                            borderRadius: 2,
-                                            border: '1px solid #E2E8F0',
-                                            py: 1.5,
-                                            transition: 'all 0.2s',
-                                            '&:hover': {
-                                                bgcolor: '#F8FAFC',
-                                                borderColor: 'primary.main',
-                                            },
-                                        }}
-                                    >
-                                        <ListItemIcon>
-                                            <Assessment color="primary" />
-                                        </ListItemIcon>
-                                        <ListItemText
-                                            primary="Lista pacjentów"
-                                            primaryTypographyProps={{ fontWeight: 600, color: '#0F172A' }}
-                                        />
-                                        <ArrowForward sx={{ color: 'text.secondary', opacity: 0.5 }} />
-                                    </ListItemButton>
-                                </Grid>
-                            </Grid>
+                            )}
                         </Box>
                     </AppCard>
                 </Grid>
@@ -701,24 +739,34 @@ export default function DashboardPage() {
 
             {/* Today & Tomorrow Visits */}
             {(todayVisits.length > 0 || tomorrowVisits.length > 0 || upcomingVisits.length > 0) && (
-                <Box id="visits" sx={{ mb: 4, px: { xs: 1, sm: 0 } }}>
+                <Box id="visits" sx={{ mb: 4, px: { xs: 1, sm: 0 }, order: { xs: 4, md: 5 } }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                        <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                        <Typography variant={isMobile ? 'h6' : 'h5'} sx={{ fontWeight: 700 }}>
                             Nadchodzące wizyty
                         </Typography>
-                        <Button
-                            variant="outlined"
-                            startIcon={<Add />}
-                            onClick={() => navigate('/patients')}
-                            size="small"
-                            sx={{
-                                textTransform: 'none',
-                                fontWeight: 600,
-                                borderRadius: 2,
-                            }}
-                        >
-                            Dodaj wizytę
-                        </Button>
+                        {isMobile ? (
+                            <IconButton
+                                onClick={() => navigate('/patients')}
+                                size="small"
+                                sx={{ bgcolor: alpha('#1976d2', 0.08), color: 'primary.main' }}
+                            >
+                                <Add />
+                            </IconButton>
+                        ) : (
+                            <Button
+                                variant="outlined"
+                                startIcon={<Add />}
+                                onClick={() => navigate('/patients')}
+                                size="small"
+                                sx={{
+                                    textTransform: 'none',
+                                    fontWeight: 600,
+                                    borderRadius: 2,
+                                }}
+                            >
+                                Dodaj wizytę
+                            </Button>
+                        )}
                     </Box>
                     <Grid container spacing={3}>
                         {todayVisits.length > 0 && (
@@ -1029,7 +1077,7 @@ export default function DashboardPage() {
 
             {/* Patients Needing Attention */}
             {(patientsNeedingAttention.length > 0 || inactivePatientsList.length > 0) && (
-                <Box id="attention" sx={{ mb: 4, px: { xs: 1, sm: 0 } }}>
+                <Box id="attention" sx={{ mb: 4, px: { xs: 1, sm: 0 }, order: { xs: 6, md: 6 } }}>
                     <Grid container spacing={3}>
                         {patientsNeedingAttention.length > 0 && (
                             <Grid size={{ xs: 12, md: 6 }}>
