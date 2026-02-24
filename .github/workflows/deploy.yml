@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+      - claude/analyze-code-bugs-Jt2CO
+  workflow_dispatch:
 
 concurrency:
   group: deploy-production
