@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { appendToSentFolder } from './imapSent';
 
 interface EmailOptions {
   to: string;
@@ -72,8 +73,14 @@ export const sendEmail = async (options: EmailOptions): Promise<void> => {
   };
 
   try {
+    // Pobierz surową treść MIME przed wysłaniem — potrzebna do zapisu w IMAP
+    const rawEmail = await getRawEmail(mailOptions);
+
     await emailTransporter.sendMail(mailOptions);
     console.log(`✅ Email wysłany do: ${options.to}`);
+
+    // Zapisz kopię do folderu Wysłane asynchronicznie — nie blokuje odpowiedzi
+    appendToSentFolder(rawEmail).catch(() => {});
   } catch (error: any) {
     console.error('❌ Błąd wysyłania email:', error);
     // Provide more detailed error message
@@ -88,6 +95,26 @@ export const sendEmail = async (options: EmailOptions): Promise<void> => {
       throw new Error(`Błąd wysyłania email: ${error.message || error}`);
     }
   }
+};
+
+/**
+ * Tworzy surową wiadomość MIME (bez wysyłania) przy użyciu streamTransport nodemailer.
+ * Wynik przekazywany jest do IMAP APPEND, dzięki czemu kopia ląduje w folderze Wysłane.
+ */
+const getRawEmail = (mailOptions: object): Promise<Buffer> => {
+  return new Promise<Buffer>((resolve, reject) => {
+    const streamTransport = nodemailer.createTransport({ streamTransport: true, newline: 'crlf' });
+    streamTransport.sendMail(mailOptions, (err: Error | null, info: any) => {
+      if (err) return reject(err);
+      const chunks: Buffer[] = [];
+      const stream: NodeJS.ReadableStream = info.message;
+      stream.on('data', (chunk: Buffer | string) =>
+        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)),
+      );
+      stream.on('end', () => resolve(Buffer.concat(chunks)));
+      stream.on('error', reject);
+    });
+  });
 };
 
 export const verifyEmailConnection = async (): Promise<boolean> => {
