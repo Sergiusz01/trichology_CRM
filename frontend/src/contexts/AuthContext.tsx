@@ -45,6 +45,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('lastActivityTime');
     delete api.defaults.headers.common['Authorization'];
     setUser(null);
     setShowWarning(false);
@@ -61,6 +62,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // ─── Reset idle timer (called on any user activity) ──────────────────────────
   const resetIdleTimer = useCallback(() => {
     if (!user) return;
+    localStorage.setItem('lastActivityTime', Date.now().toString());
     clearAllTimers();
     setShowWarning(false);
 
@@ -110,6 +112,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       localStorage.setItem('accessToken', accessToken);
       localStorage.setItem('refreshToken', refreshToken);
+      localStorage.setItem('lastActivityTime', Date.now().toString());
       api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
 
       setUser(user);
@@ -126,6 +129,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
     if (token) {
+      // Sprawdź czy sesja nie wygasła przez bezczynność (również po odświeżeniu strony)
+      const lastActivity = localStorage.getItem('lastActivityTime');
+      const now = Date.now();
+      if (lastActivity && now - parseInt(lastActivity, 10) > IDLE_TIMEOUT_MS) {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('lastActivityTime');
+        delete api.defaults.headers.common['Authorization'];
+        setLoading(false);
+        navigate('/login');
+        return;
+      }
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       fetchUser();
     } else {
@@ -135,6 +150,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const handleAuthLogout = () => {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
+      localStorage.removeItem('lastActivityTime');
       delete api.defaults.headers.common['Authorization'];
       setUser(null);
       setShowWarning(false);
