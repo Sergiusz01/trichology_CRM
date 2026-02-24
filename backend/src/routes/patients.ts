@@ -26,6 +26,9 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
     const { search, page = '1', limit = '50', archived = 'false', sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
     const pageNum = parseInt(page as string, 10);
     const limitNum = parseInt(limit as string, 10);
+    if (isNaN(pageNum) || pageNum < 1 || isNaN(limitNum) || limitNum < 1 || limitNum > 500) {
+      return res.status(400).json({ error: 'Nieprawidłowe parametry paginacji' });
+    }
     const skip = (pageNum - 1) * limitNum;
     const isArchived = archived === 'true';
 
@@ -155,12 +158,12 @@ router.get('/:id', authenticate, async (req: AuthRequest, res, next) => {
       return res.status(404).json({ error: 'Pacjent nie znaleziony' });
     }
 
-    // Add URL field to scalp photos
+    // Add URL field to scalp photos (support both new filename and legacy filePath)
     const patientWithUrls = {
       ...patient,
       scalpPhotos: patient.scalpPhotos.map((photo: any) => ({
         ...photo,
-        url: `/uploads/${path.basename(photo.filePath)}`,
+        url: `/uploads/${photo.filename || path.basename(photo.filePath || '')}`,
       })),
     };
 

@@ -310,7 +310,6 @@ router.get('/:id/pdf', authenticate, async (req: AuthRequest, res, next) => {
   try {
     const { id } = req.params;
 
-    console.log(`Generowanie PDF dla planu opieki ${id}...`);
     const carePlan = await prisma.carePlan.findUnique({
       where: { id },
       include: {
@@ -329,15 +328,11 @@ router.get('/:id/pdf', authenticate, async (req: AuthRequest, res, next) => {
     }
 
     const pdfBuffer = await generateCarePlanPDF(carePlan);
-    console.log(`PDF wygenerowany pomyślnie dla planu opieki ${id}, rozmiar: ${pdfBuffer.length} bajtów`);
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="plan-opieki-${id}.pdf"`);
     res.send(pdfBuffer);
   } catch (error: any) {
-    console.error('Błąd w endpoint PDF planu opieki:', error);
-    console.error('Error message:', error.message);
-    console.error('Error stack:', error.stack);
     next(error);
   }
 });

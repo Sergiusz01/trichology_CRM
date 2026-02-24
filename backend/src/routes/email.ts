@@ -41,6 +41,8 @@ const reminderSchema = z.object({
   bodyPreview: z.string().optional(),
 });
 
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 // Send consultation email
 router.post('/consultation/:id', authenticate, async (req: AuthRequest, res, next) => {
   try {
@@ -49,6 +51,9 @@ router.post('/consultation/:id', authenticate, async (req: AuthRequest, res, nex
 
     if (!recipientEmail) {
       return res.status(400).json({ error: 'Adres email odbiorcy jest wymagany' });
+    }
+    if (!emailRegex.test(recipientEmail)) {
+      return res.status(400).json({ error: 'Nieprawidłowy format adresu email odbiorcy' });
     }
 
     const consultation = await prisma.consultation.findUnique({
@@ -169,6 +174,9 @@ router.post('/care-plan/:id', authenticate, async (req: AuthRequest, res, next) 
 
     if (!recipientEmail) {
       return res.status(400).json({ error: 'Adres email odbiorcy jest wymagany' });
+    }
+    if (!emailRegex.test(recipientEmail)) {
+      return res.status(400).json({ error: 'Nieprawidłowy format adresu email odbiorcy' });
     }
 
     const carePlan = await prisma.carePlan.findUnique({
@@ -439,6 +447,9 @@ router.get('/history/patient/:patientId', authenticate, async (req: AuthRequest,
     const { page = '1', limit = '50' } = req.query;
     const pageNum = parseInt(page as string, 10);
     const limitNum = parseInt(limit as string, 10);
+    if (isNaN(pageNum) || pageNum < 1 || isNaN(limitNum) || limitNum < 1 || limitNum > 200) {
+      return res.status(400).json({ error: 'Nieprawidłowe parametry paginacji' });
+    }
     const skip = (pageNum - 1) * limitNum;
 
     const [emails, total] = await Promise.all([
@@ -476,6 +487,9 @@ router.get('/history', authenticate, async (req: AuthRequest, res, next) => {
     const { page = '1', limit = '50', patientId, status } = req.query;
     const pageNum = parseInt(page as string, 10);
     const limitNum = parseInt(limit as string, 10);
+    if (isNaN(pageNum) || pageNum < 1 || isNaN(limitNum) || limitNum < 1 || limitNum > 200) {
+      return res.status(400).json({ error: 'Nieprawidłowe parametry paginacji' });
+    }
     const skip = (pageNum - 1) * limitNum;
 
     const where: any = {};
@@ -584,10 +598,23 @@ const sendEmailSchema = z.object({
   attachCarePlanId: z.string().optional(),
 });
 
+const escapeHtml = (str: string) =>
+  str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
 router.post('/send', authenticate, upload.array('attachments', 5), async (req: AuthRequest, res, next) => {
+  const files = req.files as Express.Multer.File[];
+  const cleanupUploadedFiles = () => {
+    if (files && files.length > 0) {
+      files.forEach(file => {
+        if (fs.existsSync(file.path)) {
+          try { fs.unlinkSync(file.path); } catch {}
+        }
+      });
+    }
+  };
+
   try {
     const data = sendEmailSchema.parse(req.body);
-    const files = req.files as Express.Multer.File[];
 
     // Get patient
     const patient = await prisma.patient.findUnique({
@@ -595,11 +622,13 @@ router.post('/send', authenticate, upload.array('attachments', 5), async (req: A
     });
 
     if (!patient) {
+      cleanupUploadedFiles();
       return res.status(404).json({ error: 'Pacjent nie znaleziony' });
     }
 
     const recipientEmail = data.recipientEmail || patient.email;
     if (!recipientEmail) {
+      cleanupUploadedFiles();
       return res.status(400).json({ error: 'Brak adresu email pacjenta' });
     }
 
@@ -682,10 +711,10 @@ router.post('/send', authenticate, upload.array('attachments', 5), async (req: A
         subject: data.subject,
         html: `
           <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-            <h2>${data.subject}</h2>
-            <p>Dzień dobry ${patient.firstName} ${patient.lastName},</p>
-            <div style="white-space: pre-wrap;">${data.message}</div>
-            ${doctor ? `<p style="margin-top: 20px;">Z poważaniem,<br><strong>${doctor.name}</strong></p>` : ''}
+            <h2>${escapeHtml(data.subject)}</h2>
+            <p>Dzień dobry ${escapeHtml(patient.firstName)} ${escapeHtml(patient.lastName)},</p>
+            <div style="white-space: pre-wrap;">${escapeHtml(data.message)}</div>
+            ${doctor ? `<p style="margin-top: 20px;">Z poważaniem,<br><strong>${escapeHtml(doctor.name)}</strong></p>` : ''}
           </div>
         `,
         attachments,
@@ -728,6 +757,7 @@ router.post('/send', authenticate, upload.array('attachments', 5), async (req: A
       throw emailError;
     }
   } catch (error) {
+    cleanupUploadedFiles();
     next(error);
   }
 });
@@ -740,6 +770,9 @@ router.post('/lab-result/:id', authenticate, async (req: AuthRequest, res, next)
 
     if (!recipientEmail) {
       return res.status(400).json({ error: 'Adres email odbiorcy jest wymagany' });
+    }
+    if (!emailRegex.test(recipientEmail)) {
+      return res.status(400).json({ error: 'Nieprawidłowy format adresu email odbiorcy' });
     }
 
     const labResult = await prisma.labResult.findUnique({
@@ -811,24 +844,23 @@ router.post('/lab-result/:id', authenticate, async (req: AuthRequest, res, next)
     let subject: string;
     let htmlBody: string;
 
+    const labSummaryHtml = `<pre style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; font-family: monospace; white-space: pre-wrap;">${escapeHtml(labSummary)}</pre>`;
+
     if (template) {
       subject = renderEmailTemplate(template.subject, variables);
       // Add lab summary to the template body
       htmlBody = renderEmailTemplate(template.htmlBody, variables);
-      // Insert lab summary before closing tags
-      htmlBody = htmlBody.replace(
-        '</p>',
-        `</p><pre style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; font-family: monospace; white-space: pre-wrap;">${labSummary}</pre>`
-      );
+      // Append lab summary at the end of the body
+      htmlBody = htmlBody + labSummaryHtml;
     } else {
       // Fallback to default
       subject = `Wyniki badań laboratoryjnych - ${labResult.patient.firstName} ${labResult.patient.lastName}`;
       htmlBody = `
         <h2>Wyniki badań laboratoryjnych</h2>
         <p>Dzień dobry,</p>
-        <p>W załączeniu przesyłamy wyniki badań laboratoryjnych z dnia ${labResultDate}.</p>
-        <p>Pacjent: ${labResult.patient.firstName} ${labResult.patient.lastName}</p>
-        <pre style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; font-family: monospace; white-space: pre-wrap;">${labSummary}</pre>
+        <p>W załączeniu przesyłamy wyniki badań laboratoryjnych z dnia ${escapeHtml(labResultDate)}.</p>
+        <p>Pacjent: ${escapeHtml(labResult.patient.firstName)} ${escapeHtml(labResult.patient.lastName)}</p>
+        ${labSummaryHtml}
         <p>Pozdrawiamy,<br>Zespół kliniki</p>
       `;
     }
@@ -888,6 +920,9 @@ router.post('/scalp-photo/:id', authenticate, async (req: AuthRequest, res, next
     if (!recipientEmail) {
       return res.status(400).json({ error: 'Adres email odbiorcy jest wymagany' });
     }
+    if (!emailRegex.test(recipientEmail)) {
+      return res.status(400).json({ error: 'Nieprawidłowy format adresu email odbiorcy' });
+    }
 
     const scalpPhoto = await prisma.scalpPhoto.findUnique({
       where: { id },
@@ -900,14 +935,24 @@ router.post('/scalp-photo/:id', authenticate, async (req: AuthRequest, res, next
       return res.status(404).json({ error: 'Zdjęcie nie znalezione' });
     }
 
-    // Read the image file
-    const imagePath = scalpPhoto.filePath;
-    if (!imagePath || !fs.existsSync(imagePath)) {
+    // Resolve file path — support both new (filename) and legacy (filePath) storage
+    const photoUploadDir = path.normalize(process.env.UPLOAD_DIR || path.join(__dirname, '../../storage/uploads'));
+    let imagePath: string | null = null;
+    if (scalpPhoto.filename) {
+      const filePathByName = path.join(photoUploadDir, scalpPhoto.filename);
+      if (fs.existsSync(filePathByName)) {
+        imagePath = filePathByName;
+      }
+    }
+    if (!imagePath && scalpPhoto.filePath && fs.existsSync(scalpPhoto.filePath)) {
+      imagePath = scalpPhoto.filePath;
+    }
+    if (!imagePath) {
       return res.status(404).json({ error: 'Plik zdjęcia nie istnieje' });
     }
 
     const imageBuffer = fs.readFileSync(imagePath);
-    const imageExtension = path.extname(scalpPhoto.originalFilename || imagePath).toLowerCase();
+    const imageExtension = path.extname(scalpPhoto.originalFilename || scalpPhoto.filename || imagePath).toLowerCase();
     const mimeType = imageExtension === '.jpg' || imageExtension === '.jpeg' ? 'image/jpeg' :
       imageExtension === '.png' ? 'image/png' : 'image/jpeg';
 

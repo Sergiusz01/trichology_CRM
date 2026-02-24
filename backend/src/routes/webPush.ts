@@ -26,7 +26,7 @@ router.post('/subscribe', authenticate, async (req: AuthRequest, res, next) => {
         const userId = req.user!.id;
         const subscription = req.body;
 
-        if (!subscription || !subscription.endpoint) {
+        if (!subscription || !subscription.endpoint || !subscription.keys?.p256dh || !subscription.keys?.auth) {
             return res.status(400).json({ error: 'Nieprawidłowa subskrypcja' });
         }
 
