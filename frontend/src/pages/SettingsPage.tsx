@@ -145,8 +145,17 @@ export default function SettingsPage() {
         try {
             const res = await api.get<SystemStatus>('/system/status');
             setSystemStatus(res.data);
-        } catch {
-            setStatusError('Nie można pobrać statusu serwera');
+        } catch (err: any) {
+            const status = err?.response?.status;
+            if (!err?.response) {
+                setStatusError('Brak połączenia z backendem (sieć lub serwer wyłączony)');
+            } else if (status === 401 || status === 403) {
+                setStatusError(`Błąd autoryzacji (${status}) — zaloguj się ponownie`);
+            } else if (status === 404) {
+                setStatusError('Endpoint /api/system/status nie istnieje — backend wymaga ponownego deployu');
+            } else {
+                setStatusError(`Błąd serwera (HTTP ${status ?? '?'})`);
+            }
         } finally {
             setStatusLoading(false);
         }

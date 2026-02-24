@@ -101,7 +101,8 @@ export const sendEmail = async (options: EmailOptions): Promise<void> => {
  * Tworzy surową wiadomość MIME (bez wysyłania) przy użyciu streamTransport nodemailer.
  * Wynik przekazywany jest do IMAP APPEND, dzięki czemu kopia ląduje w folderze Wysłane.
  */
-const getRawEmail = (mailOptions: object): Promise<Buffer> => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const getRawEmail = (mailOptions: any): Promise<Buffer> => {
   return new Promise<Buffer>((resolve, reject) => {
     const streamTransport = nodemailer.createTransport({ streamTransport: true, newline: 'crlf' });
     streamTransport.sendMail(mailOptions, (err: Error | null, info: any) => {
