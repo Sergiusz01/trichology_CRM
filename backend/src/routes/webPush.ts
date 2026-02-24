@@ -7,12 +7,13 @@ const router = express.Router();
 
 const publicVapidKey = process.env.VAPID_PUBLIC_KEY;
 const privateVapidKey = process.env.VAPID_PRIVATE_KEY;
-const vapidSubject = process.env.VAPID_SUBJECT || 'mailto:admin@example.com';
+const vapidSubject = process.env.VAPID_SUBJECT || 'mailto:admin@trichodiagnostic.pl';
 
 if (publicVapidKey && privateVapidKey) {
     webpush.setVapidDetails(vapidSubject, publicVapidKey, privateVapidKey);
+    console.log('🔔 Web Push VAPID skonfigurowany, subject:', vapidSubject);
 } else {
-    console.warn('VAPID keys not configured in environment! Web push will not work.');
+    console.warn('⚠️ VAPID keys not configured in environment! Web push will not work.');
 }
 
 // Get VAPID Public Key
@@ -30,14 +31,13 @@ router.post('/subscribe', authenticate, async (req: AuthRequest, res, next) => {
             return res.status(400).json({ error: 'Nieprawidłowa subskrypcja' });
         }
 
-        const newSub = await prisma.pushSubscription.upsert({
-            where: { endpoint: subscription.endpoint },
-            update: {
-                userId,
-                p256dh: subscription.keys.p256dh,
-                auth: subscription.keys.auth,
-            },
-            create: {
+        // Delete all old subscriptions for this user first (force fresh)
+        await prisma.pushSubscription.deleteMany({
+            where: { userId }
+        });
+
+        const newSub = await prisma.pushSubscription.create({
+            data: {
                 userId,
                 endpoint: subscription.endpoint,
                 p256dh: subscription.keys.p256dh,
@@ -45,7 +45,31 @@ router.post('/subscribe', authenticate, async (req: AuthRequest, res, next) => {
             }
         });
 
+        console.log('🔔 Push subscription created for user:', userId, 'endpoint:', subscription.endpoint.substring(0, 60));
         res.status(201).json({ message: 'Subskrypcja dodana', id: newSub.id });
+    } catch (err) {
+        console.error('❌ Push subscribe error:', err);
+        next(err);
+    }
+});
+
+// Unsubscribe user from push notifications
+router.post('/unsubscribe', authenticate, async (req: AuthRequest, res, next) => {
+    try {
+        const userId = req.user!.id;
+        const { endpoint } = req.body;
+
+        if (endpoint) {
+            await prisma.pushSubscription.deleteMany({
+                where: { userId, endpoint }
+            });
+        } else {
+            await prisma.pushSubscription.deleteMany({
+                where: { userId }
+            });
+        }
+
+        res.json({ message: 'Subskrypcja usunięta' });
     } catch (err) {
         next(err);
     }
@@ -60,38 +84,55 @@ router.post('/test', authenticate, async (req: AuthRequest, res, next) => {
             where: { userId }
         });
 
+        console.log(`🔔 Test push for user ${userId}: found ${subs.length} subscription(s)`);
+
         if (subs.length === 0) {
-            return res.status(404).json({ message: 'Użytkownik nie ma powiązanych urządzeń do powiadomień' });
+            return res.status(404).json({ message: 'Użytkownik nie ma powiązanych urządzeń do powiadomień. Wyłącz i ponownie włącz przełącznik powiadomień Push.' });
         }
 
         const payload = JSON.stringify({
             title: 'Test powiadomienia',
-            body: 'Powiadomienia Push działają poprawnie w Twojej przeglądarce.',
+            body: 'Powiadomienia Push działają poprawnie! 🔔',
             url: '/dashboard'
         });
 
         let sentCount = 0;
+        const errors: string[] = [];
+
         for (const sub of subs) {
             try {
-                await webpush.sendNotification({
+                console.log('🔔 Sending to endpoint:', sub.endpoint.substring(0, 80));
+                const result = await webpush.sendNotification({
                     endpoint: sub.endpoint,
                     keys: {
                         p256dh: sub.p256dh,
                         auth: sub.auth
                     }
                 }, payload);
+                console.log('🔔 Push sent OK, statusCode:', result.statusCode, 'headers:', JSON.stringify(result.headers));
                 sentCount++;
             } catch (e: any) {
+                console.error('❌ Push send error:', {
+                    statusCode: e.statusCode,
+                    body: e.body,
+                    message: e.message,
+                    endpoint: sub.endpoint.substring(0, 80)
+                });
                 if (e.statusCode === 410 || e.statusCode === 404) {
-                    // Subscription expired or no longer valid
                     await prisma.pushSubscription.delete({ where: { id: sub.id } });
+                    errors.push(`Subskrypcja wygasła (${e.statusCode}) - usunięta`);
                 } else {
-                    console.error('Błąd wysyłania web-push:', e);
+                    errors.push(`Błąd ${e.statusCode}: ${e.body || e.message}`);
                 }
             }
         }
 
-        res.json({ message: `Wysłano ${sentCount} powiadomień testowych` });
+        res.json({
+            message: `Wysłano ${sentCount} powiadomień testowych`,
+            total: subs.length,
+            sent: sentCount,
+            errors: errors.length > 0 ? errors : undefined
+        });
     } catch (err) {
         next(err);
     }
