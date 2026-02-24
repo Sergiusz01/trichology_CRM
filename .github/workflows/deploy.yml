@@ -74,7 +74,7 @@ jobs:
 
             # Deploy latest Nginx config (includes X-Robots-Tag noindex header)
             cp ~/backend-src/nginx-trichology.conf /etc/nginx/sites-available/trichology
-            nginx -t && systemctl reload nginx
+            nginx -t && (systemctl reload nginx || systemctl restart nginx)
 
             echo "✅ Backend deployed"
 
