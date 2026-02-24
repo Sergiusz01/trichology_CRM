@@ -19,7 +19,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const IDLE_TIMEOUT_MS = 30 * 60 * 1000;  // 30 minut bezczynności
+const IDLE_TIMEOUT_MS = 15 * 60 * 1000;  // 15 minut bezczynności
 const WARNING_BEFORE_MS = 2 * 60 * 1000; // ostrzeżenie 2 minuty przed
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -53,9 +53,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // ─── Clear all timers ─────────────────────────────────────────────────────────
   const clearAllTimers = useCallback(() => {
-    if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
-    if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
-    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+    if (idleTimerRef.current) { clearTimeout(idleTimerRef.current); idleTimerRef.current = null; }
+    if (warningTimerRef.current) { clearTimeout(warningTimerRef.current); warningTimerRef.current = null; }
+    if (countdownIntervalRef.current) { clearInterval(countdownIntervalRef.current); countdownIntervalRef.current = null; }
   }, []);
 
   // ─── Reset idle timer (called on any user activity) ──────────────────────────
@@ -167,7 +167,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     resetIdleTimer();
   };
 
-  const minutesLeft = Math.ceil(countdown / 60);
+  const minutesLeft = Math.floor(countdown / 60);
   const secondsLeft = countdown % 60;
 
   return (
