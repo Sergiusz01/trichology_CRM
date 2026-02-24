@@ -172,26 +172,48 @@ router.get('/monthly', authenticate, async (req: AuthRequest, res, next) => {
             </html>
         `;
 
-        const browser = await puppeteer.launch({
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
-        });
-        const page = await browser.newPage();
-        await page.setContent(htmlTemplate, { waitUntil: 'networkidle0' });
+        // Resolve Chromium executable — same logic as pdfService.ts
+        let executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+        if (!executablePath) {
+            const possiblePaths = [
+                '/usr/bin/chromium-browser',
+                '/usr/bin/chromium',
+                '/snap/bin/chromium',
+                '/usr/bin/google-chrome',
+                '/usr/bin/google-chrome-stable',
+            ];
+            for (const p of possiblePaths) {
+                if (fs.existsSync(p)) { executablePath = p; break; }
+            }
+        }
 
-        const pdfBuffer = await page.pdf({
-            format: 'A4',
-            printBackground: true,
-            margin: { top: '20px', bottom: '20px', left: '20px', right: '20px' }
-        });
+        let browser;
+        try {
+            browser = await puppeteer.launch({
+                headless: true,
+                executablePath: executablePath || undefined,
+                args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+            });
 
-        await browser.close();
+            const page = await browser.newPage();
+            await page.setDefaultNavigationTimeout(60000);
+            await page.setContent(htmlTemplate, { waitUntil: 'domcontentloaded', timeout: 60000 });
+            await new Promise(resolve => setTimeout(resolve, 1000));
 
-        res.contentType('application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="Raport_${month}.pdf"`);
-        res.send(pdfBuffer);
+            const pdfBuffer = await page.pdf({
+                format: 'A4',
+                printBackground: true,
+                margin: { top: '20px', bottom: '20px', left: '20px', right: '20px' },
+            });
+
+            res.contentType('application/pdf');
+            res.setHeader('Content-Disposition', `attachment; filename="Raport_${month}.pdf"`);
+            res.send(Buffer.from(pdfBuffer));
+        } finally {
+            if (browser) await browser.close();
+        }
 
     } catch (err) {
-        console.error('Błąd generatora PDF:', err);
         next(err);
     }
 });
