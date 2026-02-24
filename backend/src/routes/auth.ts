@@ -18,6 +18,9 @@ setInterval(() => {
   revokedRefreshTokens.clear();
 }, 60 * 60 * 1000);
 
+// Czas bezczynności po którym sesja wygasa (musi być taki sam jak na frontendzie)
+const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000; // 15 minut
+
 const registerSchema = z.object({
   name: z.string().min(1, 'Imię jest wymagane'),
   email: z.string().email('Nieprawidłowy adres email'),
@@ -139,10 +142,18 @@ router.post('/login', authLimiter, async (req, res, next) => {
 // Refresh token
 router.post('/refresh', refreshLimiter, async (req, res, next) => {
   try {
-    const { refreshToken } = req.body;
+    const { refreshToken, lastActivityTime } = req.body;
 
     if (!refreshToken) {
       return res.status(401).json({ error: 'Brak tokenu odświeżającego' });
+    }
+
+    // Sprawdź bezczynność użytkownika — jeśli frontend przesłał znacznik czasu
+    if (lastActivityTime !== undefined && lastActivityTime !== null) {
+      const lastActivity = parseInt(String(lastActivityTime), 10);
+      if (!isNaN(lastActivity) && Date.now() - lastActivity > INACTIVITY_TIMEOUT_MS) {
+        return res.status(401).json({ error: 'Sesja wygasła z powodu braku aktywności' });
+      }
     }
 
     // Reject if token has been revoked (e.g. after logout) before any verification

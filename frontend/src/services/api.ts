@@ -105,8 +105,10 @@ api.interceptors.response.use(
         const refreshToken = localStorage.getItem('refreshToken');
         if (refreshToken) {
           const refreshUrl = API_URL ? `${API_URL}/api/auth/refresh` : '/api/auth/refresh';
+          const lastActivityTime = localStorage.getItem('lastActivityTime');
           const response = await axios.post(refreshUrl, {
             refreshToken,
+            ...(lastActivityTime !== null && { lastActivityTime: parseInt(lastActivityTime, 10) }),
           });
 
           const { accessToken, refreshToken: newRefreshToken } = response.data;
@@ -123,6 +125,7 @@ api.interceptors.response.use(
         // Clear tokens on refresh failure
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
+        localStorage.removeItem('lastActivityTime');
         delete api.defaults.headers.common['Authorization'];
 
         // Dispatch custom event for AuthContext to handle navigation
