@@ -46,6 +46,32 @@ export function useWebPush() {
         try {
             setLoading(true);
 
+            // Check if notifications are explicitly blocked
+            if (Notification.permission === 'denied') {
+                alert(
+                    '⚠️ Powiadomienia są zablokowane w Twojej przeglądarce.\n\n' +
+                    'Aby je włączyć:\n' +
+                    '1. Kliknij ikonkę kłódki 🔒 obok adresu strony\n' +
+                    '2. Znajdź "Powiadomienia" (Notifications)\n' +
+                    '3. Zmień na "Zezwól"\n' +
+                    '4. Odśwież stronę i spróbuj ponownie'
+                );
+                return false;
+            }
+
+            // Explicitly request permission first
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') {
+                alert(
+                    '⚠️ Musisz zezwolić na powiadomienia, aby ta funkcja działała.\n\n' +
+                    'Jeśli przypadkowo kliknąłeś "Blokuj":\n' +
+                    '1. Kliknij ikonkę kłódki 🔒 obok adresu strony\n' +
+                    '2. Zmień ustawienie powiadomień na "Zezwól"\n' +
+                    '3. Odśwież stronę'
+                );
+                return false;
+            }
+
             // Wait for service worker
             const registration = await navigator.serviceWorker.ready;
 
@@ -59,7 +85,7 @@ export function useWebPush() {
 
             const convertedVapidKey = urlBase64ToUint8Array(data.publicKey);
 
-            // Ask user for permission and subscribe
+            // Subscribe to push
             const subscription = await registration.pushManager.subscribe({
                 userVisibleOnly: true,
                 applicationServerKey: convertedVapidKey
@@ -69,8 +95,17 @@ export function useWebPush() {
             await api.post('/web-push/subscribe', subscription);
             setIsSubscribed(true);
             return true;
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error subscribing to push notifications', error);
+            if (error?.name === 'NotAllowedError') {
+                alert(
+                    '⚠️ Przeglądarka odmówiła dostępu do powiadomień.\n\n' +
+                    'Sprawdź:\n' +
+                    '1. Ustawienia powiadomień w przeglądarce (kłódka 🔒 obok adresu)\n' +
+                    '2. Ustawienia systemowe (macOS: Preferencje → Powiadomienia → Chrome/Edge)\n' +
+                    '3. Czy tryb "Nie przeszkadzać" nie jest włączony'
+                );
+            }
             return false;
         } finally {
             setLoading(false);
