@@ -31,16 +31,77 @@ html, body {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
-  
+
   /* Ensure dialog content doesn't overflow */
   .MuiDialog-paper {
     margin: 8px !important;
     max-width: calc(100% - 16px) !important;
   }
-  
+
   /* Prevent text from overflowing */
   * {
     word-wrap: break-word;
     overflow-wrap: break-word;
+  }
+}
+
+/* FullCalendar mobile fixes */
+@media (max-width: 600px) {
+  /* Toolbar: stack buttons, shrink font */
+  .fc .fc-toolbar {
+    flex-direction: column;
+    gap: 6px;
+    align-items: stretch;
+  }
+
+  .fc .fc-toolbar-chunk {
+    display: flex;
+    justify-content: center;
+  }
+
+  .fc .fc-toolbar-title {
+    font-size: 1rem !important;
+    text-align: center;
+  }
+
+  /* Smaller navigation/view buttons */
+  .fc .fc-button {
+    padding: 4px 8px !important;
+    font-size: 0.75rem !important;
+  }
+
+  /* Event text — clip long titles */
+  .fc-event-title {
+    font-size: 0.7rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Time labels in timeGrid */
+  .fc .fc-timegrid-slot-label {
+    font-size: 0.65rem;
+  }
+
+  /* Day headers */
+  .fc .fc-col-header-cell-cushion {
+    font-size: 0.7rem;
+    padding: 2px 4px;
+  }
+
+  /* List view rows */
+  .fc .fc-list-event td {
+    font-size: 0.8rem;
+    padding: 6px 8px;
+  }
+
+  .fc .fc-list-day-cushion {
+    font-size: 0.75rem;
+    padding: 6px 8px;
+  }
+
+  /* No events message */
+  .fc .fc-list-empty {
+    font-size: 0.85rem;
   }
 }

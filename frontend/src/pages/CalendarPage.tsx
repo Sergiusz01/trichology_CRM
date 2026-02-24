@@ -5,7 +5,7 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import plLocale from '@fullcalendar/core/locales/pl';
 import listPlugin from '@fullcalendar/list';
-import { Box, Typography, Paper, CircularProgress } from '@mui/material';
+import { Box, Paper, CircularProgress, useTheme, useMediaQuery } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { PageHeader } from '../ui/PageHeader';
@@ -27,6 +27,8 @@ export default function CalendarPage() {
     const [events, setEvents] = useState<VisitEvent[]>([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
     useEffect(() => {
         fetchEvents();
@@ -78,7 +80,7 @@ export default function CalendarPage() {
                 subtitle="Zarządzaj harmonogramem wizyt pacjentów"
             />
 
-            <Paper sx={{ p: 3, borderRadius: 2, minHeight: '75vh', position: 'relative' }}>
+            <Paper sx={{ p: { xs: 1, sm: 2, md: 3 }, borderRadius: 2, minHeight: { xs: '80vh', sm: '75vh' }, position: 'relative', overflow: 'hidden' }}>
                 {loading && (
                     <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'rgba(255,255,255,0.7)', zIndex: 10 }}>
                         <CircularProgress />
@@ -86,20 +88,40 @@ export default function CalendarPage() {
                 )}
                 <FullCalendar
                     plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
-                    initialView="timeGridWeek"
-                    headerToolbar={{
+                    initialView={isMobile ? 'listMonth' : 'timeGridWeek'}
+                    headerToolbar={isMobile ? {
+                        left: 'prev,next',
+                        center: 'title',
+                        right: 'listMonth,timeGridDay',
+                    } : {
                         left: 'prev,next today',
                         center: 'title',
-                        right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+                        right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek',
                     }}
                     locales={[plLocale]}
                     locale="pl"
                     events={events}
                     eventClick={handleEventClick}
-                    height="auto"
+                    height={isMobile ? '80vh' : 'auto'}
                     allDaySlot={false}
                     slotMinTime="07:00:00"
                     slotMaxTime="21:00:00"
+                    eventTimeFormat={{
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        meridiem: false,
+                    }}
+                    views={{
+                        timeGridDay: {
+                            titleFormat: { day: 'numeric', month: 'long', year: 'numeric' },
+                        },
+                        listMonth: {
+                            noEventsText: 'Brak wizyt w tym miesiącu',
+                        },
+                        listWeek: {
+                            noEventsText: 'Brak wizyt w tym tygodniu',
+                        },
+                    }}
                 />
             </Paper>
         </Box>
