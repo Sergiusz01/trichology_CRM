@@ -25,6 +25,8 @@ jobs:
         run: |
           mkdir -p temp/backend-deploy
           rsync -av --exclude='node_modules' --exclude='dist' --exclude='.git' backend/ temp/backend-deploy/
+          # Include nginx config so VPS always gets the latest version
+          cp nginx-trichology.conf temp/backend-deploy/
           cd temp/backend-deploy && zip -r ../../backend.zip . && cd ../..
 
       - name: 📤 Upload backend to VPS
@@ -69,6 +71,10 @@ jobs:
             # are re-read from .env and NODE_ENV=production is guaranteed.
             # startOrReload: starts fresh if not running, reloads (0-downtime) if already up.
             pm2 startOrReload ecosystem.config.js --update-env
+
+            # Deploy latest Nginx config (includes X-Robots-Tag noindex header)
+            cp ~/backend-src/nginx-trichology.conf /etc/nginx/sites-available/trichology
+            nginx -t && systemctl reload nginx
 
             echo "✅ Backend deployed"
 
