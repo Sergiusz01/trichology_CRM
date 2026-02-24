@@ -40,9 +40,14 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
 
     const where: any = {};
     if (start && end) {
+      const startDate = new Date(start as string);
+      const endDate = new Date(end as string);
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        return res.status(400).json({ error: 'Nieprawidłowy format daty. Użyj formatu ISO 8601.' });
+      }
       where.data = {
-        gte: new Date(start as string),
-        lte: new Date(end as string),
+        gte: startDate,
+        lte: endDate,
       };
     }
 

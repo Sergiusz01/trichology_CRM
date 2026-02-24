@@ -5,7 +5,7 @@ import path from 'path';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken';
-import { authenticate, AuthRequest } from '../middleware/auth';
+import { authenticate, requireWriteAccess, AuthRequest } from '../middleware/auth';
 import { prisma } from '../prisma';
 
 const router = express.Router();
@@ -177,7 +177,7 @@ router.get('/:id/file', authenticate, async (req: AuthRequest, res, next) => {
     // Set appropriate headers
     res.setHeader('Content-Type', scalpPhoto.mimeType);
     res.setHeader('Content-Disposition', `inline; filename="${scalpPhoto.originalFilename}"`);
-    res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 1 day
+    res.setHeader('Cache-Control', 'private, max-age=86400'); // private: patient data must not be cached by shared proxies
 
     // Send file
     res.sendFile(path.resolve(scalpPhoto.filePath));
@@ -222,8 +222,8 @@ router.get('/:id', authenticate, async (req: AuthRequest, res, next) => {
   }
 });
 
-// Update scalp photo (notes)
-router.put('/:id', authenticate, async (req: AuthRequest, res, next) => {
+// Update scalp photo (notes) - DOCTOR/ADMIN only
+router.put('/:id', authenticate, requireWriteAccess(), async (req: AuthRequest, res, next) => {
   try {
     const { id } = req.params;
     const { notes } = req.body;
@@ -257,8 +257,8 @@ router.put('/:id', authenticate, async (req: AuthRequest, res, next) => {
   }
 });
 
-// Delete scalp photo
-router.delete('/:id', authenticate, async (req: AuthRequest, res, next) => {
+// Delete scalp photo - DOCTOR/ADMIN only
+router.delete('/:id', authenticate, requireWriteAccess(), async (req: AuthRequest, res, next) => {
   try {
     const { id } = req.params;
 
@@ -270,8 +270,13 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res, next) => {
       return res.status(404).json({ error: 'Zdjęcie nie znalezione' });
     }
 
-    // Delete file from filesystem
-    if (scalpPhoto.filePath && fs.existsSync(scalpPhoto.filePath)) {
+    // Delete file from filesystem - try by filename (new approach) then filePath (legacy)
+    if (scalpPhoto.filename) {
+      const filePathByName = path.join(normalizedUploadDir, scalpPhoto.filename);
+      if (fs.existsSync(filePathByName)) {
+        fs.unlinkSync(filePathByName);
+      }
+    } else if (scalpPhoto.filePath && fs.existsSync(scalpPhoto.filePath)) {
       fs.unlinkSync(scalpPhoto.filePath);
     }
 

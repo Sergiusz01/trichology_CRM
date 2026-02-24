@@ -9,6 +9,7 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
   try {
     const [patients, consultations, emails, visits, labResults, scalpPhotos, carePlans, upcomingVisits, weeklyRevenue] = await Promise.all([
       prisma.patient.findMany({
+        where: { isArchived: false },
         select: {
           id: true,
           firstName: true,
@@ -18,6 +19,8 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
           createdAt: true,
           updatedAt: true,
         },
+        take: 500,
+        orderBy: { createdAt: 'desc' },
       }),
       prisma.consultation.findMany({
         select: {
@@ -27,6 +30,8 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
           createdAt: true,
           updatedAt: true,
         },
+        take: 500,
+        orderBy: { createdAt: 'desc' },
       }),
       prisma.emailHistory.findMany({
         where: { status: 'SENT' },

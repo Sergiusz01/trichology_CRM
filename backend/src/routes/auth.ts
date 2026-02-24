@@ -82,6 +82,10 @@ router.post('/login', authLimiter, async (req, res, next) => {
       return res.status(401).json({ error: 'Nieprawidłowy email lub hasło' });
     }
 
+    if (!user.isActive) {
+      return res.status(401).json({ error: 'Konto zostało dezaktywowane. Skontaktuj się z administratorem.' });
+    }
+
     const isValidPassword = await comparePassword(password, user.passwordHash);
 
     if (!isValidPassword) {
@@ -141,13 +145,13 @@ router.post('/refresh', refreshLimiter, async (req, res, next) => {
       return res.status(401).json({ error: 'Brak tokenu odświeżającego' });
     }
 
-    const { verifyRefreshToken } = await import('../utils/jwt');
-    const decoded = verifyRefreshToken(refreshToken);
-
-    // Reject if token has been revoked (e.g. after logout)
+    // Reject if token has been revoked (e.g. after logout) before any verification
     if (revokedRefreshTokens.has(refreshToken)) {
       return res.status(401).json({ error: 'Token odświeżający został unieważniony' });
     }
+
+    const { verifyRefreshToken } = await import('../utils/jwt');
+    const decoded = verifyRefreshToken(refreshToken);
 
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },

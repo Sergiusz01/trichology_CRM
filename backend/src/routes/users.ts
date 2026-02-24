@@ -1,21 +1,30 @@
 import express from 'express';
+import { z } from 'zod';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { prisma } from '../prisma';
 import bcrypt from 'bcrypt';
 
 const router = express.Router();
 
-// Middleware to check if user is admin
-const requireAdmin = async (req: AuthRequest, res: express.Response, next: express.NextFunction) => {
-    try {
-        const user = await prisma.user.findUnique({ where: { id: req.user?.id } });
-        if (user?.role !== 'ADMIN') {
-            return res.status(403).json({ error: 'Odmowa dostępu. Wymagane uprawnienia administratora.' });
-        }
-        next();
-    } catch (err) {
-        next(err);
+const createUserSchema = z.object({
+  name: z.string().min(1, 'Imię jest wymagane').max(100),
+  email: z.string().email('Nieprawidłowy adres email'),
+  password: z.string().min(6, 'Hasło musi mieć co najmniej 6 znaków'),
+  role: z.enum(['ADMIN', 'DOCTOR', 'ASSISTANT']).optional(),
+});
+
+const updateUserSchema = z.object({
+  name: z.string().min(1, 'Imię jest wymagane').max(100).optional(),
+  role: z.enum(['ADMIN', 'DOCTOR', 'ASSISTANT']).optional(),
+  isActive: z.boolean().optional(),
+});
+
+// Middleware to check if user is admin - uses already-authenticated req.user to avoid redundant DB query
+const requireAdmin = (req: AuthRequest, res: express.Response, next: express.NextFunction) => {
+    if (req.user?.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Odmowa dostępu. Wymagane uprawnienia administratora.' });
     }
+    next();
 };
 
 router.use(authenticate, requireAdmin);
@@ -43,7 +52,8 @@ router.get('/', async (req, res, next) => {
 // POST to create a new user
 router.post('/', async (req, res, next) => {
     try {
-        const { name, email, password, role } = req.body;
+        const data = createUserSchema.parse(req.body);
+        const { name, email, password, role } = data;
 
         const existing = await prisma.user.findUnique({ where: { email } });
         if (existing) {
@@ -71,11 +81,11 @@ router.post('/', async (req, res, next) => {
 router.put('/:id', async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { name, role, isActive } = req.body;
+        const data = updateUserSchema.parse(req.body);
 
         const updated = await prisma.user.update({
             where: { id },
-            data: { name, role, isActive },
+            data,
             select: { id: true, name: true, email: true, role: true, isActive: true }
         });
 
