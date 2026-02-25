@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate } from '../middleware/auth';
+import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 import os from 'os';
 import { execSync } from 'child_process';
 
@@ -15,8 +15,8 @@ const getDiskInfo = (): { total: number; used: number; available: number } | nul
     // Linia 0: nagłówek, linia 1 (lub ostatnia): dane
     const parts = output[output.length - 1].split(/\s+/);
     // Kolumny POSIX df: Filesystem  1024-blocks  Used  Available  Capacity%  Mounted
-    const total     = parseInt(parts[1], 10) * 1024;
-    const used      = parseInt(parts[2], 10) * 1024;
+    const total = parseInt(parts[1], 10) * 1024;
+    const used = parseInt(parts[2], 10) * 1024;
     const available = parseInt(parts[3], 10) * 1024;
     if (isNaN(total) || isNaN(used)) return null;
     return { total, used, available };
@@ -25,8 +25,8 @@ const getDiskInfo = (): { total: number; used: number; available: number } | nul
   }
 };
 
-/** GET /api/system/status — zwraca parametry serwera (pamięć, dysk, uptime itp.) */
-router.get('/status', authenticate, (_req, res) => {
+/** GET /api/system/status — zwraca parametry serwera (pamięć, dysk, uptime itp.) — ADMIN only */
+router.get('/status', authenticate, requireRole('ADMIN'), (_req, res) => {
   const mem = process.memoryUsage();
   const uptimeSeconds = Math.floor(process.uptime());
 

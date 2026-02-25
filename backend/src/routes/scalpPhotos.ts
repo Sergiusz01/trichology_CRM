@@ -47,9 +47,18 @@ const annotationSchema = z.object({
 });
 
 // Secure image download endpoint
+// Accepts JWT from Authorization header (preferred) or query string (legacy/deprecated)
 router.get('/secure/:filename', async (req, res) => {
   const { filename } = req.params;
-  const token = req.query.token as string;
+
+  // Prefer Authorization header, fall back to query string
+  let token: string | undefined;
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.substring(7);
+  } else {
+    token = req.query.token as string | undefined;
+  }
 
   if (!token) return res.status(401).json({ error: 'Brak tokenu autoryzacyjnego' });
 

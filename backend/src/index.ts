@@ -70,9 +70,17 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 // Legacy /uploads static route with JWT auth (kept for backward compat)
+// Accepts JWT from Authorization header (preferred) or query string (deprecated)
 app.use('/uploads', async (req, res, next) => {
   try {
-    const token = req.query.token as string;
+    let token: string | undefined;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    } else {
+      token = req.query.token as string | undefined;
+    }
+
     if (!token) {
       return res.status(401).send('Brak tokenu autoryzacyjnego');
     }

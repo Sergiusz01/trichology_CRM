@@ -6,16 +6,26 @@ import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 import { prisma } from '../prisma';
 import { authLimiter, refreshLimiter } from '../middleware/rateLimit';
 
+import crypto from 'crypto';
+
 const router = express.Router();
 
-// In-memory blacklist for invalidated refresh tokens
-// Persists for the server lifetime; refreshes kill the token on logout
-const revokedRefreshTokens = new Set<string>();
+/**
+ * Hash a refresh token with SHA-256 before storing in DB.
+ * We never store raw tokens — only hashes.
+ */
+const hashToken = (token: string): string =>
+  crypto.createHash('sha256').update(token).digest('hex');
 
-// Auto-cleanup every hour: remove tokens that are certainly expired (> 7d old)
-// by storing timestamp alongside — simpler approach: just flush every hour
-setInterval(() => {
-  revokedRefreshTokens.clear();
+// Auto-cleanup expired refresh tokens from DB every hour
+setInterval(async () => {
+  try {
+    await prisma.refreshToken.deleteMany({
+      where: { expiresAt: { lt: new Date() } },
+    });
+  } catch {
+    // Ignore cleanup errors
+  }
 }, 60 * 60 * 1000);
 
 // Czas bezczynności po którym sesja wygasa (musi być taki sam jak na frontendzie)
@@ -156,8 +166,12 @@ router.post('/refresh', refreshLimiter, async (req, res, next) => {
       }
     }
 
-    // Reject if token has been revoked (e.g. after logout) before any verification
-    if (revokedRefreshTokens.has(refreshToken)) {
+    // Reject if token has been revoked (e.g. after logout) — check in DB
+    const tokenHash = hashToken(refreshToken);
+    const existingToken = await prisma.refreshToken.findUnique({
+      where: { tokenHash },
+    });
+    if (existingToken?.revokedAt) {
       return res.status(401).json({ error: 'Token odświeżający został unieważniony' });
     }
 
@@ -181,8 +195,46 @@ router.post('/refresh', refreshLimiter, async (req, res, next) => {
     const newAccessToken = generateAccessToken(tokenPayload);
     const newRefreshToken = generateRefreshToken(tokenPayload);
 
-    // Unieważnij stary token po wystawieniu nowego (rotacja tokenów)
-    revokedRefreshTokens.add(refreshToken);
+    // Revoke old token and store new token in DB (token rotation)
+    const oldTokenHash = hashToken(refreshToken);
+    const newTokenHash = hashToken(newRefreshToken);
+    const refreshExpiresIn = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
+    const expiresMs = refreshExpiresIn.endsWith('d')
+      ? parseInt(refreshExpiresIn) * 86400000
+      : parseInt(refreshExpiresIn) * 1000;
+
+    // Store the new token
+    const newStoredToken = await prisma.refreshToken.create({
+      data: {
+        userId: user.id,
+        tokenHash: newTokenHash,
+        expiresAt: new Date(Date.now() + expiresMs),
+      },
+    });
+
+    // Revoke the old token and link to the new one
+    if (existingToken) {
+      await prisma.refreshToken.update({
+        where: { tokenHash: oldTokenHash },
+        data: {
+          revokedAt: new Date(),
+          replacedByTokenId: newStoredToken.id,
+        },
+      });
+    } else {
+      // Old token wasn't tracked — create a revoked record for it
+      await prisma.refreshToken.upsert({
+        where: { tokenHash: oldTokenHash },
+        update: { revokedAt: new Date(), replacedByTokenId: newStoredToken.id },
+        create: {
+          userId: user.id,
+          tokenHash: oldTokenHash,
+          expiresAt: new Date(),
+          revokedAt: new Date(),
+          replacedByTokenId: newStoredToken.id,
+        },
+      });
+    }
 
     res.json({
       accessToken: newAccessToken,
@@ -193,16 +245,31 @@ router.post('/refresh', refreshLimiter, async (req, res, next) => {
   }
 });
 
-// Logout - revoke refresh token
+// Logout - revoke refresh token (persisted in DB)
 router.post('/logout', async (req, res) => {
   const { refreshToken } = req.body;
   if (refreshToken && typeof refreshToken === 'string') {
     try {
-      // Weryfikuj token przed dodaniem do czarnej listy — zapobiega zaśmiecaniu pamięci
-      verifyRefreshToken(refreshToken);
-      revokedRefreshTokens.add(refreshToken);
+      // Verify token before revoking — prevents polluting DB
+      const decoded = verifyRefreshToken(refreshToken);
+      const tokenHash = hashToken(refreshToken);
+      const refreshExpiresIn = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
+      const expiresMs = refreshExpiresIn.endsWith('d')
+        ? parseInt(refreshExpiresIn) * 86400000
+        : parseInt(refreshExpiresIn) * 1000;
+
+      await prisma.refreshToken.upsert({
+        where: { tokenHash },
+        update: { revokedAt: new Date() },
+        create: {
+          userId: decoded.userId,
+          tokenHash,
+          expiresAt: new Date(Date.now() + expiresMs),
+          revokedAt: new Date(),
+        },
+      });
     } catch {
-      // Nieprawidłowy lub wygasły token — ignoruj, sesja i tak jest zakończona
+      // Invalid or expired token — ignore, session is ending anyway
     }
   }
   return res.json({ message: 'Wylogowano pomyślnie' });

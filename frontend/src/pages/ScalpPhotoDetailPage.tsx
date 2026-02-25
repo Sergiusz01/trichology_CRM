@@ -28,7 +28,7 @@ import {
 } from '@mui/icons-material';
 import { api } from '../services/api';
 import { SecureImage } from '../components/SecureImage';
-import { buildSecureImageUrl } from '../utils/imageHandler';
+
 
 interface Annotation {
   id: string;
@@ -51,6 +51,7 @@ export default function ScalpPhotoDetailPage() {
   const [success, setSuccess] = useState('');
   const [editingNotes, setEditingNotes] = useState(false);
   const [notes, setNotes] = useState('');
+  const [imageBlobUrl, setImageBlobUrl] = useState<string | null>(null);
   const [drawing, setDrawing] = useState(false);
   const [currentAnnotation, setCurrentAnnotation] = useState<any>(null);
   const [annotationDialog, setAnnotationDialog] = useState(false);
@@ -64,15 +65,36 @@ export default function ScalpPhotoDetailPage() {
     if (photoId) {
       fetchPhoto();
     }
+    return () => {
+      // Cleanup blob URL on unmount
+      if (imageBlobUrl) URL.revokeObjectURL(imageBlobUrl);
+    };
   }, [photoId]);
 
   const fetchPhoto = async () => {
     try {
       setLoading(true);
       const response = await api.get(`/scalp-photos/${photoId}`);
-      setPhoto(response.data.scalpPhoto);
-      setNotes(response.data.scalpPhoto.notes || '');
-      setAnnotations(response.data.scalpPhoto.annotations || []);
+      const photoData = response.data.scalpPhoto;
+      setPhoto(photoData);
+      setNotes(photoData.notes || '');
+      setAnnotations(photoData.annotations || []);
+
+      // Fetch image as blob via Authorization header (no token in URL)
+      const filename = photoData.filename || photoData.filePath;
+      if (filename) {
+        const cleanName = filename.split(/[\/\\]/).pop();
+        if (cleanName) {
+          try {
+            const imgResponse = await api.get(`/uploads/secure/${cleanName}`, { responseType: 'blob' });
+            if (imageBlobUrl) URL.revokeObjectURL(imageBlobUrl);
+            const blobUrl = URL.createObjectURL(imgResponse.data);
+            setImageBlobUrl(blobUrl);
+          } catch (imgErr) {
+            console.error('Błąd pobierania obrazu:', imgErr);
+          }
+        }
+      }
     } catch (error: any) {
       console.error('Błąd pobierania zdjęcia:', error);
       setError(error.response?.data?.error || 'Błąd pobierania zdjęcia');
@@ -390,7 +412,7 @@ export default function ScalpPhotoDetailPage() {
             <Box sx={{ position: 'relative', display: 'inline-block', width: '100%' }}>
               <img
                 ref={imageRef}
-                src={buildSecureImageUrl(photo.filename || photo.filePath)}
+                src={imageBlobUrl || ''}
                 alt={photo.originalFilename || 'Zdjęcie skóry głowy'}
                 onLoad={() => {
                   console.log('Obraz załadowany:', photo.filename || photo.filePath);
