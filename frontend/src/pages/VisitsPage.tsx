@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Box,
@@ -34,22 +34,9 @@ import {
     ChevronRight,
     Search,
 } from '@mui/icons-material';
-import { api } from '../services/api';
 import { ErrorState } from '../ui/ErrorState';
+import { useVisits } from '../hooks/queries/useVisits';
 
-interface Visit {
-    id: string;
-    data: string;
-    rodzajZabiegu: string;
-    status: 'ZAPLANOWANA' | 'ODBYTA' | 'NIEOBECNOSC' | 'ANULOWANA';
-    cena?: number;
-    notatki?: string;
-    patient: {
-        id: string;
-        firstName: string;
-        lastName: string;
-    };
-}
 
 const VISIT_STATUS_CONFIG = {
     ZAPLANOWANA: { color: '#007AFF', bgColor: alpha('#007AFF', 0.1), label: 'Zaplanowana' },
@@ -59,10 +46,6 @@ const VISIT_STATUS_CONFIG = {
 };
 
 export default function VisitsPage() {
-    const [visits, setVisits] = useState<Visit[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
     // Filtering and pagination
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(25);
@@ -75,23 +58,10 @@ export default function VisitsPage() {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-    const fetchVisits = async () => {
-        try {
-            setLoading(true);
-            const res = await api.get('/visits');
-            setVisits(res.data.data || []);
-            setError(null);
-        } catch (e: any) {
-            console.error('Błąd pobierania wizyt:', e);
-            setError(e.response?.data?.error || 'Nie udało się załadować wizyt. Spróbuj ponownie.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchVisits();
-    }, []);
+    const { data: visits = [], isLoading: loading, error: queryError, refetch } = useVisits();
+    const error = queryError
+        ? (queryError as any)?.response?.data?.error ?? 'Nie udało się załadować wizyt. Spróbuj ponownie.'
+        : null;
 
     const filteredVisits = useMemo(() => {
         return visits.filter(v => {
@@ -240,7 +210,7 @@ export default function VisitsPage() {
                     <CircularProgress />
                 </Box>
             ) : error ? (
-                <ErrorState message={error} onRetry={fetchVisits} />
+                <ErrorState message={error} onRetry={() => refetch()} />
             ) : filteredVisits.length === 0 ? (
                 <Paper
                     sx={{

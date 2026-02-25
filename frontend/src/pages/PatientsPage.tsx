@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -42,27 +42,19 @@ import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../hooks/useNotification';
 import { ErrorRetry } from '../components/ErrorRetry';
-
-interface Patient {
-  id: string;
-  firstName: string;
-  lastName: string;
-  age?: number;
-  gender?: string;
-  phone?: string;
-  email?: string;
-  isArchived: boolean;
-}
+import {
+  usePatients,
+  useArchivePatient,
+  useRestorePatient,
+  usePermanentDeletePatient,
+} from '../hooks/queries/usePatients';
 
 export default function PatientsPage() {
   const { user } = useAuth();
-  const [patients, setPatients] = useState<Patient[]>([]);
-  const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [search, setSearch] = useState('');
-  const [total, setTotal] = useState(0);
   const [showArchived, setShowArchived] = useState(false);
   const [sortBy, setSortBy] = useState<'createdAt' | 'lastName' | 'lastVisit'>('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -83,44 +75,31 @@ export default function PatientsPage() {
   }>({ open: false, patientId: null, patientName: '' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [loadError, setLoadError] = useState<string | null>(null);
   const { success: showSuccess, error: showError } = useNotification();
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
+  // ── React Query ────────────────────────────────────────────────────────────
+  const { data, isLoading: loading, error: queryError, refetch: refetchPatients } = usePatients({
+    page,
+    limit: rowsPerPage,
+    search,
+    archived: showArchived,
+    sortBy,
+    sortOrder,
+  });
+  const patients = data?.patients ?? [];
+  const total = data?.pagination.total ?? 0;
+  const loadError = queryError ? (queryError as any)?.response?.data?.error ?? 'Nie udało się załadować listy pacjentów' : null;
+
+  const archivePatient = useArchivePatient();
+  const restorePatient = useRestorePatient();
+  const permanentDeletePatient = usePermanentDeletePatient();
+
   // Check if user can export (ADMIN or DOCTOR)
   const canExport = user?.role === 'ADMIN' || user?.role === 'DOCTOR';
   const isAdmin = user?.role === 'ADMIN';
-
-  useEffect(() => {
-    fetchPatients();
-  }, [page, rowsPerPage, search, showArchived, sortBy, sortOrder]);
-
-  const fetchPatients = async () => {
-    try {
-      setLoading(true);
-      setLoadError(null);
-      const response = await api.get('/patients', {
-        params: {
-          page: page + 1,
-          limit: rowsPerPage,
-          search,
-          archived: showArchived,
-          sortBy,
-          sortOrder,
-        },
-        _skipErrorToast: true,
-      });
-      setPatients(response.data.patients);
-      setTotal(response.data.pagination.total);
-    } catch (error: any) {
-      console.error('Błąd pobierania pacjentów:', error);
-      setLoadError(error.response?.data?.error || 'Nie udało się załadować listy pacjentów');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
@@ -139,10 +118,9 @@ export default function PatientsPage() {
     if (!deleteDialog.patientId) return;
 
     try {
-      await api.delete(`/patients/${deleteDialog.patientId}`);
+      await archivePatient.mutateAsync(deleteDialog.patientId);
       showSuccess('Pacjent został zarchiwizowany');
       setDeleteDialog({ open: false, patientId: null, patientName: '' });
-      fetchPatients();
     } catch (err: any) {
       showError(err.response?.data?.error || 'Błąd podczas usuwania pacjenta');
     }
@@ -160,10 +138,9 @@ export default function PatientsPage() {
     if (!restoreDialog.patientId) return;
 
     try {
-      await api.post(`/patients/${restoreDialog.patientId}/restore`);
+      await restorePatient.mutateAsync(restoreDialog.patientId);
       showSuccess('Pacjent został przywrócony');
       setRestoreDialog({ open: false, patientId: null, patientName: '' });
-      fetchPatients();
     } catch (err: any) {
       showError(err.response?.data?.error || 'Błąd podczas przywracania pacjenta');
     }
@@ -181,10 +158,9 @@ export default function PatientsPage() {
     if (!permanentDeleteDialog.patientId) return;
 
     try {
-      await api.delete(`/patients/${permanentDeleteDialog.patientId}/permanent`);
+      await permanentDeletePatient.mutateAsync(permanentDeleteDialog.patientId);
       showSuccess('Pacjent i wszystkie dane zostały trwale usunięte zgodnie z RODO');
       setPermanentDeleteDialog({ open: false, patientId: null, patientName: '' });
-      fetchPatients();
     } catch (err: any) {
       showError(err.response?.data?.error || 'Błąd podczas trwałego usuwania pacjenta');
     }
@@ -310,7 +286,7 @@ export default function PatientsPage() {
         />
 
         {loadError && (
-          <ErrorRetry message={loadError} onRetry={fetchPatients} onClose={() => setLoadError(null)} />
+          <ErrorRetry message={loadError} onRetry={() => refetchPatients()} />
         )}
 
         <AppCard

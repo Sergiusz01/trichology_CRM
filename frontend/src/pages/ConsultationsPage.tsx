@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -31,63 +31,40 @@ import {
   Person,
   Search,
 } from '@mui/icons-material';
-import { api } from '../services/api';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { ErrorState } from '../ui/ErrorState';
-
-interface Consultation {
-  id: string;
-  consultationDate: string | null;
-  isArchived: boolean;
-  patient: { id: string; firstName: string; lastName: string; email?: string };
-  doctor?: { id: string; name: string; email: string };
-}
+import { useConsultations } from '../hooks/queries/useConsultations';
 
 export default function ConsultationsPage() {
-  const [consultations, setConsultations] = useState<Consultation[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState(0);              // MUI is 0-indexed
+  const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
-  const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  const fetchConsultations = useCallback(async (pg = page, rpp = rowsPerPage, q = search) => {
-    try {
-      setLoading(true);
-      const res = await api.get('/consultations', {
-        params: { page: pg + 1, limit: rpp, search: q || undefined },
-      });
-      setConsultations(res.data.consultations || []);
-      setTotal(res.data.pagination?.total ?? 0);
-      setError(null);
-    } catch (e: any) {
-      console.error('Błąd pobierania konsultacji:', e);
-      setError(e.response?.data?.error || 'Nie udało się załadować konsultacji. Spróbuj ponownie.');
-    } finally {
-      setLoading(false);
-    }
-  }, [page, rowsPerPage, search]);
-
-  // Reload when page or rowsPerPage changes
-  useEffect(() => {
-    fetchConsultations();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, rowsPerPage]);
-
-  // Debounced search: reset to page 0
+  // Debounce search input
   useEffect(() => {
     const t = setTimeout(() => {
+      setDebouncedSearch(search);
       setPage(0);
-      fetchConsultations(0, rowsPerPage, search);
     }, 350);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
+
+  const { data, isLoading: loading, error: queryError, refetch } = useConsultations({
+    page,
+    limit: rowsPerPage,
+    search: debouncedSearch,
+  });
+
+  const consultations = data?.consultations ?? [];
+  const total = data?.pagination?.total ?? 0;
+  const error = queryError
+    ? (queryError as any)?.response?.data?.error ?? 'Nie udało się załadować konsultacji. Spróbuj ponownie.'
+    : null;
 
   const formatDate = (d: string | null) =>
     d ? format(new Date(d), 'dd MMM yyyy', { locale: pl }) : '—';
@@ -163,7 +140,7 @@ export default function ConsultationsPage() {
           <CircularProgress />
         </Box>
       ) : error ? (
-        <ErrorState message={error} onRetry={() => fetchConsultations()} />
+        <ErrorState message={error} onRetry={() => refetch()} />
       ) : consultations.length === 0 ? (
         <Paper
           sx={{

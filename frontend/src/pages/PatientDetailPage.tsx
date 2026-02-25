@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   Box,
@@ -67,6 +67,19 @@ import {
 import { api, BASE_URL } from '../services/api';
 import { useNotification } from '../hooks/useNotification';
 import { ErrorRetry } from '../components/ErrorRetry';
+import {
+  usePatientDetail,
+  usePatientDetailConsultations,
+  usePatientLabResults,
+  usePatientScalpPhotos,
+  usePatientCarePlans,
+  usePatientDetailVisits,
+  useDeletePatientItem,
+  useRestorePatientItem,
+  usePermanentDeletePatientItem,
+} from '../hooks/queries/usePatientDetail';
+import { useCreateVisit, useUpdateVisit, useUpdateVisitStatus } from '../hooks/queries/useVisits';
+import { useUpdatePatient } from '../hooks/queries/usePatients';
 import { SecureImage } from '../components/SecureImage';
 
 interface Patient {
@@ -139,14 +152,7 @@ export default function PatientDetailPage() {
   const { success: showSuccess, error: showError } = useNotification();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const [patient, setPatient] = useState<Patient | null>(null);
-  const [loading, setLoading] = useState(true);
   const [tabValue, setTabValue] = useState(0);
-  const [consultations, setConsultations] = useState<any[]>([]);
-  const [labResults, setLabResults] = useState<any[]>([]);
-  const [scalpPhotos, setScalpPhotos] = useState<any[]>([]);
-  const [carePlans, setCarePlans] = useState<any[]>([]);
-  const [visits, setVisits] = useState<Visit[]>([]);
   const [visitDialog, setVisitDialog] = useState<{
     open: boolean;
     mode: 'add' | 'edit';
@@ -211,7 +217,7 @@ export default function PatientDetailPage() {
   }>({ consultations: false, labResults: false, carePlans: false });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [emailSending, setEmailSending] = useState(false);
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [tempNotes, setTempNotes] = useState('');
   const [visitFilters, setVisitFilters] = useState({
@@ -221,39 +227,57 @@ export default function PatientDetailPage() {
     search: '',
   });
 
-  useEffect(() => {
-    if (id) {
-      fetchPatient();
-    }
-  }, [id, showArchived]);
+  // ── React Query ────────────────────────────────────────────────────────────
+  const { data: patient, isLoading: loading, error: patientQueryError, refetch: refetchPatient } = usePatientDetail(id);
+  const { data: consultations = [] } = usePatientDetailConsultations(id, showArchived.consultations);
+  const { data: labResults = [] } = usePatientLabResults(id, showArchived.labResults);
+  const { data: scalpPhotos = [] } = usePatientScalpPhotos(id);
+  const { data: carePlans = [] } = usePatientCarePlans(id, showArchived.carePlans);
+  const { data: visits = [] } = usePatientDetailVisits(id);
 
-  useEffect(() => {
-    if (location.state?.refresh && id) {
-      fetchPatient();
-      navigate(location.pathname, { replace: true, state: {} });
-    }
+  const loadError = patientQueryError
+    ? (patientQueryError as any)?.response?.data?.error ?? 'Nie udało się załadować danych pacjenta'
+    : null;
 
-    // Check URL parameters for deep linking
+  // Mutation hooks
+  const deleteItem = useDeletePatientItem(id!);
+  const restoreItem = useRestorePatientItem(id!);
+  const permanentDeleteItem = usePermanentDeletePatientItem(id!);
+  const createVisit = useCreateVisit();
+  const updateVisit = useUpdateVisit();
+  const updateVisitStatus = useUpdateVisitStatus();
+  const updatePatient = useUpdatePatient();
+
+  // Deep-link: switch to visits tab from URL params
+  useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
-    const targetTab = searchParams.get('tab');
-
-    if (targetTab === 'visits') {
+    if (searchParams.get('tab') === 'visits') {
       setTabValue(5);
     }
-  }, [location.state, location.search, id, navigate]);
+  }, [location.search]);
 
-  // Second effect to scroll to specific items after visits data loads
+  // Invalidate on navigation refresh signal
+  const handleRefreshSignal = useCallback(() => {
+    if (location.state?.refresh && id) {
+      refetchPatient();
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, id, refetchPatient, navigate]);
+
+  useEffect(() => {
+    handleRefreshSignal();
+  }, [handleRefreshSignal]);
+
+  // Scroll to specific visit after visits data loads
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const targetVisitId = searchParams.get('visitId');
 
     if (tabValue === 5 && targetVisitId && visits.length > 0) {
-      // Need a slight delay to ensure DOM is fully painted after tab switch
       setTimeout(() => {
         const element = document.getElementById(`visit-${targetVisitId}`);
         if (element) {
           element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          // Optional: Add a brief highlight effect
           element.style.transition = 'background-color 1.5s ease-out';
           element.style.backgroundColor = alpha('#007AFF', 0.15);
           setTimeout(() => {
@@ -263,42 +287,6 @@ export default function PatientDetailPage() {
       }, 300);
     }
   }, [tabValue, visits, location.search]);
-
-  const fetchPatient = async () => {
-    try {
-      setLoading(true);
-      setLoadError(null);
-      const response = await api.get(`/patients/${id}`, { _skipErrorToast: true });
-      setPatient(response.data.patient);
-      setScalpPhotos(response.data.patient.scalpPhotos || []);
-
-      const consultationsResponse = await api.get(`/consultations/patient/${id}`, {
-        params: { archived: showArchived.consultations ? 'true' : 'false' },
-        _skipErrorToast: true,
-      });
-      setConsultations(consultationsResponse.data.consultations || []);
-
-      const labResultsResponse = await api.get(`/lab-results/patient/${id}`, {
-        params: { archived: showArchived.labResults ? 'true' : 'false' },
-        _skipErrorToast: true,
-      });
-      setLabResults(labResultsResponse.data.labResults || []);
-
-      const carePlansResponse = await api.get(`/care-plans/patient/${id}`, {
-        params: { archived: showArchived.carePlans ? 'true' : 'false' },
-        _skipErrorToast: true,
-      });
-      setCarePlans(carePlansResponse.data.carePlans || []);
-
-      const visitsResponse = await api.get(`/visits/patient/${id}`, { _skipErrorToast: true });
-      setVisits(visitsResponse.data.visits || []);
-    } catch (error: any) {
-      console.error('Błąd pobierania pacjenta:', error);
-      setLoadError(error.response?.data?.error || 'Nie udało się załadować danych pacjenta');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleDeleteClick = (
     type: 'patient' | 'consultation' | 'labResult' | 'scalpPhoto' | 'carePlan' | 'visit',
@@ -311,44 +299,24 @@ export default function PatientDetailPage() {
   const handleDeleteConfirm = async () => {
     if (!deleteDialog.id || !deleteDialog.type) return;
 
+    const successMessages: Record<string, string> = {
+      patient: 'Pacjent został zarchiwizowany',
+      consultation: 'Konsultacja została zarchiwizowana',
+      labResult: 'Wynik badania został usunięty',
+      scalpPhoto: 'Zdjęcie zostało usunięte',
+      carePlan: 'Plan opieki został usunięty',
+      visit: 'Wizyta została usunięta',
+    };
+
     try {
       setError('');
       setSuccess('');
-
-      switch (deleteDialog.type) {
-        case 'patient':
-          await api.delete(`/patients/${deleteDialog.id}`);
-          showSuccess('Pacjent został zarchiwizowany');
-          setTimeout(() => navigate('/patients'), 1500);
-          break;
-        case 'consultation':
-          await api.delete(`/consultations/${deleteDialog.id}`);
-          showSuccess('Konsultacja została zarchiwizowana');
-          fetchPatient();
-          break;
-        case 'labResult':
-          await api.delete(`/lab-results/${deleteDialog.id}`);
-          showSuccess('Wynik badania został usunięty');
-          fetchPatient();
-          break;
-        case 'scalpPhoto':
-          await api.delete(`/scalp-photos/${deleteDialog.id}`);
-          showSuccess('Zdjęcie zostało usunięte');
-          fetchPatient();
-          break;
-        case 'carePlan':
-          await api.delete(`/care-plans/${deleteDialog.id}`);
-          showSuccess('Plan opieki został usunięty');
-          fetchPatient();
-          break;
-        case 'visit':
-          await api.delete(`/visits/${deleteDialog.id}`);
-          showSuccess('Wizyta została usunięta');
-          fetchPatient();
-          break;
-      }
-
+      await deleteItem.mutateAsync({ type: deleteDialog.type, id: deleteDialog.id });
+      showSuccess(successMessages[deleteDialog.type]);
       setDeleteDialog({ open: false, type: null, id: null, name: '' });
+      if (deleteDialog.type === 'patient') {
+        setTimeout(() => navigate('/patients'), 1500);
+      }
     } catch (err: any) {
       showError(err.response?.data?.error || 'Błąd podczas usuwania');
     }
@@ -369,25 +337,18 @@ export default function PatientDetailPage() {
   const handleRestoreConfirm = async () => {
     if (!restoreDialog.id || !restoreDialog.type) return;
 
+    const successMessages: Record<string, string> = {
+      consultation: 'Konsultacja została przywrócona',
+      labResult: 'Wynik badania został przywrócony',
+      carePlan: 'Plan opieki został przywrócony',
+    };
+
     try {
       setError('');
       setSuccess('');
-      switch (restoreDialog.type) {
-        case 'consultation':
-          await api.post(`/consultations/${restoreDialog.id}/restore`);
-          showSuccess('Konsultacja została przywrócona');
-          break;
-        case 'labResult':
-          await api.post(`/lab-results/${restoreDialog.id}/restore`);
-          showSuccess('Wynik badania został przywrócony');
-          break;
-        case 'carePlan':
-          await api.post(`/care-plans/${restoreDialog.id}/restore`);
-          showSuccess('Plan opieki został przywrócony');
-          break;
-      }
+      await restoreItem.mutateAsync({ type: restoreDialog.type, id: restoreDialog.id });
+      showSuccess(successMessages[restoreDialog.type]);
       setRestoreDialog({ open: false, type: null, id: null, name: '' });
-      fetchPatient();
     } catch (err: any) {
       showError(err.response?.data?.error || 'Błąd podczas przywracania');
     }
@@ -404,25 +365,18 @@ export default function PatientDetailPage() {
   const handlePermanentDeleteConfirm = async () => {
     if (!permanentDeleteDialog.id || !permanentDeleteDialog.type) return;
 
+    const successMessages: Record<string, string> = {
+      consultation: 'Konsultacja została trwale usunięta zgodnie z RODO',
+      labResult: 'Wynik badania został trwale usunięty zgodnie z RODO',
+      carePlan: 'Plan opieki został trwale usunięty zgodnie z RODO',
+    };
+
     try {
       setError('');
       setSuccess('');
-      switch (permanentDeleteDialog.type) {
-        case 'consultation':
-          await api.delete(`/consultations/${permanentDeleteDialog.id}/permanent`);
-          showSuccess('Konsultacja została trwale usunięta zgodnie z RODO');
-          break;
-        case 'labResult':
-          await api.delete(`/lab-results/${permanentDeleteDialog.id}/permanent`);
-          showSuccess('Wynik badania został trwale usunięty zgodnie z RODO');
-          break;
-        case 'carePlan':
-          await api.delete(`/care-plans/${permanentDeleteDialog.id}/permanent`);
-          showSuccess('Plan opieki został trwale usunięty zgodnie z RODO');
-          break;
-      }
+      await permanentDeleteItem.mutateAsync({ type: permanentDeleteDialog.type, id: permanentDeleteDialog.id });
+      showSuccess(successMessages[permanentDeleteDialog.type]);
       setPermanentDeleteDialog({ open: false, type: null, id: null, name: '' });
-      fetchPatient();
     } catch (err: any) {
       showError(err.response?.data?.error || 'Błąd podczas trwałego usuwania');
     }
@@ -495,7 +449,7 @@ export default function PatientDetailPage() {
     }
 
     try {
-      setLoading(true);
+      setEmailSending(true);
 
       let endpoint = '';
       switch (type) {
@@ -521,7 +475,7 @@ export default function PatientDetailPage() {
     } catch (err: any) {
       showError(err.response?.data?.error || 'Błąd wysyłania emaila');
     } finally {
-      setLoading(false);
+      setEmailSending(false);
     }
   };
 
@@ -572,9 +526,8 @@ export default function PatientDetailPage() {
     }
 
     try {
-
       const visitData = {
-        patientId: id,
+        patientId: id!,
         data: visitDialog.data,
         rodzajZabiegu: visitDialog.rodzajZabiegu,
         notatki: visitDialog.notatki || null,
@@ -585,26 +538,17 @@ export default function PatientDetailPage() {
       };
 
       if (visitDialog.mode === 'edit' && visitDialog.id) {
-        await api.put(`/visits/${visitDialog.id}`, visitData);
+        await updateVisit.mutateAsync({ id: visitDialog.id, data: visitData });
         showSuccess('Wizyta została zaktualizowana');
       } else {
-        await api.post('/visits', visitData);
+        await createVisit.mutateAsync(visitData);
         showSuccess('Wizyta została dodana');
       }
 
       setVisitDialog({
-        open: false,
-        mode: 'add',
-        id: null,
-        data: '',
-        rodzajZabiegu: '',
-        notatki: '',
-        status: 'ZAPLANOWANA',
-        numerWSerii: '',
-        liczbaSerii: '',
-        cena: '',
+        open: false, mode: 'add', id: null, data: '', rodzajZabiegu: '',
+        notatki: '', status: 'ZAPLANOWANA', numerWSerii: '', liczbaSerii: '', cena: '',
       });
-      fetchPatient();
     } catch (err: any) {
       showError(err.response?.data?.error || 'Błąd podczas zapisywania wizyty');
     }
@@ -612,9 +556,8 @@ export default function PatientDetailPage() {
 
   const handleStatusChange = async (visitId: string, newStatus: string) => {
     try {
-      await api.patch(`/visits/${visitId}/status`, { status: newStatus });
+      await updateVisitStatus.mutateAsync({ visitId, status: newStatus as Visit['status'], patientId: id! });
       showSuccess('Status wizyty został zmieniony');
-      fetchPatient();
     } catch (err: any) {
       showError(err.response?.data?.error || 'Błąd zmiany statusu');
     }
@@ -627,20 +570,22 @@ export default function PatientDetailPage() {
   const handleSaveNotes = async () => {
     if (!patient) return;
     try {
-      await api.put(`/patients/${id}`, {
-        firstName: patient.firstName,
-        lastName: patient.lastName,
-        age: patient.age,
-        gender: patient.gender,
-        phone: patient.phone,
-        email: patient.email,
-        occupation: patient.occupation,
-        address: patient.address,
-        notes: tempNotes,
+      await updatePatient.mutateAsync({
+        id: id!,
+        data: {
+          firstName: patient.firstName,
+          lastName: patient.lastName,
+          age: patient.age,
+          gender: patient.gender,
+          phone: patient.phone,
+          email: patient.email,
+          occupation: patient.occupation,
+          address: patient.address,
+          notes: tempNotes,
+        },
       });
       showSuccess('Notatki zapisane');
       setIsEditingNotes(false);
-      fetchPatient();
     } catch (err: any) {
       showError(err.response?.data?.error || 'Błąd podczas zapisywania notatek');
     }
@@ -662,7 +607,7 @@ export default function PatientDetailPage() {
   if (!patient && !loading && loadError) {
     return (
       <Container maxWidth="lg" sx={{ pt: 3 }}>
-        <ErrorRetry message={loadError} onRetry={fetchPatient} />
+        <ErrorRetry message={loadError} onRetry={() => refetchPatient()} />
       </Container>
     );
   }
@@ -707,7 +652,7 @@ export default function PatientDetailPage() {
 
         {/* Loading Error with Retry */}
         {loadError && (
-          <ErrorRetry message={loadError} onRetry={fetchPatient} onClose={() => setLoadError(null)} />
+          <ErrorRetry message={loadError} onRetry={() => refetchPatient()} />
         )}
 
         {/* Header Card */}
