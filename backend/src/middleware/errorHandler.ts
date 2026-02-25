@@ -63,8 +63,7 @@ export const errorHandler = (
       default:
         return res.status(400).json({
           error: 'Błąd bazy danych',
-          message: err.message,
-          code: err.code,
+          message: process.env.NODE_ENV === 'development' ? err.message : 'Wystąpił problem z operacją na bazie danych',
         });
     }
   }

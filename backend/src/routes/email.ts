@@ -421,8 +421,7 @@ router.get('/test-connection', authenticate, async (req: AuthRequest, res, next)
   } catch (error: any) {
     res.status(500).json({
       success: false,
-      message: 'Błąd testowania połączenia email',
-      error: error.message,
+      message: 'Błąd testowania połączenia email. Sprawdź logi serwera.',
     });
   }
 });
@@ -570,7 +569,7 @@ router.post('/test', authenticate, async (req: AuthRequest, res, next) => {
   } catch (error: any) {
     res.status(500).json({
       error: 'Błąd wysyłania testowego emaila',
-      message: error.message,
+      message: 'Wystąpił problem po stronie serwera pocztowego. Sprawdź logi.',
     });
   }
 });
@@ -594,7 +593,7 @@ router.post('/send', authenticate, upload.array('attachments', 5), async (req: A
     if (files && files.length > 0) {
       files.forEach(file => {
         if (fs.existsSync(file.path)) {
-          try { fs.unlinkSync(file.path); } catch {}
+          try { fs.unlinkSync(file.path); } catch { }
         }
       });
     }
