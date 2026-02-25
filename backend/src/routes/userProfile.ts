@@ -13,7 +13,7 @@ const updateProfileSchema = z.object({
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'Aktualne hasło jest wymagane'),
-  newPassword: z.string().min(6, 'Nowe hasło musi mieć co najmniej 6 znaków'),
+  newPassword: z.string().regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d\w\W]{8,}$/, 'Nowe hasło musi zawierać min. 8 znaków, w tym małą i wielką literę oraz cyfrę'),
 });
 
 // Get current user profile

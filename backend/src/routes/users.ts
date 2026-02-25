@@ -7,16 +7,16 @@ import { hashPassword } from '../utils/password';
 const router = express.Router();
 
 const createUserSchema = z.object({
-  name: z.string().min(1, 'Imię jest wymagane').max(100),
-  email: z.string().email('Nieprawidłowy adres email'),
-  password: z.string().min(6, 'Hasło musi mieć co najmniej 6 znaków'),
-  role: z.enum(['ADMIN', 'DOCTOR', 'ASSISTANT']).optional(),
+    name: z.string().min(1, 'Imię jest wymagane').max(100),
+    email: z.string().email('Nieprawidłowy adres email'),
+    password: z.string().regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d\w\W]{8,}$/, 'Hasło musi zawierać min. 8 znaków, w tym małą i wielką literę oraz cyfrę'),
+    role: z.enum(['ADMIN', 'DOCTOR', 'ASSISTANT']).optional(),
 });
 
 const updateUserSchema = z.object({
-  name: z.string().min(1, 'Imię jest wymagane').max(100).optional(),
-  role: z.enum(['ADMIN', 'DOCTOR', 'ASSISTANT']).optional(),
-  isActive: z.boolean().optional(),
+    name: z.string().min(1, 'Imię jest wymagane').max(100).optional(),
+    role: z.enum(['ADMIN', 'DOCTOR', 'ASSISTANT']).optional(),
+    isActive: z.boolean().optional(),
 });
 
 // Middleware to check if user is admin - uses already-authenticated req.user to avoid redundant DB query

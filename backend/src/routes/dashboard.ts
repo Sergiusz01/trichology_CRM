@@ -14,8 +14,6 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
           id: true,
           firstName: true,
           lastName: true,
-          email: true,
-          phone: true,
           createdAt: true,
           updatedAt: true,
         },

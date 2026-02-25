@@ -34,7 +34,7 @@ const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000; // 15 minut
 const registerSchema = z.object({
   name: z.string().min(1, 'Imię jest wymagane'),
   email: z.string().email('Nieprawidłowy adres email'),
-  password: z.string().min(6, 'Hasło musi mieć co najmniej 6 znaków'),
+  password: z.string().regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d\w\W]{8,}$/, 'Hasło musi zawierać min. 8 znaków, w tym małą i wielką literę oraz cyfrę'),
   role: z.enum(['ADMIN', 'DOCTOR', 'ASSISTANT']).optional(),
 });
 
