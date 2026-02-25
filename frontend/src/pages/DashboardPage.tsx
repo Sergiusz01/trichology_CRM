@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
     Box,
     Grid,
@@ -99,33 +100,12 @@ export default function DashboardPage() {
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const navigate = useNavigate();
     const { error: showError, success: showSuccess } = useNotification();
-    const [loading, setLoading] = useState(true);
-    const [refreshing, setRefreshing] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+
+    // --- Search & Modal Local State ---
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [searchLoading, setSearchLoading] = useState(false);
-    const [isFetching, setIsFetching] = useState(false);
-    const isFetchingRef = useRef(false);
-    const [stats, setStats] = useState<DashboardStats>({
-        patientsCount: 0,
-        consultationsCount: 0,
-        emailsSentCount: 0,
-        patientsThisWeek: 0,
-        consultationsThisWeek: 0,
-        patientsWithoutConsultation: 0,
-    });
-    const [patientsNeedingAttention, setPatientsNeedingAttention] = useState<any[]>([]);
-    const [inactivePatientsList, setInactivePatientsList] = useState<any[]>([]);
-    const [upcomingVisits, setUpcomingVisits] = useState<UpcomingVisit[]>([]);
-    const [todayVisits, setTodayVisits] = useState<UpcomingVisit[]>([]);
-    const [tomorrowVisits, setTomorrowVisits] = useState<UpcomingVisit[]>([]);
-    const [weeklyRevenue, setWeeklyRevenue] = useState<WeeklyRevenue>({
-        plannedRevenue: 0,
-        completedRevenue: 0,
-        totalExpectedRevenue: 0,
-        visitsThisWeek: { zaplanowana: 0, odbyta: 0, nieobecnosc: 0, anulowana: 0 },
-    });
+
     const [reminderDialog, setReminderDialog] = useState<{
         open: boolean;
         visitId: string | null;
@@ -146,6 +126,61 @@ export default function DashboardPage() {
         recipientEmail: '',
     });
     const [sendingReminder, setSendingReminder] = useState(false);
+
+    // --- Data Fetching with React Query ---
+    const {
+        data: dashboardData,
+        isLoading: loading,
+        isRefetching: refreshing,
+        isError,
+        error: queryError,
+        refetch
+    } = useQuery({
+        queryKey: ['dashboard'],
+        queryFn: async () => {
+            const res = await api.get('/dashboard');
+            return res.data;
+        },
+        retry: 1,
+    });
+
+    const error = isError ? (queryError as any)?.response?.data?.message || (queryError as any)?.response?.data?.error || (queryError as Error).message || 'Nie udało się załadować danych dashboardu' : null;
+
+    // --- Derived State ---
+    const stats = dashboardData?.stats || {
+        patientsCount: 0,
+        consultationsCount: 0,
+        emailsSentCount: 0,
+        patientsThisWeek: 0,
+        consultationsThisWeek: 0,
+        patientsWithoutConsultation: 0,
+    };
+    const patientsNeedingAttention = dashboardData?.patientsNeedingAttention || [];
+    const inactivePatientsList = dashboardData?.inactivePatients || [];
+    const upcomingVisits = dashboardData?.upcomingVisits || [];
+    const weeklyRevenue = dashboardData?.weeklyRevenue || {
+        plannedRevenue: 0,
+        completedRevenue: 0,
+        totalExpectedRevenue: 0,
+        visitsThisWeek: { zaplanowana: 0, odbyta: 0, nieobecnosc: 0, anulowana: 0 },
+    };
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const dayAfterTomorrow = new Date(tomorrow);
+    dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
+
+    const todayVisits = upcomingVisits.filter((visit: UpcomingVisit) => {
+        const visitDate = new Date(visit.data);
+        return visitDate >= today && visitDate < tomorrow;
+    });
+
+    const tomorrowVisits = upcomingVisits.filter((visit: UpcomingVisit) => {
+        const visitDate = new Date(visit.data);
+        return visitDate >= tomorrow && visitDate < dayAfterTomorrow;
+    });
 
     const handleSendVisitReminder = async () => {
         if (!reminderDialog.visitId) return;
@@ -172,7 +207,7 @@ export default function DashboardPage() {
                 customMessage: '',
                 recipientEmail: '',
             });
-            fetchDashboardData(true);
+            refetch(); // Reload dashboard data
         } catch (err: any) {
             showError(err.response?.data?.error || 'Błąd wysyłania przypomnienia');
         } finally {
@@ -201,105 +236,6 @@ export default function DashboardPage() {
             recipientEmail: patientEmail,
         });
     };
-
-    const fetchDashboardData = useCallback(async (isRefresh = false) => {
-        // Zapobiegaj wielokrotnym wywołaniom używając ref
-        if (isFetchingRef.current && !isRefresh) {
-            return;
-        }
-
-        try {
-            isFetchingRef.current = true;
-            setIsFetching(true);
-            if (isRefresh) {
-                setRefreshing(true);
-            } else {
-                setLoading(true);
-            }
-            setError(null);
-
-            const dashboardRes = await api.get('/dashboard');
-            const dashboardData = dashboardRes.data;
-
-            const visits = dashboardData.upcomingVisits || [];
-            setUpcomingVisits(visits);
-            setWeeklyRevenue(dashboardData.weeklyRevenue || {
-                plannedRevenue: 0,
-                completedRevenue: 0,
-                totalExpectedRevenue: 0,
-                visitsThisWeek: { zaplanowana: 0, odbyta: 0, nieobecnosc: 0, anulowana: 0 },
-            });
-
-            // Podziel wizyty na dzisiejsze i jutrzejsze
-            const now = new Date();
-            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            const tomorrow = new Date(today);
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            const dayAfterTomorrow = new Date(tomorrow);
-            dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
-
-            const todayVisitsList = visits.filter((visit: UpcomingVisit) => {
-                const visitDate = new Date(visit.data);
-                return visitDate >= today && visitDate < tomorrow;
-            });
-
-            const tomorrowVisitsList = visits.filter((visit: UpcomingVisit) => {
-                const visitDate = new Date(visit.data);
-                return visitDate >= tomorrow && visitDate < dayAfterTomorrow;
-            });
-
-            setTodayVisits(todayVisitsList);
-            setTomorrowVisits(tomorrowVisitsList);
-
-            // Użyj danych z endpointu dashboard
-            setStats(dashboardData.stats || {
-                patientsCount: 0,
-                consultationsCount: 0,
-                emailsSentCount: 0,
-                patientsThisWeek: 0,
-                consultationsThisWeek: 0,
-                patientsWithoutConsultation: 0,
-            });
-
-            setPatientsNeedingAttention(dashboardData.patientsNeedingAttention || []);
-            setInactivePatientsList(dashboardData.inactivePatients || []);
-        } catch (error: any) {
-            // Obsługa błędów 429 (Too Many Requests)
-            if (error?.response?.status === 429) {
-                const retryAfter = error?.response?.headers?.['retry-after'] || 60;
-                const errorMessage = `Zbyt wiele żądań. Spróbuj ponownie za ${retryAfter} sekund.`;
-                setError(errorMessage);
-                showError(errorMessage);
-                // Automatyczne ponowienie po czasie retry
-                setTimeout(() => {
-                    if (!isFetchingRef.current) {
-                        fetchDashboardData(true);
-                    }
-                }, retryAfter * 1000);
-            } else {
-                const errorMessage = error?.response?.data?.message || error?.response?.data?.error || error?.message || 'Nie udało się załadować danych dashboardu';
-                setError(errorMessage);
-                showError(errorMessage);
-                console.error('Failed to fetch dashboard data:', {
-                    status: error?.response?.status,
-                    statusText: error?.response?.statusText,
-                    data: error?.response?.data,
-                    message: error?.message,
-                });
-            }
-        } finally {
-            setLoading(false);
-            setRefreshing(false);
-            setIsFetching(false);
-            isFetchingRef.current = false;
-        }
-    }, [showError]);
-
-    useEffect(() => {
-        // Wywołaj tylko raz przy montowaniu komponentu
-        fetchDashboardData();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []); // Pusta tablica - wywołaj tylko raz
 
     // Wyszukiwanie z debounce
     useEffect(() => {
@@ -360,7 +296,7 @@ export default function DashboardPage() {
     if (error && stats.patientsCount === 0 && todayVisits.length === 0 && tomorrowVisits.length === 0) {
         return (
             <Box sx={{ pt: 10, pb: 4 }}>
-                <ErrorState message={error} onRetry={() => fetchDashboardData()} />
+                <ErrorState message={error} onRetry={() => refetch()} />
             </Box>
         );
     }
@@ -447,7 +383,7 @@ export default function DashboardPage() {
                     <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                         <Tooltip title="Odśwież dane">
                             <IconButton
-                                onClick={() => fetchDashboardData(true)}
+                                onClick={() => refetch()}
                                 disabled={refreshing}
                                 sx={{
                                     bgcolor: alpha('#1976d2', 0.08),
@@ -474,12 +410,6 @@ export default function DashboardPage() {
                     </Box>
                 }
             />
-
-            {error && (
-                <Alert severity="error" sx={{ mb: 3, mx: { xs: 1, sm: 0 } }} onClose={() => setError(null)}>
-                    {error}
-                </Alert>
-            )}
 
             {/* Search Bar */}
             <AppCard sx={{ mb: 4 }}>
