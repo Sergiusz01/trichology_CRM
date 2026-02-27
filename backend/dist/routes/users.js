@@ -4,22 +4,28 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
+const zod_1 = require("zod");
 const auth_1 = require("../middleware/auth");
 const prisma_1 = require("../prisma");
-const bcrypt_1 = __importDefault(require("bcrypt"));
+const password_1 = require("../utils/password");
 const router = express_1.default.Router();
-// Middleware to check if user is admin
-const requireAdmin = async (req, res, next) => {
-    try {
-        const user = await prisma_1.prisma.user.findUnique({ where: { id: req.user?.id } });
-        if (user?.role !== 'ADMIN') {
-            return res.status(403).json({ error: 'Odmowa dostępu. Wymagane uprawnienia administratora.' });
-        }
-        next();
+const createUserSchema = zod_1.z.object({
+    name: zod_1.z.string().min(1, 'Imię jest wymagane').max(100),
+    email: zod_1.z.string().email('Nieprawidłowy adres email'),
+    password: zod_1.z.string().min(6, 'Hasło musi mieć co najmniej 6 znaków'),
+    role: zod_1.z.enum(['ADMIN', 'DOCTOR', 'ASSISTANT']).optional(),
+});
+const updateUserSchema = zod_1.z.object({
+    name: zod_1.z.string().min(1, 'Imię jest wymagane').max(100).optional(),
+    role: zod_1.z.enum(['ADMIN', 'DOCTOR', 'ASSISTANT']).optional(),
+    isActive: zod_1.z.boolean().optional(),
+});
+// Middleware to check if user is admin - uses already-authenticated req.user to avoid redundant DB query
+const requireAdmin = (req, res, next) => {
+    if (req.user?.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Odmowa dostępu. Wymagane uprawnienia administratora.' });
     }
-    catch (err) {
-        next(err);
-    }
+    next();
 };
 router.use(auth_1.authenticate, requireAdmin);
 // GET all users
@@ -45,12 +51,13 @@ router.get('/', async (req, res, next) => {
 // POST to create a new user
 router.post('/', async (req, res, next) => {
     try {
-        const { name, email, password, role } = req.body;
+        const data = createUserSchema.parse(req.body);
+        const { name, email, password, role } = data;
         const existing = await prisma_1.prisma.user.findUnique({ where: { email } });
         if (existing) {
             return res.status(400).json({ error: 'Użytkownik o tym adresie email już istnieje' });
         }
-        const passwordHash = await bcrypt_1.default.hash(password, 10);
+        const passwordHash = await (0, password_1.hashPassword)(password);
         const newUser = await prisma_1.prisma.user.create({
             data: {
                 name,
@@ -70,10 +77,14 @@ router.post('/', async (req, res, next) => {
 router.put('/:id', async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { name, role, isActive } = req.body;
+        const data = updateUserSchema.parse(req.body);
+        const existing = await prisma_1.prisma.user.findUnique({ where: { id } });
+        if (!existing) {
+            return res.status(404).json({ error: 'Użytkownik nie znaleziony' });
+        }
         const updated = await prisma_1.prisma.user.update({
             where: { id },
-            data: { name, role, isActive },
+            data,
             select: { id: true, name: true, email: true, role: true, isActive: true }
         });
         res.json(updated);
@@ -87,10 +98,14 @@ router.post('/:id/reset-password', async (req, res, next) => {
     try {
         const { id } = req.params;
         const { newPassword } = req.body;
-        if (!newPassword || newPassword.length < 6) {
-            return res.status(400).json({ error: 'Hasło musi mieć co najmniej 6 znaków' });
+        if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 6 || newPassword.length > 128) {
+            return res.status(400).json({ error: 'Hasło musi mieć od 6 do 128 znaków' });
         }
-        const passwordHash = await bcrypt_1.default.hash(newPassword, 10);
+        const existing = await prisma_1.prisma.user.findUnique({ where: { id } });
+        if (!existing) {
+            return res.status(404).json({ error: 'Użytkownik nie znaleziony' });
+        }
+        const passwordHash = await (0, password_1.hashPassword)(newPassword);
         await prisma_1.prisma.user.update({
             where: { id },
             data: { passwordHash }

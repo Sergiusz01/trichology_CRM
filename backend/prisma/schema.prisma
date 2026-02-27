@@ -28,6 +28,7 @@ model User {
   pdfJobs               PdfJob[]        @relation("PdfJobRequestor")
   auditLogs             AuditLog[]
   pushSubscriptions     PushSubscription[]
+  specialistSettings    SpecialistSettings?
 
   @@index([email])
 }
@@ -70,12 +71,15 @@ model Visit {
   numerWSerii       Int?
   liczbaSerii       Int?
   cena              Decimal?    @db.Decimal(10, 2)
-  reminder7DaysSent Boolean     @default(false)
-  reminder3DaysSent Boolean     @default(false)
-  reminder1DaySent  Boolean     @default(false)
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  reminder7DaysSent       Boolean     @default(false)
+  reminder3DaysSent       Boolean     @default(false)
+  reminder1DaySent        Boolean     @default(false)
+  reminderWithActionsSent Boolean     @default(false)
+  createdAt               DateTime    @default(now())
+  updatedAt               DateTime    @updatedAt
   patient       Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  events        VisitEvent[]
+  notificationLogs NotificationLog[]
 
   @@index([patientId])
   @@index([data])
@@ -84,9 +88,11 @@ model Visit {
 
 enum VisitStatus {
   ZAPLANOWANA
+  POTWIERDZONA
   ODBYTA
   NIEOBECNOSC
   ANULOWANA
+  PROSBA_ZMIANY
 }
 
 model Consultation {
@@ -651,4 +657,51 @@ model PushSubscription {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model VisitEvent {
+  id        String   @id @default(cuid())
+  visitId   String
+  eventType String
+  payload   Json?
+  createdAt DateTime @default(now())
+  createdBy String   @default("patient_link")
+  visit     Visit    @relation(fields: [visitId], references: [id], onDelete: Cascade)
+
+  @@index([visitId])
+  @@index([createdAt])
+}
+
+model NotificationLog {
+  id                String   @id @default(cuid())
+  visitId           String?
+  type              String
+  recipient         String
+  sentAt            DateTime @default(now())
+  providerMessageId String?
+  status            String   @default("sent")
+  visit             Visit?   @relation(fields: [visitId], references: [id], onDelete: SetNull)
+
+  @@index([visitId])
+  @@index([sentAt])
+}
+
+model DashboardNotification {
+  id          String    @id @default(cuid())
+  visitId     String?
+  patientName String
+  visitDate   DateTime?
+  actionType  String
+  isRead      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+model SpecialistSettings {
+  id           String  @id @default(cuid())
+  specialistId String  @unique
+  clinicPhone  String?
+  specialist   User    @relation(fields: [specialistId], references: [id], onDelete: Cascade)
 }

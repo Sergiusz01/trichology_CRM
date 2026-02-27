@@ -161,7 +161,7 @@ router.get('/:id/file', auth_1.authenticate, async (req, res, next) => {
         // Set appropriate headers
         res.setHeader('Content-Type', scalpPhoto.mimeType);
         res.setHeader('Content-Disposition', `inline; filename="${scalpPhoto.originalFilename}"`);
-        res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 1 day
+        res.setHeader('Cache-Control', 'private, max-age=86400'); // private: patient data must not be cached by shared proxies
         // Send file
         res.sendFile(path_1.default.resolve(scalpPhoto.filePath));
     }
@@ -201,8 +201,8 @@ router.get('/:id', auth_1.authenticate, async (req, res, next) => {
         next(error);
     }
 });
-// Update scalp photo (notes)
-router.put('/:id', auth_1.authenticate, async (req, res, next) => {
+// Update scalp photo (notes) - DOCTOR/ADMIN only
+router.put('/:id', auth_1.authenticate, (0, auth_1.requireWriteAccess)(), async (req, res, next) => {
     try {
         const { id } = req.params;
         const { notes } = req.body;
@@ -233,8 +233,8 @@ router.put('/:id', auth_1.authenticate, async (req, res, next) => {
         next(error);
     }
 });
-// Delete scalp photo
-router.delete('/:id', auth_1.authenticate, async (req, res, next) => {
+// Delete scalp photo - DOCTOR/ADMIN only
+router.delete('/:id', auth_1.authenticate, (0, auth_1.requireWriteAccess)(), async (req, res, next) => {
     try {
         const { id } = req.params;
         const scalpPhoto = await prisma_1.prisma.scalpPhoto.findUnique({
@@ -243,8 +243,14 @@ router.delete('/:id', auth_1.authenticate, async (req, res, next) => {
         if (!scalpPhoto) {
             return res.status(404).json({ error: 'Zdjęcie nie znalezione' });
         }
-        // Delete file from filesystem
-        if (scalpPhoto.filePath && fs_1.default.existsSync(scalpPhoto.filePath)) {
+        // Delete file from filesystem - try by filename (new approach) then filePath (legacy)
+        if (scalpPhoto.filename) {
+            const filePathByName = path_1.default.join(normalizedUploadDir, scalpPhoto.filename);
+            if (fs_1.default.existsSync(filePathByName)) {
+                fs_1.default.unlinkSync(filePathByName);
+            }
+        }
+        else if (scalpPhoto.filePath && fs_1.default.existsSync(scalpPhoto.filePath)) {
             fs_1.default.unlinkSync(scalpPhoto.filePath);
         }
         // Delete from database (cascade will delete annotations)

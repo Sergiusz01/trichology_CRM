@@ -38,6 +38,7 @@ const UsersPage = lazy(() => import('./pages/UsersPage'));
 const CalendarPage = lazy(() => import('./pages/CalendarPage'));
 const VisitsPage = lazy(() => import('./pages/VisitsPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
+const AppointmentActionPage = lazy(() => import('./pages/AppointmentActionPage'));
 
 // Loading component for Suspense fallback
 const PageLoader = () => (
@@ -85,6 +86,8 @@ function App() {
     <ErrorBoundary>
       <Suspense fallback={<PageLoader />}>
         <Routes>
+          {/* Public route — no authentication required */}
+          <Route path="/appointment-action" element={<AppointmentActionPage />} />
           <Route
             path="/login"
             element={!user ? <LoginPage /> : <Navigate to="/" />}

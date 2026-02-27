@@ -11,6 +11,7 @@ const prisma_1 = require("../prisma");
 const auditService_1 = require("../services/auditService");
 const fs_1 = __importDefault(require("fs"));
 const router = express_1.default.Router();
+const isSafeFileName = (name) => /^[a-zA-Z0-9._-]+$/.test(name);
 const patientSchema = zod_1.z.object({
     firstName: zod_1.z.string().min(1, 'Imię jest wymagane'),
     lastName: zod_1.z.string().min(1, 'Nazwisko jest wymagane'),
@@ -28,6 +29,9 @@ router.get('/', auth_1.authenticate, async (req, res, next) => {
         const { search, page = '1', limit = '50', archived = 'false', sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
         const pageNum = parseInt(page, 10);
         const limitNum = parseInt(limit, 10);
+        if (isNaN(pageNum) || pageNum < 1 || isNaN(limitNum) || limitNum < 1 || limitNum > 500) {
+            return res.status(400).json({ error: 'Nieprawidłowe parametry paginacji' });
+        }
         const skip = (pageNum - 1) * limitNum;
         const isArchived = archived === 'true';
         const where = {
@@ -149,12 +153,12 @@ router.get('/:id', auth_1.authenticate, async (req, res, next) => {
         if (!patient) {
             return res.status(404).json({ error: 'Pacjent nie znaleziony' });
         }
-        // Add URL field to scalp photos
+        // Add URL field to scalp photos (support both new filename and legacy filePath)
         const patientWithUrls = {
             ...patient,
             scalpPhotos: patient.scalpPhotos.map((photo) => ({
                 ...photo,
-                url: `/uploads/${path_1.default.basename(photo.filePath)}`,
+                url: `/uploads/${photo.filename || path_1.default.basename(photo.filePath || '')}`,
             })),
         };
         res.json({ patient: patientWithUrls });
@@ -275,7 +279,7 @@ router.delete('/:id/permanent', auth_1.authenticate, (0, auth_1.requireRole)('AD
         for (const photo of patient.scalpPhotos) {
             try {
                 const fileName = photo.filename || (photo.filePath ? path_1.default.basename(photo.filePath) : '');
-                if (!fileName)
+                if (!fileName || !isSafeFileName(fileName))
                     continue;
                 const photoPath = path_1.default.join(__dirname, '../../storage/uploads', fileName);
                 if (fs_1.default.existsSync(photoPath)) {

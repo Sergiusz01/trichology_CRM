@@ -23,6 +23,9 @@ import webPushRoutes from './routes/webPush';
 import reportsRoutes from './routes/reports';
 import usersRoutes from './routes/users';
 import systemRoutes from './routes/system';
+import appointmentActionsRoutes from './routes/appointmentActions';
+import specialistSettingsRoutes from './routes/specialistSettings';
+import dashboardNotificationsRoutes from './routes/dashboardNotifications';
 import { errorHandler } from './middleware/errorHandler';
 import { startReminderWorker } from './services/reminderWorker';
 import { prisma } from './prisma';
@@ -148,6 +151,9 @@ app.use('/api/web-push', webPushRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/system', systemRoutes);
+app.use('/api/appointment-actions', appointmentActionsRoutes);
+app.use('/api/specialist-settings', specialistSettingsRoutes);
+app.use('/api/dashboard-notifications', dashboardNotificationsRoutes);
 
 // Error handler
 app.use(errorHandler);

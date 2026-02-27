@@ -7,6 +7,7 @@ const express_1 = __importDefault(require("express"));
 const auth_1 = require("../middleware/auth");
 const prisma_1 = require("../prisma");
 const puppeteer_1 = __importDefault(require("puppeteer"));
+const fs_1 = __importDefault(require("fs"));
 const router = express_1.default.Router();
 // Helper functions for formatting dates and money
 const formatDate = (date) => date.toLocaleDateString('pl-PL');
@@ -166,23 +167,49 @@ router.get('/monthly', auth_1.authenticate, async (req, res, next) => {
             </body>
             </html>
         `;
-        const browser = await puppeteer_1.default.launch({
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
-        });
-        const page = await browser.newPage();
-        await page.setContent(htmlTemplate, { waitUntil: 'networkidle0' });
-        const pdfBuffer = await page.pdf({
-            format: 'A4',
-            printBackground: true,
-            margin: { top: '20px', bottom: '20px', left: '20px', right: '20px' }
-        });
-        await browser.close();
-        res.contentType('application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="Raport_${month}.pdf"`);
-        res.send(pdfBuffer);
+        // Resolve Chromium executable — same logic as pdfService.ts
+        let executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+        if (!executablePath) {
+            const possiblePaths = [
+                '/usr/bin/chromium-browser',
+                '/usr/bin/chromium',
+                '/snap/bin/chromium',
+                '/usr/bin/google-chrome',
+                '/usr/bin/google-chrome-stable',
+            ];
+            for (const p of possiblePaths) {
+                if (fs_1.default.existsSync(p)) {
+                    executablePath = p;
+                    break;
+                }
+            }
+        }
+        let browser;
+        try {
+            browser = await puppeteer_1.default.launch({
+                headless: true,
+                executablePath: executablePath || undefined,
+                args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+            });
+            const page = await browser.newPage();
+            await page.setDefaultNavigationTimeout(60000);
+            await page.setContent(htmlTemplate, { waitUntil: 'domcontentloaded', timeout: 60000 });
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            const pdfBuffer = await page.pdf({
+                format: 'A4',
+                printBackground: true,
+                margin: { top: '20px', bottom: '20px', left: '20px', right: '20px' },
+            });
+            res.contentType('application/pdf');
+            res.setHeader('Content-Disposition', `attachment; filename="Raport_${month}.pdf"`);
+            res.send(Buffer.from(pdfBuffer));
+        }
+        finally {
+            if (browser)
+                await browser.close();
+        }
     }
     catch (err) {
-        console.error('Błąd generatora PDF:', err);
         next(err);
     }
 });

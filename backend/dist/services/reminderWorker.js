@@ -6,6 +6,7 @@ const pdfService_1 = require("./pdfService");
 const logo_1 = require("../utils/logo");
 const prisma_1 = require("../prisma");
 const icalendar_1 = require("../utils/icalendar");
+const appointmentToken_1 = require("../utils/appointmentToken");
 const checkAndSendReminders = async () => {
     try {
         const now = new Date();
@@ -226,15 +227,153 @@ const checkAndSendVisitReminders = async () => {
         console.error('Błąd w checkAndSendVisitReminders:', error);
     }
 };
+const checkAndSendActionReminders = async () => {
+    try {
+        const reminderHours = parseInt(process.env.REMINDER_HOURS_BEFORE || '24', 10);
+        const now = new Date();
+        const windowStart = new Date(now.getTime() + (reminderHours - 0.5) * 60 * 60 * 1000);
+        const windowEnd = new Date(now.getTime() + (reminderHours + 0.5) * 60 * 60 * 1000);
+        const visits = await prisma_1.prisma.visit.findMany({
+            where: {
+                status: { in: ['ZAPLANOWANA', 'POTWIERDZONA'] },
+                reminderWithActionsSent: false,
+                data: { gte: windowStart, lte: windowEnd },
+            },
+            include: {
+                patient: { select: { id: true, firstName: true, lastName: true, email: true } },
+            },
+        });
+        const baseUrl = (process.env.APP_BASE_URL || '').replace(/\/$/, '');
+        for (const visit of visits) {
+            if (!visit.patient.email)
+                continue;
+            const confirmToken = (0, appointmentToken_1.generateActionToken)(visit.id, 'confirm');
+            const cancelToken = (0, appointmentToken_1.generateActionToken)(visit.id, 'cancel');
+            const rescheduleToken = (0, appointmentToken_1.generateActionToken)(visit.id, 'reschedule');
+            const confirmUrl = `${baseUrl}/api/appointment-actions?token=${confirmToken}`;
+            const cancelUrl = `${baseUrl}/api/appointment-actions?token=${cancelToken}`;
+            const rescheduleUrl = `${baseUrl}/api/appointment-actions?token=${rescheduleToken}`;
+            const visitDate = new Date(visit.data);
+            const visitDateFormatted = visitDate.toLocaleDateString('pl-PL', {
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+                hour: '2-digit', minute: '2-digit', timeZone: 'UTC',
+            });
+            const googleCalendarURL = (0, icalendar_1.generateGoogleCalendarURL)(visit);
+            const outlookCalendarURL = (0, icalendar_1.generateOutlookCalendarURL)(visit);
+            const icsContent = (0, icalendar_1.generateVisitICS)(visit);
+            // Fetch clinicPhone from first available specialist settings
+            const settingsRow = await prisma_1.prisma.specialistSettings.findFirst({
+                where: { clinicPhone: { not: null } },
+            });
+            const clinicPhone = settingsRow?.clinicPhone ?? null;
+            const rescheduleHint = clinicPhone
+                ? `<p style="font-size:14px;color:#555;margin-top:6px;">Aby zmienić termin, zadzwoń pod <a href="tel:${clinicPhone}" style="color:#1976d2;font-weight:bold;">${clinicPhone}</a> lub kliknij przycisk poniżej.</p>`
+                : '';
+            const emailHtml = `
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <style>
+    body{font-family:Arial,sans-serif;line-height:1.6;color:#333;background:#f0f0f0;margin:0;padding:0}
+    .wrap{max-width:600px;margin:32px auto;background:white;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.1)}
+    .header{background:#1976d2;color:white;padding:24px 28px;text-align:center}
+    .header h1{margin:0;font-size:22px}
+    .body{padding:28px 32px}
+    .visit-info{background:#f5f8ff;border-left:4px solid #1976d2;border-radius:4px;padding:18px 20px;margin:20px 0}
+    .visit-info p{margin:6px 0;font-size:15px}
+    .actions{margin:28px 0;text-align:center}
+    .actions p{font-weight:600;margin-bottom:14px;font-size:15px;color:#1d1d1f}
+    .btn{display:inline-block;padding:13px 24px;border-radius:8px;font-weight:700;font-size:15px;text-decoration:none;color:white;margin:6px 8px}
+    .btn-confirm{background:#34C759}
+    .btn-cancel{background:#FF3B30}
+    .btn-reschedule{background:#FF9500}
+    .calendar-section{margin:24px 0;text-align:center;padding-top:16px;border-top:1px solid #eee}
+    .cal-btn{display:inline-block;margin:6px;padding:9px 18px;background:#1976d2;color:white;text-decoration:none;border-radius:6px;font-size:13px}
+    .footer{margin-top:28px;padding-top:16px;border-top:1px solid #eee;font-size:12px;color:#999;text-align:center}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  ${(0, logo_1.getLogoHTML)()}
+  <div class="header"><h1>Przypomnienie o wizycie</h1></div>
+  <div class="body">
+    <p>Dzień dobry <strong>${visit.patient.firstName}</strong>,</p>
+    <p>Przypominamy o Twojej zaplanowanej wizycie:</p>
+    <div class="visit-info">
+      <p><strong>Zabieg:</strong> ${visit.rodzajZabiegu}</p>
+      <p><strong>Data i godzina:</strong> ${visitDateFormatted}</p>
+      ${visit.notatki ? `<p><strong>Notatki:</strong> ${visit.notatki}</p>` : ''}
+    </div>
+    <div class="actions">
+      <p>Prosimy potwierdzić Twoją obecność lub poinformować nas o zmianie planów:</p>
+      <a href="${confirmUrl}" class="btn btn-confirm">✅ Potwierdzam wizytę</a>
+      <a href="${cancelUrl}" class="btn btn-cancel">❌ Anuluję wizytę</a>
+      <br>
+      <a href="${rescheduleUrl}" class="btn btn-reschedule">🔄 Proszę o zmianę terminu</a>
+      ${rescheduleHint}
+    </div>
+    <p style="font-size:13px;color:#888;text-align:center;">Linki są ważne przez 48 godzin.</p>
+    <div class="calendar-section">
+      <p style="font-weight:600;font-size:14px;margin-bottom:10px">Zapisz do kalendarza:</p>
+      <a href="${googleCalendarURL}" class="cal-btn" target="_blank">📅 Google Calendar</a>
+      <a href="${outlookCalendarURL}" class="cal-btn" target="_blank">📅 Outlook</a>
+    </div>
+    <div class="footer">Pozdrawiamy, Zespół Kliniki Trichologii<br>Wiadomość wygenerowana automatycznie.</div>
+  </div>
+</div>
+</body>
+</html>`;
+            try {
+                await (0, emailService_1.sendEmail)({
+                    to: visit.patient.email,
+                    subject: `Przypomnienie o wizycie — ${visitDateFormatted}`,
+                    html: emailHtml,
+                    attachments: [{ filename: 'wizyta.ics', content: Buffer.from(icsContent, 'utf-8') }],
+                });
+                await prisma_1.prisma.visit.update({
+                    where: { id: visit.id },
+                    data: { reminderWithActionsSent: true },
+                });
+                await prisma_1.prisma.notificationLog.create({
+                    data: {
+                        visitId: visit.id,
+                        type: 'appointment_reminder',
+                        recipient: visit.patient.email,
+                        status: 'sent',
+                    },
+                });
+                console.log(`✅ [ActionReminder] Wysłano przypomnienie z przyciskami do: ${visit.patient.email}`);
+            }
+            catch (e) {
+                console.error('[ActionReminder] Błąd wysyłania:', e);
+                await prisma_1.prisma.notificationLog.create({
+                    data: {
+                        visitId: visit.id,
+                        type: 'appointment_reminder',
+                        recipient: visit.patient.email,
+                        status: 'failed',
+                    },
+                });
+            }
+        }
+    }
+    catch (err) {
+        console.error('[ActionReminder] Błąd workera:', err);
+    }
+};
 const startReminderWorker = () => {
     console.log('🔄 Reminder worker uruchomiony');
     // Check immediately
     checkAndSendReminders();
     checkAndSendVisitReminders();
+    checkAndSendActionReminders();
     // Then check every 5 minutes
     setInterval(() => {
         checkAndSendReminders();
         checkAndSendVisitReminders();
+        checkAndSendActionReminders();
     }, 5 * 60 * 1000);
 };
 exports.startReminderWorker = startReminderWorker;

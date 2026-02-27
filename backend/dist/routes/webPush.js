@@ -26,7 +26,7 @@ router.post('/subscribe', auth_1.authenticate, async (req, res, next) => {
     try {
         const userId = req.user.id;
         const subscription = req.body;
-        if (!subscription || !subscription.endpoint) {
+        if (!subscription || !subscription.endpoint || !subscription.keys?.p256dh || !subscription.keys?.auth) {
             return res.status(400).json({ error: 'Nieprawidłowa subskrypcja' });
         }
         const newSub = await prisma_1.prisma.pushSubscription.upsert({

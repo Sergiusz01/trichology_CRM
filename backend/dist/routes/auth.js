@@ -1,37 +1,4 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -52,6 +19,8 @@ const revokedRefreshTokens = new Set();
 setInterval(() => {
     revokedRefreshTokens.clear();
 }, 60 * 60 * 1000);
+// Czas bezczynności po którym sesja wygasa (musi być taki sam jak na frontendzie)
+const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000; // 15 minut
 const registerSchema = zod_1.z.object({
     name: zod_1.z.string().min(1, 'Imię jest wymagane'),
     email: zod_1.z.string().email('Nieprawidłowy adres email'),
@@ -106,6 +75,9 @@ router.post('/login', rateLimit_1.authLimiter, async (req, res, next) => {
         if (!user) {
             return res.status(401).json({ error: 'Nieprawidłowy email lub hasło' });
         }
+        if (!user.isActive) {
+            return res.status(401).json({ error: 'Konto zostało dezaktywowane. Skontaktuj się z administratorem.' });
+        }
         const isValidPassword = await (0, password_1.comparePassword)(password, user.passwordHash);
         if (!isValidPassword) {
             return res.status(401).json({ error: 'Nieprawidłowy email lub hasło' });
@@ -153,16 +125,22 @@ router.post('/login', rateLimit_1.authLimiter, async (req, res, next) => {
 // Refresh token
 router.post('/refresh', rateLimit_1.refreshLimiter, async (req, res, next) => {
     try {
-        const { refreshToken } = req.body;
+        const { refreshToken, lastActivityTime } = req.body;
         if (!refreshToken) {
             return res.status(401).json({ error: 'Brak tokenu odświeżającego' });
         }
-        const { verifyRefreshToken } = await Promise.resolve().then(() => __importStar(require('../utils/jwt')));
-        const decoded = verifyRefreshToken(refreshToken);
-        // Reject if token has been revoked (e.g. after logout)
+        // Sprawdź bezczynność użytkownika — jeśli frontend przesłał znacznik czasu
+        if (lastActivityTime !== undefined && lastActivityTime !== null) {
+            const lastActivity = parseInt(String(lastActivityTime), 10);
+            if (!isNaN(lastActivity) && Date.now() - lastActivity > INACTIVITY_TIMEOUT_MS) {
+                return res.status(401).json({ error: 'Sesja wygasła z powodu braku aktywności' });
+            }
+        }
+        // Reject if token has been revoked (e.g. after logout) before any verification
         if (revokedRefreshTokens.has(refreshToken)) {
             return res.status(401).json({ error: 'Token odświeżający został unieważniony' });
         }
+        const decoded = (0, jwt_1.verifyRefreshToken)(refreshToken);
         const user = await prisma_1.prisma.user.findUnique({
             where: { id: decoded.userId },
             select: { id: true, email: true, role: true },
@@ -177,6 +155,8 @@ router.post('/refresh', rateLimit_1.refreshLimiter, async (req, res, next) => {
         };
         const newAccessToken = (0, jwt_1.generateAccessToken)(tokenPayload);
         const newRefreshToken = (0, jwt_1.generateRefreshToken)(tokenPayload);
+        // Unieważnij stary token po wystawieniu nowego (rotacja tokenów)
+        revokedRefreshTokens.add(refreshToken);
         res.json({
             accessToken: newAccessToken,
             refreshToken: newRefreshToken,
@@ -189,8 +169,15 @@ router.post('/refresh', rateLimit_1.refreshLimiter, async (req, res, next) => {
 // Logout - revoke refresh token
 router.post('/logout', async (req, res) => {
     const { refreshToken } = req.body;
-    if (refreshToken) {
-        revokedRefreshTokens.add(refreshToken);
+    if (refreshToken && typeof refreshToken === 'string') {
+        try {
+            // Weryfikuj token przed dodaniem do czarnej listy — zapobiega zaśmiecaniu pamięci
+            (0, jwt_1.verifyRefreshToken)(refreshToken);
+            revokedRefreshTokens.add(refreshToken);
+        }
+        catch {
+            // Nieprawidłowy lub wygasły token — ignoruj, sesja i tak jest zakończona
+        }
     }
     return res.json({ message: 'Wylogowano pomyślnie' });
 });

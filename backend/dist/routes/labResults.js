@@ -156,7 +156,6 @@ router.get('/patient/:patientId', auth_1.authenticate, async (req, res, next) =>
 router.get('/:id/pdf', auth_1.authenticate, async (req, res, next) => {
     try {
         const { id } = req.params;
-        console.log(`Generowanie PDF dla wyniku badania ${id}...`);
         const labResult = await prisma_1.prisma.labResult.findUnique({
             where: { id },
             include: {
@@ -171,15 +170,11 @@ router.get('/:id/pdf', auth_1.authenticate, async (req, res, next) => {
             return res.status(404).json({ error: 'Wynik laboratoryjny nie znaleziony' });
         }
         const pdfBuffer = await (0, pdfService_1.generateLabResultPDF)(labResult, labResult.patient);
-        console.log(`PDF wygenerowany pomyślnie dla wyniku badania ${id}, rozmiar: ${pdfBuffer.length} bajtów`);
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="wynik-badan-${id}.pdf"`);
         res.send(pdfBuffer);
     }
     catch (error) {
-        console.error('Błąd w endpoint PDF wyniku badania:', error);
-        console.error('Error message:', error.message);
-        console.error('Error stack:', error.stack);
         next(error);
     }
 });

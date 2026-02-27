@@ -73,6 +73,7 @@ const reminderSchema = zod_1.z.object({
     subject: zod_1.z.string().min(1, 'Temat jest wymagany'),
     bodyPreview: zod_1.z.string().optional(),
 });
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Send consultation email
 router.post('/consultation/:id', auth_1.authenticate, async (req, res, next) => {
     try {
@@ -80,6 +81,9 @@ router.post('/consultation/:id', auth_1.authenticate, async (req, res, next) => 
         const { recipientEmail } = req.body;
         if (!recipientEmail) {
             return res.status(400).json({ error: 'Adres email odbiorcy jest wymagany' });
+        }
+        if (!emailRegex.test(recipientEmail)) {
+            return res.status(400).json({ error: 'Nieprawidłowy format adresu email odbiorcy' });
         }
         const consultation = await prisma_1.prisma.consultation.findUnique({
             where: { id },
@@ -190,6 +194,9 @@ router.post('/care-plan/:id', auth_1.authenticate, async (req, res, next) => {
         const { recipientEmail } = req.body;
         if (!recipientEmail) {
             return res.status(400).json({ error: 'Adres email odbiorcy jest wymagany' });
+        }
+        if (!emailRegex.test(recipientEmail)) {
+            return res.status(400).json({ error: 'Nieprawidłowy format adresu email odbiorcy' });
         }
         const carePlan = await prisma_1.prisma.carePlan.findUnique({
             where: { id },
@@ -396,9 +403,6 @@ router.get('/test-connection', auth_1.authenticate, async (req, res, next) => {
                 success: true,
                 message: 'Połączenie z serwerem SMTP działa poprawnie',
                 config: {
-                    host: process.env.SMTP_HOST,
-                    port: process.env.SMTP_PORT,
-                    secure: process.env.SMTP_SECURE,
                     user: process.env.SMTP_USER ? '***' : 'BRAK',
                     from: process.env.EMAIL_FROM,
                 },
@@ -409,9 +413,6 @@ router.get('/test-connection', auth_1.authenticate, async (req, res, next) => {
                 success: false,
                 message: 'Nie można połączyć się z serwerem SMTP',
                 config: {
-                    host: process.env.SMTP_HOST,
-                    port: process.env.SMTP_PORT,
-                    secure: process.env.SMTP_SECURE,
                     user: process.env.SMTP_USER ? '***' : 'BRAK',
                     from: process.env.EMAIL_FROM,
                 },
@@ -423,13 +424,6 @@ router.get('/test-connection', auth_1.authenticate, async (req, res, next) => {
             success: false,
             message: 'Błąd testowania połączenia email',
             error: error.message,
-            config: {
-                host: process.env.SMTP_HOST,
-                port: process.env.SMTP_PORT,
-                secure: process.env.SMTP_SECURE,
-                user: process.env.SMTP_USER ? '***' : 'BRAK',
-                from: process.env.EMAIL_FROM,
-            },
         });
     }
 });
@@ -440,6 +434,9 @@ router.get('/history/patient/:patientId', auth_1.authenticate, async (req, res, 
         const { page = '1', limit = '50' } = req.query;
         const pageNum = parseInt(page, 10);
         const limitNum = parseInt(limit, 10);
+        if (isNaN(pageNum) || pageNum < 1 || isNaN(limitNum) || limitNum < 1 || limitNum > 200) {
+            return res.status(400).json({ error: 'Nieprawidłowe parametry paginacji' });
+        }
         const skip = (pageNum - 1) * limitNum;
         const [emails, total] = await Promise.all([
             prisma_1.prisma.emailHistory.findMany({
@@ -475,6 +472,9 @@ router.get('/history', auth_1.authenticate, async (req, res, next) => {
         const { page = '1', limit = '50', patientId, status } = req.query;
         const pageNum = parseInt(page, 10);
         const limitNum = parseInt(limit, 10);
+        if (isNaN(pageNum) || pageNum < 1 || isNaN(limitNum) || limitNum < 1 || limitNum > 200) {
+            return res.status(400).json({ error: 'Nieprawidłowe parametry paginacji' });
+        }
         const skip = (pageNum - 1) * limitNum;
         const where = {};
         if (patientId) {
@@ -573,19 +573,34 @@ const sendEmailSchema = zod_1.z.object({
     attachConsultationId: zod_1.z.string().optional(),
     attachCarePlanId: zod_1.z.string().optional(),
 });
+const escapeHtml = (str) => str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 router.post('/send', auth_1.authenticate, upload.array('attachments', 5), async (req, res, next) => {
+    const files = req.files;
+    const cleanupUploadedFiles = () => {
+        if (files && files.length > 0) {
+            files.forEach(file => {
+                if (fs_1.default.existsSync(file.path)) {
+                    try {
+                        fs_1.default.unlinkSync(file.path);
+                    }
+                    catch { }
+                }
+            });
+        }
+    };
     try {
         const data = sendEmailSchema.parse(req.body);
-        const files = req.files;
         // Get patient
         const patient = await prisma_1.prisma.patient.findUnique({
             where: { id: data.patientId },
         });
         if (!patient) {
+            cleanupUploadedFiles();
             return res.status(404).json({ error: 'Pacjent nie znaleziony' });
         }
         const recipientEmail = data.recipientEmail || patient.email;
         if (!recipientEmail) {
+            cleanupUploadedFiles();
             return res.status(400).json({ error: 'Brak adresu email pacjenta' });
         }
         const attachments = [];
@@ -658,10 +673,10 @@ router.post('/send', auth_1.authenticate, upload.array('attachments', 5), async 
                 subject: data.subject,
                 html: `
           <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-            <h2>${data.subject}</h2>
-            <p>Dzień dobry ${patient.firstName} ${patient.lastName},</p>
-            <div style="white-space: pre-wrap;">${data.message}</div>
-            ${doctor ? `<p style="margin-top: 20px;">Z poważaniem,<br><strong>${doctor.name}</strong></p>` : ''}
+            <h2>${escapeHtml(data.subject)}</h2>
+            <p>Dzień dobry ${escapeHtml(patient.firstName)} ${escapeHtml(patient.lastName)},</p>
+            <div style="white-space: pre-wrap;">${escapeHtml(data.message)}</div>
+            ${doctor ? `<p style="margin-top: 20px;">Z poważaniem,<br><strong>${escapeHtml(doctor.name)}</strong></p>` : ''}
           </div>
         `,
                 attachments,
@@ -704,6 +719,7 @@ router.post('/send', auth_1.authenticate, upload.array('attachments', 5), async 
         }
     }
     catch (error) {
+        cleanupUploadedFiles();
         next(error);
     }
 });
@@ -714,6 +730,9 @@ router.post('/lab-result/:id', auth_1.authenticate, async (req, res, next) => {
         const { recipientEmail } = req.body;
         if (!recipientEmail) {
             return res.status(400).json({ error: 'Adres email odbiorcy jest wymagany' });
+        }
+        if (!emailRegex.test(recipientEmail)) {
+            return res.status(400).json({ error: 'Nieprawidłowy format adresu email odbiorcy' });
         }
         const labResult = await prisma_1.prisma.labResult.findUnique({
             where: { id },
@@ -775,12 +794,13 @@ router.post('/lab-result/:id', auth_1.authenticate, async (req, res, next) => {
         };
         let subject;
         let htmlBody;
+        const labSummaryHtml = `<pre style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; font-family: monospace; white-space: pre-wrap;">${escapeHtml(labSummary)}</pre>`;
         if (template) {
             subject = (0, emailTemplateRenderer_1.renderEmailTemplate)(template.subject, variables);
             // Add lab summary to the template body
             htmlBody = (0, emailTemplateRenderer_1.renderEmailTemplate)(template.htmlBody, variables);
-            // Insert lab summary before closing tags
-            htmlBody = htmlBody.replace('</p>', `</p><pre style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; font-family: monospace; white-space: pre-wrap;">${labSummary}</pre>`);
+            // Append lab summary at the end of the body
+            htmlBody = htmlBody + labSummaryHtml;
         }
         else {
             // Fallback to default
@@ -788,9 +808,9 @@ router.post('/lab-result/:id', auth_1.authenticate, async (req, res, next) => {
             htmlBody = `
         <h2>Wyniki badań laboratoryjnych</h2>
         <p>Dzień dobry,</p>
-        <p>W załączeniu przesyłamy wyniki badań laboratoryjnych z dnia ${labResultDate}.</p>
-        <p>Pacjent: ${labResult.patient.firstName} ${labResult.patient.lastName}</p>
-        <pre style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; font-family: monospace; white-space: pre-wrap;">${labSummary}</pre>
+        <p>W załączeniu przesyłamy wyniki badań laboratoryjnych z dnia ${escapeHtml(labResultDate)}.</p>
+        <p>Pacjent: ${escapeHtml(labResult.patient.firstName)} ${escapeHtml(labResult.patient.lastName)}</p>
+        ${labSummaryHtml}
         <p>Pozdrawiamy,<br>Zespół kliniki</p>
       `;
         }
@@ -846,6 +866,9 @@ router.post('/scalp-photo/:id', auth_1.authenticate, async (req, res, next) => {
         if (!recipientEmail) {
             return res.status(400).json({ error: 'Adres email odbiorcy jest wymagany' });
         }
+        if (!emailRegex.test(recipientEmail)) {
+            return res.status(400).json({ error: 'Nieprawidłowy format adresu email odbiorcy' });
+        }
         const scalpPhoto = await prisma_1.prisma.scalpPhoto.findUnique({
             where: { id },
             include: {
@@ -855,13 +878,23 @@ router.post('/scalp-photo/:id', auth_1.authenticate, async (req, res, next) => {
         if (!scalpPhoto) {
             return res.status(404).json({ error: 'Zdjęcie nie znalezione' });
         }
-        // Read the image file
-        const imagePath = scalpPhoto.filePath;
-        if (!imagePath || !fs_1.default.existsSync(imagePath)) {
+        // Resolve file path — support both new (filename) and legacy (filePath) storage
+        const photoUploadDir = path_1.default.normalize(process.env.UPLOAD_DIR || path_1.default.join(__dirname, '../../storage/uploads'));
+        let imagePath = null;
+        if (scalpPhoto.filename) {
+            const filePathByName = path_1.default.join(photoUploadDir, scalpPhoto.filename);
+            if (fs_1.default.existsSync(filePathByName)) {
+                imagePath = filePathByName;
+            }
+        }
+        if (!imagePath && scalpPhoto.filePath && fs_1.default.existsSync(scalpPhoto.filePath)) {
+            imagePath = scalpPhoto.filePath;
+        }
+        if (!imagePath) {
             return res.status(404).json({ error: 'Plik zdjęcia nie istnieje' });
         }
         const imageBuffer = fs_1.default.readFileSync(imagePath);
-        const imageExtension = path_1.default.extname(scalpPhoto.originalFilename || imagePath).toLowerCase();
+        const imageExtension = path_1.default.extname(scalpPhoto.originalFilename || scalpPhoto.filename || imagePath).toLowerCase();
         const mimeType = imageExtension === '.jpg' || imageExtension === '.jpeg' ? 'image/jpeg' :
             imageExtension === '.png' ? 'image/png' : 'image/jpeg';
         const subject = `Zdjęcie skóry głowy - ${scalpPhoto.patient.firstName} ${scalpPhoto.patient.lastName}`;

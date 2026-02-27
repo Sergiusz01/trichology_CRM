@@ -12,6 +12,7 @@ const emailService_1 = require("../services/emailService");
 const icalendar_1 = require("../utils/icalendar");
 const logo_1 = require("../utils/logo");
 const router = express_1.default.Router();
+const escapeHtml = (str) => str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const visitStatusValues = ['ZAPLANOWANA', 'ODBYTA', 'NIEOBECNOSC', 'ANULOWANA'];
 const visitSchema = zod_1.z.object({
     patientId: zod_1.z.string().min(1, 'ID pacjenta jest wymagane'),
@@ -38,9 +39,17 @@ router.get('/', auth_1.authenticate, async (req, res, next) => {
         const { start, end } = req.query;
         const where = {};
         if (start && end) {
+            const startDate = new Date(start);
+            const endDate = new Date(end);
+            if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+                return res.status(400).json({ error: 'Nieprawidłowy format daty. Użyj formatu ISO 8601.' });
+            }
+            if (startDate > endDate) {
+                return res.status(400).json({ error: 'Data początkowa nie może być późniejsza niż data końcowa.' });
+            }
             where.data = {
-                gte: new Date(start),
-                lte: new Date(end),
+                gte: startDate,
+                lte: endDate,
             };
         }
         const visits = await prisma_1.prisma.visit.findMany({
@@ -587,16 +596,16 @@ router.post('/:id/reminder', auth_1.authenticate, async (req, res, next) => {
             <h1>Przypomnienie o wizycie</h1>
           </div>
           <div class="content">
-            <p>Dzień dobry ${visit.patient.firstName},</p>
+            <p>Dzień dobry ${escapeHtml(visit.patient.firstName)},</p>
             <p>Przypominamy o zaplanowanej wizycie:</p>
-            
+
             <div class="visit-info">
-              <h2 style="margin-top: 0; color: #1976d2;">${visit.rodzajZabiegu}</h2>
+              <h2 style="margin-top: 0; color: #1976d2;">${escapeHtml(visit.rodzajZabiegu)}</h2>
               <p><strong>Data i godzina:</strong> ${visitDateFormatted}</p>
-              ${visit.notatki ? `<p><strong>Notatki:</strong> ${visit.notatki}</p>` : ''}
+              ${visit.notatki ? `<p><strong>Notatki:</strong> ${escapeHtml(visit.notatki)}</p>` : ''}
             </div>
 
-            ${customMessage ? `<p style="background-color: #fff3cd; padding: 15px; border-radius: 5px; border-left: 4px solid #ffc107;"><strong>Wiadomość:</strong><br>${customMessage}</p>` : ''}
+            ${customMessage ? `<p style="background-color: #fff3cd; padding: 15px; border-radius: 5px; border-left: 4px solid #ffc107;"><strong>Wiadomość:</strong><br>${escapeHtml(customMessage)}</p>` : ''}
 
             <div class="calendar-buttons">
               <p style="font-weight: bold; margin-bottom: 15px;">Zapisz do kalendarza:</p>

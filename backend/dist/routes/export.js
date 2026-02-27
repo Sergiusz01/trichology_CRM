@@ -11,6 +11,8 @@ const archiver_1 = __importDefault(require("archiver"));
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
 const router = express_1.default.Router();
+// Dopuszcza tylko bezpieczne nazwy plików bez sekwencji path-traversal
+const isSafeFileName = (name) => /^[a-zA-Z0-9._-]+$/.test(name);
 // Export all patients data to ZIP
 // Only ADMIN and DOCTOR can export data
 router.get('/patients/zip', auth_1.authenticate, (0, auth_1.requireRole)('ADMIN', 'DOCTOR'), async (req, res, next) => {
@@ -169,7 +171,7 @@ router.get('/patients/zip', auth_1.authenticate, (0, auth_1.requireRole)('ADMIN'
                 // Copy actual image files
                 for (const photo of patient.scalpPhotos) {
                     const fileName = photo.filename || (photo.filePath ? path_1.default.basename(photo.filePath) : '');
-                    if (!fileName)
+                    if (!fileName || !isSafeFileName(fileName))
                         continue;
                     const photoPath = path_1.default.join(__dirname, '../../storage/uploads', fileName);
                     if (fs_1.default.existsSync(photoPath)) {

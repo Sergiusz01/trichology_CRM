@@ -34,11 +34,12 @@ const authenticate = async (req, res, next) => {
         next();
     }
     catch (error) {
-        if (error instanceof jsonwebtoken_1.default.JsonWebTokenError) {
-            return res.status(401).json({ error: 'Nieprawidłowy token' });
-        }
+        // TokenExpiredError extends JsonWebTokenError, so it must be checked first
         if (error instanceof jsonwebtoken_1.default.TokenExpiredError) {
             return res.status(401).json({ error: 'Token wygasł' });
+        }
+        if (error instanceof jsonwebtoken_1.default.JsonWebTokenError) {
+            return res.status(401).json({ error: 'Nieprawidłowy token' });
         }
         return res.status(500).json({ error: 'Błąd autoryzacji' });
     }

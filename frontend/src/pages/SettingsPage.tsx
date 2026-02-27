@@ -22,6 +22,9 @@ import {
     Tooltip,
     IconButton,
     CircularProgress,
+    TextField,
+    Alert,
+    Snackbar,
 } from '@mui/material';
 import {
     Info,
@@ -39,6 +42,8 @@ import {
     AccessTime,
     Storage,
     Computer,
+    Phone,
+    Save,
 } from '@mui/icons-material';
 import { useWebPush } from '../hooks/useWebPush';
 import { api } from '../services/api';
@@ -134,6 +139,15 @@ export default function SettingsPage() {
     const [statusLoading, setStatusLoading] = useState(false);
     const [statusError, setStatusError] = useState<string | null>(null);
 
+    // Clinic settings state
+    const [clinicPhone, setClinicPhone] = useState('');
+    const [clinicPhoneLoading, setClinicPhoneLoading] = useState(false);
+    const [clinicPhoneSaving, setClinicPhoneSaving] = useState(false);
+    const [clinicPhoneError, setClinicPhoneError] = useState<string | null>(null);
+    const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
+        open: false, message: '', severity: 'success',
+    });
+
     // Variables injected by GitHub Actions CI/CD
     const appVersion = import.meta.env.VITE_APP_VERSION || 'DEV-LOCAL';
     const buildDate = import.meta.env.VITE_APP_BUILD_DATE || new Date().toLocaleString('pl-PL');
@@ -166,6 +180,40 @@ export default function SettingsPage() {
         const interval = setInterval(fetchSystemStatus, 30_000);
         return () => clearInterval(interval);
     }, [fetchSystemStatus]);
+
+    const fetchClinicPhone = useCallback(async () => {
+        setClinicPhoneLoading(true);
+        try {
+            const res = await api.get<{ settings: { clinicPhone?: string | null } }>('/specialist-settings');
+            setClinicPhone(res.data.settings?.clinicPhone || '');
+        } catch (_) {
+            // silently ignore
+        } finally {
+            setClinicPhoneLoading(false);
+        }
+    }, []);
+
+    const saveClinicPhone = async () => {
+        const phoneRegex = /^[+\d\s\-().]{7,20}$/;
+        if (clinicPhone && !phoneRegex.test(clinicPhone)) {
+            setClinicPhoneError('Nieprawidłowy format numeru telefonu');
+            return;
+        }
+        setClinicPhoneError(null);
+        setClinicPhoneSaving(true);
+        try {
+            await api.put('/specialist-settings', { clinicPhone: clinicPhone || null });
+            setSnackbar({ open: true, message: 'Numer telefonu zapisany', severity: 'success' });
+        } catch (_) {
+            setSnackbar({ open: true, message: 'Błąd zapisu numeru telefonu', severity: 'error' });
+        } finally {
+            setClinicPhoneSaving(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchClinicPhone();
+    }, [fetchClinicPhone]);
 
     const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
         setTabValue(newValue);
@@ -200,6 +248,7 @@ export default function SettingsPage() {
                     <Tab icon={<History />} iconPosition="start" label="Dziennik Aktywności" {...a11yProps(1)} />
                     <Tab icon={<Email />} iconPosition="start" label="Historia Emaili" {...a11yProps(2)} />
                     <Tab icon={<Speed />} iconPosition="start" label="Test Email" {...a11yProps(3)} />
+                    <Tab icon={<Phone />} iconPosition="start" label="Ustawienia Kliniki" {...a11yProps(4)} />
                 </Tabs>
             </Paper>
 
@@ -574,6 +623,72 @@ export default function SettingsPage() {
                     <EmailTestPage />
                 </Paper>
             </CustomTabPanel>
+
+            {/* Tab 4: Clinic Settings */}
+            <CustomTabPanel value={tabValue} index={4}>
+                <Grid container spacing={3}>
+                    {/* @ts-ignore */}
+                    <Grid item xs={12} md={6}>
+                        <Card elevation={2} sx={{ borderRadius: 2 }}>
+                            <CardContent>
+                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                    <Avatar sx={{ bgcolor: theme.palette.primary.main, mr: 2 }}>
+                                        <Phone />
+                                    </Avatar>
+                                    <Typography variant="h6" fontWeight="bold">
+                                        Numer telefonu kliniki
+                                    </Typography>
+                                </Box>
+                                <Divider sx={{ mb: 3 }} />
+                                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                    Numer telefonu wyświetlany w emailach przypomnieniowych — pacjenci mogą zadzwonić, by zmienić termin wizyty.
+                                </Typography>
+                                {clinicPhoneLoading ? (
+                                    <CircularProgress size={24} />
+                                ) : (
+                                    <>
+                                        <TextField
+                                            label="Numer telefonu kliniki"
+                                            placeholder="+48 123 456 789"
+                                            value={clinicPhone}
+                                            onChange={(e) => {
+                                                setClinicPhone(e.target.value);
+                                                setClinicPhoneError(null);
+                                            }}
+                                            error={!!clinicPhoneError}
+                                            helperText={clinicPhoneError || 'Np. +48 123 456 789 lub 123-456-789'}
+                                            fullWidth
+                                            InputProps={{
+                                                startAdornment: <Phone sx={{ mr: 1, color: 'text.secondary' }} />,
+                                            }}
+                                            sx={{ mb: 2 }}
+                                        />
+                                        <Button
+                                            variant="contained"
+                                            startIcon={clinicPhoneSaving ? <CircularProgress size={16} color="inherit" /> : <Save />}
+                                            onClick={saveClinicPhone}
+                                            disabled={clinicPhoneSaving}
+                                        >
+                                            {clinicPhoneSaving ? 'Zapisywanie…' : 'Zapisz'}
+                                        </Button>
+                                    </>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </Grid>
+                </Grid>
+            </CustomTabPanel>
+
+            <Snackbar
+                open={snackbar.open}
+                autoHideDuration={4000}
+                onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert severity={snackbar.severity} onClose={() => setSnackbar((s) => ({ ...s, open: false }))}>
+                    {snackbar.message}
+                </Alert>
+            </Snackbar>
 
         </Box>
     );

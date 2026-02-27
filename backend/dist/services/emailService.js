@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.verifyEmailConnection = exports.sendEmail = void 0;
 const nodemailer_1 = __importDefault(require("nodemailer"));
+const imapSent_1 = require("./imapSent");
 let transporter = null;
 const createTransporter = () => {
     if (transporter) {
@@ -35,10 +36,12 @@ const createTransporter = () => {
         },
     };
     // Add TLS options for STARTTLS (port 587)
+    // SMTP_TLS_REJECT_UNAUTHORIZED=false tylko dla środowisk deweloperskich z self-signed cert
+    const rejectUnauthorized = process.env.SMTP_TLS_REJECT_UNAUTHORIZED !== 'false';
     if (requireTLS && !isSecure) {
         smtpConfig.requireTLS = true;
         smtpConfig.tls = {
-            rejectUnauthorized: false, // Allow self-signed certificates if needed
+            rejectUnauthorized,
         };
     }
     transporter = nodemailer_1.default.createTransport(smtpConfig);
@@ -54,8 +57,12 @@ const sendEmail = async (options) => {
         attachments: options.attachments,
     };
     try {
+        // Pobierz surową treść MIME przed wysłaniem — potrzebna do zapisu w IMAP
+        const rawEmail = await getRawEmail(mailOptions);
         await emailTransporter.sendMail(mailOptions);
         console.log(`✅ Email wysłany do: ${options.to}`);
+        // Zapisz kopię do folderu Wysłane asynchronicznie — nie blokuje odpowiedzi
+        (0, imapSent_1.appendToSentFolder)(rawEmail).catch(() => { });
     }
     catch (error) {
         console.error('❌ Błąd wysyłania email:', error);
@@ -76,6 +83,25 @@ const sendEmail = async (options) => {
     }
 };
 exports.sendEmail = sendEmail;
+/**
+ * Tworzy surową wiadomość MIME (bez wysyłania) przy użyciu streamTransport nodemailer.
+ * Wynik przekazywany jest do IMAP APPEND, dzięki czemu kopia ląduje w folderze Wysłane.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const getRawEmail = (mailOptions) => {
+    return new Promise((resolve, reject) => {
+        const streamTransport = nodemailer_1.default.createTransport({ streamTransport: true, newline: 'crlf' });
+        streamTransport.sendMail(mailOptions, (err, info) => {
+            if (err)
+                return reject(err);
+            const chunks = [];
+            const stream = info.message;
+            stream.on('data', (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+            stream.on('end', () => resolve(Buffer.concat(chunks)));
+            stream.on('error', reject);
+        });
+    });
+};
 const verifyEmailConnection = async () => {
     try {
         const emailTransporter = createTransporter();

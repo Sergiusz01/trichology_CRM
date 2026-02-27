@@ -278,7 +278,6 @@ router.delete('/:id/permanent', auth_1.authenticate, (0, auth_1.requireRole)('AD
 router.get('/:id/pdf', auth_1.authenticate, async (req, res, next) => {
     try {
         const { id } = req.params;
-        console.log(`Generowanie PDF dla planu opieki ${id}...`);
         const carePlan = await prisma_1.prisma.carePlan.findUnique({
             where: { id },
             include: {
@@ -295,15 +294,11 @@ router.get('/:id/pdf', auth_1.authenticate, async (req, res, next) => {
             return res.status(404).json({ error: 'Plan opieki nie znaleziony' });
         }
         const pdfBuffer = await (0, pdfService_1.generateCarePlanPDF)(carePlan);
-        console.log(`PDF wygenerowany pomyślnie dla planu opieki ${id}, rozmiar: ${pdfBuffer.length} bajtów`);
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="plan-opieki-${id}.pdf"`);
         res.send(pdfBuffer);
     }
     catch (error) {
-        console.error('Błąd w endpoint PDF planu opieki:', error);
-        console.error('Error message:', error.message);
-        console.error('Error stack:', error.stack);
         next(error);
     }
 });

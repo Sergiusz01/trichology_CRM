@@ -68,10 +68,14 @@ router.get('/:id', auth_1.authenticate, async (req, res, next) => {
         next(error);
     }
 });
+const VALID_TEMPLATE_TYPES = ['CONSULTATION', 'CARE_PLAN', 'LAB_RESULT', 'CUSTOM'];
 // Get default template for type
 router.get('/type/:type/default', auth_1.authenticate, async (req, res, next) => {
     try {
         const { type } = req.params;
+        if (!VALID_TEMPLATE_TYPES.includes(type)) {
+            return res.status(400).json({ error: 'Nieprawidłowy typ szablonu' });
+        }
         const template = await prisma_1.prisma.emailTemplate.findFirst({
             where: {
                 type: type,

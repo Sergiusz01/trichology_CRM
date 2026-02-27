@@ -1,0 +1,15 @@
+# Blokada indeksowania przez wyszukiwarki.
+# Aplikacja jest systemem wewnętrznym – dostęp tylko przez bezpośredni link.
+
+User-agent: *
+Disallow: /
+
+# Zakaz archiwizacji przez Google
+User-agent: Googlebot
+Disallow: /
+
+User-agent: Googlebot-Image
+Disallow: /
+
+User-agent: AdsBot-Google
+Disallow: /

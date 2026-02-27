@@ -147,6 +147,44 @@ export default function DashboardPage() {
     });
     const [sendingReminder, setSendingReminder] = useState(false);
 
+    // Patient action notifications
+    const [notifications, setNotifications] = useState<{
+        id: string;
+        visitId?: string;
+        patientName: string;
+        visitDate?: string;
+        actionType: string;
+        isRead: boolean;
+        createdAt: string;
+    }[]>([]);
+    const [notifUnread, setNotifUnread] = useState(0);
+
+    const fetchNotifications = useCallback(async () => {
+        try {
+            const res = await api.get('/dashboard-notifications');
+            setNotifications(res.data.notifications || []);
+            setNotifUnread(res.data.unreadCount || 0);
+        } catch (_) { /* silently ignore */ }
+    }, []);
+
+    const markNotifRead = async (id: string) => {
+        try {
+            await api.patch(`/dashboard-notifications/${id}/read`);
+            setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, isRead: true } : n));
+            setNotifUnread((prev) => Math.max(0, prev - 1));
+        } catch (_) { /* ignore */ }
+    };
+
+    const markAllNotifRead = async () => {
+        try {
+            await api.patch('/dashboard-notifications/read-all');
+            setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+            setNotifUnread(0);
+        } catch (_) { /* ignore */ }
+    };
+
+    useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
+
     const handleSendVisitReminder = async () => {
         if (!reminderDialog.visitId) return;
 
@@ -1216,6 +1254,85 @@ export default function DashboardPage() {
                             </Grid>
                         )}
                     </Grid>
+                </Box>
+            )}
+
+            {/* Patient Action Notifications */}
+            {notifications.length > 0 && (
+                <Box sx={{ mb: 4, px: { xs: 1, sm: 0 } }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                                Odpowiedzi pacjentów
+                            </Typography>
+                            {notifUnread > 0 && (
+                                <Chip label={notifUnread} size="small" color="error" sx={{ fontWeight: 700 }} />
+                            )}
+                        </Box>
+                        {notifUnread > 0 && (
+                            <Button size="small" onClick={markAllNotifRead} sx={{ textTransform: 'none' }}>
+                                Oznacz wszystkie jako przeczytane
+                            </Button>
+                        )}
+                    </Box>
+                    <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
+                        <List disablePadding>
+                            {notifications.slice(0, 10).map((n, idx) => {
+                                const actionLabels: Record<string, { label: string; color: string }> = {
+                                    confirm:    { label: 'Potwierdził wizytę',        color: '#34C759' },
+                                    cancel:     { label: 'Anulował wizytę',           color: '#FF3B30' },
+                                    reschedule: { label: 'Prosi o zmianę terminu',    color: '#FF9500' },
+                                };
+                                const cfg = actionLabels[n.actionType] || { label: n.actionType, color: '#888' };
+                                return (
+                                    <React.Fragment key={n.id}>
+                                        {idx > 0 && <Divider component="li" />}
+                                        <ListItemButton
+                                            onClick={() => !n.isRead && markNotifRead(n.id)}
+                                            sx={{
+                                                bgcolor: n.isRead ? 'transparent' : alpha('#1976d2', 0.04),
+                                                py: 1.5,
+                                                px: 2,
+                                            }}
+                                        >
+                                            <ListItemAvatar>
+                                                <Avatar sx={{ bgcolor: `${cfg.color}22`, color: cfg.color, fontWeight: 700, fontSize: 18 }}>
+                                                    {n.actionType === 'confirm' ? '✅' : n.actionType === 'cancel' ? '❌' : '🔄'}
+                                                </Avatar>
+                                            </ListItemAvatar>
+                                            <ListItemText
+                                                primary={
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                                                        <Typography variant="body1" sx={{ fontWeight: n.isRead ? 500 : 700 }}>
+                                                            {n.patientName}
+                                                        </Typography>
+                                                        <Chip
+                                                            label={cfg.label}
+                                                            size="small"
+                                                            sx={{ bgcolor: `${cfg.color}22`, color: cfg.color, fontWeight: 600 }}
+                                                        />
+                                                    </Box>
+                                                }
+                                                secondary={
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        {n.visitDate
+                                                            ? `Wizyta: ${format(new Date(n.visitDate), 'dd MMM yyyy HH:mm', { locale: pl })}`
+                                                            : ''
+                                                        }
+                                                        {n.visitDate ? ' · ' : ''}
+                                                        {format(new Date(n.createdAt), 'dd MMM yyyy, HH:mm', { locale: pl })}
+                                                    </Typography>
+                                                }
+                                            />
+                                            {!n.isRead && (
+                                                <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#1976d2', ml: 1, flexShrink: 0 }} />
+                                            )}
+                                        </ListItemButton>
+                                    </React.Fragment>
+                                );
+                            })}
+                        </List>
+                    </Paper>
                 </Box>
             )}
 

@@ -235,17 +235,12 @@ router.get('/:id/pdf', auth_1.authenticate, async (req, res, next) => {
         if (!consultation) {
             return res.status(404).json({ error: 'Konsultacja nie znaleziona' });
         }
-        console.log(`Generowanie PDF dla konsultacji ${id}...`);
         const pdfBuffer = await (0, pdfService_1.generateConsultationPDF)(consultation);
-        console.log(`PDF wygenerowany pomyślnie dla konsultacji ${id}, rozmiar: ${pdfBuffer.length} bajtów`);
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="konsultacja-${id}.pdf"`);
         res.send(pdfBuffer);
     }
     catch (error) {
-        console.error('Błąd w endpoint PDF konsultacji:', error);
-        console.error('Error message:', error.message);
-        console.error('Error stack:', error.stack);
         next(error);
     }
 });
@@ -253,9 +248,6 @@ router.get('/:id/pdf', auth_1.authenticate, async (req, res, next) => {
 router.get('/:id', auth_1.authenticate, async (req, res, next) => {
     try {
         const { id } = req.params;
-        const userId = req.user?.id;
-        console.log(`[GET /consultations/:id] Request - ID: ${id}, User: ${userId}, Path: ${req.path}`);
-        // First check if consultation exists
         const consultation = await prisma_1.prisma.consultation.findUnique({
             where: { id },
             include: {
@@ -269,17 +261,11 @@ router.get('/:id', auth_1.authenticate, async (req, res, next) => {
             },
         });
         if (!consultation) {
-            console.log(`[GET /consultations/:id] Consultation not found - ID: ${id}`);
-            // Check if any consultations exist at all
-            const count = await prisma_1.prisma.consultation.count();
-            console.log(`[GET /consultations/:id] Total consultations in DB: ${count}`);
             return res.status(404).json({ error: 'Konsultacja nie znaleziona' });
         }
-        console.log(`[GET /consultations/:id] Consultation found - ID: ${consultation.id}, Patient: ${consultation.patientId}`);
         res.json({ consultation });
     }
     catch (error) {
-        console.error('[GET /consultations/:id] Error:', error.message, error.stack);
         next(error);
     }
 });
@@ -401,16 +387,12 @@ const prepareDataForDb = (data) => {
 // Create consultation
 router.post('/', auth_1.authenticate, async (req, res, next) => {
     try {
-        // Log incoming request data for debugging
-        console.log('[POST /consultations] Incoming request keys:', Object.keys(req.body));
-        console.log('[POST /consultations] PatientId:', req.body.patientId);
         // Parse and validate data
         let data;
         try {
             data = consultationSchema.parse(req.body);
         }
         catch (validationError) {
-            console.error('[POST /consultations] Validation error:', validationError.errors);
             return res.status(400).json({
                 error: 'Błąd walidacji danych',
                 details: validationError.errors,
@@ -452,38 +434,6 @@ router.post('/', auth_1.authenticate, async (req, res, next) => {
             preparedData.templateId = data.templateId;
             preparedData.dynamicData = data.dynamicData || {};
         }
-        // Define JSON fields list for logging (same as in prepareDataForDb)
-        const jsonFieldsList = [
-            'hairLossLocalization',
-            'scalingType',
-            'sensitivityProblemType',
-            'scalpType',
-            'scalpAppearance',
-            'skinLesions',
-            'seborrheaType',
-            'dandruffType',
-            'hairDamage',
-            'hairDamageReason',
-            'hairTypes',
-            'vellusMiniaturizedHairs',
-            'vascularPatterns',
-            'perifollicularFeatures',
-            'scalpDiseases',
-            'otherDiagnostics',
-            'alopeciaTypes',
-            'alopeciaAffectedAreas',
-        ];
-        // Log prepared data for debugging (but limit JSON fields to avoid huge logs)
-        const logData = { ...preparedData };
-        jsonFieldsList.forEach((field) => {
-            if (logData[field]) {
-                logData[field] = Array.isArray(logData[field])
-                    ? `[Array with ${logData[field].length} items]`
-                    : typeof logData[field];
-            }
-        });
-        console.log('[POST /consultations] Prepared data (summary):', JSON.stringify(logData, null, 2));
-        console.log('[POST /consultations] Full prepared data keys:', Object.keys(preparedData));
         // Build final data object for Prisma
         const dataForPrisma = {
             ...preparedData,
@@ -499,62 +449,29 @@ router.post('/', auth_1.authenticate, async (req, res, next) => {
                 delete dataForPrisma[key];
             }
         });
-        console.log('[POST /consultations] Final data keys for Prisma:', Object.keys(dataForPrisma));
-        console.log('[POST /consultations] PatientId:', dataForPrisma.patientId);
-        console.log('[POST /consultations] DoctorId:', dataForPrisma.doctorId);
-        console.log('[POST /consultations] hairLossLocalization type:', typeof dataForPrisma.hairLossLocalization, Array.isArray(dataForPrisma.hairLossLocalization) ? '(array)' : '(not array)');
-        console.log('[POST /consultations] hairLossLocalization value:', JSON.stringify(dataForPrisma.hairLossLocalization));
-        try {
-            const consultation = await prisma_1.prisma.consultation.create({
-                data: dataForPrisma,
-                include: {
-                    patient: true,
-                    doctor: {
-                        select: { id: true, name: true, email: true },
-                    },
+        const consultation = await prisma_1.prisma.consultation.create({
+            data: dataForPrisma,
+            include: {
+                patient: true,
+                doctor: {
+                    select: { id: true, name: true, email: true },
                 },
-            });
-            await (0, auditService_1.writeAuditLog)(req, {
-                action: 'CREATE_CONSULTATION',
-                entity: 'Consultation',
-                entityId: consultation.id,
-            });
-            res.status(201).json({ consultation });
-        }
-        catch (dbError) {
-            console.error('[POST /consultations] Prisma error message:', dbError.message);
-            console.error('[POST /consultations] Prisma error code:', dbError.code);
-            console.error('[POST /consultations] Full error:', dbError);
-            if (dbError.meta) {
-                console.error('[POST /consultations] Prisma error meta:', JSON.stringify(dbError.meta, null, 2));
-            }
-            // Extract more details about which field caused the error
-            let errorDetails = dbError.meta || {};
-            if (dbError.message) {
-                // Try to extract field name from error message
-                const fieldMatch = dbError.message.match(/Argument `(\w+)`/);
-                if (fieldMatch) {
-                    errorDetails.field = fieldMatch[1];
-                    errorDetails.providedValue = dataForPrisma[fieldMatch[1]];
-                }
-            }
-            return res.status(500).json({
-                error: 'Wewnętrzny błąd serwera',
-                message: dbError.message,
-                details: errorDetails,
-            });
-        }
+            },
+        });
+        await (0, auditService_1.writeAuditLog)(req, {
+            action: 'CREATE_CONSULTATION',
+            entity: 'Consultation',
+            entityId: consultation.id,
+        });
+        res.status(201).json({ consultation });
     }
     catch (error) {
-        // Log validation errors for debugging
         if (error.name === 'ZodError') {
-            console.error('Validation error:', JSON.stringify(error.errors, null, 2));
             return res.status(400).json({
                 error: 'Błąd walidacji danych',
                 details: error.errors,
             });
         }
-        console.error('[POST /consultations] Unexpected error:', error);
         next(error);
     }
 });

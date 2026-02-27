@@ -12,6 +12,7 @@ router.get('/', auth_1.authenticate, async (req, res, next) => {
     try {
         const [patients, consultations, emails, visits, labResults, scalpPhotos, carePlans, upcomingVisits, weeklyRevenue] = await Promise.all([
             prisma_1.prisma.patient.findMany({
+                where: { isArchived: false },
                 select: {
                     id: true,
                     firstName: true,
@@ -21,6 +22,8 @@ router.get('/', auth_1.authenticate, async (req, res, next) => {
                     createdAt: true,
                     updatedAt: true,
                 },
+                take: 500,
+                orderBy: { createdAt: 'desc' },
             }),
             prisma_1.prisma.consultation.findMany({
                 select: {
@@ -30,6 +33,8 @@ router.get('/', auth_1.authenticate, async (req, res, next) => {
                     createdAt: true,
                     updatedAt: true,
                 },
+                take: 500,
+                orderBy: { createdAt: 'desc' },
             }),
             prisma_1.prisma.emailHistory.findMany({
                 where: { status: 'SENT' },
