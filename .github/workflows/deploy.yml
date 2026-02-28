@@ -63,7 +63,7 @@ jobs:
 
             npm install --production=false
             npx prisma generate
-            npx prisma db push
+            npx prisma db push --accept-data-loss
             npm run build
 
             # Reload PM2 using ecosystem.config.js so all env vars (incl. IMAP, VAPID)
