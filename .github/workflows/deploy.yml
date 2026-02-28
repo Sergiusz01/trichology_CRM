@@ -55,6 +55,8 @@ jobs:
               mv /root/backend-src/storage/uploads/* /root/uploads/ 2>/dev/null || true
             fi
 
+            # Delete old source files to avoid leftover files causing TS errors
+            rm -rf ~/backend-src/src ~/backend-src/prisma
             unzip -o ~/backend.zip -d ~/backend-src
             cd ~/backend-src
 
@@ -107,6 +109,8 @@ jobs:
           script: |
             set -e
 
+            # Delete old source files to avoid leftover files
+            rm -rf ~/frontend-src/src ~/frontend-src/public
             unzip -o ~/frontend.zip -d ~/frontend-src
             cd ~/frontend-src
 
