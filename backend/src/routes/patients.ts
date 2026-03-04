@@ -2,6 +2,7 @@ import express from 'express';
 import { z } from 'zod';
 import path from 'path';
 import { authenticate, requireRole, requireWriteAccess, AuthRequest } from '../middleware/auth';
+import { authorizePatientAccess, canAccessPatient } from '../middleware/authorizePatientAccess';
 import { prisma } from '../prisma';
 import { writeAuditLog } from '../services/auditService';
 import fs from 'fs';
@@ -34,9 +35,20 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
     const skip = (pageNum - 1) * limitNum;
     const isArchived = archived === 'true';
 
-    const where: any = {
-      isArchived,
-    };
+    const where: any = { isArchived };
+
+    // [C-1] Defence-in-depth: scope list query to accessible patients
+    const user = req.user!;
+    if (user.role !== 'ADMIN') {
+      if (user.clinicId) where.clinicId = user.clinicId;
+      if (user.role === 'DOCTOR') {
+        // DOCTOR sees only their assigned patients (or unassigned = null)
+        where.OR = [
+          { assignedDoctorId: user.id },
+          { assignedDoctorId: null },
+        ];
+      }
+    }
 
     if (search) {
       const searchStr = search as string;
@@ -128,7 +140,7 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
 });
 
 // Get patient by ID
-router.get('/:id', authenticate, async (req: AuthRequest, res, next) => {
+router.get('/:id', authenticate, authorizePatientAccess, async (req: AuthRequest, res, next) => {
   try {
     const { id } = req.params;
 
@@ -201,7 +213,7 @@ router.post('/', authenticate, requireWriteAccess(), async (req: AuthRequest, re
 });
 
 // Update patient (DOCTOR/ADMIN only - ASSISTANT cannot update patients)
-router.put('/:id', authenticate, requireWriteAccess(), async (req: AuthRequest, res, next) => {
+router.put('/:id', authenticate, requireWriteAccess(), authorizePatientAccess, async (req: AuthRequest, res, next) => {
   try {
     const { id } = req.params;
     const data = patientSchema.parse(req.body);
@@ -228,7 +240,7 @@ router.put('/:id', authenticate, requireWriteAccess(), async (req: AuthRequest, 
 });
 
 // Archive patient (soft delete) (DOCTOR/ADMIN only - ASSISTANT cannot archive patients)
-router.delete('/:id', authenticate, requireWriteAccess(), async (req: AuthRequest, res, next) => {
+router.delete('/:id', authenticate, requireWriteAccess(), authorizePatientAccess, async (req: AuthRequest, res, next) => {
   try {
     const { id } = req.params;
 
@@ -251,7 +263,7 @@ router.delete('/:id', authenticate, requireWriteAccess(), async (req: AuthReques
 });
 
 // Restore archived patient (DOCTOR/ADMIN only)
-router.post('/:id/restore', authenticate, requireWriteAccess(), async (req: AuthRequest, res, next) => {
+router.post('/:id/restore', authenticate, requireWriteAccess(), authorizePatientAccess, async (req: AuthRequest, res, next) => {
   try {
     const { id } = req.params;
 

@@ -6,6 +6,7 @@ import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken';
 import { authenticate, requireWriteAccess, AuthRequest } from '../middleware/auth';
+import { canAccessPatient } from '../middleware/authorizePatientAccess';
 import { prisma } from '../prisma';
 
 const router = express.Router();
@@ -26,12 +27,14 @@ const storage = multer.diskStorage({
   },
 });
 
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB Limit
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB — [C-5] hard limit before magic bytes check
   fileFilter: (req, file, cb) => {
-    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (allowedMimeTypes.includes(file.mimetype)) {
+    // [C-5] Layer 1: MIME type from Content-Type header (quick, not tamper-proof)
+    if (ALLOWED_MIME_TYPES.includes(file.mimetype)) {
       cb(null, true);
     } else {
       cb(new Error('Niedozwolony format pliku. Tylko JPG, PNG, WEBP.'));
@@ -63,11 +66,47 @@ router.get('/secure/:filename', async (req, res) => {
   if (!token) return res.status(401).json({ error: 'Brak tokenu autoryzacyjnego' });
 
   try {
-    jwt.verify(token, process.env.JWT_SECRET as string);
-    const normalizedFilePath = path.resolve(path.join(normalizedUploadDir, filename));
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as { userId: string; role: string };
 
-    if (!normalizedFilePath.startsWith(normalizedUploadDir)) {
+    // [C-3] Path traversal prevention: validate filename BEFORE constructing any path
+    const safeName = path.basename(filename);
+    if (!safeName || safeName !== filename || safeName.startsWith('.')) {
+      return res.status(400).json({ error: 'Nieprawidłowa nazwa pliku' });
+    }
+    const normalizedFilePath = path.resolve(path.join(normalizedUploadDir, safeName));
+    // defence-in-depth: confirm resolved path is still inside the upload dir
+    if (!normalizedFilePath.startsWith(normalizedUploadDir + path.sep)) {
+      console.warn(`[SECURITY] Path traversal attempt: filename="${filename}" resolved="${normalizedFilePath}" ip=${req.ip}`);
       return res.status(403).json({ error: 'Odmowa dostępu: niedozwolona ścieżka' });
+    }
+
+    // [C-2] Every file must have a DB record tied to a patient the user may access
+    const photo = await prisma.scalpPhoto.findFirst({
+      where: {
+        OR: [{ filename: safeName }, { filePath: { endsWith: safeName } }],
+      },
+      include: {
+        patient: { select: { id: true, clinicId: true, assignedDoctorId: true } },
+      },
+    });
+    if (!photo) {
+      console.warn(`[SECURITY] File without DB record requested: filename="${safeName}" ip=${req.ip}`);
+      return res.status(404).json({ error: 'Plik nie znaleziony' });
+    }
+
+    // Fetch full user info for access check (clinicId not in JWT payload)
+    const dbUser = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: { id: true, role: true, clinicId: true },
+    });
+    if (!dbUser) return res.status(401).json({ error: 'Użytkownik nie istnieje' });
+
+    if (!canAccessPatient(dbUser, photo.patient)) {
+      console.warn(
+        `[SECURITY] Unauthorized file download: userId=${dbUser.id} role=${dbUser.role} ` +
+          `filename="${safeName}" patientId=${photo.patient.id} ip=${req.ip}`,
+      );
+      return res.status(403).json({ error: 'Brak dostępu do tego pliku' });
     }
 
     if (!fs.existsSync(normalizedFilePath)) {
@@ -76,10 +115,13 @@ router.get('/secure/:filename', async (req, res) => {
 
     res.setHeader('Cache-Control', 'private, max-age=86400');
     // Security header to avoid XSS issues
-    res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+    res.setHeader('Content-Disposition', `inline; filename="${safeName}"`);
     res.sendFile(normalizedFilePath);
   } catch (err) {
-    return res.status(401).json({ error: 'Nieprawidłowy lub wygasły token' });
+    if (err instanceof jwt.JsonWebTokenError) {
+      return res.status(401).json({ error: 'Nieprawidłowy lub wygasły token' });
+    }
+    throw err;
   }
 });
 
@@ -93,13 +135,38 @@ router.post('/patient/:patientId', authenticate, upload.single('photo'), async (
       return res.status(400).json({ error: 'Brak pliku lub zły format' });
     }
 
+    // [C-5] Layer 2: magic bytes check — validates actual file content, not HTTP header
+    try {
+      const { fileTypeFromBuffer } = await import('file-type');
+      const headerBuf = Buffer.alloc(Math.min(4100, req.file.size));
+      const fd = fs.openSync(req.file.path, 'r');
+      fs.readSync(fd, headerBuf, 0, headerBuf.length, 0);
+      fs.closeSync(fd);
+      const detected = await fileTypeFromBuffer(headerBuf);
+      if (!detected || !ALLOWED_MIME_TYPES.includes(detected.mime)) {
+        fs.unlinkSync(req.file.path);
+        return res.status(400).json({ error: 'Nieprawidłowy typ pliku. Dozwolone: JPEG, PNG, WebP.' });
+      }
+    } catch (typeError) {
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ error: 'Nie można zweryfikować typu pliku.' });
+    }
+
     const patient = await prisma.patient.findUnique({
       where: { id: patientId },
+      select: { id: true, clinicId: true, assignedDoctorId: true },
     });
 
     if (!patient) {
       fs.unlinkSync(req.file.path);
       return res.status(404).json({ error: 'Pacjent nie znaleziony' });
+    }
+
+    // [C-1] / [C-2] access check before creating photo record
+    if (!canAccessPatient(req.user!, patient)) {
+      fs.unlinkSync(req.file.path);
+      console.warn(`[SECURITY] Unauthorized photo upload: userId=${req.user!.id} patientId=${patientId} ip=${req.ip}`);
+      return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
     }
 
     try {
@@ -135,6 +202,17 @@ router.get('/patient/:patientId', authenticate, async (req: AuthRequest, res, ne
   try {
     const { patientId } = req.params;
     const { consultationId } = req.query;
+
+    // [C-1] access check
+    const patientCheck = await prisma.patient.findUnique({
+      where: { id: patientId },
+      select: { id: true, clinicId: true, assignedDoctorId: true },
+    });
+    if (!patientCheck) return res.status(404).json({ error: 'Pacjent nie znaleziony' });
+    if (!canAccessPatient(req.user!, patientCheck)) {
+      console.warn(`[SECURITY] Unauthorized photos list: userId=${req.user!.id} patientId=${patientId} ip=${req.ip}`);
+      return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
+    }
 
     const where: any = { patientId };
     if (consultationId) {

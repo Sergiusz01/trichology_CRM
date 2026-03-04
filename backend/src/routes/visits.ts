@@ -2,6 +2,7 @@ import express from 'express';
 import { VisitStatus } from '@prisma/client';
 import { z } from 'zod';
 import { authenticate, requireWriteAccess, AuthRequest } from '../middleware/auth';
+import { canAccessPatient } from '../middleware/authorizePatientAccess';
 import { prisma } from '../prisma';
 import { writeAuditLog } from '../services/auditService';
 import { sendEmail } from '../services/emailService';
@@ -42,6 +43,19 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
     const { start, end } = req.query;
 
     const where: any = {};
+
+    // [C-1] Defence-in-depth: scope to accessible visits
+    const user = req.user!;
+    if (user.role !== 'ADMIN') {
+      if (user.clinicId) where.patient = { clinicId: user.clinicId };
+      if (user.role === 'DOCTOR') {
+        where.patient = {
+          ...(where.patient || {}),
+          OR: [{ assignedDoctorId: user.id }, { assignedDoctorId: null }],
+        };
+      }
+    }
+
     if (start && end) {
       const startDate = new Date(start as string);
       const endDate = new Date(end as string);
@@ -82,6 +96,17 @@ router.get('/patient/:id', authenticate, async (req: AuthRequest, res, next) => 
   try {
     const { id } = req.params;
 
+    // [C-1] verify patient access
+    const patient = await prisma.patient.findUnique({
+      where: { id },
+      select: { id: true, clinicId: true, assignedDoctorId: true },
+    });
+    if (!patient) return res.status(404).json({ error: 'Pacjent nie znaleziony' });
+    if (!canAccessPatient(req.user!, patient)) {
+      console.warn(`[SECURITY] Unauthorized visit list: userId=${req.user!.id} patientId=${id} ip=${req.ip}`);
+      return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
+    }
+
     const visits = await prisma.visit.findMany({
       where: { patientId: id },
       orderBy: { data: 'desc' },
@@ -112,12 +137,21 @@ router.get('/upcoming', authenticate, async (req: AuthRequest, res, next) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // [C-1] scope upcoming visits to user's accessible patients
+    const upcomingUser = req.user!;
+    const upcomingPatientFilter: any = {};
+    if (upcomingUser.role !== 'ADMIN') {
+      if (upcomingUser.clinicId) upcomingPatientFilter.clinicId = upcomingUser.clinicId;
+      if (upcomingUser.role === 'DOCTOR') {
+        upcomingPatientFilter.OR = [{ assignedDoctorId: upcomingUser.id }, { assignedDoctorId: null }];
+      }
+    }
+
     const visits = await prisma.visit.findMany({
       where: {
-        data: {
-          gte: today,
-        },
+        data: { gte: today },
         status: 'ZAPLANOWANA',
+        ...(Object.keys(upcomingPatientFilter).length > 0 ? { patient: upcomingPatientFilter } : {}),
       },
       include: {
         patient: {
@@ -238,6 +272,16 @@ router.get('/:id', authenticate, async (req: AuthRequest, res, next) => {
       return res.status(404).json({ error: 'Wizyta nie znaleziona' });
     }
 
+    // [C-1] access check via the visit's patient
+    const visitPatient = await prisma.patient.findUnique({
+      where: { id: visit.patientId },
+      select: { id: true, clinicId: true, assignedDoctorId: true },
+    });
+    if (!visitPatient || !canAccessPatient(req.user!, visitPatient)) {
+      console.warn(`[SECURITY] Unauthorized visit GET: userId=${req.user!.id} visitId=${id} ip=${req.ip}`);
+      return res.status(403).json({ error: 'Brak dostępu do tej wizyty' });
+    }
+
     res.json({ visit });
   } catch (error) {
     next(error);
@@ -249,13 +293,20 @@ router.post('/', authenticate, async (req: AuthRequest, res, next) => {
   try {
     const data = visitSchema.parse(req.body);
 
-    // Verify patient exists
+    // Verify patient exists AND access
     const patient = await prisma.patient.findUnique({
       where: { id: data.patientId },
+      select: { id: true, clinicId: true, assignedDoctorId: true },
     });
 
     if (!patient) {
       return res.status(404).json({ error: 'Pacjent nie znaleziony' });
+    }
+
+    // [C-1] access check
+    if (!canAccessPatient(req.user!, patient)) {
+      console.warn(`[SECURITY] Unauthorized visit POST: userId=${req.user!.id} patientId=${data.patientId} ip=${req.ip}`);
+      return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
     }
 
     // Parse the date - the frontend sends a local datetime string (YYYY-MM-DDTHH:mm)
@@ -354,6 +405,16 @@ router.put('/:id', authenticate, requireWriteAccess(), async (req: AuthRequest, 
 
     if (!existingVisit) {
       return res.status(404).json({ error: 'Wizyta nie znaleziona' });
+    }
+
+    // [C-1] access check via visit's patient
+    const visitPatientForUpdate = await prisma.patient.findUnique({
+      where: { id: existingVisit.patientId },
+      select: { id: true, clinicId: true, assignedDoctorId: true },
+    });
+    if (!visitPatientForUpdate || !canAccessPatient(req.user!, visitPatientForUpdate)) {
+      console.warn(`[SECURITY] Unauthorized visit PUT: userId=${req.user!.id} visitId=${id} ip=${req.ip}`);
+      return res.status(403).json({ error: 'Brak dostępu do tej wizyty' });
     }
 
     // Parse date if provided
@@ -475,6 +536,16 @@ router.patch('/:id/status', authenticate, async (req: AuthRequest, res, next) =>
       return res.status(404).json({ error: 'Wizyta nie znaleziona' });
     }
 
+    // [C-1] access check
+    const statusPatient = await prisma.patient.findUnique({
+      where: { id: existingVisit.patientId },
+      select: { id: true, clinicId: true, assignedDoctorId: true },
+    });
+    if (!statusPatient || !canAccessPatient(req.user!, statusPatient)) {
+      console.warn(`[SECURITY] Unauthorized status PATCH: userId=${req.user!.id} visitId=${id} ip=${req.ip}`);
+      return res.status(403).json({ error: 'Brak dostępu do tej wizyty' });
+    }
+
     const visit = await prisma.visit.update({
       where: { id },
       data: { status: status as VisitStatus },
@@ -512,6 +583,16 @@ router.delete('/:id', authenticate, requireWriteAccess(), async (req: AuthReques
 
     if (!visit) {
       return res.status(404).json({ error: 'Wizyta nie znaleziona' });
+    }
+
+    // [C-1] access check
+    const deletePatient = await prisma.patient.findUnique({
+      where: { id: visit.patientId },
+      select: { id: true, clinicId: true, assignedDoctorId: true },
+    });
+    if (!deletePatient || !canAccessPatient(req.user!, deletePatient)) {
+      console.warn(`[SECURITY] Unauthorized visit DELETE: userId=${req.user!.id} visitId=${id} ip=${req.ip}`);
+      return res.status(403).json({ error: 'Brak dostępu do tej wizyty' });
     }
 
     await prisma.visit.delete({

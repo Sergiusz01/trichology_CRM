@@ -14,6 +14,7 @@ model User {
   passwordHash        String
   role                UserRole        @default(DOCTOR)
   isActive            Boolean         @default(true)
+  clinicId            String?         // [C-1] clinic isolation; null = unrestricted (single-clinic compat)
   createdAt           DateTime        @default(now())
   updatedAt           DateTime        @updatedAt
   createdCarePlans    CarePlan[]      @relation("CarePlanCreator")
@@ -28,36 +29,43 @@ model User {
   pdfJobs               PdfJob[]        @relation("PdfJobRequestor")
   auditLogs             AuditLog[]
   pushSubscriptions     PushSubscription[]
+  assignedPatients      Patient[]       @relation("PatientAssignedDoctor")
 
   @@index([email])
+  @@index([clinicId])
 }
 
 model Patient {
-  id            String          @id @default(cuid())
-  firstName     String
-  lastName      String
-  age           Int?
-  gender        Gender?
-  occupation    String?
-  address       String?
-  phone         String?
-  email         String?
-  notes         String?         @db.Text
-  isArchived    Boolean         @default(false)
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-  carePlans     CarePlan[]
-  consultations Consultation[]
-  emailHistory  EmailHistory[]
-  reminders     EmailReminder[]
-  labResults    LabResult[]
-  scalpPhotos   ScalpPhoto[]
-  visits        Visit[]
+  id               String          @id @default(cuid())
+  firstName        String
+  lastName         String
+  age              Int?
+  gender           Gender?
+  occupation       String?
+  address          String?
+  phone            String?
+  email            String?
+  notes            String?         @db.Text
+  isArchived       Boolean         @default(false)
+  clinicId         String?         // [C-1] clinic isolation; null = single-clinic compat
+  assignedDoctorId String?         // [C-1] DOCTOR sees only their assigned patients
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  carePlans        CarePlan[]
+  consultations    Consultation[]
+  emailHistory     EmailHistory[]
+  reminders        EmailReminder[]
+  labResults       LabResult[]
+  scalpPhotos      ScalpPhoto[]
+  visits           Visit[]
+  assignedDoctor   User?           @relation("PatientAssignedDoctor", fields: [assignedDoctorId], references: [id], onDelete: SetNull)
 
   @@index([firstName, lastName])
   @@index([phone])
   @@index([email])
   @@index([isArchived])
+  @@index([clinicId])
+  @@index([assignedDoctorId])
 }
 
 model Visit {

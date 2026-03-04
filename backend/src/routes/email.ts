@@ -1,6 +1,7 @@
 import express from 'express';
 import { z } from 'zod';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { canAccessPatient } from '../middleware/authorizePatientAccess';
 import { sendEmail } from '../services/emailService';
 import { generateConsultationPDF, generateCarePlanPDF } from '../services/pdfService';
 import { renderEmailTemplate, TemplateVariables } from '../utils/emailTemplateRenderer';
@@ -71,7 +72,7 @@ router.post('/consultation/:id', authenticate, async (req: AuthRequest, res, nex
     const consultation = await prisma.consultation.findUnique({
       where: { id },
       include: {
-        patient: true,
+        patient: true, // includes clinicId & assignedDoctorId
         doctor: {
           select: { id: true, name: true, email: true },
         },
@@ -80,6 +81,12 @@ router.post('/consultation/:id', authenticate, async (req: AuthRequest, res, nex
 
     if (!consultation) {
       return res.status(404).json({ error: 'Konsultacja nie znaleziona' });
+    }
+
+    // [C-4] access check — user must have access to the patient
+    if (!canAccessPatient(req.user!, consultation.patient as any)) {
+      console.warn(`[SECURITY] Unauthorized consultation email: userId=${req.user!.id} consultationId=${id} ip=${req.ip}`);
+      return res.status(403).json({ error: 'Brak dostępu do tej konsultacji' });
     }
 
     const pdfBuffer = await generateConsultationPDF(consultation);
@@ -194,7 +201,7 @@ router.post('/care-plan/:id', authenticate, async (req: AuthRequest, res, next) 
     const carePlan = await prisma.carePlan.findUnique({
       where: { id },
       include: {
-        patient: true,
+        patient: true, // includes clinicId & assignedDoctorId
         createdBy: {
           select: { id: true, name: true, email: true },
         },
@@ -206,6 +213,12 @@ router.post('/care-plan/:id', authenticate, async (req: AuthRequest, res, next) 
 
     if (!carePlan) {
       return res.status(404).json({ error: 'Plan opieki nie znaleziony' });
+    }
+
+    // [C-4] access check
+    if (!canAccessPatient(req.user!, carePlan.patient as any)) {
+      console.warn(`[SECURITY] Unauthorized care-plan email: userId=${req.user!.id} carePlanId=${id} ip=${req.ip}`);
+      return res.status(403).json({ error: 'Brak dostępu do tego planu opieki' });
     }
 
     const pdfBuffer = await generateCarePlanPDF(carePlan);
@@ -617,11 +630,19 @@ router.post('/send', authenticate, upload.array('attachments', 5), async (req: A
     // Get patient
     const patient = await prisma.patient.findUnique({
       where: { id: data.patientId },
+      select: { id: true, firstName: true, lastName: true, email: true, clinicId: true, assignedDoctorId: true },
     });
 
     if (!patient) {
       cleanupUploadedFiles();
       return res.status(404).json({ error: 'Pacjent nie znaleziony' });
+    }
+
+    // [C-4] Verify user has access to this patient before sending email on their behalf
+    if (!canAccessPatient(req.user!, patient)) {
+      cleanupUploadedFiles();
+      console.warn(`[SECURITY] Unauthorized email send: userId=${req.user!.id} patientId=${data.patientId} ip=${req.ip}`);
+      return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
     }
 
     const recipientEmail = data.recipientEmail || patient.email;
@@ -776,12 +797,18 @@ router.post('/lab-result/:id', authenticate, async (req: AuthRequest, res, next)
     const labResult = await prisma.labResult.findUnique({
       where: { id },
       include: {
-        patient: true,
+        patient: true, // includes clinicId & assignedDoctorId
       },
     });
 
     if (!labResult) {
       return res.status(404).json({ error: 'Wynik badania nie znaleziony' });
+    }
+
+    // [C-4] access check
+    if (!canAccessPatient(req.user!, labResult.patient as any)) {
+      console.warn(`[SECURITY] Unauthorized lab-result email: userId=${req.user!.id} labResultId=${id} ip=${req.ip}`);
+      return res.status(403).json({ error: 'Brak dostępu do tego wyniku badania' });
     }
 
     // Create a simple text summary of lab results
@@ -925,12 +952,18 @@ router.post('/scalp-photo/:id', authenticate, async (req: AuthRequest, res, next
     const scalpPhoto = await prisma.scalpPhoto.findUnique({
       where: { id },
       include: {
-        patient: true,
+        patient: true, // includes clinicId & assignedDoctorId
       },
     });
 
     if (!scalpPhoto) {
       return res.status(404).json({ error: 'Zdjęcie nie znalezione' });
+    }
+
+    // [C-4] access check
+    if (!canAccessPatient(req.user!, scalpPhoto.patient as any)) {
+      console.warn(`[SECURITY] Unauthorized scalp-photo email: userId=${req.user!.id} photoId=${id} ip=${req.ip}`);
+      return res.status(403).json({ error: 'Brak dostępu do tego zdjęcia' });
     }
 
     // Resolve file path — support both new (filename) and legacy (filePath) storage

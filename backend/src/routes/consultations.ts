@@ -1,6 +1,7 @@
 import express from 'express';
 import { z } from 'zod';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
+import { canAccessPatient } from '../middleware/authorizePatientAccess';
 import { generateConsultationPDF } from '../services/pdfService';
 import { writeAuditLog } from '../services/auditService';
 import { prisma } from '../prisma';
@@ -161,12 +162,30 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
     const skip = (pageNum - 1) * limitNum;
 
     const where: any = {};
+
+    // [C-1] Defence-in-depth: scope list to accessible consultations
+    const user = req.user!;
+    if (user.role !== 'ADMIN') {
+      if (user.role === 'DOCTOR') {
+        where.doctorId = user.id;
+      }
+      if (user.clinicId) {
+        where.patient = { clinicId: user.clinicId };
+      }
+    }
+
     if (search) {
       const s = (search as string).trim();
-      where.OR = [
-        { patient: { firstName: { contains: s, mode: 'insensitive' } } },
-        { patient: { lastName: { contains: s, mode: 'insensitive' } } },
+      const searchFilter = [
+        { patient: { firstName: { contains: s, mode: 'insensitive' as const } } },
+        { patient: { lastName: { contains: s, mode: 'insensitive' as const } } },
       ];
+      // Merge search with existing patient filter via AND
+      where.AND = [
+        where.patient ? { patient: where.patient } : {},
+        { OR: searchFilter },
+      ];
+      delete where.patient;
     }
 
     const [consultations, total] = await Promise.all([
@@ -203,6 +222,17 @@ router.get('/patient/:patientId', authenticate, async (req: AuthRequest, res, ne
   try {
     const { patientId } = req.params;
 
+    // [C-1] verify patient access before returning their consultations
+    const patient = await prisma.patient.findUnique({
+      where: { id: patientId },
+      select: { id: true, clinicId: true, assignedDoctorId: true },
+    });
+    if (!patient) return res.status(404).json({ error: 'Pacjent nie znaleziony' });
+    if (!canAccessPatient(req.user!, patient)) {
+      console.warn(`[SECURITY] Unauthorized consultation list: userId=${req.user!.id} patientId=${patientId} ip=${req.ip}`);
+      return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
+    }
+
     const consultations = await prisma.consultation.findMany({
       where: {
         patientId,
@@ -230,7 +260,7 @@ router.get('/:id/pdf', authenticate, async (req: AuthRequest, res, next) => {
     const consultation = await prisma.consultation.findUnique({
       where: { id },
       include: {
-        patient: true,
+        patient: { include: { assignedDoctor: false } }, // includes clinicId & assignedDoctorId
         doctor: {
           select: { id: true, name: true, email: true },
         },
@@ -243,6 +273,12 @@ router.get('/:id/pdf', authenticate, async (req: AuthRequest, res, next) => {
 
     if (!consultation) {
       return res.status(404).json({ error: 'Konsultacja nie znaleziona' });
+    }
+
+    // [C-1] verify access to the patient this consultation belongs to
+    if (!canAccessPatient(req.user!, consultation.patient as any)) {
+      console.warn(`[SECURITY] Unauthorized consultation PDF: userId=${req.user!.id} consultationId=${id} ip=${req.ip}`);
+      return res.status(403).json({ error: 'Brak dostępu do tej konsultacji' });
     }
 
     const pdfBuffer = await generateConsultationPDF(consultation);
@@ -263,7 +299,7 @@ router.get('/:id', authenticate, async (req: AuthRequest, res, next) => {
     const consultation = await prisma.consultation.findUnique({
       where: { id },
       include: {
-        patient: true,
+        patient: true, // includes clinicId & assignedDoctorId
         doctor: {
           select: { id: true, name: true, email: true },
         },
@@ -275,6 +311,12 @@ router.get('/:id', authenticate, async (req: AuthRequest, res, next) => {
 
     if (!consultation) {
       return res.status(404).json({ error: 'Konsultacja nie znaleziona' });
+    }
+
+    // [C-1] access check
+    if (!canAccessPatient(req.user!, consultation.patient as any)) {
+      console.warn(`[SECURITY] Unauthorized consultation GET: userId=${req.user!.id} consultationId=${id} ip=${req.ip}`);
+      return res.status(403).json({ error: 'Brak dostępu do tej konsultacji' });
     }
 
     res.json({ consultation });
@@ -507,6 +549,18 @@ router.post('/', authenticate, async (req: AuthRequest, res, next) => {
 router.put('/:id', authenticate, async (req: AuthRequest, res, next) => {
   try {
     const { id } = req.params;
+
+    // [C-1] access check before any mutation
+    const existing = await prisma.consultation.findUnique({
+      where: { id },
+      include: { patient: { select: { id: true, clinicId: true, assignedDoctorId: true } } },
+    });
+    if (!existing) return res.status(404).json({ error: 'Konsultacja nie znaleziona' });
+    if (!canAccessPatient(req.user!, existing.patient)) {
+      console.warn(`[SECURITY] Unauthorized consultation PUT: userId=${req.user!.id} consultationId=${id} ip=${req.ip}`);
+      return res.status(403).json({ error: 'Brak dostępu do tej konsultacji' });
+    }
+
     const data = consultationSchema.omit({ patientId: true }).parse(req.body);
 
     const preparedData = prepareDataForDb(data);
@@ -587,6 +641,17 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res, next) => {
   try {
     const { id } = req.params;
 
+    // [C-1] access check before soft-delete
+    const existing = await prisma.consultation.findUnique({
+      where: { id },
+      include: { patient: { select: { id: true, clinicId: true, assignedDoctorId: true } } },
+    });
+    if (!existing) return res.status(404).json({ error: 'Konsultacja nie znaleziona' });
+    if (!canAccessPatient(req.user!, existing.patient)) {
+      console.warn(`[SECURITY] Unauthorized consultation DELETE: userId=${req.user!.id} consultationId=${id} ip=${req.ip}`);
+      return res.status(403).json({ error: 'Brak dostępu do tej konsultacji' });
+    }
+
     const consultation = await prisma.consultation.update({
       where: { id },
       data: { isArchived: true },
@@ -614,10 +679,17 @@ router.post('/:id/restore', authenticate, async (req: AuthRequest, res, next) =>
 
     const consultation = await prisma.consultation.findUnique({
       where: { id },
+      include: { patient: { select: { id: true, clinicId: true, assignedDoctorId: true } } },
     });
 
     if (!consultation) {
       return res.status(404).json({ error: 'Konsultacja nie znaleziona' });
+    }
+
+    // [C-1] access check
+    if (!canAccessPatient(req.user!, consultation.patient)) {
+      console.warn(`[SECURITY] Unauthorized consultation restore: userId=${req.user!.id} consultationId=${id} ip=${req.ip}`);
+      return res.status(403).json({ error: 'Brak dostępu do tej konsultacji' });
     }
 
     if (!consultation.isArchived) {

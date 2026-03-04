@@ -1,9 +1,9 @@
-import app from '../app';
 import request from 'supertest';
 import path from 'path';
 import fs from 'fs';
 import jwt from 'jsonwebtoken';
-import { prisma } from '../prisma';
+import app from '../../app';
+import { prisma } from '../../prisma';
 
 describe('Scalp Photos Upload & Download API', () => {
     let token: string;

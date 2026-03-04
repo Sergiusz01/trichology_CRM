@@ -7,6 +7,12 @@ export interface AuthRequest extends Request {
     id: string;
     email: string;
     role: string;
+    clinicId?: string | null;  // [C-1] clinic isolation
+  };
+  patient?: {                   // populated by authorizePatientAccess middleware
+    id: string;
+    clinicId?: string | null;
+    assignedDoctorId?: string | null;
   };
 }
 
@@ -37,7 +43,7 @@ export const authenticate = async (
     // Verify user still exists
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
-      select: { id: true, email: true, role: true },
+      select: { id: true, email: true, role: true, clinicId: true }, // [C-1] include clinicId
     });
 
     if (!user) {
@@ -48,6 +54,7 @@ export const authenticate = async (
       id: user.id,
       email: user.email,
       role: user.role,
+      clinicId: user.clinicId, // [C-1]
     };
 
     next();
