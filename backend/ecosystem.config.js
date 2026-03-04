@@ -4,8 +4,7 @@ require('dotenv').config({ path: path.join(__dirname, '.env') });
 module.exports = {
   apps: [{
     name: 'trichology-backend',
-    script: 'npm',
-    args: 'run start',
+    script: 'dist/index.js',
     cwd: '/root/backend-src',
     instances: 1,
     autorestart: true,
