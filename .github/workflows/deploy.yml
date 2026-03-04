@@ -68,10 +68,11 @@ jobs:
             npx prisma db push --accept-data-loss
             npm run build
 
-            # Reload PM2 using ecosystem.config.js so all env vars (incl. IMAP, VAPID)
-            # are re-read from .env and NODE_ENV=production is guaranteed.
-            # startOrReload: starts fresh if not running, reloads (0-downtime) if already up.
-            pm2 startOrReload ecosystem.config.js --update-env
+            # Delete + start (not startOrReload) so that ecosystem.config.js changes
+            # (including script path) are always picked up by PM2.
+            pm2 delete trichology-backend 2>/dev/null || true
+            pm2 start ecosystem.config.js
+            pm2 save
 
             # Deploy latest Nginx config (includes X-Robots-Tag noindex header)
             cp ~/backend-src/nginx-trichology.conf /etc/nginx/sites-available/trichology

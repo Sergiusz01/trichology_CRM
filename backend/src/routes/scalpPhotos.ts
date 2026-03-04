@@ -71,6 +71,7 @@ router.get('/secure/:filename', async (req, res) => {
     // [C-3] Path traversal prevention: validate filename BEFORE constructing any path
     const safeName = path.basename(filename);
     if (!safeName || safeName !== filename || safeName.startsWith('.')) {
+      console.warn(`[SECURITY] Path traversal attempt: filename="${filename}" ip=${req.ip} userId=${decoded.userId}`);
       return res.status(400).json({ error: 'Nieprawidłowa nazwa pliku' });
     }
     const normalizedFilePath = path.resolve(path.join(normalizedUploadDir, safeName));
