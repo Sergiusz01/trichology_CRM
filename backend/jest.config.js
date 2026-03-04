@@ -8,6 +8,8 @@ module.exports = {
   transform: {
     '^.+\\.ts$': ['ts-jest', { tsconfig: 'tsconfig.json' }],
   },
+  // Set JWT env vars before any test module is loaded
+  setupFiles: ['<rootDir>/jest.setup-env.js'],
   // Extend timeout for integration tests that hit the database
   testTimeout: 30000,
 };

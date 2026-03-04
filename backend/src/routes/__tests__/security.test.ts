@@ -165,6 +165,36 @@ describe('[C-1] IDOR — patient access control', () => {
     expect(res.status).toBe(403);
   });
 
+  // ── Regression: assignedDoctorId = null must NOT be accessible to any DOCTOR ──
+
+  it('Unassigned patient (assignedDoctorId=null) is blocked for DOCTOR [403]', async () => {
+    // Create a patient with no assignedDoctorId
+    const unassigned = await createPatient({ clinicId: 'clinic-A' }); // no assignedDoctorId
+    createdPatientIds.push(unassigned.id);
+
+    const res = await request(app)
+      .get(`/api/patients/${unassigned.id}`)
+      .set('Authorization', `Bearer ${doctorAToken}`);
+    expect(res.status).toBe(403);
+  });
+
+  it('Unassigned patient does NOT appear in DOCTOR list', async () => {
+    // All previously-created patientIds that are unassigned
+    const res = await request(app)
+      .get('/api/patients?limit=500')
+      .set('Authorization', `Bearer ${doctorAToken}`);
+    expect(res.status).toBe(200);
+    const ids: string[] = res.body.patients.map((p: any) => p.id);
+    // patientA is assigned to doctorA — should be visible
+    expect(ids).toContain(patientA.id);
+    // patientB (clinic-B) and all unassigned patients — must NOT appear
+    expect(ids).not.toContain(patientB.id);
+    // No patient with assignedDoctorId !== doctorA.id may appear
+    const unexpectedDoctorIds = res.body.patients
+      .filter((p: any) => p.assignedDoctorId && p.assignedDoctorId !== doctorA.id);
+    expect(unexpectedDoctorIds).toHaveLength(0);
+  });
+
 });
 
 // ═══════════════════════════════════════════════════════════════════════════

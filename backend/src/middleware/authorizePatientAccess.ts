@@ -3,9 +3,9 @@
  *
  * Access rules:
  *   ADMIN   → full access
- *   ASSISTANT → restricted to own clinic (if clinicId set)
- *   DOCTOR  → restricted to own clinic AND only their assigned patients
- *             (patients with assignedDoctorId = null are accessible to all clinic members)
+ *   ASSISTANT → all patients (single-clinic app; clinicId filter if set)
+ *   DOCTOR  → ONLY patients explicitly assigned to them (assignedDoctorId = doctor.id).
+ *             Unassigned patients (assignedDoctorId = null) are NOT visible to doctors.
  */
 import { Response, NextFunction } from 'express';
 import { prisma } from '../prisma';
@@ -33,13 +33,8 @@ export function canAccessPatient(
   }
 
   // DOCTOR may only see patients explicitly assigned to them.
-  // Unassigned patients (assignedDoctorId = null) are visible to all clinic members.
-  if (
-    user.role === 'DOCTOR' &&
-    patient.assignedDoctorId !== null &&
-    patient.assignedDoctorId !== undefined &&
-    patient.assignedDoctorId !== user.id
-  ) {
+  // Unassigned patients (assignedDoctorId = null) are NOT accessible to any doctor.
+  if (user.role === 'DOCTOR' && patient.assignedDoctorId !== user.id) {
     return false;
   }
 

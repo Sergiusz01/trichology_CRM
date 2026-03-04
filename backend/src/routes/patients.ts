@@ -42,11 +42,8 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
     if (user.role !== 'ADMIN') {
       if (user.clinicId) where.clinicId = user.clinicId;
       if (user.role === 'DOCTOR') {
-        // DOCTOR sees only their assigned patients (or unassigned = null)
-        where.OR = [
-          { assignedDoctorId: user.id },
-          { assignedDoctorId: null },
-        ];
+        // DOCTOR sees ONLY their explicitly assigned patients
+        where.assignedDoctorId = user.id;
       }
     }
 

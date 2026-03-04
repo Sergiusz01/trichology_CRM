@@ -51,7 +51,7 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
       if (user.role === 'DOCTOR') {
         where.patient = {
           ...(where.patient || {}),
-          OR: [{ assignedDoctorId: user.id }, { assignedDoctorId: null }],
+          assignedDoctorId: user.id,
         };
       }
     }
@@ -143,7 +143,7 @@ router.get('/upcoming', authenticate, async (req: AuthRequest, res, next) => {
     if (upcomingUser.role !== 'ADMIN') {
       if (upcomingUser.clinicId) upcomingPatientFilter.clinicId = upcomingUser.clinicId;
       if (upcomingUser.role === 'DOCTOR') {
-        upcomingPatientFilter.OR = [{ assignedDoctorId: upcomingUser.id }, { assignedDoctorId: null }];
+        upcomingPatientFilter.assignedDoctorId = upcomingUser.id;
       }
     }
 
