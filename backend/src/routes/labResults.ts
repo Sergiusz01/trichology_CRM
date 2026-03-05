@@ -139,7 +139,7 @@ router.get('/patient/:patientId', authenticate, async (req: AuthRequest, res, ne
       select: { id: true, clinicId: true, assignedDoctorId: true },
     });
     if (!patient) return res.status(404).json({ error: 'Pacjent nie znaleziony' });
-    if (!canAccessPatient(req.user!, patient)) {
+    if (!(await canAccessPatient(req.user!, patient))) {
       console.warn(`[SECURITY] Unauthorized labResult list access: userId=${req.user!.id} patientId=${patientId} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
     }
@@ -184,7 +184,7 @@ router.get('/:id/pdf', authenticate, async (req: AuthRequest, res, next) => {
       return res.status(404).json({ error: 'Wynik laboratoryjny nie znaleziony' });
     }
 
-    if (!canAccessPatient(req.user!, labResult.patient)) {
+    if (!(await canAccessPatient(req.user!, labResult.patient))) {
       console.warn(`[SECURITY] Unauthorized labResult PDF: userId=${req.user!.id} labResultId=${id} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
     }
@@ -219,7 +219,7 @@ router.get('/:id', authenticate, async (req: AuthRequest, res, next) => {
       return res.status(404).json({ error: 'Wynik laboratoryjny nie znaleziony' });
     }
 
-    if (!canAccessPatient(req.user!, labResult.patient)) {
+    if (!(await canAccessPatient(req.user!, labResult.patient))) {
       console.warn(`[SECURITY] Unauthorized labResult access: userId=${req.user!.id} labResultId=${id} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
     }
@@ -242,7 +242,7 @@ router.post('/', authenticate, async (req: AuthRequest, res, next) => {
       return res.status(404).json({ error: 'Pacjent nie znaleziony' });
     }
 
-    if (!canAccessPatient(req.user!, patient)) {
+    if (!(await canAccessPatient(req.user!, patient))) {
       console.warn(`[SECURITY] Unauthorized labResult create: userId=${req.user!.id} patientId=${data.patientId} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
     }
@@ -315,7 +315,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res, next) => {
       return res.status(404).json({ error: 'Wynik laboratoryjny nie znaleziony' });
     }
 
-    if (!canAccessPatient(req.user!, existing.patient)) {
+    if (!(await canAccessPatient(req.user!, existing.patient))) {
       console.warn(`[SECURITY] Unauthorized labResult update: userId=${req.user!.id} labResultId=${id} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
     }
@@ -385,7 +385,7 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res, next) => {
       include: { patient: { select: { id: true, clinicId: true, assignedDoctorId: true } } },
     });
     if (!existing) return res.status(404).json({ error: 'Wynik laboratoryjny nie znaleziony' });
-    if (!canAccessPatient(req.user!, existing.patient)) {
+    if (!(await canAccessPatient(req.user!, existing.patient))) {
       console.warn(`[SECURITY] Unauthorized labResult archive: userId=${req.user!.id} labResultId=${id} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
     }
@@ -424,7 +424,7 @@ router.post('/:id/restore', authenticate, async (req: AuthRequest, res, next) =>
       return res.status(404).json({ error: 'Wynik badania nie znaleziony' });
     }
 
-    if (!canAccessPatient(req.user!, labResult.patient)) {
+    if (!(await canAccessPatient(req.user!, labResult.patient))) {
       console.warn(`[SECURITY] Unauthorized labResult restore: userId=${req.user!.id} labResultId=${id} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
     }

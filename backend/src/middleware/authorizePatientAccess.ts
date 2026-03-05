@@ -19,15 +19,13 @@ interface PatientAccessInfo {
 }
 
 /**
- * Pure helper — returns true if user may access the given patient record.
- * @param hasExplicitAccess – true when a DoctorPatientAccess row exists for this user+patient.
- *                            Defaults to false for backwards compatibility.
+ * Async helper — returns true if user may access the given patient record.
+ * Automatically checks the DoctorPatientAccess table for DOCTOR role.
  */
-export function canAccessPatient(
+export async function canAccessPatient(
   user: { id: string; role: string; clinicId?: string | null },
   patient: PatientAccessInfo,
-  hasExplicitAccess = false,
-): boolean {
+): Promise<boolean> {
   if (user.role === 'ADMIN') return true;
 
   // Clinic isolation: only enforced when BOTH sides have a clinicId set
@@ -38,7 +36,13 @@ export function canAccessPatient(
   // DOCTOR may see patients assigned to them OR patients with explicit access grant
   if (user.role === 'DOCTOR') {
     if (patient.assignedDoctorId === user.id) return true;
-    if (hasExplicitAccess) return true;
+
+    // Check explicit DoctorPatientAccess table
+    const accessGrant = await prisma.doctorPatientAccess.findUnique({
+      where: { doctorId_patientId: { doctorId: user.id, patientId: patient.id } },
+    });
+    if (accessGrant) return true;
+
     return false;
   }
 
@@ -76,16 +80,7 @@ export async function authorizePatientAccess(
 
     const user = req.user!;
 
-    // For DOCTOR role, check the explicit DoctorPatientAccess table
-    let hasExplicitAccess = false;
-    if (user.role === 'DOCTOR' && patient.assignedDoctorId !== user.id) {
-      const accessGrant = await prisma.doctorPatientAccess.findUnique({
-        where: { doctorId_patientId: { doctorId: user.id, patientId } },
-      });
-      hasExplicitAccess = !!accessGrant;
-    }
-
-    if (!canAccessPatient(user, patient, hasExplicitAccess)) {
+    if (!(await canAccessPatient(user, patient))) {
       console.warn(
         `[SECURITY] Unauthorized patient access: userId=${user.id} role=${user.role} ` +
         `patientId=${patientId} ip=${req.ip}`,

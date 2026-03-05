@@ -228,7 +228,7 @@ router.get('/patient/:patientId', authenticate, async (req: AuthRequest, res, ne
       select: { id: true, clinicId: true, assignedDoctorId: true },
     });
     if (!patient) return res.status(404).json({ error: 'Pacjent nie znaleziony' });
-    if (!canAccessPatient(req.user!, patient)) {
+    if (!(await canAccessPatient(req.user!, patient))) {
       console.warn(`[SECURITY] Unauthorized consultation list: userId=${req.user!.id} patientId=${patientId} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
     }
@@ -276,7 +276,7 @@ router.get('/:id/pdf', authenticate, async (req: AuthRequest, res, next) => {
     }
 
     // [C-1] verify access to the patient this consultation belongs to
-    if (!canAccessPatient(req.user!, consultation.patient as any)) {
+    if (!(await canAccessPatient(req.user!, consultation.patient as any))) {
       console.warn(`[SECURITY] Unauthorized consultation PDF: userId=${req.user!.id} consultationId=${id} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tej konsultacji' });
     }
@@ -314,7 +314,7 @@ router.get('/:id', authenticate, async (req: AuthRequest, res, next) => {
     }
 
     // [C-1] access check
-    if (!canAccessPatient(req.user!, consultation.patient as any)) {
+    if (!(await canAccessPatient(req.user!, consultation.patient as any))) {
       console.warn(`[SECURITY] Unauthorized consultation GET: userId=${req.user!.id} consultationId=${id} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tej konsultacji' });
     }
@@ -556,7 +556,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res, next) => {
       include: { patient: { select: { id: true, clinicId: true, assignedDoctorId: true } } },
     });
     if (!existing) return res.status(404).json({ error: 'Konsultacja nie znaleziona' });
-    if (!canAccessPatient(req.user!, existing.patient)) {
+    if (!(await canAccessPatient(req.user!, existing.patient))) {
       console.warn(`[SECURITY] Unauthorized consultation PUT: userId=${req.user!.id} consultationId=${id} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tej konsultacji' });
     }
@@ -647,7 +647,7 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res, next) => {
       include: { patient: { select: { id: true, clinicId: true, assignedDoctorId: true } } },
     });
     if (!existing) return res.status(404).json({ error: 'Konsultacja nie znaleziona' });
-    if (!canAccessPatient(req.user!, existing.patient)) {
+    if (!(await canAccessPatient(req.user!, existing.patient))) {
       console.warn(`[SECURITY] Unauthorized consultation DELETE: userId=${req.user!.id} consultationId=${id} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tej konsultacji' });
     }
@@ -687,7 +687,7 @@ router.post('/:id/restore', authenticate, async (req: AuthRequest, res, next) =>
     }
 
     // [C-1] access check
-    if (!canAccessPatient(req.user!, consultation.patient)) {
+    if (!(await canAccessPatient(req.user!, consultation.patient))) {
       console.warn(`[SECURITY] Unauthorized consultation restore: userId=${req.user!.id} consultationId=${id} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tej konsultacji' });
     }

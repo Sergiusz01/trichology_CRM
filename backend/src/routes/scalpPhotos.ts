@@ -129,7 +129,7 @@ router.get('/secure/:filename', async (req, res) => {
     });
     if (!dbUser) return res.status(401).json({ error: 'Użytkownik nie istnieje' });
 
-    if (!canAccessPatient(dbUser, photo.patient)) {
+    if (!(await canAccessPatient(dbUser, photo.patient))) {
       console.warn(
         `[SECURITY] Unauthorized file download: userId=${dbUser.id} role=${dbUser.role} ` +
           `filename="${safeName}" patientId=${photo.patient.id} ip=${req.ip}`,
@@ -181,7 +181,7 @@ router.post('/patient/:patientId', authenticate, upload.single('photo'), async (
     }
 
     // [C-1] / [C-2] access check before creating photo record
-    if (!canAccessPatient(req.user!, patient)) {
+    if (!(await canAccessPatient(req.user!, patient))) {
       fs.unlinkSync(req.file.path);
       console.warn(`[SECURITY] Unauthorized photo upload: userId=${req.user!.id} patientId=${patientId} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
@@ -227,7 +227,7 @@ router.get('/patient/:patientId', authenticate, async (req: AuthRequest, res, ne
       select: { id: true, clinicId: true, assignedDoctorId: true },
     });
     if (!patientCheck) return res.status(404).json({ error: 'Pacjent nie znaleziony' });
-    if (!canAccessPatient(req.user!, patientCheck)) {
+    if (!(await canAccessPatient(req.user!, patientCheck))) {
       console.warn(`[SECURITY] Unauthorized photos list: userId=${req.user!.id} patientId=${patientId} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
     }

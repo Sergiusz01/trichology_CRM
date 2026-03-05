@@ -51,7 +51,10 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
       if (user.role === 'DOCTOR') {
         where.patient = {
           ...(where.patient || {}),
-          assignedDoctorId: user.id,
+          OR: [
+            { assignedDoctorId: user.id },
+            { doctorAccess: { some: { doctorId: user.id } } },
+          ],
         };
       }
     }
@@ -102,7 +105,7 @@ router.get('/patient/:id', authenticate, async (req: AuthRequest, res, next) => 
       select: { id: true, clinicId: true, assignedDoctorId: true },
     });
     if (!patient) return res.status(404).json({ error: 'Pacjent nie znaleziony' });
-    if (!canAccessPatient(req.user!, patient)) {
+    if (!(await canAccessPatient(req.user!, patient))) {
       console.warn(`[SECURITY] Unauthorized visit list: userId=${req.user!.id} patientId=${id} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
     }
@@ -143,7 +146,10 @@ router.get('/upcoming', authenticate, async (req: AuthRequest, res, next) => {
     if (upcomingUser.role !== 'ADMIN') {
       if (upcomingUser.clinicId) upcomingPatientFilter.clinicId = upcomingUser.clinicId;
       if (upcomingUser.role === 'DOCTOR') {
-        upcomingPatientFilter.assignedDoctorId = upcomingUser.id;
+        upcomingPatientFilter.OR = [
+          { assignedDoctorId: upcomingUser.id },
+          { doctorAccess: { some: { doctorId: upcomingUser.id } } },
+        ];
       }
     }
 
@@ -277,7 +283,7 @@ router.get('/:id', authenticate, async (req: AuthRequest, res, next) => {
       where: { id: visit.patientId },
       select: { id: true, clinicId: true, assignedDoctorId: true },
     });
-    if (!visitPatient || !canAccessPatient(req.user!, visitPatient)) {
+    if (!visitPatient || !(await canAccessPatient(req.user!, visitPatient))) {
       console.warn(`[SECURITY] Unauthorized visit GET: userId=${req.user!.id} visitId=${id} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tej wizyty' });
     }
@@ -304,7 +310,7 @@ router.post('/', authenticate, async (req: AuthRequest, res, next) => {
     }
 
     // [C-1] access check
-    if (!canAccessPatient(req.user!, patient)) {
+    if (!(await canAccessPatient(req.user!, patient))) {
       console.warn(`[SECURITY] Unauthorized visit POST: userId=${req.user!.id} patientId=${data.patientId} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
     }
@@ -412,7 +418,7 @@ router.put('/:id', authenticate, requireWriteAccess(), async (req: AuthRequest, 
       where: { id: existingVisit.patientId },
       select: { id: true, clinicId: true, assignedDoctorId: true },
     });
-    if (!visitPatientForUpdate || !canAccessPatient(req.user!, visitPatientForUpdate)) {
+    if (!visitPatientForUpdate || !(await canAccessPatient(req.user!, visitPatientForUpdate))) {
       console.warn(`[SECURITY] Unauthorized visit PUT: userId=${req.user!.id} visitId=${id} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tej wizyty' });
     }
@@ -541,7 +547,7 @@ router.patch('/:id/status', authenticate, async (req: AuthRequest, res, next) =>
       where: { id: existingVisit.patientId },
       select: { id: true, clinicId: true, assignedDoctorId: true },
     });
-    if (!statusPatient || !canAccessPatient(req.user!, statusPatient)) {
+    if (!statusPatient || !(await canAccessPatient(req.user!, statusPatient))) {
       console.warn(`[SECURITY] Unauthorized status PATCH: userId=${req.user!.id} visitId=${id} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tej wizyty' });
     }
@@ -590,7 +596,7 @@ router.delete('/:id', authenticate, requireWriteAccess(), async (req: AuthReques
       where: { id: visit.patientId },
       select: { id: true, clinicId: true, assignedDoctorId: true },
     });
-    if (!deletePatient || !canAccessPatient(req.user!, deletePatient)) {
+    if (!deletePatient || !(await canAccessPatient(req.user!, deletePatient))) {
       console.warn(`[SECURITY] Unauthorized visit DELETE: userId=${req.user!.id} visitId=${id} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tej wizyty' });
     }
