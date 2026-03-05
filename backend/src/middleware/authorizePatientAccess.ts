@@ -4,8 +4,9 @@
  * Access rules:
  *   ADMIN   → full access
  *   ASSISTANT → all patients (single-clinic app; clinicId filter if set)
- *   DOCTOR  → ONLY patients explicitly assigned to them (assignedDoctorId = doctor.id).
- *             Unassigned patients (assignedDoctorId = null) are NOT visible to doctors.
+ *   DOCTOR  → patients assigned to them (assignedDoctorId = doctor.id)
+ *             OR patients with explicit DoctorPatientAccess grant.
+ *             Patients with neither are NOT visible to the doctor.
  */
 import { Response, NextFunction } from 'express';
 import { prisma } from '../prisma';
@@ -19,11 +20,13 @@ interface PatientAccessInfo {
 
 /**
  * Pure helper — returns true if user may access the given patient record.
- * Reusable from within route handlers (e.g. consultation, visit routes).
+ * @param hasExplicitAccess – true when a DoctorPatientAccess row exists for this user+patient.
+ *                            Defaults to false for backwards compatibility.
  */
 export function canAccessPatient(
   user: { id: string; role: string; clinicId?: string | null },
   patient: PatientAccessInfo,
+  hasExplicitAccess = false,
 ): boolean {
   if (user.role === 'ADMIN') return true;
 
@@ -32,9 +35,10 @@ export function canAccessPatient(
     return false;
   }
 
-  // DOCTOR may only see patients explicitly assigned to them.
-  // Unassigned patients (assignedDoctorId = null) are NOT accessible to any doctor.
-  if (user.role === 'DOCTOR' && patient.assignedDoctorId !== user.id) {
+  // DOCTOR may see patients assigned to them OR patients with explicit access grant
+  if (user.role === 'DOCTOR') {
+    if (patient.assignedDoctorId === user.id) return true;
+    if (hasExplicitAccess) return true;
     return false;
   }
 
@@ -71,10 +75,20 @@ export async function authorizePatientAccess(
     }
 
     const user = req.user!;
-    if (!canAccessPatient(user, patient)) {
+
+    // For DOCTOR role, check the explicit DoctorPatientAccess table
+    let hasExplicitAccess = false;
+    if (user.role === 'DOCTOR' && patient.assignedDoctorId !== user.id) {
+      const accessGrant = await prisma.doctorPatientAccess.findUnique({
+        where: { doctorId_patientId: { doctorId: user.id, patientId } },
+      });
+      hasExplicitAccess = !!accessGrant;
+    }
+
+    if (!canAccessPatient(user, patient, hasExplicitAccess)) {
       console.warn(
         `[SECURITY] Unauthorized patient access: userId=${user.id} role=${user.role} ` +
-          `patientId=${patientId} ip=${req.ip}`,
+        `patientId=${patientId} ip=${req.ip}`,
       );
       return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
     }

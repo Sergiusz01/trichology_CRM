@@ -30,6 +30,7 @@ model User {
   auditLogs             AuditLog[]
   pushSubscriptions     PushSubscription[]
   assignedPatients      Patient[]       @relation("PatientAssignedDoctor")
+  patientAccess         DoctorPatientAccess[] @relation("DoctorAccess")
 
   @@index([email])
   @@index([clinicId])
@@ -59,6 +60,7 @@ model Patient {
   scalpPhotos      ScalpPhoto[]
   visits           Visit[]
   assignedDoctor   User?           @relation("PatientAssignedDoctor", fields: [assignedDoctorId], references: [id], onDelete: SetNull)
+  doctorAccess     DoctorPatientAccess[] @relation("PatientAccess")
 
   @@index([firstName, lastName])
   @@index([phone])
@@ -659,4 +661,17 @@ model PushSubscription {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model DoctorPatientAccess {
+  id        String   @id @default(cuid())
+  doctorId  String
+  patientId String
+  grantedAt DateTime @default(now())
+  doctor    User     @relation("DoctorAccess", fields: [doctorId], references: [id], onDelete: Cascade)
+  patient   Patient  @relation("PatientAccess", fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@unique([doctorId, patientId])
+  @@index([doctorId])
+  @@index([patientId])
 }

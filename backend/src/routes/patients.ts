@@ -42,19 +42,29 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
     if (user.role !== 'ADMIN') {
       if (user.clinicId) where.clinicId = user.clinicId;
       if (user.role === 'DOCTOR') {
-        // DOCTOR sees ONLY their explicitly assigned patients
-        where.assignedDoctorId = user.id;
+        // DOCTOR sees patients assigned to them OR with explicit DoctorPatientAccess
+        // Use AND to safely combine with search OR below
+        where.AND = where.AND || [];
+        where.AND.push({
+          OR: [
+            { assignedDoctorId: user.id },
+            { doctorAccess: { some: { doctorId: user.id } } },
+          ],
+        });
       }
     }
 
     if (search) {
       const searchStr = search as string;
-      where.OR = [
-        { firstName: { contains: searchStr, mode: 'insensitive' } },
-        { lastName: { contains: searchStr, mode: 'insensitive' } },
-        { phone: { contains: searchStr, mode: 'insensitive' } },
-        { email: { contains: searchStr, mode: 'insensitive' } },
-      ];
+      where.AND = where.AND || [];
+      where.AND.push({
+        OR: [
+          { firstName: { contains: searchStr, mode: 'insensitive' } },
+          { lastName: { contains: searchStr, mode: 'insensitive' } },
+          { phone: { contains: searchStr, mode: 'insensitive' } },
+          { email: { contains: searchStr, mode: 'insensitive' } },
+        ],
+      });
     }
 
     let patients;
