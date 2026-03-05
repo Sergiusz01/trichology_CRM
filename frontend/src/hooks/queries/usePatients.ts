@@ -10,6 +10,8 @@ export interface Patient {
   phone?: string;
   email?: string;
   isArchived: boolean;
+  assignedDoctorId?: string | null;
+  assignedDoctor?: { id: string; name: string } | null;
 }
 
 export interface PatientsParams {

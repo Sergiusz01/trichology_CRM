@@ -439,6 +439,20 @@ export default function PatientsPage() {
                             </Typography>
                           </Box>
                         )}
+                        {user?.role !== 'DOCTOR' && (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Person sx={{ fontSize: 16, color: 'text.secondary' }} />
+                            {patient.assignedDoctor ? (
+                              <Typography variant="body2" color="primary.main" sx={{ fontWeight: 500 }}>
+                                {patient.assignedDoctor.name}
+                              </Typography>
+                            ) : (
+                              <Typography variant="body2" color="text.disabled" sx={{ fontStyle: 'italic' }}>
+                                Nieprzypisany
+                              </Typography>
+                            )}
+                          </Box>
+                        )}
                       </Stack>
                     </Box>
                   </AppCard>
@@ -490,6 +504,15 @@ export default function PatientsPage() {
                   }}>
                     Email
                   </TableCell>
+                  {user?.role !== 'DOCTOR' && (
+                    <TableCell sx={{
+                      fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                      whiteSpace: 'nowrap',
+                      display: { xs: 'none', md: 'table-cell' },
+                    }}>
+                      Lekarz prowadzący
+                    </TableCell>
+                  )}
                   <TableCell align="right" sx={{
                     fontSize: { xs: '0.75rem', sm: '0.875rem' },
                     whiteSpace: 'nowrap',
@@ -565,6 +588,26 @@ export default function PatientsPage() {
                       }}>
                         {patient.email || '-'}
                       </TableCell>
+                      {user?.role !== 'DOCTOR' && (
+                        <TableCell sx={{
+                          display: { xs: 'none', md: 'table-cell' },
+                        }}>
+                          {patient.assignedDoctor ? (
+                            <Chip
+                              avatar={<Avatar sx={{ width: 20, height: 20, fontSize: '0.6rem' }}>{patient.assignedDoctor.name.charAt(0)}</Avatar>}
+                              label={patient.assignedDoctor.name}
+                              size="small"
+                              variant="outlined"
+                              color="primary"
+                              sx={{ fontSize: '0.75rem', maxWidth: 160 }}
+                            />
+                          ) : (
+                            <Typography variant="body2" color="text.disabled" sx={{ fontSize: '0.8rem' }}>
+                              Nieprzypisany
+                            </Typography>
+                          )}
+                        </TableCell>
+                      )}
                       <TableCell align="right">
                         <IconButton
                           size="small"

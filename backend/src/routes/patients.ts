@@ -88,6 +88,8 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
           isArchived: true,
           createdAt: true,
           updatedAt: true,
+          assignedDoctorId: true,
+          assignedDoctor: { select: { id: true, name: true } },
           visits: {
             orderBy: { data: 'desc' },
             take: 1,
@@ -128,6 +130,8 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
           isArchived: true,
           createdAt: true,
           updatedAt: true,
+          assignedDoctorId: true,
+          assignedDoctor: { select: { id: true, name: true } },
         },
       });
     }
