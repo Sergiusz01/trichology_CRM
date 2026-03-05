@@ -9,6 +9,7 @@ const router = express.Router();
 const updateProfileSchema = z.object({
   name: z.string().min(1, 'Imię jest wymagane').optional(),
   email: z.string().email('Nieprawidłowy adres email').optional(),
+  clinicPhone: z.string().regex(/^\+?[\d\s\-]{7,15}$/, 'Nieprawidłowy format numeru telefonu').optional().nullable(),
 });
 
 const changePasswordSchema = z.object({
@@ -26,6 +27,7 @@ router.get('/me', authenticate, async (req: AuthRequest, res, next) => {
         name: true,
         email: true,
         role: true,
+        clinicPhone: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -64,6 +66,7 @@ router.put('/me', authenticate, async (req: AuthRequest, res, next) => {
     const updateData: any = {};
     if (data.name) updateData.name = data.name;
     if (data.email) updateData.email = data.email;
+    if (data.clinicPhone !== undefined) updateData.clinicPhone = data.clinicPhone;
 
     const user = await prisma.user.update({
       where: { id: userId },
@@ -73,6 +76,7 @@ router.put('/me', authenticate, async (req: AuthRequest, res, next) => {
         name: true,
         email: true,
         role: true,
+        clinicPhone: true,
         createdAt: true,
         updatedAt: true,
       },

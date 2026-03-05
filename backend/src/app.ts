@@ -29,6 +29,7 @@ import webPushRoutes from './routes/webPush';
 import reportsRoutes from './routes/reports';
 import usersRoutes from './routes/users';
 import systemRoutes from './routes/system';
+import appointmentActionsRoutes from './routes/appointmentActions';
 import { errorHandler } from './middleware/errorHandler';
 import { apiLimiter } from './middleware/rateLimit';
 
@@ -127,6 +128,7 @@ app.use('/api/web-push', webPushRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/system', systemRoutes);
+app.use('/api/appointment-actions', appointmentActionsRoutes);
 
 app.use(errorHandler);
 

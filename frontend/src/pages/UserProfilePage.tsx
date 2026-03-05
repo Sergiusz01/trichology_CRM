@@ -12,7 +12,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import { Save, Lock } from '@mui/icons-material';
+import { Save, Lock, Phone } from '@mui/icons-material';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -24,6 +24,7 @@ export default function UserProfilePage() {
   const [profileData, setProfileData] = useState({
     name: '',
     email: '',
+    clinicPhone: '',
   });
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -40,6 +41,7 @@ export default function UserProfilePage() {
       setProfileData({
         name: user.name || '',
         email: user.email || '',
+        clinicPhone: (user as any).clinicPhone || '',
       });
     }
   }, [user]);
@@ -93,9 +95,9 @@ export default function UserProfilePage() {
 
   return (
     <Box sx={{ width: '100%', maxWidth: '100%', overflow: 'hidden' }}>
-      <Typography 
-        variant="h4" 
-        sx={{ 
+      <Typography
+        variant="h4"
+        sx={{
           mb: { xs: 2, sm: 3 },
           fontSize: { xs: '1.5rem', sm: '2rem' },
           fontWeight: 'bold',
@@ -135,6 +137,19 @@ export default function UserProfilePage() {
                   fullWidth
                   required
                   margin="normal"
+                />
+
+                <TextField
+                  label="Numer telefonu kliniki"
+                  value={profileData.clinicPhone}
+                  onChange={(e) => setProfileData({ ...profileData, clinicPhone: e.target.value })}
+                  fullWidth
+                  margin="normal"
+                  placeholder="+48 123 456 789"
+                  helperText="Numer widoczny w emailach dla pacjentów (przycisk zmiany terminu)"
+                  InputProps={{
+                    startAdornment: <Phone sx={{ mr: 1, color: 'text.secondary' }} />,
+                  }}
                 />
 
                 <Box sx={{ mt: 2 }}>
@@ -197,20 +212,20 @@ export default function UserProfilePage() {
                 />
 
                 <Box sx={{ mt: 2 }}>
-              <Button
-                type="submit"
-                variant="contained"
-                startIcon={<Lock />}
-                disabled={loading}
-                fullWidth={isMobile}
-                size={isMobile ? 'medium' : 'large'}
-                sx={{ 
-                  fontSize: { xs: '0.875rem', sm: '1rem' },
-                  py: { xs: 1.25, sm: 1.5 },
-                }}
-              >
-                {isMobile ? 'Zmień hasło' : 'Zmień hasło'}
-              </Button>
+                  <Button
+                    type="submit"
+                    variant="contained"
+                    startIcon={<Lock />}
+                    disabled={loading}
+                    fullWidth={isMobile}
+                    size={isMobile ? 'medium' : 'large'}
+                    sx={{
+                      fontSize: { xs: '0.875rem', sm: '1rem' },
+                      py: { xs: 1.25, sm: 1.5 },
+                    }}
+                  >
+                    {isMobile ? 'Zmień hasło' : 'Zmień hasło'}
+                  </Button>
                 </Box>
               </form>
             </CardContent>

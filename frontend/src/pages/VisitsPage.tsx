@@ -40,9 +40,11 @@ import { useVisits } from '../hooks/queries/useVisits';
 
 const VISIT_STATUS_CONFIG = {
     ZAPLANOWANA: { color: '#007AFF', bgColor: alpha('#007AFF', 0.1), label: 'Zaplanowana' },
+    POTWIERDZONA: { color: '#1976d2', bgColor: alpha('#1976d2', 0.1), label: 'Potwierdzona' },
     ODBYTA: { color: '#34C759', bgColor: alpha('#34C759', 0.1), label: 'Odbyta' },
     NIEOBECNOSC: { color: '#FF9500', bgColor: alpha('#FF9500', 0.1), label: 'Nieobecność' },
     ANULOWANA: { color: '#FF3B30', bgColor: alpha('#FF3B30', 0.1), label: 'Anulowana' },
+    ZMIANA_TERMINU: { color: '#FF6B00', bgColor: alpha('#FF6B00', 0.1), label: 'Zmiana terminu' },
 };
 
 export default function VisitsPage() {
@@ -168,9 +170,11 @@ export default function VisitsPage() {
                             >
                                 <MenuItem value="">Wszystkie</MenuItem>
                                 <MenuItem value="ZAPLANOWANA">Zaplanowana</MenuItem>
+                                <MenuItem value="POTWIERDZONA">Potwierdzona</MenuItem>
                                 <MenuItem value="ODBYTA">Odbyta</MenuItem>
                                 <MenuItem value="NIEOBECNOSC">Nieobecność</MenuItem>
                                 <MenuItem value="ANULOWANA">Anulowana</MenuItem>
+                                <MenuItem value="ZMIANA_TERMINU">Zmiana terminu</MenuItem>
                             </Select>
                         </FormControl>
                     </Grid>

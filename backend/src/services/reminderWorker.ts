@@ -3,6 +3,9 @@ import { generateCarePlanPDF } from './pdfService';
 import { getLogoHTML } from '../utils/logo';
 import { prisma } from '../prisma';
 import { generateVisitICS, generateGoogleCalendarURL, generateOutlookCalendarURL } from '../utils/icalendar';
+import { generateActionToken } from './appointmentTokenService';
+
+const APP_BASE_URL = (): string => process.env.APP_BASE_URL || process.env.FRONTEND_URL || 'http://localhost:3001';
 
 const checkAndSendReminders = async () => {
   try {
@@ -116,6 +119,55 @@ const checkAndSendReminders = async () => {
   }
 };
 
+/**
+ * Build action buttons HTML for visit reminder emails.
+ * Includes: Confirm, Cancel, Reschedule (with clinic phone tel: link).
+ */
+function buildActionButtonsHTML(visitId: string, clinicPhone?: string | null): string {
+  const baseUrl = APP_BASE_URL();
+  const confirmToken = generateActionToken(visitId, 'confirm');
+  const cancelToken = generateActionToken(visitId, 'cancel');
+  const rescheduleToken = generateActionToken(visitId, 'reschedule');
+
+  const confirmUrl = `${baseUrl}/api/appointment-actions?token=${confirmToken}`;
+  const cancelUrl = `${baseUrl}/api/appointment-actions?token=${cancelToken}`;
+
+  // Reschedule: if clinic phone is set, use tel: link; otherwise use the API endpoint
+  const rescheduleUrl = clinicPhone
+    ? `tel:${clinicPhone.replace(/\s/g, '')}`
+    : `${baseUrl}/api/appointment-actions?token=${rescheduleToken}`;
+
+  return `
+    <div style="margin: 30px 0; text-align: center;">
+      <p style="font-weight: bold; margin-bottom: 20px; color: #333;">Zarządzaj swoją wizytą:</p>
+      <div style="margin-bottom: 12px;">
+        <a href="${confirmUrl}" 
+           style="display: inline-block; padding: 14px 32px; background-color: #4caf50; color: white; 
+                  text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 15px;
+                  min-width: 200px;">
+          ✅ Potwierdź wizytę
+        </a>
+      </div>
+      <div style="margin-bottom: 12px;">
+        <a href="${cancelUrl}" 
+           style="display: inline-block; padding: 14px 32px; background-color: #f44336; color: white; 
+                  text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 15px;
+                  min-width: 200px;">
+          ❌ Anuluj wizytę
+        </a>
+      </div>
+      <div>
+        <a href="${rescheduleUrl}" 
+           style="display: inline-block; padding: 14px 32px; background-color: #ff9800; color: white; 
+                  text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 15px;
+                  min-width: 200px;">
+          🔄 Zmień termin${clinicPhone ? ` (tel: ${clinicPhone})` : ''}
+        </a>
+      </div>
+    </div>
+  `;
+}
+
 const checkAndSendVisitReminders = async () => {
   try {
     const now = new Date();
@@ -125,7 +177,7 @@ const checkAndSendVisitReminders = async () => {
 
     const upcomingVisits = await prisma.visit.findMany({
       where: {
-        status: 'ZAPLANOWANA',
+        status: { in: ['ZAPLANOWANA', 'POTWIERDZONA'] },
         data: { gt: now },
         OR: [
           { data: { lte: in7Days }, reminder7DaysSent: false },
@@ -134,7 +186,14 @@ const checkAndSendVisitReminders = async () => {
         ]
       },
       include: {
-        patient: { select: { id: true, firstName: true, email: true } },
+        patient: {
+          select: {
+            id: true,
+            firstName: true,
+            email: true,
+            assignedDoctorId: true,
+          },
+        },
       }
     });
 
@@ -145,19 +204,41 @@ const checkAndSendVisitReminders = async () => {
       const daysDiff = timeDiff / (1000 * 60 * 60 * 24);
 
       let reminderType = '';
-      let updateData = {};
+      let updateData: any = {};
+      let includeActionButtons = false;
 
       if (daysDiff <= 1 && !visit.reminder1DaySent) {
         reminderType = '1 dzień';
         updateData = { reminder1DaySent: true, reminder3DaysSent: true, reminder7DaysSent: true };
+        includeActionButtons = !visit.actionTokenSent; // Only include actions once
       } else if (daysDiff <= 3 && !visit.reminder3DaysSent) {
         reminderType = '3 dni';
         updateData = { reminder3DaysSent: true, reminder7DaysSent: true };
+        includeActionButtons = !visit.actionTokenSent;
       } else if (daysDiff <= 7 && !visit.reminder7DaysSent) {
         reminderType = '7 dni';
         updateData = { reminder7DaysSent: true };
       } else {
         continue;
+      }
+
+      // Get assigned doctor's clinic phone for reschedule tel: link
+      let clinicPhone: string | null = null;
+      if (includeActionButtons && visit.patient.assignedDoctorId) {
+        const doctor = await prisma.user.findUnique({
+          where: { id: visit.patient.assignedDoctorId },
+          select: { clinicPhone: true },
+        });
+        clinicPhone = doctor?.clinicPhone || null;
+      }
+
+      // Build action buttons HTML (only for reminders that should include them)
+      const actionButtonsHTML = includeActionButtons
+        ? buildActionButtonsHTML(visit.id, clinicPhone)
+        : '';
+
+      if (includeActionButtons) {
+        updateData.actionTokenSent = true;
       }
 
       // Hack to adapt visit object to calendar format generator which expects a structure
@@ -198,6 +279,8 @@ const checkAndSendVisitReminders = async () => {
               <p><strong>Godzina:</strong> ${visit.data.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}</p>
             </div>
             
+            ${actionButtonsHTML}
+            
             <div class="calendar-buttons">
               <a href="${googleCalendarURL}" class="calendar-button" target="_blank">Google Calendar</a>
               <a href="${outlookCalendarURL}" class="calendar-button" target="_blank">Outlook</a>
@@ -227,7 +310,21 @@ const checkAndSendVisitReminders = async () => {
           data: updateData
         });
 
-        console.log(`✅ Wysłano przypomnienie (${reminderType}) o wizycie do: ${visit.patient.email}`);
+        // Log reminder event
+        await prisma.visitEvent.create({
+          data: {
+            visitId: visit.id,
+            eventType: 'REMINDER_SENT',
+            createdBy: 'system',
+            payload: {
+              reminderType,
+              includeActionButtons,
+              recipientEmail: visit.patient.email,
+            },
+          },
+        });
+
+        console.log(`✅ Wysłano przypomnienie (${reminderType}) o wizycie do: ${visit.patient.email}${includeActionButtons ? ' [z przyciskami akcji]' : ''}`);
       } catch (e) {
         console.error('Błąd wysyłania automatycznego przypomnienia (wizyta):', e);
       }
@@ -251,5 +348,3 @@ export const startReminderWorker = () => {
     checkAndSendVisitReminders();
   }, 5 * 60 * 1000);
 };
-
-

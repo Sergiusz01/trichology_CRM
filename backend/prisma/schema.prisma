@@ -31,6 +31,7 @@ model User {
   pushSubscriptions     PushSubscription[]
   assignedPatients      Patient[]       @relation("PatientAssignedDoctor")
   patientAccess         DoctorPatientAccess[] @relation("DoctorAccess")
+  clinicPhone           String?
 
   @@index([email])
   @@index([clinicId])
@@ -83,9 +84,11 @@ model Visit {
   reminder7DaysSent Boolean     @default(false)
   reminder3DaysSent Boolean     @default(false)
   reminder1DaySent  Boolean     @default(false)
+  actionTokenSent   Boolean     @default(false)
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
   patient       Patient     @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  events        VisitEvent[]
 
   @@index([patientId])
   @@index([data])
@@ -94,9 +97,25 @@ model Visit {
 
 enum VisitStatus {
   ZAPLANOWANA
+  POTWIERDZONA
   ODBYTA
   NIEOBECNOSC
   ANULOWANA
+  ZMIANA_TERMINU
+}
+
+model VisitEvent {
+  id         String   @id @default(cuid())
+  visitId    String
+  eventType  String   // CONFIRMED, CANCELED, RESCHEDULE_REQUESTED, REMINDER_SENT
+  payload    Json?
+  createdAt  DateTime @default(now())
+  createdBy  String   // "patient_link", "system", userId
+  isRead     Boolean  @default(false)
+  visit      Visit    @relation(fields: [visitId], references: [id], onDelete: Cascade)
+
+  @@index([visitId])
+  @@index([createdAt])
 }
 
 model Consultation {

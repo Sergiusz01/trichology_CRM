@@ -95,6 +95,106 @@ interface WeeklyRevenue {
 
 import { VISIT_STATUS_CONFIG } from '../constants/visitStatus';
 
+interface VisitEvent {
+    id: string;
+    eventType: string;
+    createdAt: string;
+    createdBy: string;
+    isRead: boolean;
+    payload: any;
+    visit: {
+        id: string;
+        rodzajZabiegu: string;
+        data: string;
+        status: string;
+        patientId: string;
+        patient: { id: string; firstName: string; lastName: string };
+    };
+}
+
+const EVENT_CONFIG: Record<string, { label: string; icon: string; color: string }> = {
+    CONFIRMED: { label: 'Potwierdzono wizytę', icon: '✅', color: '#4caf50' },
+    CANCELED: { label: 'Anulowano wizytę', icon: '❌', color: '#f44336' },
+    RESCHEDULE_REQUESTED: { label: 'Prośba o zmianę terminu', icon: '🔄', color: '#ff9800' },
+};
+
+function PatientActivityCard() {
+    const navigate = useNavigate();
+    const { data, isLoading } = useQuery({
+        queryKey: ['visit-events'],
+        queryFn: async () => {
+            const res = await api.get('/dashboard/visit-events?limit=10');
+            return res.data.events as VisitEvent[];
+        },
+        refetchInterval: 60_000,
+    });
+
+    const events = data || [];
+    if (isLoading || events.length === 0) return null;
+
+    return (
+        <Box sx={{ mb: 4, px: { xs: 1, sm: 0 } }}>
+            <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Notifications sx={{ color: '#1976d2' }} />
+                Aktywność pacjentów
+            </Typography>
+            <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, overflow: 'hidden' }}>
+                <List sx={{ p: 0 }}>
+                    {events.map((event, idx) => {
+                        const config = EVENT_CONFIG[event.eventType] || EVENT_CONFIG.CONFIRMED;
+                        const visitDate = new Date(event.visit.data);
+                        const eventDate = new Date(event.createdAt);
+                        return (
+                            <React.Fragment key={event.id}>
+                                {idx > 0 && <Divider />}
+                                <ListItemButton
+                                    onClick={() => navigate(`/patients/${event.visit.patient.id}?tab=visits&visitId=${event.visit.id}`)}
+                                    sx={{
+                                        py: 1.5,
+                                        '&:hover': { bgcolor: alpha(config.color, 0.04) },
+                                        borderLeft: event.isRead ? 'none' : `3px solid ${config.color}`,
+                                    }}
+                                >
+                                    <ListItemAvatar>
+                                        <Avatar sx={{ bgcolor: alpha(config.color, 0.1), fontSize: '1.2rem' }}>
+                                            {config.icon}
+                                        </Avatar>
+                                    </ListItemAvatar>
+                                    <ListItemText
+                                        primary={
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                                    {event.visit.patient.firstName} {event.visit.patient.lastName}
+                                                </Typography>
+                                                <Chip
+                                                    label={config.label}
+                                                    size="small"
+                                                    sx={{
+                                                        bgcolor: alpha(config.color, 0.1),
+                                                        color: config.color,
+                                                        fontWeight: 600,
+                                                        fontSize: '0.7rem',
+                                                        height: 20,
+                                                    }}
+                                                />
+                                            </Box>
+                                        }
+                                        secondary={
+                                            <Typography variant="caption" color="text.secondary">
+                                                {event.visit.rodzajZabiegu} — {visitDate.toLocaleDateString('pl-PL')} · {eventDate.toLocaleString('pl-PL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                            </Typography>
+                                        }
+                                    />
+                                </ListItemButton>
+                            </React.Fragment>
+                        );
+                    })}
+                </List>
+            </Paper>
+        </Box>
+    );
+}
+
 export default function DashboardPage() {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -1004,6 +1104,9 @@ export default function DashboardPage() {
                     </Grid>
                 </Box>
             )}
+
+            {/* Patient Activity — actions from email links */}
+            <PatientActivityCard />
 
             {/* Patients Needing Attention */}
             {(patientsNeedingAttention.length > 0 || inactivePatientsList.length > 0) && (

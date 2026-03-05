@@ -131,7 +131,7 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
               return today;
             })(),
           },
-          status: 'ZAPLANOWANA',
+          status: { in: ['ZAPLANOWANA', 'POTWIERDZONA'] },
         },
         include: {
           patient: {
@@ -573,6 +573,55 @@ router.get('/revenue', authenticate, async (req: AuthRequest, res, next) => {
       },
       timeline,
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Patient actions (visit events) for the dashboard
+router.get('/visit-events', authenticate, async (req: AuthRequest, res, next) => {
+  try {
+    const limit = parseInt(req.query.limit as string) || 20;
+    const events = await prisma.visitEvent.findMany({
+      where: {
+        eventType: { in: ['CONFIRMED', 'CANCELED', 'RESCHEDULE_REQUESTED'] },
+      },
+      include: {
+        visit: {
+          select: {
+            id: true,
+            rodzajZabiegu: true,
+            data: true,
+            status: true,
+            patientId: true,
+            patient: {
+              select: { id: true, firstName: true, lastName: true },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+
+    res.json({ events });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Mark visit events as read
+router.post('/visit-events/mark-read', authenticate, async (req: AuthRequest, res, next) => {
+  try {
+    const { eventIds } = req.body;
+    if (!Array.isArray(eventIds) || eventIds.length === 0) {
+      return res.status(400).json({ error: 'eventIds is required' });
+    }
+    await prisma.visitEvent.updateMany({
+      where: { id: { in: eventIds } },
+      data: { isRead: true },
+    });
+    res.json({ success: true });
   } catch (error) {
     next(error);
   }

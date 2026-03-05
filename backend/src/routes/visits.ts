@@ -14,7 +14,7 @@ const router = express.Router();
 const escapeHtml = (str: string): string =>
   str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-const visitStatusValues = ['ZAPLANOWANA', 'ODBYTA', 'NIEOBECNOSC', 'ANULOWANA'] as const;
+const visitStatusValues = ['ZAPLANOWANA', 'POTWIERDZONA', 'ODBYTA', 'NIEOBECNOSC', 'ANULOWANA', 'ZMIANA_TERMINU'] as const;
 
 const visitSchema = z.object({
   patientId: z.string().min(1, 'ID pacjenta jest wymagane'),
