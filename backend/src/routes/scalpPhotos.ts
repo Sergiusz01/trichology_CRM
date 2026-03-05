@@ -29,6 +29,33 @@ const storage = multer.diskStorage({
 
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
+/**
+ * [C-5] Magic bytes detection — no external dependencies, works in CJS and ESM.
+ * Reads first 12 bytes from disk and checks well-known image signatures.
+ */
+function detectImageMagicBytes(filePath: string): 'image/jpeg' | 'image/png' | 'image/webp' | null {
+  try {
+    const fd = fs.openSync(filePath, 'r');
+    const buf = Buffer.alloc(12);
+    const bytesRead = fs.readSync(fd, buf, 0, 12, 0);
+    fs.closeSync(fd);
+    if (bytesRead < 3) return null;
+    // JPEG: FF D8 FF
+    if (buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF) return 'image/jpeg';
+    // PNG: 89 50 4E 47 0D 0A 1A 0A
+    if (bytesRead >= 8 &&
+        buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47 &&
+        buf[4] === 0x0D && buf[5] === 0x0A && buf[6] === 0x1A && buf[7] === 0x0A) return 'image/png';
+    // WebP: RIFF????WEBP
+    if (bytesRead >= 12 &&
+        buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46 &&
+        buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50) return 'image/webp';
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 const upload = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB — [C-5] hard limit before magic bytes check
@@ -137,15 +164,8 @@ router.post('/patient/:patientId', authenticate, upload.single('photo'), async (
     }
 
     // [C-5] Layer 2: magic bytes check — validates actual file content, not HTTP header
-    try {
-      const { fileTypeFromFile } = await import('file-type');
-      const detected = await fileTypeFromFile(req.file.path);
-      if (!detected || !ALLOWED_MIME_TYPES.includes(detected.mime)) {
-        fs.unlinkSync(req.file.path);
-        return res.status(400).json({ error: 'Nieprawidłowy typ pliku. Dozwolone: JPEG, PNG, WebP.' });
-      }
-    } catch (typeError) {
-      console.error('[C-5] fileTypeFromFile error:', typeError);
+    const detectedMime = detectImageMagicBytes(req.file.path);
+    if (!detectedMime || !ALLOWED_MIME_TYPES.includes(detectedMime)) {
       fs.unlinkSync(req.file.path);
       return res.status(400).json({ error: 'Nieprawidłowy typ pliku. Dozwolone: JPEG, PNG, WebP.' });
     }
