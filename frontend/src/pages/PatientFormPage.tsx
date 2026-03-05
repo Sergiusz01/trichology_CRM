@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -14,11 +14,12 @@ import {
   CircularProgress,
   useMediaQuery,
   useTheme,
+  Divider,
 } from '@mui/material';
 import { useSnackbar } from 'notistack';
 import { api } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
-// Schemat walidacji Zod - POPRAWIONY
 const patientSchema = z.object({
   firstName: z.string()
     .min(2, 'Imię musi mieć minimum 2 znaki')
@@ -28,7 +29,6 @@ const patientSchema = z.object({
     .min(2, 'Nazwisko musi mieć minimum 2 znaki')
     .max(50, 'Nazwisko może mieć maksymalnie 50 znaków')
     .regex(/^[a-zA-ZąćęłńóśźżĄĆĘŁŃÓŚŹŻ\s-]+$/, 'Nazwisko może zawierać tylko litery'),
-  // POPRAWKA: Użyj z.coerce.number() dla automatycznej konwersji string -> number
   age: z.coerce.number()
     .int('Wiek musi być liczbą całkowitą')
     .min(0, 'Wiek nie może być ujemny')
@@ -52,9 +52,16 @@ const patientSchema = z.object({
     .max(200, 'Adres może mieć maksymalnie 200 znaków')
     .optional()
     .or(z.literal('')),
+  assignedDoctorId: z.string().nullable().optional(),
 });
 
 type PatientFormData = z.infer<typeof patientSchema>;
+
+interface Doctor {
+  id: string;
+  name: string;
+  email: string;
+}
 
 export default function PatientFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -62,6 +69,12 @@ export default function PatientFormPage() {
   const { enqueueSnackbar } = useSnackbar();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { user } = useAuth();
+
+  const isAdmin = user?.role === 'ADMIN';
+  const isEdit = !!(id && id !== 'new');
+
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
 
   const {
     control,
@@ -79,11 +92,20 @@ export default function PatientFormPage() {
       email: '',
       occupation: '',
       address: '',
+      assignedDoctorId: null,
     },
   });
 
   useEffect(() => {
-    if (id && id !== 'new') {
+    if (isAdmin) {
+      api.get('/patients/doctors')
+        .then((res) => setDoctors(res.data.doctors))
+        .catch(() => {});
+    }
+  }, [isAdmin]);
+
+  useEffect(() => {
+    if (isEdit) {
       fetchPatient();
     }
   }, [id]);
@@ -101,6 +123,7 @@ export default function PatientFormPage() {
         email: patient.email || '',
         occupation: patient.occupation || '',
         address: patient.address || '',
+        assignedDoctorId: patient.assignedDoctorId ?? null,
       });
     } catch (err: any) {
       enqueueSnackbar(
@@ -112,7 +135,7 @@ export default function PatientFormPage() {
 
   const onSubmit = async (data: PatientFormData) => {
     try {
-      const payload = {
+      const payload: any = {
         firstName: data.firstName,
         lastName: data.lastName,
         age: data.age ? Number(data.age) : undefined,
@@ -123,7 +146,11 @@ export default function PatientFormPage() {
         gender: data.gender || undefined,
       };
 
-      if (id && id !== 'new') {
+      if (isAdmin) {
+        payload.assignedDoctorId = data.assignedDoctorId || null;
+      }
+
+      if (isEdit) {
         await api.put(`/patients/${id}`, payload);
         enqueueSnackbar('Pacjent zaktualizowany pomyślnie', { variant: 'success' });
         navigate(`/patients/${id}`);
@@ -143,7 +170,7 @@ export default function PatientFormPage() {
   return (
     <Box>
       <Typography variant="h4" gutterBottom>
-        {id && id !== 'new' ? 'Edycja pacjenta' : 'Nowy pacjent'}
+        {isEdit ? 'Edycja pacjenta' : 'Nowy pacjent'}
       </Typography>
 
       <Paper sx={{ p: 3 }}>
@@ -284,6 +311,43 @@ export default function PatientFormPage() {
                 )}
               />
             </Grid>
+
+            {isAdmin && (
+              <>
+                <Grid size={{ xs: 12 }}>
+                  <Divider sx={{ my: 1 }} />
+                  <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                    Przypisanie lekarza
+                  </Typography>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Controller
+                    name="assignedDoctorId"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        value={field.value ?? ''}
+                        fullWidth
+                        select
+                        label="Lekarz prowadzący"
+                        helperText="Lekarz odpowiedzialny za tego pacjenta"
+                      >
+                        <MenuItem value="">
+                          <em>Nieprzypisany</em>
+                        </MenuItem>
+                        {doctors.map((doc) => (
+                          <MenuItem key={doc.id} value={doc.id}>
+                            {doc.name}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    )}
+                  />
+                </Grid>
+              </>
+            )}
+
             <Grid size={{ xs: 12 }}>
               <Box
                 sx={{
@@ -324,7 +388,7 @@ export default function PatientFormPage() {
                     </>
                   ) : isMobile ? (
                     'Zapisz'
-                  ) : id && id !== 'new' ? (
+                  ) : isEdit ? (
                     'Zapisz zmiany'
                   ) : (
                     'Utwórz pacjenta'

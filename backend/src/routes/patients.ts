@@ -21,6 +21,7 @@ const patientSchema = z.object({
   phone: z.string().optional().nullable(),
   email: z.string().email().optional().nullable().or(z.literal('')),
   notes: z.string().optional().nullable(),
+  assignedDoctorId: z.string().nullable().optional(),
 });
 
 // Get all patients (with search and pagination)
@@ -150,6 +151,20 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
   }
 });
 
+// List active doctors (for assign-doctor dropdown) — any authenticated user
+router.get('/doctors', authenticate, async (_req, res, next) => {
+  try {
+    const doctors = await prisma.user.findMany({
+      where: { role: 'DOCTOR', isActive: true },
+      select: { id: true, name: true, email: true },
+      orderBy: { name: 'asc' },
+    });
+    res.json({ doctors });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Get patient by ID
 router.get('/:id', authenticate, authorizePatientAccess, async (req: AuthRequest, res, next) => {
   try {
@@ -202,11 +217,24 @@ router.get('/:id', authenticate, authorizePatientAccess, async (req: AuthRequest
 router.post('/', authenticate, requireWriteAccess(), async (req: AuthRequest, res, next) => {
   try {
     const data = patientSchema.parse(req.body);
+    const user = req.user!;
 
+    // Determine assignedDoctorId:
+    // - ADMIN: use provided value (may be null to leave unassigned)
+    // - DOCTOR: auto-assign to themselves
+    let assignedDoctorId: string | null | undefined;
+    if (user.role === 'ADMIN') {
+      assignedDoctorId = data.assignedDoctorId ?? null;
+    } else if (user.role === 'DOCTOR') {
+      assignedDoctorId = user.id;
+    }
+
+    const { assignedDoctorId: _ignored, ...rest } = data;
     const patient = await prisma.patient.create({
       data: {
-        ...data,
-        email: data.email || undefined,
+        ...rest,
+        email: rest.email || undefined,
+        assignedDoctorId,
       },
     });
 
@@ -228,13 +256,19 @@ router.put('/:id', authenticate, requireWriteAccess(), authorizePatientAccess, a
   try {
     const { id } = req.params;
     const data = patientSchema.parse(req.body);
+    const user = req.user!;
+
+    const { assignedDoctorId, ...rest } = data;
+
+    // Only ADMIN may change assignedDoctorId
+    const updateData: any = { ...rest, email: rest.email || undefined };
+    if (user.role === 'ADMIN') {
+      updateData.assignedDoctorId = assignedDoctorId ?? null;
+    }
 
     const patient = await prisma.patient.update({
       where: { id },
-      data: {
-        ...data,
-        email: data.email || undefined,
-      },
+      data: updateData,
     });
 
     // Audit log
