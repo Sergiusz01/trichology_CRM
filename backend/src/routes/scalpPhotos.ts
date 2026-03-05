@@ -138,19 +138,16 @@ router.post('/patient/:patientId', authenticate, upload.single('photo'), async (
 
     // [C-5] Layer 2: magic bytes check — validates actual file content, not HTTP header
     try {
-      const { fileTypeFromBuffer } = await import('file-type');
-      const headerBuf = Buffer.alloc(Math.min(4100, req.file.size));
-      const fd = fs.openSync(req.file.path, 'r');
-      fs.readSync(fd, headerBuf, 0, headerBuf.length, 0);
-      fs.closeSync(fd);
-      const detected = await fileTypeFromBuffer(headerBuf);
+      const { fileTypeFromFile } = await import('file-type');
+      const detected = await fileTypeFromFile(req.file.path);
       if (!detected || !ALLOWED_MIME_TYPES.includes(detected.mime)) {
         fs.unlinkSync(req.file.path);
         return res.status(400).json({ error: 'Nieprawidłowy typ pliku. Dozwolone: JPEG, PNG, WebP.' });
       }
     } catch (typeError) {
+      console.error('[C-5] fileTypeFromFile error:', typeError);
       fs.unlinkSync(req.file.path);
-      return res.status(400).json({ error: 'Nie można zweryfikować typu pliku.' });
+      return res.status(400).json({ error: 'Nieprawidłowy typ pliku. Dozwolone: JPEG, PNG, WebP.' });
     }
 
     const patient = await prisma.patient.findUnique({

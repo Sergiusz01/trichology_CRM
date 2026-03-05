@@ -280,13 +280,18 @@ describe('[C-5] Magic bytes validation on photo upload', () => {
 
     fs.unlinkSync(fakeJpg);
     expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/typ pliku|format/i);
+    expect(res.body.error).toMatch(/Nieprawidłowy typ pliku|typ pliku|format/i);
   });
 
   it('Accepts a real JPEG (minimal valid JPEG header)', async () => {
     const validJpg = path.join(__dirname, '_valid.jpg');
-    // Minimal JPEG: SOI marker (FF D8) + EOI marker (FF D9)
-    const jpegBytes = Buffer.from([0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01, 0xFF, 0xD9]);
+    // Minimal valid JPEG: SOI + APP0 JFIF segment + EOI
+    const jpegBytes = Buffer.from([
+      0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10,
+      0x4A, 0x46, 0x49, 0x46, 0x00, 0x01,
+      0x01, 0x00, 0x00, 0x01, 0x00, 0x01,
+      0x00, 0x00, 0xFF, 0xD9,
+    ]);
     fs.writeFileSync(validJpg, jpegBytes);
 
     const res = await request(app)
