@@ -584,7 +584,7 @@ router.get('/visit-events', authenticate, async (req: AuthRequest, res, next) =>
     const limit = parseInt(req.query.limit as string) || 20;
     const events = await prisma.visitEvent.findMany({
       where: {
-        eventType: { in: ['CONFIRMED', 'CANCELED', 'RESCHEDULE_REQUESTED'] },
+        eventType: { in: ['CONFIRMED', 'CANCELED', 'RESCHEDULE_REQUESTED', 'REMINDER_SENT'] },
       },
       include: {
         visit: {

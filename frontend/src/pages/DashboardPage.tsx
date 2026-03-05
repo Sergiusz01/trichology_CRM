@@ -116,6 +116,7 @@ const EVENT_CONFIG: Record<string, { label: string; icon: string; color: string 
     CONFIRMED: { label: 'Potwierdzono wizytę', icon: '✅', color: '#4caf50' },
     CANCELED: { label: 'Anulowano wizytę', icon: '❌', color: '#f44336' },
     RESCHEDULE_REQUESTED: { label: 'Prośba o zmianę terminu', icon: '🔄', color: '#ff9800' },
+    REMINDER_SENT: { label: 'Wysłano przypomnienie', icon: '📧', color: '#1976d2' },
 };
 
 function PatientActivityCard() {
@@ -130,7 +131,6 @@ function PatientActivityCard() {
     });
 
     const events = data || [];
-    if (isLoading || events.length === 0) return null;
 
     return (
         <Box sx={{ mb: 4, px: { xs: 1, sm: 0 } }}>
@@ -139,57 +139,69 @@ function PatientActivityCard() {
                 Aktywność pacjentów
             </Typography>
             <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, overflow: 'hidden' }}>
-                <List sx={{ p: 0 }}>
-                    {events.map((event, idx) => {
-                        const config = EVENT_CONFIG[event.eventType] || EVENT_CONFIG.CONFIRMED;
-                        const visitDate = new Date(event.visit.data);
-                        const eventDate = new Date(event.createdAt);
-                        return (
-                            <React.Fragment key={event.id}>
-                                {idx > 0 && <Divider />}
-                                <ListItemButton
-                                    onClick={() => navigate(`/patients/${event.visit.patient.id}?tab=visits&visitId=${event.visit.id}`)}
-                                    sx={{
-                                        py: 1.5,
-                                        '&:hover': { bgcolor: alpha(config.color, 0.04) },
-                                        borderLeft: event.isRead ? 'none' : `3px solid ${config.color}`,
-                                    }}
-                                >
-                                    <ListItemAvatar>
-                                        <Avatar sx={{ bgcolor: alpha(config.color, 0.1), fontSize: '1.2rem' }}>
-                                            {config.icon}
-                                        </Avatar>
-                                    </ListItemAvatar>
-                                    <ListItemText
-                                        primary={
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                                    {event.visit.patient.firstName} {event.visit.patient.lastName}
+                {isLoading ? (
+                    <Box sx={{ p: 3, display: 'flex', justifyContent: 'center' }}>
+                        <CircularProgress size={24} />
+                    </Box>
+                ) : events.length === 0 ? (
+                    <Box sx={{ p: 3, textAlign: 'center' }}>
+                        <Typography variant="body2" color="text.secondary">
+                            Brak aktywności. Potwierdzenia, anulowania i prośby o zmianę terminu pojawią się tutaj po wysłaniu przypomnień z przyciskami akcji.
+                        </Typography>
+                    </Box>
+                ) : (
+                    <List sx={{ p: 0 }}>
+                        {events.map((event, idx) => {
+                            const config = EVENT_CONFIG[event.eventType] || EVENT_CONFIG.CONFIRMED;
+                            const visitDate = new Date(event.visit.data);
+                            const eventDate = new Date(event.createdAt);
+                            return (
+                                <React.Fragment key={event.id}>
+                                    {idx > 0 && <Divider />}
+                                    <ListItemButton
+                                        onClick={() => navigate(`/patients/${event.visit.patient.id}?tab=visits&visitId=${event.visit.id}`)}
+                                        sx={{
+                                            py: 1.5,
+                                            '&:hover': { bgcolor: alpha(config.color, 0.04) },
+                                            borderLeft: event.isRead ? 'none' : `3px solid ${config.color}`,
+                                        }}
+                                    >
+                                        <ListItemAvatar>
+                                            <Avatar sx={{ bgcolor: alpha(config.color, 0.1), fontSize: '1.2rem' }}>
+                                                {config.icon}
+                                            </Avatar>
+                                        </ListItemAvatar>
+                                        <ListItemText
+                                            primary={
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                                                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                                        {event.visit.patient.firstName} {event.visit.patient.lastName}
+                                                    </Typography>
+                                                    <Chip
+                                                        label={config.label}
+                                                        size="small"
+                                                        sx={{
+                                                            bgcolor: alpha(config.color, 0.1),
+                                                            color: config.color,
+                                                            fontWeight: 600,
+                                                            fontSize: '0.7rem',
+                                                            height: 20,
+                                                        }}
+                                                    />
+                                                </Box>
+                                            }
+                                            secondary={
+                                                <Typography variant="caption" color="text.secondary">
+                                                    {event.visit.rodzajZabiegu} — {visitDate.toLocaleDateString('pl-PL')} · {eventDate.toLocaleString('pl-PL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                                                 </Typography>
-                                                <Chip
-                                                    label={config.label}
-                                                    size="small"
-                                                    sx={{
-                                                        bgcolor: alpha(config.color, 0.1),
-                                                        color: config.color,
-                                                        fontWeight: 600,
-                                                        fontSize: '0.7rem',
-                                                        height: 20,
-                                                    }}
-                                                />
-                                            </Box>
-                                        }
-                                        secondary={
-                                            <Typography variant="caption" color="text.secondary">
-                                                {event.visit.rodzajZabiegu} — {visitDate.toLocaleDateString('pl-PL')} · {eventDate.toLocaleString('pl-PL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                                            </Typography>
-                                        }
-                                    />
-                                </ListItemButton>
-                            </React.Fragment>
-                        );
-                    })}
-                </List>
+                                            }
+                                        />
+                                    </ListItemButton>
+                                </React.Fragment>
+                            );
+                        })}
+                    </List>
+                )}
             </Paper>
         </Box>
     );

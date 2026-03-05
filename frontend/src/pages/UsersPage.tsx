@@ -44,6 +44,7 @@ import {
     DeleteForever,
 } from '@mui/icons-material';
 import { api } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../hooks/useNotification';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
@@ -70,6 +71,7 @@ interface PatientSummary {
 
 export default function UsersPage() {
     const { success, error: showError } = useNotification();
+    const { user: currentUser } = useAuth();
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -78,6 +80,8 @@ export default function UsersPage() {
     const [openEdit, setOpenEdit] = useState(false);
     const [openPassword, setOpenPassword] = useState(false);
     const [openAccess, setOpenAccess] = useState(false);
+    const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; user: User | null }>({ open: false, user: null });
+    const [deleting, setDeleting] = useState(false);
 
     // Form state
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -236,6 +240,26 @@ export default function UsersPage() {
         }
     };
 
+    const handleDeleteUser = async () => {
+        if (!deleteDialog.user) return;
+        setDeleting(true);
+        try {
+            await api.delete(`/users/${deleteDialog.user.id}`);
+            success('Użytkownik został usunięty');
+            setDeleteDialog({ open: false, user: null });
+            fetchUsers();
+        } catch (err: any) {
+            const msg = err.response?.data?.error || 'Błąd podczas usuwania użytkownika';
+            showError(msg);
+            // If backend says to deactivate instead, close dialog
+            if (err.response?.data?.canDeactivate) {
+                setDeleteDialog({ open: false, user: null });
+            }
+        } finally {
+            setDeleting(false);
+        }
+    };
+
     const hasChanges = useMemo(() => {
         if (accessPatientIds.size !== initialAccessIds.size) return true;
         for (const id of accessPatientIds) {
@@ -343,6 +367,17 @@ export default function UsersPage() {
                                             {user.isActive ? <Block fontSize="small" color="error" /> : <CheckCircle fontSize="small" color="success" />}
                                         </IconButton>
                                     </Tooltip>
+                                    {user.id !== currentUser?.id && (
+                                        <Tooltip title="Usuń użytkownika">
+                                            <IconButton
+                                                size="small"
+                                                color="error"
+                                                onClick={() => setDeleteDialog({ open: true, user })}
+                                            >
+                                                <DeleteForever fontSize="small" />
+                                            </IconButton>
+                                        </Tooltip>
+                                    )}
                                 </TableCell>
                             </TableRow>
                         ))}
@@ -565,6 +600,36 @@ export default function UsersPage() {
                         startIcon={savingAccess ? <CircularProgress size={16} /> : <PersonAdd />}
                     >
                         {savingAccess ? 'Zapisywanie...' : 'Zapisz uprawnienia'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Modal: Usuń użytkownika */}
+            <Dialog open={deleteDialog.open} onClose={() => !deleting && setDeleteDialog({ open: false, user: null })} maxWidth="xs" fullWidth>
+                <DialogTitle sx={{ color: 'error.main' }}>Usuń użytkownika</DialogTitle>
+                <DialogContent dividers>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                        Czy na pewno chcesz trwale usunąć użytkownika:
+                    </Typography>
+                    <Typography variant="body1" fontWeight={600} sx={{ mb: 2 }}>
+                        {deleteDialog.user?.name} ({deleteDialog.user?.email})
+                    </Typography>
+                    <Alert severity="warning" sx={{ fontSize: '0.82rem' }}>
+                        Tej operacji nie można cofnąć. Jeśli użytkownik ma powiązane dane w systemie, zostaniesz poinformowany o konieczności dezaktywacji konta.
+                    </Alert>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setDeleteDialog({ open: false, user: null })} disabled={deleting}>
+                        Anuluj
+                    </Button>
+                    <Button
+                        variant="contained"
+                        color="error"
+                        onClick={handleDeleteUser}
+                        disabled={deleting}
+                        startIcon={deleting ? <CircularProgress size={16} color="inherit" /> : <DeleteForever />}
+                    >
+                        {deleting ? 'Usuwanie...' : 'Usuń'}
                     </Button>
                 </DialogActions>
             </Dialog>
