@@ -41,6 +41,7 @@ import {
     Search,
     PersonAdd,
     Close,
+    DeleteForever,
 } from '@mui/icons-material';
 import { api } from '../services/api';
 import { useNotification } from '../hooks/useNotification';

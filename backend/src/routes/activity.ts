@@ -6,6 +6,7 @@ const router = express.Router();
 
 const ACTION_LABELS: Record<string, string> = {
   LOGIN: 'Zalogowano',
+  DELETE_USER: 'Usunięto użytkownika',
   CREATE_PATIENT: 'Dodano pacjenta',
   UPDATE_PATIENT: 'Zaktualizowano pacjenta',
   ARCHIVE_PATIENT: 'Zarchiwizowano pacjenta',

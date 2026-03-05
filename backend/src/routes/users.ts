@@ -4,6 +4,7 @@ import { authenticate, AuthRequest } from '../middleware/auth';
 import { prisma } from '../prisma';
 import { hashPassword } from '../utils/password';
 import { writeAuditLog } from '../services/auditService';
+import type { Request } from 'express';
 
 const router = express.Router();
 
@@ -130,6 +131,61 @@ router.post('/:id/reset-password', async (req, res, next) => {
         });
 
         res.json({ message: 'Hasło zostało zmienione' });
+    } catch (err) {
+        next(err);
+    }
+});
+
+// DELETE user — only if no system activity; cannot delete self or last admin
+router.delete('/:id', async (req: AuthRequest, res, next) => {
+    try {
+        const { id } = req.params;
+        const requestingUserId = req.user!.id;
+
+        if (id === requestingUserId) {
+            return res.status(400).json({ error: 'Nie możesz usunąć własnego konta.' });
+        }
+
+        const target = await prisma.user.findUnique({ where: { id } });
+        if (!target) {
+            return res.status(404).json({ error: 'Użytkownik nie znaleziony' });
+        }
+
+        // Prevent deleting the last admin
+        if (target.role === 'ADMIN') {
+            const adminCount = await prisma.user.count({ where: { role: 'ADMIN' } });
+            if (adminCount <= 1) {
+                return res.status(400).json({ error: 'Nie możesz usunąć ostatniego administratora.' });
+            }
+        }
+
+        // Check if user has any activity that would violate FK constraints
+        const [consultCount, auditCount, photoCount, carePlanCount, emailHistCount] = await Promise.all([
+            prisma.consultation.count({ where: { doctorId: id } }),
+            prisma.auditLog.count({ where: { userId: id } }),
+            prisma.scalpPhoto.count({ where: { uploadedByUserId: id } }),
+            prisma.carePlan.count({ where: { createdByUserId: id } }),
+            prisma.emailHistory.count({ where: { sentByUserId: id } }),
+        ]);
+
+        const totalActivity = consultCount + auditCount + photoCount + carePlanCount + emailHistCount;
+        if (totalActivity > 0) {
+            return res.status(409).json({
+                error: 'Użytkownik ma powiązane dane w systemie i nie może zostać trwale usunięty. Dezaktywuj konto zamiast go usuwać.',
+                canDeactivate: true,
+                activity: { consultCount, auditCount, photoCount, carePlanCount, emailHistCount },
+            });
+        }
+
+        await prisma.user.delete({ where: { id } });
+
+        await writeAuditLog(req, {
+            action: 'DELETE_USER',
+            entity: 'User',
+            entityId: id,
+        });
+
+        res.json({ message: 'Użytkownik został usunięty' });
     } catch (err) {
         next(err);
     }
