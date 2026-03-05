@@ -4,6 +4,7 @@
  */
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import 'dotenv/config';
 import path from 'path';
 import fs from 'fs';
@@ -43,6 +44,17 @@ const fromEnv = (process.env.FRONTEND_URLS ?? process.env.FRONTEND_URL ?? '')
 const corsAllowlist = [...new Set([...defaultOrigins, ...fromEnv])];
 
 app.set('trust proxy', 'loopback');
+
+app.use(helmet({
+  // API server — no browser rendering needed, so most helmet defaults are fine.
+  // Disable contentSecurityPolicy on the API since the frontend handles its own CSP.
+  contentSecurityPolicy: false,
+  // HSTS: force HTTPS for 1 year (nginx already enforces HTTPS, this adds defence-in-depth)
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+  },
+}));
 
 app.use(cors({
   origin: (origin, cb) => {

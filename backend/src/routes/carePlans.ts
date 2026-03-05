@@ -1,6 +1,7 @@
 import express from 'express';
 import { z } from 'zod';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
+import { canAccessPatient } from '../middleware/authorizePatientAccess';
 import { generateCarePlanPDF } from '../services/pdfService';
 import { writeAuditLog } from '../services/auditService';
 import { prisma } from '../prisma';
@@ -31,6 +32,16 @@ router.get('/patient/:patientId', authenticate, async (req: AuthRequest, res, ne
     const { patientId } = req.params;
     const { active, archived = 'false' } = req.query;
     const isArchived = archived === 'true';
+
+    const patient = await prisma.patient.findUnique({
+      where: { id: patientId },
+      select: { id: true, clinicId: true, assignedDoctorId: true },
+    });
+    if (!patient) return res.status(404).json({ error: 'Pacjent nie znaleziony' });
+    if (!canAccessPatient(req.user!, patient)) {
+      console.warn(`[SECURITY] Unauthorized carePlan list access: userId=${req.user!.id} patientId=${patientId} ip=${req.ip}`);
+      return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
+    }
 
     const where: any = {
       patientId,
@@ -84,6 +95,11 @@ router.get('/:id', authenticate, async (req: AuthRequest, res, next) => {
       return res.status(404).json({ error: 'Plan opieki nie znaleziony' });
     }
 
+    if (!canAccessPatient(req.user!, carePlan.patient)) {
+      console.warn(`[SECURITY] Unauthorized carePlan access: userId=${req.user!.id} carePlanId=${id} ip=${req.ip}`);
+      return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
+    }
+
     res.json({ carePlan });
   } catch (error) {
     next(error);
@@ -96,13 +112,18 @@ router.post('/', authenticate, async (req: AuthRequest, res, next) => {
     const data = carePlanSchema.parse(req.body);
     const createdByUserId = req.user!.id;
 
-    // Verify patient exists
+    // Verify patient exists and user has access
     const patient = await prisma.patient.findUnique({
       where: { id: data.patientId },
     });
 
     if (!patient) {
       return res.status(404).json({ error: 'Pacjent nie znaleziony' });
+    }
+
+    if (!canAccessPatient(req.user!, patient)) {
+      console.warn(`[SECURITY] Unauthorized carePlan create: userId=${req.user!.id} patientId=${data.patientId} ip=${req.ip}`);
+      return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
     }
 
     // Verify consultation exists if provided
@@ -158,6 +179,16 @@ router.put('/:id', authenticate, async (req: AuthRequest, res, next) => {
     const { id } = req.params;
     const data = carePlanSchema.omit({ patientId: true }).parse(req.body);
 
+    const existing = await prisma.carePlan.findUnique({
+      where: { id },
+      include: { patient: { select: { id: true, clinicId: true, assignedDoctorId: true } } },
+    });
+    if (!existing) return res.status(404).json({ error: 'Plan opieki nie znaleziony' });
+    if (!canAccessPatient(req.user!, existing.patient)) {
+      console.warn(`[SECURITY] Unauthorized carePlan update: userId=${req.user!.id} carePlanId=${id} ip=${req.ip}`);
+      return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
+    }
+
     const { weeks, ...planData } = data;
 
     // Update plan
@@ -212,6 +243,16 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res, next) => {
   try {
     const { id } = req.params;
 
+    const existing = await prisma.carePlan.findUnique({
+      where: { id },
+      include: { patient: { select: { id: true, clinicId: true, assignedDoctorId: true } } },
+    });
+    if (!existing) return res.status(404).json({ error: 'Plan opieki nie znaleziony' });
+    if (!canAccessPatient(req.user!, existing.patient)) {
+      console.warn(`[SECURITY] Unauthorized carePlan archive: userId=${req.user!.id} carePlanId=${id} ip=${req.ip}`);
+      return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
+    }
+
     const carePlan = await prisma.carePlan.update({
       where: { id },
       data: { isArchived: true },
@@ -239,10 +280,16 @@ router.post('/:id/restore', authenticate, async (req: AuthRequest, res, next) =>
 
     const carePlan = await prisma.carePlan.findUnique({
       where: { id },
+      include: { patient: { select: { id: true, clinicId: true, assignedDoctorId: true } } },
     });
 
     if (!carePlan) {
       return res.status(404).json({ error: 'Plan opieki nie znaleziony' });
+    }
+
+    if (!canAccessPatient(req.user!, carePlan.patient)) {
+      console.warn(`[SECURITY] Unauthorized carePlan restore: userId=${req.user!.id} carePlanId=${id} ip=${req.ip}`);
+      return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
     }
 
     if (!carePlan.isArchived) {
@@ -274,9 +321,7 @@ router.delete('/:id/permanent', authenticate, requireRole('ADMIN'), async (req: 
   try {
     const { id } = req.params;
 
-    const carePlan = await prisma.carePlan.findUnique({
-      where: { id },
-    });
+    const carePlan = await prisma.carePlan.findUnique({ where: { id } });
 
     if (!carePlan) {
       return res.status(404).json({ error: 'Plan opieki nie znaleziony' });
@@ -325,6 +370,11 @@ router.get('/:id/pdf', authenticate, async (req: AuthRequest, res, next) => {
 
     if (!carePlan) {
       return res.status(404).json({ error: 'Plan opieki nie znaleziony' });
+    }
+
+    if (!canAccessPatient(req.user!, carePlan.patient)) {
+      console.warn(`[SECURITY] Unauthorized carePlan PDF: userId=${req.user!.id} carePlanId=${id} ip=${req.ip}`);
+      return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
     }
 
     const pdfBuffer = await generateCarePlanPDF(carePlan);

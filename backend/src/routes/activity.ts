@@ -1,5 +1,5 @@
 import express from 'express';
-import { authenticate, AuthRequest } from '../middleware/auth';
+import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 import { prisma } from '../prisma';
 
 const router = express.Router();
@@ -60,7 +60,7 @@ function getLink(
   return '';
 }
 
-router.get('/', authenticate, async (req: AuthRequest, res, next) => {
+router.get('/', authenticate, requireRole('ADMIN'), async (req: AuthRequest, res, next) => {
   try {
     const limit = Math.min(Math.max(1, Number(req.query.limit) || 1000), 2000);
     const logs = await prisma.auditLog.findMany({

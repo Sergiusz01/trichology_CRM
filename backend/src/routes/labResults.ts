@@ -1,6 +1,7 @@
 import express from 'express';
 import { z } from 'zod';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
+import { canAccessPatient } from '../middleware/authorizePatientAccess';
 import { calculateLabFlags, calculateDynamicDataFlags, type LabResultTemplateField } from '../utils/labResults';
 import { generateLabResultPDF } from '../services/pdfService';
 import { writeAuditLog } from '../services/auditService';
@@ -133,6 +134,16 @@ router.get('/patient/:patientId', authenticate, async (req: AuthRequest, res, ne
     const { archived = 'false' } = req.query;
     const isArchived = archived === 'true';
 
+    const patient = await prisma.patient.findUnique({
+      where: { id: patientId },
+      select: { id: true, clinicId: true, assignedDoctorId: true },
+    });
+    if (!patient) return res.status(404).json({ error: 'Pacjent nie znaleziony' });
+    if (!canAccessPatient(req.user!, patient)) {
+      console.warn(`[SECURITY] Unauthorized labResult list access: userId=${req.user!.id} patientId=${patientId} ip=${req.ip}`);
+      return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
+    }
+
     const labResults = await prisma.labResult.findMany({
       where: { 
         patientId,
@@ -173,6 +184,11 @@ router.get('/:id/pdf', authenticate, async (req: AuthRequest, res, next) => {
       return res.status(404).json({ error: 'Wynik laboratoryjny nie znaleziony' });
     }
 
+    if (!canAccessPatient(req.user!, labResult.patient)) {
+      console.warn(`[SECURITY] Unauthorized labResult PDF: userId=${req.user!.id} labResultId=${id} ip=${req.ip}`);
+      return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
+    }
+
     const pdfBuffer = await generateLabResultPDF(labResult as any, labResult.patient);
 
     res.setHeader('Content-Type', 'application/pdf');
@@ -203,6 +219,11 @@ router.get('/:id', authenticate, async (req: AuthRequest, res, next) => {
       return res.status(404).json({ error: 'Wynik laboratoryjny nie znaleziony' });
     }
 
+    if (!canAccessPatient(req.user!, labResult.patient)) {
+      console.warn(`[SECURITY] Unauthorized labResult access: userId=${req.user!.id} labResultId=${id} ip=${req.ip}`);
+      return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
+    }
+
     res.json({ labResult });
   } catch (error) {
     next(error);
@@ -219,6 +240,11 @@ router.post('/', authenticate, async (req: AuthRequest, res, next) => {
     });
     if (!patient) {
       return res.status(404).json({ error: 'Pacjent nie znaleziony' });
+    }
+
+    if (!canAccessPatient(req.user!, patient)) {
+      console.warn(`[SECURITY] Unauthorized labResult create: userId=${req.user!.id} patientId=${data.patientId} ip=${req.ip}`);
+      return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
     }
 
     if (data.templateId && data.dynamicData) {
@@ -280,10 +306,18 @@ router.put('/:id', authenticate, async (req: AuthRequest, res, next) => {
 
     const existing = await prisma.labResult.findUnique({
       where: { id },
-      include: { template: true },
+      include: {
+        template: true,
+        patient: { select: { id: true, clinicId: true, assignedDoctorId: true } },
+      },
     });
     if (!existing) {
       return res.status(404).json({ error: 'Wynik laboratoryjny nie znaleziony' });
+    }
+
+    if (!canAccessPatient(req.user!, existing.patient)) {
+      console.warn(`[SECURITY] Unauthorized labResult update: userId=${req.user!.id} labResultId=${id} ip=${req.ip}`);
+      return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
     }
 
     if (data.templateId && data.dynamicData) {
@@ -346,6 +380,16 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res, next) => {
   try {
     const { id } = req.params;
 
+    const existing = await prisma.labResult.findUnique({
+      where: { id },
+      include: { patient: { select: { id: true, clinicId: true, assignedDoctorId: true } } },
+    });
+    if (!existing) return res.status(404).json({ error: 'Wynik laboratoryjny nie znaleziony' });
+    if (!canAccessPatient(req.user!, existing.patient)) {
+      console.warn(`[SECURITY] Unauthorized labResult archive: userId=${req.user!.id} labResultId=${id} ip=${req.ip}`);
+      return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
+    }
+
     const labResult = await prisma.labResult.update({
       where: { id },
       data: { isArchived: true },
@@ -373,10 +417,16 @@ router.post('/:id/restore', authenticate, async (req: AuthRequest, res, next) =>
 
     const labResult = await prisma.labResult.findUnique({
       where: { id },
+      include: { patient: { select: { id: true, clinicId: true, assignedDoctorId: true } } },
     });
 
     if (!labResult) {
       return res.status(404).json({ error: 'Wynik badania nie znaleziony' });
+    }
+
+    if (!canAccessPatient(req.user!, labResult.patient)) {
+      console.warn(`[SECURITY] Unauthorized labResult restore: userId=${req.user!.id} labResultId=${id} ip=${req.ip}`);
+      return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
     }
 
     if (!labResult.isArchived) {

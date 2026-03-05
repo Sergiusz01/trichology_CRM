@@ -10,7 +10,7 @@ import {
   IconButton,
   InputAdornment,
 } from '@mui/material';
-import { ContentCopy, Visibility, VisibilityOff } from '@mui/icons-material';
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { AppTextField, AppButton, AppCard } from '../ui';
 
@@ -29,15 +29,12 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export default function LoginPage() {
   const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
-  const [copiedEmail, setCopiedEmail] = useState(false);
-  const [copiedPassword, setCopiedPassword] = useState(false);
 
   const {
     control,
     handleSubmit,
     formState: { errors, isSubmitting },
     setError: setFormError,
-    setValue,
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -45,26 +42,6 @@ export default function LoginPage() {
       password: '',
     },
   });
-
-  const testEmail = 'agnieszka.polanska@example.com';
-  const testPassword = 'test123';
-
-  const handleCopyEmail = async () => {
-    await navigator.clipboard.writeText(testEmail);
-    setCopiedEmail(true);
-    setTimeout(() => setCopiedEmail(false), 2000);
-  };
-
-  const handleCopyPassword = async () => {
-    await navigator.clipboard.writeText(testPassword);
-    setCopiedPassword(true);
-    setTimeout(() => setCopiedPassword(false), 2000);
-  };
-
-  const handleFillTestData = () => {
-    setValue('email', testEmail);
-    setValue('password', testPassword);
-  };
 
   const onSubmit = async (data: LoginFormData) => {
     try {
@@ -112,33 +89,6 @@ export default function LoginPage() {
 
         <AppCard noPadding>
           <Box sx={{ p: { xs: 3, sm: 4 } }}>
-            {/* Test Account Info - Only visible in development */}
-            {import.meta.env.DEV && (
-              <Box sx={{ mb: 3, p: 2, bgcolor: '#F0F9FF', borderRadius: 2, border: '1px solid #BAE6FD' }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, color: '#0284C7', display: 'block', mb: 1, textTransform: 'uppercase' }}>
-                  Dane testowe (DEV)
-                </Typography>
-
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                  <Typography variant="body2" sx={{ fontFamily: 'monospace', flex: 1, color: '#0F172A' }}>{testEmail}</Typography>
-                  <AppButton size="small" variant="text" onClick={handleCopyEmail} sx={{ minWidth: 0, p: 0.5 }}>
-                    {copiedEmail ? <Typography variant="caption" color="success.main" fontWeight={600}>OK</Typography> : <ContentCopy sx={{ fontSize: 16 }} />}
-                  </AppButton>
-                </Box>
-
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-                  <Typography variant="body2" sx={{ fontFamily: 'monospace', flex: 1, color: '#0F172A' }}>{testPassword}</Typography>
-                  <AppButton size="small" variant="text" onClick={handleCopyPassword} sx={{ minWidth: 0, p: 0.5 }}>
-                    {copiedPassword ? <Typography variant="caption" color="success.main" fontWeight={600}>OK</Typography> : <ContentCopy sx={{ fontSize: 16 }} />}
-                  </AppButton>
-                </Box>
-
-                <AppButton variant="outlined" size="small" fullWidth onClick={handleFillTestData} sx={{ bgcolor: '#FFF' }}>
-                  Wypełnij
-                </AppButton>
-              </Box>
-            )}
-
             {errors.root && (
               <Alert severity="error" sx={{ mb: 3 }} onClose={() => { }}>
                 {errors.root.message}

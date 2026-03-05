@@ -1,5 +1,5 @@
 import express from 'express';
-import { authenticate, AuthRequest } from '../middleware/auth';
+import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 import { prisma } from '../prisma';
 import puppeteer from 'puppeteer';
 import path from 'path';
@@ -13,7 +13,7 @@ const formatCurrency = (amount: number | string) => {
     return Number(amount).toLocaleString('pl-PL', { style: 'currency', currency: 'PLN' });
 };
 
-router.get('/monthly', authenticate, async (req: AuthRequest, res, next) => {
+router.get('/monthly', authenticate, requireRole('ADMIN'), async (req: AuthRequest, res, next) => {
     try {
         const { month } = req.query; // Expected: YYYY-MM
 
