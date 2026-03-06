@@ -1332,7 +1332,7 @@ export default function DashboardPage() {
                     />
 
                     <Alert severity="info" sx={{ mt: 2 }}>
-                        Pacjent otrzyma email z przypomnieniem oraz możliwością zapisania wizyty do kalendarza (Google Calendar, Outlook, lub plik .ics).
+                        Pacjent otrzyma email z przypomnieniem zawierającym przyciski do <strong>potwierdzenia</strong>, <strong>anulowania</strong> lub <strong>zmiany terminu</strong> wizyty oraz możliwością zapisania wizyty do kalendarza.
                     </Alert>
                 </DialogContent>
                 <DialogActions sx={{ p: 2, pt: 1 }}>

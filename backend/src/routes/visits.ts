@@ -8,6 +8,7 @@ import { writeAuditLog } from '../services/auditService';
 import { sendEmail } from '../services/emailService';
 import { generateVisitICS, generateGoogleCalendarURL, generateOutlookCalendarURL } from '../utils/icalendar';
 import { getLogoHTML } from '../utils/logo';
+import { generateActionToken } from '../services/appointmentTokenService';
 
 const router = express.Router();
 
@@ -720,6 +721,53 @@ router.post('/:id/reminder', authenticate, async (req: AuthRequest, res, next) =
     const outlookCalendarURL = generateOutlookCalendarURL(visit);
     const icsContent = generateVisitICS(visit);
 
+    // Generate action tokens so patient can confirm/cancel directly from email
+    const APP_BASE_URL = process.env.APP_BASE_URL || process.env.FRONTEND_URL || 'http://localhost:3001';
+
+    let clinicPhone: string | null = null;
+    const patientForPhone = await prisma.patient.findUnique({
+      where: { id: visit.patientId },
+      select: { assignedDoctorId: true },
+    });
+    if (patientForPhone?.assignedDoctorId) {
+      const assignedDoc = await prisma.user.findUnique({
+        where: { id: patientForPhone.assignedDoctorId },
+        select: { clinicPhone: true },
+      }) as { clinicPhone: string | null } | null;
+      clinicPhone = assignedDoc?.clinicPhone ?? null;
+    }
+
+    const confirmToken = generateActionToken(visit.id, 'confirm');
+    const cancelToken = generateActionToken(visit.id, 'cancel');
+    const rescheduleToken = generateActionToken(visit.id, 'reschedule');
+
+    const confirmUrl = `${APP_BASE_URL}/api/appointment-actions?token=${confirmToken}`;
+    const cancelUrl = `${APP_BASE_URL}/api/appointment-actions?token=${cancelToken}`;
+    const rescheduleUrl = clinicPhone
+      ? `tel:${clinicPhone.replace(/\s/g, '')}`
+      : `${APP_BASE_URL}/api/appointment-actions?token=${rescheduleToken}`;
+
+    const actionButtonsHTML = `
+      <div style="margin: 30px 0; text-align: center;">
+        <p style="font-weight: bold; margin-bottom: 20px; color: #333;">Zarządzaj swoją wizytą:</p>
+        <div style="margin-bottom: 12px;">
+          <a href="${confirmUrl}" style="display: inline-block; padding: 14px 32px; background-color: #4caf50; color: white; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 15px; min-width: 200px;">
+            ✅ Potwierdź wizytę
+          </a>
+        </div>
+        <div style="margin-bottom: 12px;">
+          <a href="${cancelUrl}" style="display: inline-block; padding: 14px 32px; background-color: #f44336; color: white; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 15px; min-width: 200px;">
+            ❌ Anuluj wizytę
+          </a>
+        </div>
+        <div>
+          <a href="${rescheduleUrl}" style="display: inline-block; padding: 14px 32px; background-color: #ff9800; color: white; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 15px; min-width: 200px;">
+            🔄 Zmień termin${clinicPhone ? ` (tel: ${clinicPhone})` : ''}
+          </a>
+        </div>
+      </div>
+    `;
+
     // Create email HTML
     const emailHtml = `
       <!DOCTYPE html>
@@ -756,14 +804,14 @@ router.post('/:id/reminder', authenticate, async (req: AuthRequest, res, next) =
 
             ${customMessage ? `<p style="background-color: #fff3cd; padding: 15px; border-radius: 5px; border-left: 4px solid #ffc107;"><strong>Wiadomość:</strong><br>${escapeHtml(customMessage)}</p>` : ''}
 
+            ${actionButtonsHTML}
+
             <div class="calendar-buttons">
               <p style="font-weight: bold; margin-bottom: 15px;">Zapisz do kalendarza:</p>
               <a href="${googleCalendarURL}" class="calendar-button" target="_blank">📅 Google Calendar</a>
               <a href="${outlookCalendarURL}" class="calendar-button" target="_blank">📅 Outlook Calendar</a>
               <a href="data:text/calendar;charset=utf8;base64,${Buffer.from(icsContent).toString('base64')}" download="wizyta-${visit.id}.ics" class="calendar-button">📥 Pobierz .ics</a>
             </div>
-
-            <p>Prosimy o potwierdzenie obecności lub kontakt w przypadku potrzeby zmiany terminu.</p>
             
             <div class="footer">
               <p>Pozdrawiamy,<br>Zespół Kliniki</p>
