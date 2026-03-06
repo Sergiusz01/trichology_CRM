@@ -63,6 +63,9 @@ jobs:
             # Point UPLOAD_DIR to persistent directory
             grep -q 'UPLOAD_DIR' .env && sed -i 's|UPLOAD_DIR=.*|UPLOAD_DIR=/root/uploads|' .env || echo 'UPLOAD_DIR=/root/uploads' >> .env
 
+            # Ensure APP_BASE_URL is set so email action links point to the real domain (not localhost)
+            grep -q 'APP_BASE_URL' .env && sed -i 's|APP_BASE_URL=.*|APP_BASE_URL=https://www.001246.xyz|' .env || echo 'APP_BASE_URL=https://www.001246.xyz' >> .env
+
             npm install --production=false
             npx prisma generate
             npx prisma db push --accept-data-loss
