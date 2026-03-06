@@ -119,25 +119,79 @@ const EVENT_CONFIG: Record<string, { label: string; icon: string; color: string 
     REMINDER_SENT: { label: 'Wysłano przypomnienie', icon: '📧', color: '#1976d2' },
 };
 
+function relativeTime(dateStr: string): string {
+    const diffMin = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000);
+    if (diffMin < 1) return 'przed chwilą';
+    if (diffMin < 60) return `${diffMin} min temu`;
+    const diffH = Math.floor(diffMin / 60);
+    if (diffH < 24) return `${diffH} godz. temu`;
+    const diffD = Math.floor(diffH / 24);
+    if (diffD === 1) return 'wczoraj';
+    if (diffD < 7) return `${diffD} dni temu`;
+    return new Date(dateStr).toLocaleDateString('pl-PL', { day: '2-digit', month: 'short' });
+}
+
+const ACTIVITY_INITIAL = 8;
+
 function PatientActivityCard() {
     const navigate = useNavigate();
-    const { data, isLoading } = useQuery({
+    const [showAll, setShowAll] = useState(false);
+    const { data, isLoading, refetch } = useQuery({
         queryKey: ['visit-events'],
         queryFn: async () => {
-            const res = await api.get('/dashboard/visit-events?limit=10');
+            const res = await api.get('/dashboard/visit-events?limit=50');
             return res.data.events as VisitEvent[];
         },
         refetchInterval: 60_000,
     });
 
     const events = data || [];
+    const unreadCount = events.filter(e => !e.isRead).length;
+    const displayed = showAll ? events : events.slice(0, ACTIVITY_INITIAL);
+
+    const handleClick = async (event: VisitEvent) => {
+        navigate(`/patients/${event.visit.patient.id}?tab=visits&visitId=${event.visit.id}`);
+        if (!event.isRead) {
+            try {
+                await api.post('/dashboard/visit-events/mark-read', { eventIds: [event.id] });
+                refetch();
+            } catch (_) {}
+        }
+    };
+
+    const markAllRead = async () => {
+        const ids = events.filter(e => !e.isRead).map(e => e.id);
+        if (ids.length > 0) {
+            await api.post('/dashboard/visit-events/mark-read', { eventIds: ids });
+            refetch();
+        }
+    };
 
     return (
         <Box sx={{ mb: 4, px: { xs: 1, sm: 0 } }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Notifications sx={{ color: '#1976d2' }} />
-                Aktywność pacjentów
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
+                <Typography variant="h6" sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Notifications sx={{ color: '#1976d2', fontSize: 22 }} />
+                    Aktywność pacjentów
+                    {unreadCount > 0 && (
+                        <Chip
+                            label={unreadCount}
+                            size="small"
+                            sx={{ bgcolor: '#1976d2', color: 'white', fontWeight: 700, height: 18, fontSize: '0.7rem', ml: 0.5 }}
+                        />
+                    )}
+                </Typography>
+                {unreadCount > 0 && (
+                    <Button
+                        size="small"
+                        variant="text"
+                        onClick={markAllRead}
+                        sx={{ fontSize: '0.75rem', textTransform: 'none', color: 'text.secondary' }}
+                    >
+                        Oznacz wszystkie jako przeczytane
+                    </Button>
+                )}
+            </Box>
             <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, overflow: 'hidden' }}>
                 {isLoading ? (
                     <Box sx={{ p: 3, display: 'flex', justifyContent: 'center' }}>
@@ -150,57 +204,69 @@ function PatientActivityCard() {
                         </Typography>
                     </Box>
                 ) : (
-                    <List sx={{ p: 0 }}>
-                        {events.map((event, idx) => {
-                            const config = EVENT_CONFIG[event.eventType] || EVENT_CONFIG.CONFIRMED;
-                            const visitDate = new Date(event.visit.data);
-                            const eventDate = new Date(event.createdAt);
-                            return (
-                                <React.Fragment key={event.id}>
-                                    {idx > 0 && <Divider />}
-                                    <ListItemButton
-                                        onClick={() => navigate(`/patients/${event.visit.patient.id}?tab=visits&visitId=${event.visit.id}`)}
-                                        sx={{
-                                            py: 1.5,
-                                            '&:hover': { bgcolor: alpha(config.color, 0.04) },
-                                            borderLeft: event.isRead ? 'none' : `3px solid ${config.color}`,
-                                        }}
-                                    >
-                                        <ListItemAvatar>
-                                            <Avatar sx={{ bgcolor: alpha(config.color, 0.1), fontSize: '1.2rem' }}>
+                    <>
+                        <List sx={{ p: 0 }} dense>
+                            {displayed.map((event, idx) => {
+                                const config = EVENT_CONFIG[event.eventType] || EVENT_CONFIG.CONFIRMED;
+                                const visitDate = new Date(event.visit.data);
+                                return (
+                                    <React.Fragment key={event.id}>
+                                        {idx > 0 && <Divider />}
+                                        <ListItemButton
+                                            onClick={() => handleClick(event)}
+                                            sx={{
+                                                py: 0.9,
+                                                px: 2,
+                                                '&:hover': { bgcolor: alpha(config.color, 0.04) },
+                                                borderLeft: event.isRead ? '3px solid transparent' : `3px solid ${config.color}`,
+                                                bgcolor: event.isRead ? 'transparent' : alpha(config.color, 0.02),
+                                            }}
+                                        >
+                                            <Box sx={{
+                                                width: 28, height: 28, borderRadius: '50%',
+                                                bgcolor: alpha(config.color, 0.12),
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                fontSize: '0.9rem', flexShrink: 0, mr: 1.5,
+                                            }}>
                                                 {config.icon}
-                                            </Avatar>
-                                        </ListItemAvatar>
-                                        <ListItemText
-                                            primary={
-                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                                                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                            </Box>
+                                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
+                                                    <Typography variant="body2" sx={{ fontWeight: event.isRead ? 500 : 700, fontSize: '0.82rem' }}>
                                                         {event.visit.patient.firstName} {event.visit.patient.lastName}
                                                     </Typography>
-                                                    <Chip
-                                                        label={config.label}
-                                                        size="small"
-                                                        sx={{
-                                                            bgcolor: alpha(config.color, 0.1),
-                                                            color: config.color,
-                                                            fontWeight: 600,
-                                                            fontSize: '0.7rem',
-                                                            height: 20,
-                                                        }}
-                                                    />
+                                                    <Typography variant="caption" sx={{
+                                                        color: config.color, fontWeight: 600, fontSize: '0.7rem',
+                                                        bgcolor: alpha(config.color, 0.1), px: 0.75, borderRadius: 1,
+                                                    }}>
+                                                        {config.label}
+                                                    </Typography>
                                                 </Box>
-                                            }
-                                            secondary={
-                                                <Typography variant="caption" color="text.secondary">
-                                                    {event.visit.rodzajZabiegu} — {visitDate.toLocaleDateString('pl-PL')} · {eventDate.toLocaleString('pl-PL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.71rem' }}>
+                                                    {event.visit.rodzajZabiegu} · {visitDate.toLocaleDateString('pl-PL', { day: '2-digit', month: 'short' })}
                                                 </Typography>
-                                            }
-                                        />
-                                    </ListItemButton>
-                                </React.Fragment>
-                            );
-                        })}
-                    </List>
+                                            </Box>
+                                            <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.68rem', flexShrink: 0, ml: 1 }}>
+                                                {relativeTime(event.createdAt)}
+                                            </Typography>
+                                        </ListItemButton>
+                                    </React.Fragment>
+                                );
+                            })}
+                        </List>
+                        {events.length > ACTIVITY_INITIAL && (
+                            <Box sx={{ borderTop: '1px solid', borderColor: 'divider', textAlign: 'center', py: 0.75 }}>
+                                <Button
+                                    size="small"
+                                    variant="text"
+                                    onClick={() => setShowAll(v => !v)}
+                                    sx={{ fontSize: '0.75rem', textTransform: 'none', color: 'text.secondary' }}
+                                >
+                                    {showAll ? 'Pokaż mniej' : `Pokaż starsze (${events.length - ACTIVITY_INITIAL} więcej)`}
+                                </Button>
+                            </Box>
+                        )}
+                    </>
                 )}
             </Paper>
         </Box>

@@ -28,6 +28,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TablePagination,
   Select,
   MenuItem,
   FormControl,
@@ -226,6 +227,15 @@ export default function PatientDetailPage() {
     endDate: '',
     search: '',
   });
+  const [visitPage, setVisitPage] = useState(0);
+  const VISITS_PER_PAGE = 10;
+  const [mobileVisitLimit, setMobileVisitLimit] = useState(5);
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setVisitPage(0);
+    setMobileVisitLimit(5);
+  }, [visitFilters.status, visitFilters.search, visitFilters.startDate, visitFilters.endDate]);
 
   // ── React Query ────────────────────────────────────────────────────────────
   const { data: patient, isLoading: loading, error: patientQueryError, refetch: refetchPatient } = usePatientDetail(id);
@@ -1929,14 +1939,18 @@ export default function PatientDetailPage() {
               </Box>
             ) : isMobile ? (
               /* ── Mobile: karty ── */
-              <Stack spacing={1.5}>
-                {visits.filter(v => {
+              (() => {
+                const mobileFiltered = visits.filter(v => {
                   if (visitFilters.status && v.status !== visitFilters.status) return false;
                   if (visitFilters.search && !v.rodzajZabiegu.toLowerCase().includes(visitFilters.search.toLowerCase())) return false;
                   if (visitFilters.startDate && new Date(v.data) < new Date(visitFilters.startDate)) return false;
                   if (visitFilters.endDate && new Date(v.data) > new Date(visitFilters.endDate + 'T23:59:59')) return false;
                   return true;
-                }).map((visit) => {
+                });
+                const mobileSlice = mobileFiltered.slice(0, mobileVisitLimit);
+                return (
+              <Stack spacing={1.5}>
+                {mobileSlice.map((visit) => {
                   const statusConfig = VISIT_STATUS_CONFIG[visit.status] || VISIT_STATUS_CONFIG.ZAPLANOWANA;
                   return (
                     <Paper
@@ -2036,9 +2050,36 @@ export default function PatientDetailPage() {
                     </Paper>
                   );
                 })}
+                {mobileFiltered.length > mobileVisitLimit && (
+                  <Box sx={{ textAlign: 'center', pt: 1 }}>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => setMobileVisitLimit(l => l + 5)}
+                      sx={{ textTransform: 'none', borderRadius: 2, fontSize: '0.8rem' }}
+                    >
+                      Pokaż starsze ({mobileFiltered.length - mobileVisitLimit} więcej)
+                    </Button>
+                  </Box>
+                )}
+                {mobileFiltered.length > 5 && mobileVisitLimit >= mobileFiltered.length && (
+                  <Box sx={{ textAlign: 'center', pt: 1 }}>
+                    <Button
+                      size="small"
+                      variant="text"
+                      onClick={() => setMobileVisitLimit(5)}
+                      sx={{ textTransform: 'none', fontSize: '0.78rem', color: 'text.secondary' }}
+                    >
+                      Zwiń
+                    </Button>
+                  </Box>
+                )}
               </Stack>
+              );
+              })()
             ) : (
               /* ── Desktop: tabela ── */
+              <>
               <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
                 <Table>
                   <TableHead>
@@ -2059,7 +2100,7 @@ export default function PatientDetailPage() {
                       if (visitFilters.startDate && new Date(v.data) < new Date(visitFilters.startDate)) return false;
                       if (visitFilters.endDate && new Date(v.data) > new Date(visitFilters.endDate + 'T23:59:59')) return false;
                       return true;
-                    }).map((visit) => {
+                    }).slice(visitPage * VISITS_PER_PAGE, (visitPage + 1) * VISITS_PER_PAGE).map((visit) => {
                       const statusConfig = VISIT_STATUS_CONFIG[visit.status] || VISIT_STATUS_CONFIG.ZAPLANOWANA;
                       return (
                         <TableRow id={`visit-${visit.id}`} key={visit.id} hover>
@@ -2204,6 +2245,24 @@ export default function PatientDetailPage() {
                   </TableBody>
                 </Table>
               </TableContainer>
+              <TablePagination
+                component="div"
+                count={visits.filter(v => {
+                  if (visitFilters.status && v.status !== visitFilters.status) return false;
+                  if (visitFilters.search && !v.rodzajZabiegu.toLowerCase().includes(visitFilters.search.toLowerCase())) return false;
+                  if (visitFilters.startDate && new Date(v.data) < new Date(visitFilters.startDate)) return false;
+                  if (visitFilters.endDate && new Date(v.data) > new Date(visitFilters.endDate + 'T23:59:59')) return false;
+                  return true;
+                }).length}
+                page={visitPage}
+                onPageChange={(_, p) => setVisitPage(p)}
+                rowsPerPage={VISITS_PER_PAGE}
+                rowsPerPageOptions={[VISITS_PER_PAGE]}
+                labelRowsPerPage=""
+                labelDisplayedRows={({ from, to, count }) => `${from}–${to} z ${count} wizyt`}
+                sx={{ borderTop: '1px solid', borderColor: 'divider' }}
+              />
+              </>
             )}
           </TabPanel>
         </Paper>
