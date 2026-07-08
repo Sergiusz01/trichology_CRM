@@ -495,7 +495,7 @@ export default function ConsultationViewPage() {
                     {renderCheckboxInfo('Nasilenie', consultation.sensitivitySeverity)}
                     {renderCheckboxInfo('Czas trwania', consultation.sensitivityDuration)}
                     {consultation.sensitivityOther && renderFieldRow('Inne', consultation.sensitivityOther)}
-                    {renderCheckboxInfo('Stany zapalne', consultation.inflammatoryStates)}
+                    {consultation.inflammatoryStates && renderFieldRow('Stany zapalne', consultation.inflammatoryStates)}
                   </Box>
                 </Grid>
               )}

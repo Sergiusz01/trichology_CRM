@@ -96,6 +96,7 @@ interface FormData {
   hyperkeratinization: string;
   sebaceousSecretion: string;
   seborrheaType: string[];
+  seborrheaTypeOther: string;
   dandruffType: string[];
   scalpPH: string;
   hairDamage: string[];
@@ -154,7 +155,7 @@ const INITIAL_FORM_DATA: FormData = {
   careRoutineShampoo: '', careRoutineConditioner: '', careRoutineOils: '', careRoutineChemical: '',
   scalpType: [], scalpAppearance: [], skinLesions: [],
   hyperhidrosis: '', hyperkeratinization: '', sebaceousSecretion: '',
-  seborrheaType: [], dandruffType: [], scalpPH: '',
+  seborrheaType: [], seborrheaTypeOther: '', dandruffType: [], scalpPH: '',
   hairDamage: [], hairDamageReason: [],
   hairQuality: '', hairShape: '', hairTypes: [], regrowingHairs: '',
   vellusMiniaturizedHairs: [],
@@ -792,6 +793,16 @@ export default function ConsultationCardForm({
             <TextField size="small" label="Rogowacenie" value={formData.hyperkeratinization} onChange={(e) => update('hyperkeratinization', e.target.value)} sx={{ flex: '1 1 200px' }} />
             <TextField size="small" label="Wydzielina łojowa" value={formData.sebaceousSecretion} onChange={(e) => update('sebaceousSecretion', e.target.value)} sx={{ flex: '1 1 200px' }} />
           </Box>
+          
+          <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Interpretacja rodzaju łojotoku:</Typography>
+          <CheckboxGroup options={['Łojotok płynny', 'Łojotok gęsty', 'Łojotok (mieszanina na czole gęsty na głowie płynny)', 'Inne']} selected={formData.seborrheaType} onChange={(v) => update('seborrheaType', v)} />
+          {formData.seborrheaType?.includes('Inne') && (
+            <TextField fullWidth size="small" label="Inny rodzaj łojotoku" value={formData.seborrheaTypeOther} onChange={(e) => update('seborrheaTypeOther', e.target.value)} sx={{ mt: 1 }} />
+          )}
+
+          <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Łupież:</Typography>
+          <CheckboxGroup options={['Suchy', 'Tłusty', 'Kosmetyczny', 'Miejscowy', 'Uogólniony']} selected={formData.dandruffType} onChange={(v) => update('dandruffType', v)} />
+
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 1.5 }}>
             <TextField size="small" label="pH skóry" value={formData.scalpPH} onChange={(e) => update('scalpPH', e.target.value)} sx={{ flex: '1 1 120px' }} />
             <TextField size="small" label="Jakość włosów" value={formData.hairQuality} onChange={(e) => update('hairQuality', e.target.value)} sx={{ flex: '1 1 200px' }} />
@@ -802,6 +813,18 @@ export default function ConsultationCardForm({
           <TextField fullWidth size="small" label="Włosy odrastające" value={formData.regrowingHairs} onChange={(e) => update('regrowingHairs', e.target.value)} sx={{ mt: 1.5 }} />
           <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Włosy vellusowe / zminiaturyzowane:</Typography>
           <CheckboxGroup options={['Liczne', 'Nieliczne', 'Brak', 'Zminiaturyzowane', 'Łuszczenie wokół mieszków']} selected={formData.vellusMiniaturizedHairs} onChange={(v) => update('vellusMiniaturizedHairs', v)} />
+          
+          <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Unaczynienie:</Typography>
+          <CheckboxGroup options={['Naczynia kropkowate', 'Naczynia liniowe', 'Naczynia arborystyczne', 'Naczynia siatkowate', 'Brak naczyń', 'Prawidłowe']} selected={formData.vascularPatterns} onChange={(v) => update('vascularPatterns', v)} />
+
+          <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Cechy okołomieszkowe:</Typography>
+          <CheckboxGroup options={['White dots', 'Yellow dots', 'Black dots', 'Prawidłowe']} selected={formData.perifollicularFeatures} onChange={(v) => update('perifollicularFeatures', v)} />
+
+          <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Choroby skóry głowy:</Typography>
+          <CheckboxGroup options={['ŁZS', 'LLP', 'AZS', 'Grzybica', 'Łuszczyca', 'Zapalenia okołomieszkowe']} selected={formData.scalpDiseases} onChange={(v) => update('scalpDiseases', v)} />
+
+          <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Inne cechy diagnostyczne:</Typography>
+          <CheckboxGroup options={['Trychodynia', 'Plaster miodu', 'Cofnięcie linii czołowej', 'Trichokinesis']} selected={formData.otherDiagnostics} onChange={(v) => update('otherDiagnostics', v)} />
         </AccordionDetails>
       </Accordion>
 
@@ -813,6 +836,18 @@ export default function ConsultationCardForm({
         <AccordionDetails sx={{ pt: 0 }}>
           <Typography sx={{ fontSize: 12, color: '#64748B', mb: 0.5 }}>Typy łysienia:</Typography>
           <CheckboxGroup options={['Androgenowe', 'Plackowate', 'Bliznowaciejące', 'Telogenowe', 'Anagenowe', 'Trakcyjne', 'Inne']} selected={formData.alopeciaTypes} onChange={(v) => update('alopeciaTypes', v)} />
+          
+          <FormControl fullWidth size="small" sx={{ mt: 1.5 }}>
+            <InputLabel>Klasyfikacja łysienia</InputLabel>
+            <Select value={formData.alopeciaType} label="Klasyfikacja łysienia" onChange={(e) => update('alopeciaType', e.target.value)}>
+              <MenuItem value="">Brak</MenuItem>
+              <MenuItem value="Androgenowe typu męskiego">Androgenowe typu męskiego</MenuItem>
+              <MenuItem value="Androgenowe typu żeńskiego">Androgenowe typu żeńskiego</MenuItem>
+              <MenuItem value="Plackowate AA">Plackowate AA</MenuItem>
+              <MenuItem value="Telogenowe TE">Telogenowe TE</MenuItem>
+            </Select>
+          </FormControl>
+
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 1.5 }}>
             <TextField size="small" label="Stopień przerzedzenia" value={formData.degreeOfThinning} onChange={(e) => update('degreeOfThinning', e.target.value)} sx={{ flex: '1 1 200px' }} />
             <TextField size="small" label="Miniaturyzacja" value={formData.miniaturization} onChange={(e) => update('miniaturization', e.target.value)} sx={{ flex: '1 1 200px' }} />
