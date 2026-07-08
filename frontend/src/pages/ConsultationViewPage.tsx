@@ -17,6 +17,7 @@ import {
 import { Edit, GetApp, ArrowBack, ContentCopy } from '@mui/icons-material';
 import { api } from '../services/api';
 import { useNotification } from '../hooks/useNotification';
+import { FIELD_LABELS } from '../shared/consultationFields';
 
 // Helper function to format JSON fields (arrays)
 const formatJsonField = (value: any): string => {
@@ -472,30 +473,30 @@ export default function ConsultationViewPage() {
                   </Box>
                 </Grid>
               )}
-              {(consultation.scalingSeverity || consultation.scalingType) && (
+              {(getFieldValue('scalingSeverity') || getFieldValue('scalingType')) && (
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <Box sx={{ border: '1px solid #ccc', p: 1.5, borderRadius: 1, mb: 2 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, textDecoration: 'underline' }}>
                       3. ŁUSZCZENIE SKÓRY GŁOWY
                     </Typography>
-                    {renderCheckboxInfo('Nasilenie', consultation.scalingSeverity)}
-                    {renderCheckboxInfo('Typ', consultation.scalingType)}
-                    {renderCheckboxInfo('Czas trwania', consultation.scalingDuration)}
-                    {consultation.scalingOther && renderFieldRow('Inne', consultation.scalingOther)}
+                    {renderCheckboxInfo('Nasilenie', getFieldValue('scalingSeverity'))}
+                    {renderCheckboxInfo('Typ łuszczenia', getFieldValue('scalingType'))}
+                    {renderCheckboxInfo('Czas trwania', getFieldValue('scalingDuration'))}
+                    {getFieldValue('scalingOther') && renderFieldRow('Inne', getFieldValue('scalingOther'))}
                   </Box>
                 </Grid>
               )}
-              {(consultation.sensitivitySeverity || consultation.sensitivityProblemType) && (
+              {(getFieldValue('sensitivitySeverity') || getFieldValue('sensitivityProblemType')) && (
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <Box sx={{ border: '1px solid #ccc', p: 1.5, borderRadius: 1, mb: 2 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, textDecoration: 'underline' }}>
-                      4. WRAŻLIWOŚĆ / INNE
+                      4. WRAŻLIWOŚĆ SKÓRY GŁOWY
                     </Typography>
-                    {renderCheckboxInfo('Problem', consultation.sensitivityProblemType)}
-                    {renderCheckboxInfo('Nasilenie', consultation.sensitivitySeverity)}
-                    {renderCheckboxInfo('Czas trwania', consultation.sensitivityDuration)}
-                    {consultation.sensitivityOther && renderFieldRow('Inne', consultation.sensitivityOther)}
-                    {consultation.inflammatoryStates && renderFieldRow('Stany zapalne', consultation.inflammatoryStates)}
+                    {renderCheckboxInfo('Typ problemu', getFieldValue('sensitivityProblemType'))}
+                    {renderCheckboxInfo('Nasilenie', getFieldValue('sensitivitySeverity'))}
+                    {renderCheckboxInfo('Czas trwania', getFieldValue('sensitivityDuration'))}
+                    {getFieldValue('sensitivityOther') && renderFieldRow('Inne', getFieldValue('sensitivityOther'))}
+                    {getFieldValue('inflammatoryStates') && renderFieldRow('Stany zapalne / grudki', getFieldValue('inflammatoryStates'))}
                   </Box>
                 </Grid>
               )}
@@ -504,7 +505,7 @@ export default function ConsultationViewPage() {
         )}
 
         {/* Section: Anamnesis */}
-        {!hasTemplate && (consultation.familyHistory || consultation.medications || consultation.stressLevel || consultation.supplements || consultation.antibiotics || supplementsDetailsValue || antibioticsDetailsValue) && (
+        {!hasTemplate && (getFieldValue('familyHistory') || getFieldValue('medications') || getFieldValue('stressLevel') || getFieldValue('supplements') || getFieldValue('antibiotics') || supplementsDetailsValue || antibioticsDetailsValue) && (
           <>
             <Box sx={{
               backgroundColor: '#e0e0e0',
@@ -520,37 +521,37 @@ export default function ConsultationViewPage() {
             </Box>
             <Grid container spacing={2} sx={{ mb: 2, fontSize: '0.875rem' }}>
               <Grid size={{ xs: 12, sm: 6 }}>
-                {renderCheckboxInfo('Rodzina', consultation.familyHistory)}
-                {renderCheckboxInfo('Dermatolog', consultation.dermatologyVisits)}
-                {consultation.dermatologyVisitsReason && renderFieldRow('Powód', consultation.dermatologyVisitsReason)}
-                {renderCheckboxInfo('Ciąża', consultation.pregnancy)}
-                {renderCheckboxInfo('Miesiączki', consultation.menstruationRegularity)}
-                {consultation.contraception && renderFieldRow('Hormony', consultation.contraception)}
-                {renderCheckboxInfo('Stres', consultation.stressLevel)}
-                {renderCheckboxInfo('Leki', consultation.medications)}
-                {consultation.medicationsList && renderFieldRow('Lista leków', consultation.medicationsList)}
-                {consultation.supplements && renderFieldRow('Suplementy', consultation.supplements)}
-                {supplementsDetailsValue && renderFieldRow('Jakie suplementy?', supplementsDetailsValue)}
+                {renderCheckboxInfo(FIELD_LABELS['familyHistory'] ?? 'Wypadanie w rodzinie', getFieldValue('familyHistory'))}
+                {renderCheckboxInfo(FIELD_LABELS['dermatologyVisits'] ?? 'Dermatolog', getFieldValue('dermatologyVisits'))}
+                {getFieldValue('dermatologyVisitsReason') && renderFieldRow(FIELD_LABELS['dermatologyVisitsReason'] ?? 'Powód', getFieldValue('dermatologyVisitsReason'))}
+                {renderCheckboxInfo(FIELD_LABELS['pregnancy'] ?? 'Ciąża', getFieldValue('pregnancy'))}
+                {renderCheckboxInfo(FIELD_LABELS['menstruationRegularity'] ?? 'Miesiączki', getFieldValue('menstruationRegularity'))}
+                {getFieldValue('contraception') && renderFieldRow(FIELD_LABELS['contraception'] ?? 'Antykoncepcja', getFieldValue('contraception'))}
+                {renderCheckboxInfo(FIELD_LABELS['stressLevel'] ?? 'Stres', getFieldValue('stressLevel'))}
+                {renderCheckboxInfo(FIELD_LABELS['medications'] ?? 'Leki', getFieldValue('medications'))}
+                {getFieldValue('medicationsList') && renderFieldRow(FIELD_LABELS['medicationsList'] ?? 'Lista leków', getFieldValue('medicationsList'))}
+                {getFieldValue('supplements') && renderFieldRow(FIELD_LABELS['supplements'] ?? 'Suplementy', getFieldValue('supplements'))}
+                {supplementsDetailsValue && renderFieldRow(FIELD_LABELS['supplementsDetails'] ?? 'Jakie suplementy?', supplementsDetailsValue)}
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
-                {renderCheckboxInfo('Znieczulenie', consultation.anesthesia)}
-                {renderCheckboxInfo('Chemioterapia', consultation.chemotherapy)}
-                {renderCheckboxInfo('Radioterapia', consultation.radiotherapy)}
-                {renderCheckboxInfo('Szczepienia', consultation.vaccination)}
-                {consultation.antibiotics && renderFieldRow('Antybiotyki', consultation.antibiotics)}
-                {antibioticsDetailsValue && renderFieldRow('Jakie antybiotyki? / kiedy?', antibioticsDetailsValue)}
-                {renderCheckboxInfo('Choroby', consultation.chronicDiseases)}
-                {consultation.chronicDiseasesList && renderFieldRow('Lista chorób', consultation.chronicDiseasesList)}
-                {renderCheckboxInfo('Specjaliści', consultation.specialists)}
-                {consultation.specialistsList && renderFieldRow('Jakiego', consultation.specialistsList)}
-                {renderCheckboxInfo('Zab. odżywiania', consultation.eatingDisorders)}
-                {consultation.foodIntolerances && renderFieldRow('Nietolerancje', consultation.foodIntolerances)}
-                {renderCheckboxInfo('Dieta', consultation.diet)}
-                {renderCheckboxInfo('Alergie', consultation.allergies)}
-                {renderCheckboxInfo('Metal w ciele', consultation.metalPartsInBody)}
+                {renderCheckboxInfo(FIELD_LABELS['anesthesia'] ?? 'Znieczulenie', getFieldValue('anesthesia'))}
+                {renderCheckboxInfo(FIELD_LABELS['chemotherapy'] ?? 'Chemioterapia', getFieldValue('chemotherapy'))}
+                {renderCheckboxInfo(FIELD_LABELS['radiotherapy'] ?? 'Radioterapia', getFieldValue('radiotherapy'))}
+                {renderCheckboxInfo(FIELD_LABELS['vaccination'] ?? 'Szczepienia', getFieldValue('vaccination'))}
+                {getFieldValue('antibiotics') && renderFieldRow(FIELD_LABELS['antibiotics'] ?? 'Antybiotyki', getFieldValue('antibiotics'))}
+                {antibioticsDetailsValue && renderFieldRow(FIELD_LABELS['antibioticsDetails'] ?? 'Jakie antybiotyki?', antibioticsDetailsValue)}
+                {renderCheckboxInfo(FIELD_LABELS['chronicDiseases'] ?? 'Choroby', getFieldValue('chronicDiseases'))}
+                {getFieldValue('chronicDiseasesList') && renderFieldRow(FIELD_LABELS['chronicDiseasesList'] ?? 'Lista chorób', getFieldValue('chronicDiseasesList'))}
+                {renderCheckboxInfo(FIELD_LABELS['specialists'] ?? 'Specjaliści', getFieldValue('specialists'))}
+                {getFieldValue('specialistsList') && renderFieldRow(FIELD_LABELS['specialistsList'] ?? 'Jacy specjaliści?', getFieldValue('specialistsList'))}
+                {renderCheckboxInfo(FIELD_LABELS['eatingDisorders'] ?? 'Zab. odżywiania', getFieldValue('eatingDisorders'))}
+                {getFieldValue('foodIntolerances') && renderFieldRow(FIELD_LABELS['foodIntolerances'] ?? 'Nietolerancje', getFieldValue('foodIntolerances'))}
+                {getFieldValue('diet') && renderFieldRow(FIELD_LABELS['diet'] ?? 'Dieta', getFieldValue('diet'))}
+                {getFieldValue('allergies') && renderFieldRow(FIELD_LABELS['allergies'] ?? 'Alergie', getFieldValue('allergies'))}
+                {renderCheckboxInfo(FIELD_LABELS['metalPartsInBody'] ?? 'Metal w ciele', getFieldValue('metalPartsInBody'))}
               </Grid>
             </Grid>
-            {(consultation.careRoutineShampoo || consultation.careRoutineConditioner || consultation.careRoutineOils || consultation.careRoutineChemical) && (
+            {(getFieldValue('careRoutineShampoo') || getFieldValue('careRoutineConditioner') || getFieldValue('careRoutineOils') || getFieldValue('careRoutineChemical')) && (
               <Box sx={{
                 borderTop: '1px dashed #ccc',
                 mt: 2,
@@ -559,10 +560,10 @@ export default function ConsultationViewPage() {
                 mb: 2
               }}>
                 <Typography component="strong">Aktualna pielęgnacja:</Typography>{' '}
-                {consultation.careRoutineShampoo && `Szampon: ${consultation.careRoutineShampoo}, `}
-                {consultation.careRoutineConditioner && `Odżywka: ${consultation.careRoutineConditioner}, `}
-                {consultation.careRoutineOils && `Wcierki: ${consultation.careRoutineOils}, `}
-                {consultation.careRoutineChemical && `Zabiegi: ${consultation.careRoutineChemical}`}
+                {getFieldValue('careRoutineShampoo') && `Szampon: ${getFieldValue('careRoutineShampoo')}, `}
+                {getFieldValue('careRoutineConditioner') && `Odżywka: ${getFieldValue('careRoutineConditioner')}, `}
+                {getFieldValue('careRoutineOils') && `Wcierki: ${getFieldValue('careRoutineOils')}, `}
+                {getFieldValue('careRoutineChemical') && `Zabiegi: ${getFieldValue('careRoutineChemical')}`}
               </Box>
             )}
           </>

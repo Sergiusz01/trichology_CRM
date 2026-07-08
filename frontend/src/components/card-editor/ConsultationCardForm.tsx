@@ -21,6 +21,12 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
 import { usePatientVisits, useCreateVisit, Visit } from '../../hooks/queries/useVisits';
+import {
+  JSON_ARRAY_FIELDS,
+  INITIAL_FORM_DATA as SCHEMA_INITIAL_DATA,
+  SEVERITY_OPTIONS,
+  FIELD_OPTIONS,
+} from '../../shared/consultationFields';
 
 interface ConsultationCardFormProps {
   patientId: string;
@@ -138,41 +144,8 @@ interface FormData {
   [key: string]: any;
 }
 
-const INITIAL_FORM_DATA: FormData = {
-  hairLossSeverity: '', hairLossDuration: '', hairLossLocalization: [],
-  hairLossShampoos: '', hairLossNotes: '',
-  oilyHairSeverity: '', oilyHairWashingFreq: '', oilyHairDuration: '',
-  oilyHairShampoos: '', oilyHairNotes: '',
-  scalingSeverity: '', scalingType: [], scalingDuration: '', scalingOther: '',
-  sensitivitySeverity: '', sensitivityProblemType: [], sensitivityDuration: '', sensitivityOther: '',
-  inflammatoryStates: '',
-  familyHistory: '', dermatologyVisits: '', dermatologyVisitsReason: '',
-  pregnancy: '', menstruationRegularity: '', contraception: '',
-  medications: '', medicationsList: '', supplements: '', supplementsDetails: '',
-  stressLevel: '', anesthesia: '', chemotherapy: '', radiotherapy: '',
-  vaccination: '', antibiotics: '', antibioticsDetails: '',
-  chronicDiseases: '', chronicDiseasesList: '', specialists: '', specialistsList: '',
-  eatingDisorders: '', foodIntolerances: '', diet: '', allergies: '', metalPartsInBody: '',
-  careRoutineShampoo: '', careRoutineConditioner: '', careRoutineOils: '', careRoutineChemical: '',
-  scalpType: [], scalpAppearance: [], skinLesions: [],
-  hyperhidrosis: '', hyperkeratinization: '', sebaceousSecretion: '',
-  seborrheaType: [], seborrheaTypeOther: '', dandruffType: [], scalpPH: '',
-  hairDamage: [], hairDamageReason: [],
-  hairQuality: '', hairShape: '', hairTypes: [], regrowingHairs: '',
-  vellusMiniaturizedHairs: [],
-  vascularPatterns: [], perifollicularFeatures: [],
-  scalpDiseases: [], otherDiagnostics: [],
-  alopeciaTypes: [], degreeOfThinning: '', alopeciaType: '',
-  alopeciaAffectedAreas: [], miniaturization: '', follicularUnits: '',
-  pullTest: '', alopeciaOther: '',
-  diagnosis: '',
-  careRecommendationsWashing: '', careRecommendationsTopical: '',
-  careRecommendationsSupplement: '', careRecommendationsBehavior: '',
-  visitsProcedures: '', generalRemarks: '',
-  norwoodHamiltonStage: '', ludwigStage: '',
-};
-
-const SEVERITY_OPTIONS = ['Brak', 'Łagodne', 'Umiarkowane', 'Nasilone', 'Bardzo nasilone'];
+// INITIAL_FORM_DATA is generated from the shared schema (all fields → '' or [])
+const INITIAL_FORM_DATA: FormData = SCHEMA_INITIAL_DATA as FormData;
 
 // Styled section header
 function SectionHeader({ icon, title, color = '#2E5F8A' }: { icon: React.ReactNode; title: string; color?: string }) {
@@ -529,13 +502,7 @@ function toArray(val: any): string[] {
   return [];
 }
 
-const JSON_ARRAY_FIELDS = [
-  'hairLossLocalization', 'scalingType', 'sensitivityProblemType',
-  'scalpType', 'scalpAppearance', 'skinLesions', 'seborrheaType',
-  'dandruffType', 'hairDamage', 'hairDamageReason', 'hairTypes',
-  'vellusMiniaturizedHairs', 'vascularPatterns', 'perifollicularFeatures',
-  'scalpDiseases', 'otherDiagnostics', 'alopeciaTypes', 'alopeciaAffectedAreas',
-];
+// JSON_ARRAY_FIELDS is imported from shared/consultationFields.ts
 
 function normalizeExistingData(data: any): Partial<FormData> {
   if (!data) return {};
@@ -710,7 +677,7 @@ export default function ConsultationCardForm({
             <TextField fullWidth size="small" label="Czas trwania" value={formData.hairLossDuration} onChange={(e) => update('hairLossDuration', e.target.value)} sx={{ mt: 1.5 }} />
             <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Lokalizacja:</Typography>
             <CheckboxGroup
-              options={['ciemieniowa', 'skronie', 'czołowa', 'tonsura', 'potylica', 'uogólnione', 'brwi, rzęsy', 'pachy', 'pachwiny']}
+              options={FIELD_OPTIONS['hairLossLocalization'] ?? []}
               selected={formData.hairLossLocalization}
               onChange={(v) => update('hairLossLocalization', v)}
             />
@@ -736,7 +703,7 @@ export default function ConsultationCardForm({
             <SeveritySelector value={formData.scalingSeverity} onChange={(v) => update('scalingSeverity', v)} />
             <TextField fullWidth size="small" label="Czas trwania" value={formData.scalingDuration} onChange={(e) => update('scalingDuration', e.target.value)} sx={{ mt: 1.5 }} />
             <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1, mb: 0.5 }}>Typ łuszczenia:</Typography>
-            <CheckboxGroup options={['Drobne, białe', 'Duże, żółte', 'Tłuste', 'Suche', 'Zapalne', 'Inne']} selected={formData.scalingType} onChange={(v) => update('scalingType', v)} />
+            <CheckboxGroup options={FIELD_OPTIONS['scalingType'] ?? []} selected={formData.scalingType} onChange={(v) => update('scalingType', v)} />
             <TextField fullWidth size="small" label="Inne (opis)" value={formData.scalingOther} onChange={(e) => update('scalingOther', e.target.value)} sx={{ mt: 1 }} />
           </Box>
           <Divider sx={{ my: 1.5 }} />
@@ -747,7 +714,7 @@ export default function ConsultationCardForm({
             <SeveritySelector value={formData.sensitivitySeverity} onChange={(v) => update('sensitivitySeverity', v)} />
             <TextField fullWidth size="small" label="Czas trwania" value={formData.sensitivityDuration} onChange={(e) => update('sensitivityDuration', e.target.value)} sx={{ mt: 1.5 }} />
             <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1, mb: 0.5 }}>Typ problemu:</Typography>
-            <CheckboxGroup options={['Pieczenie', 'Świąd', 'Ból', 'Ściskanie', 'Inne']} selected={formData.sensitivityProblemType} onChange={(v) => update('sensitivityProblemType', v)} />
+            <CheckboxGroup options={FIELD_OPTIONS['sensitivityProblemType'] ?? []} selected={formData.sensitivityProblemType} onChange={(v) => update('sensitivityProblemType', v)} />
             <TextField fullWidth size="small" label="Inne (opis)" value={formData.sensitivityOther} onChange={(e) => update('sensitivityOther', e.target.value)} sx={{ mt: 1 }} />
           </Box>
           <Divider sx={{ my: 1.5 }} />
@@ -808,11 +775,11 @@ export default function ConsultationCardForm({
         </AccordionSummary>
         <AccordionDetails sx={{ pt: 0 }}>
           <Typography sx={{ fontSize: 12, color: '#64748B', mb: 0.5 }}>Typ skóry:</Typography>
-          <CheckboxGroup options={['Sucha', 'Normalna', 'Tłusta', 'Mieszana']} selected={formData.scalpType} onChange={(v) => update('scalpType', v)} />
+          <CheckboxGroup options={FIELD_OPTIONS['scalpType'] ?? []} selected={formData.scalpType} onChange={(v) => update('scalpType', v)} />
           <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Wygląd skóry:</Typography>
-          <CheckboxGroup options={['Zaczerwienienie', 'Złuszczanie', 'Grudki', 'Krosty', 'Blizny', 'Przebarwienia']} selected={formData.scalpAppearance} onChange={(v) => update('scalpAppearance', v)} />
+          <CheckboxGroup options={FIELD_OPTIONS['scalpAppearance'] ?? []} selected={formData.scalpAppearance} onChange={(v) => update('scalpAppearance', v)} />
           <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Wykwity:</Typography>
-          <CheckboxGroup options={['Grudki', 'Krosty', 'Strupy', 'Nadżerki', 'Owrzodzenia']} selected={formData.skinLesions} onChange={(v) => update('skinLesions', v)} />
+          <CheckboxGroup options={FIELD_OPTIONS['skinLesions'] ?? []} selected={formData.skinLesions} onChange={(v) => update('skinLesions', v)} />
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 1.5 }}>
             <TextField size="small" label="Nadmierne pocenie" value={formData.hyperhidrosis} onChange={(e) => update('hyperhidrosis', e.target.value)} sx={{ flex: '1 1 200px' }} />
             <TextField size="small" label="Rogowacenie" value={formData.hyperkeratinization} onChange={(e) => update('hyperkeratinization', e.target.value)} sx={{ flex: '1 1 200px' }} />
@@ -820,13 +787,13 @@ export default function ConsultationCardForm({
           </Box>
           
           <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Interpretacja rodzaju łojotoku:</Typography>
-          <CheckboxGroup options={['Łojotok płynny', 'Łojotok gęsty', 'Łojotok (mieszanina na czole gęsty na głowie płynny)', 'Inne']} selected={formData.seborrheaType} onChange={(v) => update('seborrheaType', v)} />
+          <CheckboxGroup options={FIELD_OPTIONS['seborrheaType'] ?? []} selected={formData.seborrheaType} onChange={(v) => update('seborrheaType', v)} />
           {formData.seborrheaType?.includes('Inne') && (
             <TextField fullWidth size="small" label="Inny rodzaj łojotoku" value={formData.seborrheaTypeOther} onChange={(e) => update('seborrheaTypeOther', e.target.value)} sx={{ mt: 1 }} />
           )}
 
           <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Łupież:</Typography>
-          <CheckboxGroup options={['Suchy', 'Tłusty', 'Kosmetyczny', 'Miejscowy', 'Uogólniony']} selected={formData.dandruffType} onChange={(v) => update('dandruffType', v)} />
+          <CheckboxGroup options={FIELD_OPTIONS['dandruffType'] ?? []} selected={formData.dandruffType} onChange={(v) => update('dandruffType', v)} />
 
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 1.5 }}>
             <TextField size="small" label="pH skóry" value={formData.scalpPH} onChange={(e) => update('scalpPH', e.target.value)} sx={{ flex: '1 1 120px' }} />
@@ -834,22 +801,22 @@ export default function ConsultationCardForm({
             <TextField size="small" label="Kształt włosów" value={formData.hairShape} onChange={(e) => update('hairShape', e.target.value)} sx={{ flex: '1 1 200px' }} />
           </Box>
           <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Typy włosów:</Typography>
-          <CheckboxGroup options={['Cienkie', 'Normalne', 'Grube', 'Kręcone', 'Proste', 'Faliste']} selected={formData.hairTypes} onChange={(v) => update('hairTypes', v)} />
+          <CheckboxGroup options={FIELD_OPTIONS['hairTypes'] ?? []} selected={formData.hairTypes} onChange={(v) => update('hairTypes', v)} />
           <TextField fullWidth size="small" label="Włosy odrastające" value={formData.regrowingHairs} onChange={(e) => update('regrowingHairs', e.target.value)} sx={{ mt: 1.5 }} />
           <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Włosy vellusowe / zminiaturyzowane:</Typography>
-          <CheckboxGroup options={['Liczne', 'Nieliczne', 'Brak', 'Zminiaturyzowane', 'Łuszczenie wokół mieszków']} selected={formData.vellusMiniaturizedHairs} onChange={(v) => update('vellusMiniaturizedHairs', v)} />
+          <CheckboxGroup options={FIELD_OPTIONS['vellusMiniaturizedHairs'] ?? []} selected={formData.vellusMiniaturizedHairs} onChange={(v) => update('vellusMiniaturizedHairs', v)} />
           
           <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Unaczynienie:</Typography>
-          <CheckboxGroup options={['Naczynia kropkowate', 'Naczynia liniowe', 'Naczynia arborystyczne', 'Naczynia siatkowate', 'Brak naczyń', 'Prawidłowe']} selected={formData.vascularPatterns} onChange={(v) => update('vascularPatterns', v)} />
+          <CheckboxGroup options={FIELD_OPTIONS['vascularPatterns'] ?? []} selected={formData.vascularPatterns} onChange={(v) => update('vascularPatterns', v)} />
 
           <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Cechy okołomieszkowe:</Typography>
-          <CheckboxGroup options={['White dots', 'Yellow dots', 'Black dots', 'Prawidłowe']} selected={formData.perifollicularFeatures} onChange={(v) => update('perifollicularFeatures', v)} />
+          <CheckboxGroup options={FIELD_OPTIONS['perifollicularFeatures'] ?? []} selected={formData.perifollicularFeatures} onChange={(v) => update('perifollicularFeatures', v)} />
 
           <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Choroby skóry głowy:</Typography>
-          <CheckboxGroup options={['ŁZS', 'LLP', 'AZS', 'Grzybica', 'Łuszczyca', 'Zapalenia okołomieszkowe']} selected={formData.scalpDiseases} onChange={(v) => update('scalpDiseases', v)} />
+          <CheckboxGroup options={FIELD_OPTIONS['scalpDiseases'] ?? []} selected={formData.scalpDiseases} onChange={(v) => update('scalpDiseases', v)} />
 
           <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Inne cechy diagnostyczne:</Typography>
-          <CheckboxGroup options={['Trychodynia', 'Plaster miodu', 'Cofnięcie linii czołowej', 'Trichokinesis']} selected={formData.otherDiagnostics} onChange={(v) => update('otherDiagnostics', v)} />
+          <CheckboxGroup options={FIELD_OPTIONS['otherDiagnostics'] ?? []} selected={formData.otherDiagnostics} onChange={(v) => update('otherDiagnostics', v)} />
         </AccordionDetails>
       </Accordion>
 
@@ -860,7 +827,7 @@ export default function ConsultationCardForm({
         </AccordionSummary>
         <AccordionDetails sx={{ pt: 0 }}>
           <Typography sx={{ fontSize: 12, color: '#64748B', mb: 0.5 }}>Typy łysienia:</Typography>
-          <CheckboxGroup options={['Androgenowe', 'Plackowate', 'Bliznowaciejące', 'Telogenowe', 'Anagenowe', 'Trakcyjne', 'Inne']} selected={formData.alopeciaTypes} onChange={(v) => update('alopeciaTypes', v)} />
+          <CheckboxGroup options={FIELD_OPTIONS['alopeciaTypes'] ?? []} selected={formData.alopeciaTypes} onChange={(v) => update('alopeciaTypes', v)} />
           
           <FormControl fullWidth size="small" sx={{ mt: 1.5 }}>
             <InputLabel>Klasyfikacja łysienia</InputLabel>
@@ -880,7 +847,7 @@ export default function ConsultationCardForm({
           </Box>
           <TextField fullWidth size="small" label="Pull test" value={formData.pullTest} onChange={(e) => update('pullTest', e.target.value)} sx={{ mt: 1.5 }} />
           <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Dotknięte obszary:</Typography>
-          <CheckboxGroup options={['Czołowa', 'Ciemieniowa', 'Skroniowa', 'Potyliczna', 'Uogólniona', 'Ogniskowa']} selected={formData.alopeciaAffectedAreas} onChange={(v) => update('alopeciaAffectedAreas', v)} />
+          <CheckboxGroup options={FIELD_OPTIONS['alopeciaAffectedAreas'] ?? []} selected={formData.alopeciaAffectedAreas} onChange={(v) => update('alopeciaAffectedAreas', v)} />
           <TextField fullWidth size="small" label="Inne (opis)" value={formData.alopeciaOther} onChange={(e) => update('alopeciaOther', e.target.value)} sx={{ mt: 1.5 }} />
         </AccordionDetails>
       </Accordion>

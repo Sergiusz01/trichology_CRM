@@ -1,6 +1,7 @@
 import puppeteer from 'puppeteer';
 import { prisma } from '../prisma';
 import { getLogoHTMLForPDF } from '../utils/logo';
+import { FIELD_LABELS, SECTIONS } from '../shared/consultationFields';
 
 // Export helper functions for use in other modules
 export const formatDate = (date: Date | string | null | undefined): string => {
@@ -153,20 +154,20 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
     ? box(`
         ${subsectionHeader('3. ŁUSZCZENIE SKÓRY GŁOWY')}
         ${checkboxRow('Nasilenie', cv(c, 'scalingSeverity'))}
-        ${checkboxRow('Typ', cv(c, 'scalingType'))}
+        ${checkboxRow(FIELD_LABELS['scalingType'] ?? 'Typ łuszczenia', cv(c, 'scalingType'))}
         ${checkboxRow('Czas trwania', cv(c, 'scalingDuration'))}
-        ${fieldRow('Inne', cv(c, 'scalingOther'))}
+        ${fieldRow('Inne (opis)', cv(c, 'scalingOther'))}
       `)
     : '';
 
   const sensitivityBox = cv(c, 'sensitivitySeverity') || cv(c, 'sensitivityProblemType')
     ? box(`
-        ${subsectionHeader('4. WRAŻLIWOŚĆ / INNE')}
-        ${checkboxRow('Problem', cv(c, 'sensitivityProblemType'))}
+        ${subsectionHeader('4. WRAŻLIWOŚĆ SKÓRY GŁOWY')}
+        ${checkboxRow(FIELD_LABELS['sensitivityProblemType'] ?? 'Typ problemu', cv(c, 'sensitivityProblemType'))}
         ${checkboxRow('Nasilenie', cv(c, 'sensitivitySeverity'))}
         ${checkboxRow('Czas trwania', cv(c, 'sensitivityDuration'))}
-        ${fieldRow('Inne', cv(c, 'sensitivityOther'))}
-        ${fieldRow('Stany zapalne', cv(c, 'inflammatoryStates'))}
+        ${fieldRow('Inne (opis)', cv(c, 'sensitivityOther'))}
+        ${fieldRow(FIELD_LABELS['inflammatoryStates'] ?? 'Stany zapalne / grudki', cv(c, 'inflammatoryStates'))}
       `)
     : '';
 
@@ -186,37 +187,37 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
     cv(c, 'supplements') || cv(c, 'antibiotics') || cv(c, 'chronicDiseases');
 
   const anamnesisSection = hasAnamnesis ? `
-    ${sectionHeader('WYWIAD (ANAMNEZA)')}
+    ${sectionHeader('2. WYWIAD')}
     <div class="two-col">
       <div>
-        ${checkboxRow('Rodzina', cv(c, 'familyHistory'))}
-        ${checkboxRow('Dermatolog', cv(c, 'dermatologyVisits'))}
-        ${fieldRow('Powód dermatolog', cv(c, 'dermatologyVisitsReason'))}
-        ${checkboxRow('Ciąża', cv(c, 'pregnancy'))}
-        ${checkboxRow('Miesiączki', cv(c, 'menstruationRegularity'))}
-        ${fieldRow('Hormony/Antykoncepcja', cv(c, 'contraception'))}
-        ${checkboxRow('Stres', cv(c, 'stressLevel'))}
-        ${checkboxRow('Leki', cv(c, 'medications'))}
-        ${fieldRow('Lista leków', cv(c, 'medicationsList'))}
-        ${fieldRow('Suplementy', cv(c, 'supplements'))}
-        ${fieldRow('Jakie suplementy', cv(c, 'supplementsDetails'))}
+        ${checkboxRow(FIELD_LABELS['familyHistory'] ?? 'Wypadanie w rodzinie', cv(c, 'familyHistory'))}
+        ${checkboxRow(FIELD_LABELS['dermatologyVisits'] ?? 'Dermatolog', cv(c, 'dermatologyVisits'))}
+        ${fieldRow(FIELD_LABELS['dermatologyVisitsReason'] ?? 'Powód wizyty', cv(c, 'dermatologyVisitsReason'))}
+        ${checkboxRow(FIELD_LABELS['pregnancy'] ?? 'Ciąża', cv(c, 'pregnancy'))}
+        ${checkboxRow(FIELD_LABELS['menstruationRegularity'] ?? 'Miesiączki', cv(c, 'menstruationRegularity'))}
+        ${fieldRow(FIELD_LABELS['contraception'] ?? 'Antykoncepcja', cv(c, 'contraception'))}
+        ${checkboxRow(FIELD_LABELS['stressLevel'] ?? 'Stres', cv(c, 'stressLevel'))}
+        ${checkboxRow(FIELD_LABELS['medications'] ?? 'Leki stałe', cv(c, 'medications'))}
+        ${fieldRow(FIELD_LABELS['medicationsList'] ?? 'Lista leków', cv(c, 'medicationsList'))}
+        ${fieldRow(FIELD_LABELS['supplements'] ?? 'Suplementy', cv(c, 'supplements'))}
+        ${fieldRow(FIELD_LABELS['supplementsDetails'] ?? 'Jakie suplementy?', cv(c, 'supplementsDetails'))}
       </div>
       <div>
-        ${checkboxRow('Znieczulenie', cv(c, 'anesthesia'))}
-        ${checkboxRow('Chemioterapia', cv(c, 'chemotherapy'))}
-        ${checkboxRow('Radioterapia', cv(c, 'radiotherapy'))}
-        ${checkboxRow('Szczepienia', cv(c, 'vaccination'))}
-        ${fieldRow('Antybiotyki', cv(c, 'antibiotics'))}
-        ${fieldRow('Jakie antybiotyki / kiedy', cv(c, 'antibioticsDetails'))}
-        ${checkboxRow('Choroby przewlekłe', cv(c, 'chronicDiseases'))}
-        ${fieldRow('Lista chorób', cv(c, 'chronicDiseasesList'))}
-        ${checkboxRow('Specjaliści', cv(c, 'specialists'))}
-        ${fieldRow('Jakiego specjalisty', cv(c, 'specialistsList'))}
-        ${checkboxRow('Zaburzenia odżywiania', cv(c, 'eatingDisorders'))}
-        ${fieldRow('Nietolerancje', cv(c, 'foodIntolerances'))}
-        ${checkboxRow('Dieta', cv(c, 'diet'))}
-        ${checkboxRow('Alergie', cv(c, 'allergies'))}
-        ${checkboxRow('Metal w ciele', cv(c, 'metalPartsInBody'))}
+        ${checkboxRow(FIELD_LABELS['anesthesia'] ?? 'Znieczulenie', cv(c, 'anesthesia'))}
+        ${checkboxRow(FIELD_LABELS['chemotherapy'] ?? 'Chemioterapia', cv(c, 'chemotherapy'))}
+        ${checkboxRow(FIELD_LABELS['radiotherapy'] ?? 'Radioterapia', cv(c, 'radiotherapy'))}
+        ${checkboxRow(FIELD_LABELS['vaccination'] ?? 'Szczepienia', cv(c, 'vaccination'))}
+        ${fieldRow(FIELD_LABELS['antibiotics'] ?? 'Antybiotyki', cv(c, 'antibiotics'))}
+        ${fieldRow(FIELD_LABELS['antibioticsDetails'] ?? 'Jakie antybiotyki?', cv(c, 'antibioticsDetails'))}
+        ${checkboxRow(FIELD_LABELS['chronicDiseases'] ?? 'Choroby przewlekłe', cv(c, 'chronicDiseases'))}
+        ${fieldRow(FIELD_LABELS['chronicDiseasesList'] ?? 'Lista chorób', cv(c, 'chronicDiseasesList'))}
+        ${checkboxRow(FIELD_LABELS['specialists'] ?? 'Specjaliści', cv(c, 'specialists'))}
+        ${fieldRow(FIELD_LABELS['specialistsList'] ?? 'Jacy specjaliści?', cv(c, 'specialistsList'))}
+        ${checkboxRow(FIELD_LABELS['eatingDisorders'] ?? 'Zaburzenia odżywiania', cv(c, 'eatingDisorders'))}
+        ${fieldRow(FIELD_LABELS['foodIntolerances'] ?? 'Nietolerancje pokarmowe', cv(c, 'foodIntolerances'))}
+        ${fieldRow(FIELD_LABELS['diet'] ?? 'Dieta', cv(c, 'diet'))}
+        ${fieldRow(FIELD_LABELS['allergies'] ?? 'Alergie', cv(c, 'allergies'))}
+        ${checkboxRow(FIELD_LABELS['metalPartsInBody'] ?? 'Części metalowe', cv(c, 'metalPartsInBody'))}
       </div>
     </div>
     ${(cv(c, 'careRoutineShampoo') || cv(c, 'careRoutineConditioner') || cv(c, 'careRoutineOils') || cv(c, 'careRoutineChemical')) ? `
@@ -236,37 +237,37 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
     cv(c, 'perifollicularFeatures') || cv(c, 'scalpDiseases') || cv(c, 'otherDiagnostics');
 
   const trichoscopySection = hasTrichoscopy ? `
-    ${sectionHeader('TRICHOSKOPIA — BADANIE')}
+    ${sectionHeader('3. TRICHOSKOPIA — BADANIE')}
     <div class="three-col">
       ${box(`
         ${subsectionHeader('SKÓRA GŁOWY')}
-        ${checkboxRow('Typ', cv(c, 'scalpType'))}
-        ${checkboxRow('Objawy', cv(c, 'scalpAppearance'))}
-        ${checkboxRow('Wykwity', cv(c, 'skinLesions'))}
-        ${checkboxRow('Potliwość', cv(c, 'hyperhidrosis'))}
-        ${checkboxRow('Hiperkeratynizacja', cv(c, 'hyperkeratinization'))}
-        ${checkboxRow('Wydzielina', cv(c, 'sebaceousSecretion'))}
-        ${checkboxRow('Łojotok', cv(c, 'seborrheaType'))}
-        ${fieldRow('Inne łojotok', cv(c, 'seborrheaTypeOther'))}
-        ${checkboxRow('Złuszczanie', cv(c, 'dandruffType'))}
-        ${fieldRow('pH', cv(c, 'scalpPH'))}
+        ${checkboxRow(FIELD_LABELS['scalpType'] ?? 'Typ skóry', cv(c, 'scalpType'))}
+        ${checkboxRow(FIELD_LABELS['scalpAppearance'] ?? 'Wygląd skóry', cv(c, 'scalpAppearance'))}
+        ${checkboxRow(FIELD_LABELS['skinLesions'] ?? 'Wykwity skórne', cv(c, 'skinLesions'))}
+        ${checkboxRow(FIELD_LABELS['hyperhidrosis'] ?? 'Potliwość', cv(c, 'hyperhidrosis'))}
+        ${checkboxRow(FIELD_LABELS['hyperkeratinization'] ?? 'Rogowacenie', cv(c, 'hyperkeratinization'))}
+        ${checkboxRow(FIELD_LABELS['sebaceousSecretion'] ?? 'Wydzielina', cv(c, 'sebaceousSecretion'))}
+        ${checkboxRow(FIELD_LABELS['seborrheaType'] ?? 'Łojotok', cv(c, 'seborrheaType'))}
+        ${fieldRow(FIELD_LABELS['seborrheaTypeOther'] ?? 'Inny łojotok', cv(c, 'seborrheaTypeOther'))}
+        ${checkboxRow(FIELD_LABELS['dandruffType'] ?? 'Łupież', cv(c, 'dandruffType'))}
+        ${fieldRow(FIELD_LABELS['scalpPH'] ?? 'pH skóry', cv(c, 'scalpPH'))}
       `)}
       ${box(`
         ${subsectionHeader('STAN WŁOSÓW')}
-        ${checkboxRow('Jakość', cv(c, 'hairQuality'))}
-        ${checkboxRow('Uszkodzenia', cv(c, 'hairDamage'))}
-        ${checkboxRow('Przyczyna uszkodzeń', cv(c, 'hairDamageReason'))}
-        ${checkboxRow('Kształt', cv(c, 'hairShape'))}
-        ${checkboxRow('Typy', cv(c, 'hairTypes'))}
-        ${checkboxRow('Odrastające', cv(c, 'regrowingHairs'))}
-        ${checkboxRow('Vellus / Zminiaturyzowane', cv(c, 'vellusMiniaturizedHairs'))}
+        ${checkboxRow(FIELD_LABELS['hairQuality'] ?? 'Jakość', cv(c, 'hairQuality'))}
+        ${checkboxRow(FIELD_LABELS['hairDamage'] ?? 'Uszkodzenia', cv(c, 'hairDamage'))}
+        ${checkboxRow(FIELD_LABELS['hairDamageReason'] ?? 'Przyczyna', cv(c, 'hairDamageReason'))}
+        ${checkboxRow(FIELD_LABELS['hairShape'] ?? 'Kształt', cv(c, 'hairShape'))}
+        ${checkboxRow(FIELD_LABELS['hairTypes'] ?? 'Typy', cv(c, 'hairTypes'))}
+        ${checkboxRow(FIELD_LABELS['regrowingHairs'] ?? 'Odrastające', cv(c, 'regrowingHairs'))}
+        ${checkboxRow(FIELD_LABELS['vellusMiniaturizedHairs'] ?? 'Vellus / Zminiaturyzowane', cv(c, 'vellusMiniaturizedHairs'))}
       `)}
       ${box(`
         ${subsectionHeader('CECHY SPECYFICZNE')}
-        ${checkboxRow('Unaczynienie', cv(c, 'vascularPatterns'))}
-        ${checkboxRow('Cechy okołomieszkowe', cv(c, 'perifollicularFeatures'))}
-        ${checkboxRow('Choroby skóry głowy', cv(c, 'scalpDiseases'))}
-        ${checkboxRow('Inne diagnostyki', cv(c, 'otherDiagnostics'))}
+        ${checkboxRow(FIELD_LABELS['vascularPatterns'] ?? 'Unaczynienie', cv(c, 'vascularPatterns'))}
+        ${checkboxRow(FIELD_LABELS['perifollicularFeatures'] ?? 'Cechy okołomieszkowe', cv(c, 'perifollicularFeatures'))}
+        ${checkboxRow(FIELD_LABELS['scalpDiseases'] ?? 'Choroby skóry głowy', cv(c, 'scalpDiseases'))}
+        ${checkboxRow(FIELD_LABELS['otherDiagnostics'] ?? 'Inne', cv(c, 'otherDiagnostics'))}
       `)}
     </div>
   ` : '';
@@ -299,34 +300,34 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
 
   // ─── DIAGNOSTYKA ŁYSIENIA + ROZPOZNANIE ───────────────────────────────────
   const diagnosisSection = `
-    ${sectionHeader('ROZPOZNANIE (DIAGNOZA)')}
+    ${sectionHeader('5. ROZPOZNANIE (DIAGNOZA)')}
     <div class="two-col">
       <div>
         <div class="diagnosis-text">${escapeHtml(String(cv(c, 'diagnosis') || 'Brak wpisu'))}</div>
-        ${checkboxRow('Typ łysienia', cv(c, 'alopeciaTypes'))}
-        ${fieldRow('Klasyfikacja', cv(c, 'alopeciaType'))}
-        ${fieldRow('Stopień przerzedzenia', cv(c, 'degreeOfThinning'))}
-        ${checkboxRow('Obszary', cv(c, 'alopeciaAffectedAreas'))}
-        ${fieldRow('Miniaturyzacja', cv(c, 'miniaturization'))}
-        ${fieldRow('Jednostki mieszkowe', cv(c, 'follicularUnits'))}
-        ${fieldRow('Pull Test', cv(c, 'pullTest'))}
-        ${fieldRow('Inne', cv(c, 'alopeciaOther'))}
-        ${fieldRow('Norwood-Hamilton', cv(c, 'norwoodHamiltonStage'))}
-        ${fieldRow('Ludwig', cv(c, 'ludwigStage'))}
+        ${checkboxRow(FIELD_LABELS['alopeciaTypes'] ?? 'Typ łysienia', cv(c, 'alopeciaTypes'))}
+        ${fieldRow(FIELD_LABELS['alopeciaType'] ?? 'Klasyfikacja', cv(c, 'alopeciaType'))}
+        ${fieldRow(FIELD_LABELS['degreeOfThinning'] ?? 'Stopień przerzedzenia', cv(c, 'degreeOfThinning'))}
+        ${checkboxRow(FIELD_LABELS['alopeciaAffectedAreas'] ?? 'Dotkięte obszary', cv(c, 'alopeciaAffectedAreas'))}
+        ${fieldRow(FIELD_LABELS['miniaturization'] ?? 'Miniaturyzacja', cv(c, 'miniaturization'))}
+        ${fieldRow(FIELD_LABELS['follicularUnits'] ?? 'Jednostki folikularne', cv(c, 'follicularUnits'))}
+        ${fieldRow(FIELD_LABELS['pullTest'] ?? 'Pull Test', cv(c, 'pullTest'))}
+        ${fieldRow(FIELD_LABELS['alopeciaOther'] ?? 'Inne', cv(c, 'alopeciaOther'))}
+        ${fieldRow(FIELD_LABELS['norwoodHamiltonStage'] ?? 'Norwood-Hamilton', cv(c, 'norwoodHamiltonStage'))}
+        ${fieldRow(FIELD_LABELS['ludwigStage'] ?? 'Ludwig', cv(c, 'ludwigStage'))}
       </div>
       <div>
-        ${sectionHeader('ZALECENIA DOMOWE')}
-        ${fieldRow('Mycie', cv(c, 'careRecommendationsWashing'))}
-        ${fieldRow('Wcierki', cv(c, 'careRecommendationsTopical'))}
-        ${fieldRow('Suplementy', cv(c, 'careRecommendationsSupplement'))}
-        ${fieldRow('Zachowanie', cv(c, 'careRecommendationsBehavior'))}
-        ${fieldRow('Zabiegi gabinetowe', cv(c, 'visitsProcedures'))}
+        ${sectionHeader('6. ZALECENIA DO PIELĘGNACJI')}
+        ${fieldRow(FIELD_LABELS['careRecommendationsWashing'] ?? 'Mycie', cv(c, 'careRecommendationsWashing'))}
+        ${fieldRow(FIELD_LABELS['careRecommendationsTopical'] ?? 'Wcierki', cv(c, 'careRecommendationsTopical'))}
+        ${fieldRow(FIELD_LABELS['careRecommendationsSupplement'] ?? 'Suplementacja', cv(c, 'careRecommendationsSupplement'))}
+        ${fieldRow(FIELD_LABELS['careRecommendationsBehavior'] ?? 'Zmiany behawioralne', cv(c, 'careRecommendationsBehavior'))}
+        ${fieldRow(FIELD_LABELS['visitsProcedures'] ?? 'Zabiegi gabinetowe', cv(c, 'visitsProcedures'))}
       </div>
     </div>`;
 
   // ─── UWAGI ────────────────────────────────────────────────────────────────
   const remarksSection = cv(c, 'generalRemarks') ? `
-    ${sectionHeader('UWAGI DODATKOWE')}
+    ${sectionHeader('8. UWAGI OGÓLNE')}
     <div class="remarks-box">${escapeHtml(String(cv(c, 'generalRemarks')))}</div>
   ` : '';
 

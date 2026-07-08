@@ -8,6 +8,7 @@ import { prisma } from '../prisma';
 import fs from 'fs';
 import path from 'path';
 import { logger } from '../utils/logger';
+import { JSON_ARRAY_FIELDS } from '../shared/consultationFields';
 
 const router = express.Router();
 
@@ -349,26 +350,8 @@ router.get('/:id/audit-logs', authenticate, async (req: AuthRequest, res, next) 
 // Helper function to convert arrays/JSON strings to proper format for Prisma
 // Prisma Json type expects JavaScript objects/arrays, not JSON strings
 const prepareDataForDb = (data: any) => {
-  const jsonFields = [
-    'hairLossLocalization',
-    'scalingType',
-    'sensitivityProblemType',
-    'scalpType',
-    'scalpAppearance',
-    'skinLesions',
-    'seborrheaType',
-    'dandruffType',
-    'hairDamage',
-    'hairDamageReason',
-    'hairTypes',
-    'vellusMiniaturizedHairs',
-    'vascularPatterns',
-    'perifollicularFeatures',
-    'scalpDiseases',
-    'otherDiagnostics',
-    'alopeciaTypes',
-    'alopeciaAffectedAreas',
-  ];
+  // jsonFields is imported from shared/consultationFields.ts (single source of truth)
+  const jsonFields = JSON_ARRAY_FIELDS;
 
   const prepared: any = {};
 
