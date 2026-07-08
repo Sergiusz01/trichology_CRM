@@ -205,15 +205,17 @@ function SeveritySelector({ value, onChange }: { value: string; onChange: (v: st
 
 // Checkbox group
 function CheckboxGroup({ options, selected, onChange }: { options: string[]; selected: string[]; onChange: (v: string[]) => void }) {
+  // Defensive: ensure selected is always an array (guard against string JSON or undefined from existingData)
+  const safeSelected: string[] = Array.isArray(selected) ? selected : [];
   const toggle = (opt: string) => {
-    onChange(selected.includes(opt) ? selected.filter((s) => s !== opt) : [...selected, opt]);
+    onChange(safeSelected.includes(opt) ? safeSelected.filter((s) => s !== opt) : [...safeSelected, opt]);
   };
   return (
     <FormGroup row sx={{ gap: 0 }}>
       {options.map((opt) => (
         <FormControlLabel
           key={opt}
-          control={<Checkbox checked={selected.includes(opt)} onChange={() => toggle(opt)} size="small" />}
+          control={<Checkbox checked={safeSelected.includes(opt)} onChange={() => toggle(opt)} size="small" />}
           label={<Typography sx={{ fontSize: 13 }}>{opt}</Typography>}
           sx={{ mr: 2, mb: 0 }}
         />

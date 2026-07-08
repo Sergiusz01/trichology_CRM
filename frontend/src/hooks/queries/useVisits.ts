@@ -51,7 +51,9 @@ export function usePatientVisits(patientId: string | undefined) {
       const res = await api.get(`/visits/patient/${patientId}`, {
         _skipErrorToast: true,
       });
-      return (res.data || []) as Visit[];
+      // Guard: API may return an error object instead of an array on 404
+      const data = res.data;
+      return (Array.isArray(data) ? data : Array.isArray(data?.visits) ? data.visits : []) as Visit[];
     },
     enabled: !!patientId,
   });

@@ -29,7 +29,10 @@ export default function ConsultationFormPage() {
   const { id, patientId } = useParams<{ id?: string; patientId?: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(
+    // Start as loading=true in edit mode to prevent premature render with wrong patientId
+    Boolean(!location.pathname.includes('/consultations/new') && id && patientId === undefined)
+  );
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
