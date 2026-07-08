@@ -66,6 +66,11 @@ jobs:
             # Ensure APP_BASE_URL is set so email action links point to the real domain (not localhost)
             grep -q 'APP_BASE_URL' .env && sed -i 's|APP_BASE_URL=.*|APP_BASE_URL=https://www.001246.xyz|' .env || echo 'APP_BASE_URL=https://www.001246.xyz' >> .env
 
+            # Load environment variables from .env so Prisma can find DATABASE_URL
+            set -a
+            source .env
+            set +a
+
             npm install --production=false
             npx prisma generate
             npx prisma db push --accept-data-loss
