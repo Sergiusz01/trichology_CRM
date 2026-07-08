@@ -9,15 +9,18 @@ import {
   Box, Button, Typography, Alert, Snackbar, Paper, Chip,
   TextField, CircularProgress, Accordion, AccordionSummary,
   AccordionDetails, Checkbox, FormControlLabel, Divider,
-  FormGroup, Radio, RadioGroup,
+  FormGroup, IconButton, Dialog, DialogTitle, DialogContent, DialogActions,
+  Select, MenuItem, FormControl, InputLabel,
 } from '@mui/material';
 import {
-  Save, Print, Visibility, Edit as EditIcon, ArrowBack,
+  Save, Edit as EditIcon, ArrowBack, Close, Add,
   ExpandMore, Person, MedicalServices, CheckCircle,
+  EventAvailable, CalendarToday,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
+import { usePatientVisits, useCreateVisit, Visit } from '../../hooks/queries/useVisits';
 
 interface ConsultationCardFormProps {
   patientId: string;
@@ -230,6 +233,289 @@ function YesNoSelector({ value, onChange, label }: { value: string; onChange: (v
   );
 }
 
+// ── Editable Patient Header ─────────────────────────────────────────────────
+function PatientHeader({ patient, patientId, doctorName, consultationDate, onPatientUpdate }: {
+  patient: any; patientId: string; doctorName: string; consultationDate: string; onPatientUpdate: (p: any) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editData, setEditData] = useState({
+    firstName: '', lastName: '', age: '', phone: '', email: '', gender: '', occupation: '',
+  });
+
+  const startEdit = () => {
+    setEditData({
+      firstName: patient?.firstName || '',
+      lastName: patient?.lastName || '',
+      age: patient?.age?.toString() || '',
+      phone: patient?.phone || '',
+      email: patient?.email || '',
+      gender: patient?.gender || '',
+      occupation: patient?.occupation || '',
+    });
+    setEditing(true);
+  };
+
+  const handleSavePatient = async () => {
+    setSaving(true);
+    try {
+      const payload: any = {
+        firstName: editData.firstName,
+        lastName: editData.lastName,
+      };
+      if (editData.age) payload.age = parseInt(editData.age);
+      if (editData.phone) payload.phone = editData.phone;
+      if (editData.email) payload.email = editData.email;
+      if (editData.gender) payload.gender = editData.gender;
+      if (editData.occupation) payload.occupation = editData.occupation;
+
+      await api.put(`/patients/${patientId}`, payload);
+      onPatientUpdate({ ...patient, ...payload });
+      setEditing(false);
+    } catch (err) {
+      console.error('Error saving patient:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const patientName = patient ? `${patient.firstName} ${patient.lastName}` : '';
+  const patientAge = patient?.age ? `${patient.age} lat` : '';
+  const patientGender = patient?.gender === 'MALE' ? 'M' : patient?.gender === 'FEMALE' ? 'K' : '';
+
+  return (
+    <Paper elevation={0} sx={{ p: 2.5, mb: 2, borderRadius: 2, border: '1px solid #E2E8F0', bgcolor: '#F8FAFC' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+        <Typography sx={{ fontSize: 18, fontWeight: 800, color: '#2E5F8A', letterSpacing: '-0.3px' }}>
+          KARTA KONSULTACYJNA
+        </Typography>
+        {!editing ? (
+          <Button size="small" startIcon={<EditIcon sx={{ fontSize: 14 }} />} onClick={startEdit}
+            sx={{ textTransform: 'none', fontSize: 12, color: '#64748B' }}>
+            Edytuj dane pacjenta
+          </Button>
+        ) : (
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button size="small" variant="outlined" onClick={() => setEditing(false)}
+              sx={{ textTransform: 'none', fontSize: 12 }}>Anuluj</Button>
+            <Button size="small" variant="contained" onClick={handleSavePatient} disabled={saving}
+              startIcon={saving ? <CircularProgress size={12} color="inherit" /> : <Save sx={{ fontSize: 14 }} />}
+              sx={{ textTransform: 'none', fontSize: 12, bgcolor: '#16A34A', '&:hover': { bgcolor: '#15803D' } }}>
+              Zapisz
+            </Button>
+          </Box>
+        )}
+      </Box>
+
+      {editing ? (
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
+          <TextField size="small" label="Imię" value={editData.firstName} onChange={(e) => setEditData({ ...editData, firstName: e.target.value })} sx={{ flex: '1 1 180px' }} />
+          <TextField size="small" label="Nazwisko" value={editData.lastName} onChange={(e) => setEditData({ ...editData, lastName: e.target.value })} sx={{ flex: '1 1 180px' }} />
+          <TextField size="small" label="Wiek" type="number" value={editData.age} onChange={(e) => setEditData({ ...editData, age: e.target.value })} sx={{ flex: '0 0 80px' }} />
+          <FormControl size="small" sx={{ flex: '0 0 120px' }}>
+            <InputLabel>Płeć</InputLabel>
+            <Select value={editData.gender} label="Płeć" onChange={(e) => setEditData({ ...editData, gender: e.target.value })}>
+              <MenuItem value="MALE">Mężczyzna</MenuItem>
+              <MenuItem value="FEMALE">Kobieta</MenuItem>
+              <MenuItem value="OTHER">Inna</MenuItem>
+            </Select>
+          </FormControl>
+          <TextField size="small" label="Telefon" value={editData.phone} onChange={(e) => setEditData({ ...editData, phone: e.target.value })} sx={{ flex: '1 1 160px' }} />
+          <TextField size="small" label="Email" value={editData.email} onChange={(e) => setEditData({ ...editData, email: e.target.value })} sx={{ flex: '1 1 200px' }} />
+          <TextField size="small" label="Zawód" value={editData.occupation} onChange={(e) => setEditData({ ...editData, occupation: e.target.value })} sx={{ flex: '1 1 160px' }} />
+        </Box>
+      ) : (
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+          <Box sx={{ flex: '1 1 200px' }}>
+            <Typography sx={{ fontSize: 11, fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', mb: 0.3 }}>Pacjent</Typography>
+            <Typography sx={{ fontSize: 15, fontWeight: 700, color: '#0F172A' }}>
+              {patientName} {patientAge && <Typography component="span" sx={{ fontSize: 13, color: '#64748B', fontWeight: 400 }}>({patientAge}, {patientGender})</Typography>}
+            </Typography>
+            {patient?.phone && <Typography sx={{ fontSize: 12, color: '#64748B' }}>Tel: {patient.phone}</Typography>}
+            {patient?.email && <Typography sx={{ fontSize: 12, color: '#64748B' }}>{patient.email}</Typography>}
+          </Box>
+          <Box sx={{ flex: '1 1 200px' }}>
+            <Typography sx={{ fontSize: 11, fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', mb: 0.3 }}>Lekarz</Typography>
+            <Typography sx={{ fontSize: 15, fontWeight: 700, color: '#0F172A' }}>{doctorName}</Typography>
+          </Box>
+          <Box sx={{ flex: '1 1 150px' }}>
+            <Typography sx={{ fontSize: 11, fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', mb: 0.3 }}>Data konsultacji</Typography>
+            <Typography sx={{ fontSize: 15, fontWeight: 700, color: '#0F172A' }}>
+              {new Date(consultationDate).toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </Typography>
+          </Box>
+        </Box>
+      )}
+    </Paper>
+  );
+}
+
+// ── Visits Section with List + Add Form ──────────────────────────────────────
+const VISIT_STATUS_LABELS: Record<string, { label: string; color: 'default' | 'primary' | 'success' | 'warning' | 'error' }> = {
+  ZAPLANOWANA: { label: 'Zaplanowana', color: 'primary' },
+  ODBYTA: { label: 'Odbyta', color: 'success' },
+  NIEOBECNOSC: { label: 'Nieobecność', color: 'warning' },
+  ANULOWANA: { label: 'Anulowana', color: 'error' },
+};
+
+function VisitsSection({ patientId }: { patientId: string }) {
+  const { data: visits = [], isLoading } = usePatientVisits(patientId);
+  const createVisit = useCreateVisit();
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newVisit, setNewVisit] = useState({
+    data: '',
+    rodzajZabiegu: '',
+    notatki: '',
+    status: 'ZAPLANOWANA' as Visit['status'],
+    cena: '',
+    numerWSerii: '',
+    liczbaSerii: '',
+  });
+  const [addError, setAddError] = useState('');
+
+  const handleAddVisit = async () => {
+    if (!newVisit.data || !newVisit.rodzajZabiegu) {
+      setAddError('Uzupełnij datę i rodzaj zabiegu');
+      return;
+    }
+    try {
+      await createVisit.mutateAsync({
+        patientId,
+        data: newVisit.data,
+        rodzajZabiegu: newVisit.rodzajZabiegu,
+        status: newVisit.status,
+        notatki: newVisit.notatki || undefined,
+        cena: newVisit.cena ? parseFloat(newVisit.cena) : undefined,
+        numerWSerii: newVisit.numerWSerii ? parseInt(newVisit.numerWSerii) : undefined,
+        liczbaSerii: newVisit.liczbaSerii ? parseInt(newVisit.liczbaSerii) : undefined,
+      });
+      setShowAddForm(false);
+      setNewVisit({ data: '', rodzajZabiegu: '', notatki: '', status: 'ZAPLANOWANA', cena: '', numerWSerii: '', liczbaSerii: '' });
+      setAddError('');
+    } catch (err: any) {
+      setAddError(err.response?.data?.error || 'Błąd dodawania wizyty');
+    }
+  };
+
+  const now = new Date();
+  const defaultDateTime = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}T${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+  return (
+    <Box>
+      {/* Existing visits list */}
+      {isLoading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}><CircularProgress size={24} /></Box>
+      ) : visits.length === 0 ? (
+        <Typography sx={{ fontSize: 13, color: '#94A3B8', py: 1, textAlign: 'center' }}>
+          Brak zaplanowanych wizyt dla tego pacjenta
+        </Typography>
+      ) : (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 1 }}>
+          <Typography sx={{ fontSize: 12, fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}>
+            Istniejące wizyty ({visits.length})
+          </Typography>
+          {visits.slice(0, 5).map((visit: any) => {
+            const statusInfo = VISIT_STATUS_LABELS[visit.status] || { label: visit.status, color: 'default' as const };
+            const visitDate = new Date(visit.data);
+            return (
+              <Paper key={visit.id} elevation={0} sx={{ p: 1.5, border: '1px solid #E2E8F0', borderRadius: 1.5, display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+                <CalendarToday sx={{ fontSize: 16, color: '#94A3B8' }} />
+                <Typography sx={{ fontSize: 13, fontWeight: 600, color: '#0F172A', minWidth: 120 }}>
+                  {visitDate.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  {' '}
+                  <Typography component="span" sx={{ fontSize: 12, color: '#64748B' }}>
+                    {visitDate.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}
+                  </Typography>
+                </Typography>
+                <Typography sx={{ fontSize: 13, color: '#334155', flex: 1 }}>{visit.rodzajZabiegu}</Typography>
+                <Chip label={statusInfo.label} size="small" color={statusInfo.color} variant="outlined" sx={{ fontSize: 11 }} />
+                {visit.cena && <Typography sx={{ fontSize: 12, fontWeight: 600, color: '#16A34A' }}>{visit.cena} zł</Typography>}
+              </Paper>
+            );
+          })}
+          {visits.length > 5 && (
+            <Typography sx={{ fontSize: 12, color: '#94A3B8', textAlign: 'center' }}>
+              ...i {visits.length - 5} więcej
+            </Typography>
+          )}
+        </Box>
+      )}
+
+      {/* Add visit button / form */}
+      {!showAddForm ? (
+        <Button
+          size="small" variant="outlined" startIcon={<Add />}
+          onClick={() => { setShowAddForm(true); setNewVisit({ ...newVisit, data: defaultDateTime }); }}
+          sx={{ textTransform: 'none', fontSize: 12, mt: 1 }}
+        >
+          Dodaj nową wizytę
+        </Button>
+      ) : (
+        <Paper elevation={0} sx={{ p: 2, mt: 1, border: '1px solid #CBD5E1', borderRadius: 2, bgcolor: '#FAFBFC' }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+            <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#2E5F8A' }}>Nowa wizyta</Typography>
+            <IconButton size="small" onClick={() => setShowAddForm(false)}><Close sx={{ fontSize: 16 }} /></IconButton>
+          </Box>
+          {addError && <Alert severity="error" sx={{ mb: 1, fontSize: 12 }}>{addError}</Alert>}
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
+            <TextField
+              size="small" type="datetime-local" label="Data i godzina" value={newVisit.data}
+              onChange={(e) => setNewVisit({ ...newVisit, data: e.target.value })}
+              InputLabelProps={{ shrink: true }}
+              sx={{ flex: '1 1 200px' }} required
+            />
+            <TextField
+              size="small" label="Rodzaj zabiegu" value={newVisit.rodzajZabiegu}
+              onChange={(e) => setNewVisit({ ...newVisit, rodzajZabiegu: e.target.value })}
+              sx={{ flex: '1 1 250px' }} required
+            />
+            <FormControl size="small" sx={{ flex: '0 0 150px' }}>
+              <InputLabel>Status</InputLabel>
+              <Select value={newVisit.status} label="Status" onChange={(e) => setNewVisit({ ...newVisit, status: e.target.value as Visit['status'] })}>
+                <MenuItem value="ZAPLANOWANA">Zaplanowana</MenuItem>
+                <MenuItem value="ODBYTA">Odbyta</MenuItem>
+                <MenuItem value="NIEOBECNOSC">Nieobecność</MenuItem>
+                <MenuItem value="ANULOWANA">Anulowana</MenuItem>
+              </Select>
+            </FormControl>
+            <TextField
+              size="small" label="Cena (zł)" type="number" value={newVisit.cena}
+              onChange={(e) => setNewVisit({ ...newVisit, cena: e.target.value })}
+              sx={{ flex: '0 0 100px' }}
+            />
+            <TextField
+              size="small" label="Nr w serii" type="number" value={newVisit.numerWSerii}
+              onChange={(e) => setNewVisit({ ...newVisit, numerWSerii: e.target.value })}
+              sx={{ flex: '0 0 90px' }}
+            />
+            <TextField
+              size="small" label="Liczba serii" type="number" value={newVisit.liczbaSerii}
+              onChange={(e) => setNewVisit({ ...newVisit, liczbaSerii: e.target.value })}
+              sx={{ flex: '0 0 90px' }}
+            />
+            <TextField
+              size="small" label="Notatki" value={newVisit.notatki} multiline
+              onChange={(e) => setNewVisit({ ...newVisit, notatki: e.target.value })}
+              sx={{ flex: '1 1 100%' }}
+            />
+          </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 1.5 }}>
+            <Button size="small" variant="outlined" onClick={() => setShowAddForm(false)} sx={{ textTransform: 'none', fontSize: 12 }}>Anuluj</Button>
+            <Button
+              size="small" variant="contained" onClick={handleAddVisit}
+              disabled={createVisit.isPending}
+              startIcon={createVisit.isPending ? <CircularProgress size={12} color="inherit" /> : <Add />}
+              sx={{ textTransform: 'none', fontSize: 12, bgcolor: '#2E5F8A', '&:hover': { bgcolor: '#1E4F7A' } }}
+            >
+              Dodaj wizytę
+            </Button>
+          </Box>
+        </Paper>
+      )}
+    </Box>
+  );
+}
+
 export default function ConsultationCardForm({
   patientId,
   consultationDate,
@@ -326,9 +612,6 @@ export default function ConsultationCardForm({
     );
   }
 
-  const patientName = patient ? `${patient.firstName} ${patient.lastName}` : '';
-  const patientAge = patient?.age ? `${patient.age} lat` : '';
-  const patientGender = patient?.gender === 'MALE' ? 'M' : patient?.gender === 'FEMALE' ? 'K' : '';
   const doctorName = user?.name || '';
 
   return (
@@ -378,33 +661,14 @@ export default function ConsultationCardForm({
         </Button>
       </Paper>
 
-      {/* ── Header — Patient + Doctor info (auto-filled) ── */}
-      <Paper elevation={0} sx={{ p: 2.5, mb: 2, borderRadius: 2, border: '1px solid #E2E8F0', bgcolor: '#F8FAFC' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-          <Typography sx={{ fontSize: 18, fontWeight: 800, color: '#2E5F8A', letterSpacing: '-0.3px' }}>
-            KARTA KONSULTACYJNA
-          </Typography>
-        </Box>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-          <Box sx={{ flex: '1 1 200px' }}>
-            <Typography sx={{ fontSize: 11, fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', mb: 0.3 }}>Pacjent</Typography>
-            <Typography sx={{ fontSize: 15, fontWeight: 700, color: '#0F172A' }}>
-              {patientName} {patientAge && <Typography component="span" sx={{ fontSize: 13, color: '#64748B', fontWeight: 400 }}>({patientAge}, {patientGender})</Typography>}
-            </Typography>
-            {patient?.phone && <Typography sx={{ fontSize: 12, color: '#64748B' }}>Tel: {patient.phone}</Typography>}
-          </Box>
-          <Box sx={{ flex: '1 1 200px' }}>
-            <Typography sx={{ fontSize: 11, fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', mb: 0.3 }}>Lekarz</Typography>
-            <Typography sx={{ fontSize: 15, fontWeight: 700, color: '#0F172A' }}>{doctorName}</Typography>
-          </Box>
-          <Box sx={{ flex: '1 1 150px' }}>
-            <Typography sx={{ fontSize: 11, fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', mb: 0.3 }}>Data konsultacji</Typography>
-            <Typography sx={{ fontSize: 15, fontWeight: 700, color: '#0F172A' }}>
-              {new Date(consultationDate).toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' })}
-            </Typography>
-          </Box>
-        </Box>
-      </Paper>
+      {/* ── Header — Patient + Doctor info (auto-filled, editable) ── */}
+      <PatientHeader
+        patient={patient}
+        patientId={patientId}
+        doctorName={doctorName}
+        consultationDate={consultationDate}
+        onPatientUpdate={(updated) => setPatient(updated)}
+      />
 
       {/* ── SEKCJA 1: Problem ── */}
       <Accordion expanded={expandedSections.problem} onChange={() => toggleSection('problem')} elevation={0} sx={{ mb: 1, border: '1px solid #E2E8F0', borderRadius: '8px !important', '&:before': { display: 'none' } }}>
@@ -595,10 +859,12 @@ export default function ConsultationCardForm({
       {/* ── SEKCJA 7: Wizyty / Zabiegi ── */}
       <Accordion expanded={expandedSections.visits} onChange={() => toggleSection('visits')} elevation={0} sx={{ mb: 1, border: '1px solid #E2E8F0', borderRadius: '8px !important', '&:before': { display: 'none' } }}>
         <AccordionSummary expandIcon={<ExpandMore />} sx={{ bgcolor: '#FAFBFC' }}>
-          <SectionHeader icon={<MedicalServices sx={{ fontSize: 20 }} />} title="7. Wizyty / Zabiegi" />
+          <SectionHeader icon={<EventAvailable sx={{ fontSize: 20 }} />} title="7. Wizyty / Zabiegi" />
         </AccordionSummary>
         <AccordionDetails>
-          <TextField fullWidth multiline minRows={3} label="Zaplanowane wizyty i zabiegi" value={formData.visitsProcedures} onChange={(e) => update('visitsProcedures', e.target.value)} />
+          <VisitsSection patientId={patientId} />
+          <Divider sx={{ my: 2 }} />
+          <TextField fullWidth multiline minRows={2} label="Dodatkowe notatki o wizytach/zabiegach" value={formData.visitsProcedures} onChange={(e) => update('visitsProcedures', e.target.value)} />
         </AccordionDetails>
       </Accordion>
 
