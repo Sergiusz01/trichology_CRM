@@ -399,7 +399,13 @@ export default function ConsultationFormPage() {
 
   // ── NEW & EDIT CONSULTATION → Card Editor Form ─────────────────────
   if ((isNewConsultation && actualPatientId) || (actualConsultationId && !isNewConsultation && !loading && formData.patientId)) {
-    const resolvedPatientId = actualPatientId || formData.patientId;
+    // In edit mode, formData.patientId is loaded from the consultation API (correct patient ID).
+    // actualPatientId on /consultations/:id/edit incorrectly equals the consultation ID,
+    // so we always prefer formData.patientId when in edit mode.
+    const resolvedPatientId = actualConsultationId
+      ? formData.patientId
+      : (actualPatientId || formData.patientId);
+
     return (
       <Box sx={{ width: '100%', maxWidth: '100%', overflow: 'hidden', px: { xs: 0, sm: 0 } }}>
         {error && (
