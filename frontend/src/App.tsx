@@ -38,6 +38,7 @@ const UsersPage = lazy(() => import('./pages/UsersPage'));
 const CalendarPage = lazy(() => import('./pages/CalendarPage'));
 const VisitsPage = lazy(() => import('./pages/VisitsPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
+const CardEditorPage = lazy(() => import('./pages/CardEditorPage'));
 
 // Loading component for Suspense fallback
 const PageLoader = () => (
@@ -126,6 +127,8 @@ function App() {
             <Route path="users" element={<UsersPage />} />
             <Route path="care-plans/:id" element={<CarePlanDetailPage />} />
             <Route path="scalp-photos/:photoId" element={<ScalpPhotoDetailPage />} />
+            <Route path="card-editor" element={<CardEditorPage />} />
+            <Route path="card-editor/:templateId" element={<CardEditorPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>
