@@ -35,8 +35,6 @@ export const formatDateTime = (date: Date | string | null | undefined): string =
   }
 };
 
-// Helper functions are now exported above
-
 // Helper to escape HTML special characters
 const escapeHtml = (text: any): string => {
   if (text === null || text === undefined) return '';
@@ -49,18 +47,14 @@ const escapeHtml = (text: any): string => {
     .replace(/'/g, '&#039;');
 };
 
-// Pomocnik do formatowania pól JSON (tablice)
+// Format JSON array field → comma-separated string
 const formatJsonField = (value: any): string => {
   if (!value) return '';
-  if (Array.isArray(value)) {
-    return escapeHtml(value.join(', '));
-  }
+  if (Array.isArray(value)) return escapeHtml(value.join(', '));
   if (typeof value === 'string') {
     try {
       const parsed = JSON.parse(value);
-      if (Array.isArray(parsed)) {
-        return escapeHtml(parsed.join(', '));
-      }
+      if (Array.isArray(parsed)) return escapeHtml(parsed.join(', '));
       return escapeHtml(value);
     } catch {
       return escapeHtml(value);
@@ -69,49 +63,274 @@ const formatJsonField = (value: any): string => {
   return escapeHtml(String(value));
 };
 
-// Pomocnik do renderowania "checkboxa" (wizualna reprezentacja wyboru)
-const renderCheckboxInfo = (label: string, value: any, isBoolean = false) => {
-  if (!value && value !== false && value !== 0) return '';
-  const displayValue = isBoolean ? (value ? 'TAK' : 'NIE') : formatJsonField(value);
-  return `
-    <div class="checkbox-item">
-      <span class="cb-box">■</span>
-      <span class="cb-label">${escapeHtml(label)}:</span>
-      <span class="cb-value">${displayValue}</span>
-    </div>
-  `;
-};
-
-// Helper: get value from consultation or dynamicData
+// Helper: get value from consultation flat fields or dynamicData (mirrors getFieldValue in ConsultationViewPage)
 const cv = (c: any, key: string): any => {
   const v = (c as any)[key];
   if (v !== undefined && v !== null && v !== '') return v;
   return ((c.dynamicData || {}) as Record<string, any>)[key];
 };
 
-// Helper: render checkbox (■ if value matches option)
-const chk = (val: any, opt: string): string => {
-  if (val === null || val === undefined) return '□';
-  let s = '';
-  if (Array.isArray(val)) s = val.map(String).join(',').toLowerCase();
-  else if (typeof val === 'string') {
-    try {
-      const parsed = JSON.parse(val);
-      s = Array.isArray(parsed) ? parsed.map(String).join(',').toLowerCase() : val.toLowerCase();
-    } catch {
-      s = val.toLowerCase();
-    }
-  } else s = String(val).toLowerCase();
-  const o = opt.toLowerCase();
-  return s.includes(o) ? '■' : '□';
+// Render a "field row" (label: value) — only shown if value is non-empty
+const fieldRow = (label: string, value: any): string => {
+  const v = formatJsonField(value);
+  if (!v) return '';
+  return `
+    <div class="field-row">
+      <span class="field-label">${escapeHtml(label)}:</span>
+      <span class="field-value">${v}</span>
+    </div>`;
+};
+
+// Render a checkbox-style row — only shown if value is non-empty
+const checkboxRow = (label: string, value: any): string => {
+  const v = formatJsonField(value);
+  if (!v) return '';
+  return `
+    <div class="checkbox-item">
+      <span class="cb-bullet">■</span>
+      <span class="cb-label">${escapeHtml(label)}:</span>
+      <span class="cb-value">${v}</span>
+    </div>`;
 };
 
 export const generateConsultationPDF = async (consultation: any): Promise<Buffer> => {
   const c = consultation;
   const p = c.patient || {};
-  const dyn = (c.dynamicData || {}) as Record<string, any>;
   const lab = Array.isArray(c.labResults) && c.labResults.length > 0 ? c.labResults[0] : null;
 
+  // ─── Section helpers ───────────────────────────────────────────────────────
+  const sectionHeader = (title: string) =>
+    `<div class="section-header">${escapeHtml(title)}</div>`;
+
+  const subsectionHeader = (title: string) =>
+    `<p class="subsection-header">${escapeHtml(title)}</p>`;
+
+  const box = (content: string) =>
+    content.trim() ? `<div class="data-box">${content}</div>` : '';
+
+  // ─── DANE PACJENTA ─────────────────────────────────────────────────────────
+  const patientSection = `
+    ${sectionHeader('DANE PACJENTA')}
+    <div class="patient-grid">
+      <div>
+        ${fieldRow('Imię i nazwisko', `${p.firstName || ''} ${p.lastName || ''}`.trim())}
+        ${fieldRow('Wiek', p.age)}
+        ${fieldRow('Płeć', p.gender === 'FEMALE' ? 'Kobieta' : p.gender === 'MALE' ? 'Mężczyzna' : p.gender)}
+        ${fieldRow('Zawód', p.occupation)}
+      </div>
+      <div>
+        ${fieldRow('Adres', p.address)}
+        ${fieldRow('Telefon', p.phone)}
+        ${fieldRow('E-mail', p.email)}
+        ${fieldRow('Lekarz', c.doctor?.name)}
+      </div>
+    </div>`;
+
+  // ─── PROBLEMY ─────────────────────────────────────────────────────────────
+  const hairLossBox = cv(c, 'hairLossSeverity') || cv(c, 'hairLossLocalization') || cv(c, 'hairLossDuration')
+    ? box(`
+        ${subsectionHeader('1. WYPADANIE WŁOSÓW')}
+        ${checkboxRow('Nasilenie', cv(c, 'hairLossSeverity'))}
+        ${checkboxRow('Lokalizacja', cv(c, 'hairLossLocalization'))}
+        ${checkboxRow('Czas trwania', cv(c, 'hairLossDuration'))}
+        ${fieldRow('Szampony', cv(c, 'hairLossShampoos'))}
+        ${fieldRow('Uwagi', cv(c, 'hairLossNotes'))}
+      `)
+    : '';
+
+  const oilyHairBox = cv(c, 'oilyHairSeverity') || cv(c, 'oilyHairWashingFreq')
+    ? box(`
+        ${subsectionHeader('2. PRZETŁUSZCZANIE WŁOSÓW')}
+        ${checkboxRow('Nasilenie', cv(c, 'oilyHairSeverity'))}
+        ${checkboxRow('Częstotliwość mycia', cv(c, 'oilyHairWashingFreq'))}
+        ${checkboxRow('Czas trwania', cv(c, 'oilyHairDuration'))}
+        ${fieldRow('Szampony', cv(c, 'oilyHairShampoos'))}
+        ${fieldRow('Uwagi', cv(c, 'oilyHairNotes'))}
+      `)
+    : '';
+
+  const scalingBox = cv(c, 'scalingSeverity') || cv(c, 'scalingType')
+    ? box(`
+        ${subsectionHeader('3. ŁUSZCZENIE SKÓRY GŁOWY')}
+        ${checkboxRow('Nasilenie', cv(c, 'scalingSeverity'))}
+        ${checkboxRow('Typ', cv(c, 'scalingType'))}
+        ${checkboxRow('Czas trwania', cv(c, 'scalingDuration'))}
+        ${fieldRow('Inne', cv(c, 'scalingOther'))}
+      `)
+    : '';
+
+  const sensitivityBox = cv(c, 'sensitivitySeverity') || cv(c, 'sensitivityProblemType')
+    ? box(`
+        ${subsectionHeader('4. WRAŻLIWOŚĆ / INNE')}
+        ${checkboxRow('Problem', cv(c, 'sensitivityProblemType'))}
+        ${checkboxRow('Nasilenie', cv(c, 'sensitivitySeverity'))}
+        ${checkboxRow('Czas trwania', cv(c, 'sensitivityDuration'))}
+        ${fieldRow('Inne', cv(c, 'sensitivityOther'))}
+        ${fieldRow('Stany zapalne', cv(c, 'inflammatoryStates'))}
+      `)
+    : '';
+
+  const problemsSection = (hairLossBox || oilyHairBox || scalingBox || sensitivityBox)
+    ? `
+      ${sectionHeader('PROBLEMY ZGŁASZANE PRZEZ PACJENTA')}
+      <div class="two-col">
+        ${hairLossBox}
+        ${oilyHairBox}
+        ${scalingBox}
+        ${sensitivityBox}
+      </div>`
+    : '';
+
+  // ─── WYWIAD ───────────────────────────────────────────────────────────────
+  const hasAnamnesis = cv(c, 'familyHistory') || cv(c, 'medications') || cv(c, 'stressLevel') ||
+    cv(c, 'supplements') || cv(c, 'antibiotics') || cv(c, 'chronicDiseases');
+
+  const anamnesisSection = hasAnamnesis ? `
+    ${sectionHeader('WYWIAD (ANAMNEZA)')}
+    <div class="two-col">
+      <div>
+        ${checkboxRow('Rodzina', cv(c, 'familyHistory'))}
+        ${checkboxRow('Dermatolog', cv(c, 'dermatologyVisits'))}
+        ${fieldRow('Powód dermatolog', cv(c, 'dermatologyVisitsReason'))}
+        ${checkboxRow('Ciąża', cv(c, 'pregnancy'))}
+        ${checkboxRow('Miesiączki', cv(c, 'menstruationRegularity'))}
+        ${fieldRow('Hormony/Antykoncepcja', cv(c, 'contraception'))}
+        ${checkboxRow('Stres', cv(c, 'stressLevel'))}
+        ${checkboxRow('Leki', cv(c, 'medications'))}
+        ${fieldRow('Lista leków', cv(c, 'medicationsList'))}
+        ${fieldRow('Suplementy', cv(c, 'supplements'))}
+        ${fieldRow('Jakie suplementy', cv(c, 'supplementsDetails'))}
+      </div>
+      <div>
+        ${checkboxRow('Znieczulenie', cv(c, 'anesthesia'))}
+        ${checkboxRow('Chemioterapia', cv(c, 'chemotherapy'))}
+        ${checkboxRow('Radioterapia', cv(c, 'radiotherapy'))}
+        ${checkboxRow('Szczepienia', cv(c, 'vaccination'))}
+        ${fieldRow('Antybiotyki', cv(c, 'antibiotics'))}
+        ${fieldRow('Jakie antybiotyki / kiedy', cv(c, 'antibioticsDetails'))}
+        ${checkboxRow('Choroby przewlekłe', cv(c, 'chronicDiseases'))}
+        ${fieldRow('Lista chorób', cv(c, 'chronicDiseasesList'))}
+        ${checkboxRow('Specjaliści', cv(c, 'specialists'))}
+        ${fieldRow('Jakiego specjalisty', cv(c, 'specialistsList'))}
+        ${checkboxRow('Zaburzenia odżywiania', cv(c, 'eatingDisorders'))}
+        ${fieldRow('Nietolerancje', cv(c, 'foodIntolerances'))}
+        ${checkboxRow('Dieta', cv(c, 'diet'))}
+        ${checkboxRow('Alergie', cv(c, 'allergies'))}
+        ${checkboxRow('Metal w ciele', cv(c, 'metalPartsInBody'))}
+      </div>
+    </div>
+    ${(cv(c, 'careRoutineShampoo') || cv(c, 'careRoutineConditioner') || cv(c, 'careRoutineOils') || cv(c, 'careRoutineChemical')) ? `
+      <div class="care-row">
+        <strong>Aktualna pielęgnacja:</strong>
+        ${cv(c, 'careRoutineShampoo') ? `Szampon: ${escapeHtml(cv(c, 'careRoutineShampoo'))}, ` : ''}
+        ${cv(c, 'careRoutineConditioner') ? `Odżywka: ${escapeHtml(cv(c, 'careRoutineConditioner'))}, ` : ''}
+        ${cv(c, 'careRoutineOils') ? `Wcierki: ${escapeHtml(cv(c, 'careRoutineOils'))}, ` : ''}
+        ${cv(c, 'careRoutineChemical') ? `Zabiegi: ${escapeHtml(cv(c, 'careRoutineChemical'))}` : ''}
+      </div>` : ''}
+  ` : '';
+
+  // ─── TRICHOSKOPIA ─────────────────────────────────────────────────────────
+  const hasTrichoscopy = cv(c, 'scalpType') || cv(c, 'hairQuality') || cv(c, 'seborrheaType') ||
+    cv(c, 'scalpAppearance') || cv(c, 'skinLesions') || cv(c, 'hairDamage') ||
+    cv(c, 'hairTypes') || cv(c, 'vellusMiniaturizedHairs') || cv(c, 'vascularPatterns') ||
+    cv(c, 'perifollicularFeatures') || cv(c, 'scalpDiseases') || cv(c, 'otherDiagnostics');
+
+  const trichoscopySection = hasTrichoscopy ? `
+    ${sectionHeader('TRICHOSKOPIA — BADANIE')}
+    <div class="three-col">
+      ${box(`
+        ${subsectionHeader('SKÓRA GŁOWY')}
+        ${checkboxRow('Typ', cv(c, 'scalpType'))}
+        ${checkboxRow('Objawy', cv(c, 'scalpAppearance'))}
+        ${checkboxRow('Wykwity', cv(c, 'skinLesions'))}
+        ${checkboxRow('Potliwość', cv(c, 'hyperhidrosis'))}
+        ${checkboxRow('Hiperkeratynizacja', cv(c, 'hyperkeratinization'))}
+        ${checkboxRow('Wydzielina', cv(c, 'sebaceousSecretion'))}
+        ${checkboxRow('Łojotok', cv(c, 'seborrheaType'))}
+        ${fieldRow('Inne łojotok', cv(c, 'seborrheaTypeOther'))}
+        ${checkboxRow('Złuszczanie', cv(c, 'dandruffType'))}
+        ${fieldRow('pH', cv(c, 'scalpPH'))}
+      `)}
+      ${box(`
+        ${subsectionHeader('STAN WŁOSÓW')}
+        ${checkboxRow('Jakość', cv(c, 'hairQuality'))}
+        ${checkboxRow('Uszkodzenia', cv(c, 'hairDamage'))}
+        ${checkboxRow('Przyczyna uszkodzeń', cv(c, 'hairDamageReason'))}
+        ${checkboxRow('Kształt', cv(c, 'hairShape'))}
+        ${checkboxRow('Typy', cv(c, 'hairTypes'))}
+        ${checkboxRow('Odrastające', cv(c, 'regrowingHairs'))}
+        ${checkboxRow('Vellus / Zminiaturyzowane', cv(c, 'vellusMiniaturizedHairs'))}
+      `)}
+      ${box(`
+        ${subsectionHeader('CECHY SPECYFICZNE')}
+        ${checkboxRow('Unaczynienie', cv(c, 'vascularPatterns'))}
+        ${checkboxRow('Cechy okołomieszkowe', cv(c, 'perifollicularFeatures'))}
+        ${checkboxRow('Choroby skóry głowy', cv(c, 'scalpDiseases'))}
+        ${checkboxRow('Inne diagnostyki', cv(c, 'otherDiagnostics'))}
+      `)}
+    </div>
+  ` : '';
+
+  // ─── DIAGNOSTYKA LABORATORYJNA ────────────────────────────────────────────
+  const labSection = lab ? `
+    ${sectionHeader('DIAGNOSTYKA LABORATORYJNA')}
+    <div class="two-col">
+      <div>
+        ${fieldRow('Data badania', lab.date ? formatDate(lab.date) : '')}
+        ${fieldRow('HGB', lab.hgb)} ${fieldRow('RBC', lab.rbc)} ${fieldRow('WBC', lab.wbc)} ${fieldRow('PLT', lab.plt)}
+        ${fieldRow('OB', lab.ob)} ${fieldRow('CRP', lab.crp)}
+        ${fieldRow('Żelazo (FE)', lab.iron)}
+        ${fieldRow('Ferrytyna', lab.ferritin)}
+        ${fieldRow('Kwas foliowy', lab.folicAcid)}
+        ${fieldRow('Wit. B12', lab.vitaminB12)}
+        ${fieldRow('Wit. D3', lab.vitaminD3)}
+      </div>
+      <div>
+        ${fieldRow('TSH', lab.tsh)} ${fieldRow('fT3', lab.ft3)} ${fieldRow('fT4', lab.ft4)}
+        ${fieldRow('ANTY TPO', lab.antiTPO)} ${fieldRow('ANTY TG', lab.antiTG)}
+        ${fieldRow('Glukoza', lab.glucose)} ${fieldRow('HbA1c', lab.hba1c)}
+        ${fieldRow('Insulina', lab.insulin)}
+        ${fieldRow('Testosteron', lab.testosterone)} ${fieldRow('DHEA-S', lab.dheas)}
+        ${fieldRow('Prolaktyna', lab.prolactin)} ${fieldRow('Progesteron', lab.progesterone)}
+        ${fieldRow('Estradiol', lab.estrogen)}
+      </div>
+    </div>
+  ` : '';
+
+  // ─── DIAGNOSTYKA ŁYSIENIA + ROZPOZNANIE ───────────────────────────────────
+  const diagnosisSection = `
+    ${sectionHeader('ROZPOZNANIE (DIAGNOZA)')}
+    <div class="two-col">
+      <div>
+        <div class="diagnosis-text">${escapeHtml(String(cv(c, 'diagnosis') || 'Brak wpisu'))}</div>
+        ${checkboxRow('Typ łysienia', cv(c, 'alopeciaTypes'))}
+        ${fieldRow('Klasyfikacja', cv(c, 'alopeciaType'))}
+        ${fieldRow('Stopień przerzedzenia', cv(c, 'degreeOfThinning'))}
+        ${checkboxRow('Obszary', cv(c, 'alopeciaAffectedAreas'))}
+        ${fieldRow('Miniaturyzacja', cv(c, 'miniaturization'))}
+        ${fieldRow('Jednostki mieszkowe', cv(c, 'follicularUnits'))}
+        ${fieldRow('Pull Test', cv(c, 'pullTest'))}
+        ${fieldRow('Inne', cv(c, 'alopeciaOther'))}
+        ${fieldRow('Norwood-Hamilton', cv(c, 'norwoodHamiltonStage'))}
+        ${fieldRow('Ludwig', cv(c, 'ludwigStage'))}
+      </div>
+      <div>
+        ${sectionHeader('ZALECENIA DOMOWE')}
+        ${fieldRow('Mycie', cv(c, 'careRecommendationsWashing'))}
+        ${fieldRow('Wcierki', cv(c, 'careRecommendationsTopical'))}
+        ${fieldRow('Suplementy', cv(c, 'careRecommendationsSupplement'))}
+        ${fieldRow('Zachowanie', cv(c, 'careRecommendationsBehavior'))}
+        ${fieldRow('Zabiegi gabinetowe', cv(c, 'visitsProcedures'))}
+      </div>
+    </div>`;
+
+  // ─── UWAGI ────────────────────────────────────────────────────────────────
+  const remarksSection = cv(c, 'generalRemarks') ? `
+    ${sectionHeader('UWAGI DODATKOWE')}
+    <div class="remarks-box">${escapeHtml(String(cv(c, 'generalRemarks')))}</div>
+  ` : '';
+
+  // ─── FULL HTML ─────────────────────────────────────────────────────────────
   const html = `
     <!DOCTYPE html>
     <html lang="pl">
@@ -119,199 +338,213 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
       <meta charset="UTF-8">
       <title>Karta Konsultacyjna</title>
       <style>
-        @page { margin: 12mm; }
-        body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 8pt; line-height: 1.25; color: #000; margin: 0; padding: 0; }
-        .page { page-break-after: always; }
-        .page:last-child { page-break-after: auto; }
-        .header-pdf { text-align: center; border-bottom: 2px solid #000; margin-bottom: 6px; padding-bottom: 4px; }
-        .header-title { font-size: 12pt; font-weight: bold; text-transform: uppercase; margin: 0; }
-        .page-num { font-size: 7pt; color: #666; text-align: right; margin-top: 2px; }
-        .sec { font-weight: bold; font-size: 9pt; margin: 4px 0 2px 0; text-decoration: underline; }
-        .row-cb { font-size: 7.5pt; margin: 1px 0; }
-        .cb { font-family: monospace; }
+        @page { margin: 14mm 12mm; }
+        * { box-sizing: border-box; }
+        body {
+          font-family: 'Helvetica Neue', 'Arial', sans-serif;
+          font-size: 9pt;
+          line-height: 1.4;
+          color: #111;
+          margin: 0;
+          padding: 0;
+          background: #fff;
+        }
+
+        /* ── Document header ── */
+        .doc-header {
+          text-align: center;
+          border-bottom: 2.5px solid #1a3a5c;
+          margin-bottom: 14px;
+          padding-bottom: 8px;
+        }
+        .doc-title {
+          font-size: 15pt;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          color: #1a3a5c;
+          margin: 0 0 4px 0;
+        }
+        .doc-meta {
+          font-size: 8.5pt;
+          color: #555;
+          text-align: right;
+        }
+
+        /* ── Patient info ── */
+        .patient-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 0 20px;
+          background: #f6f8fb;
+          border-radius: 4px;
+          padding: 8px 10px;
+          margin-bottom: 12px;
+        }
+
+        /* ── Section headers ── */
+        .section-header {
+          background: #e0e7ef;
+          font-weight: 700;
+          font-size: 9.5pt;
+          padding: 4px 8px;
+          margin: 12px 0 6px 0;
+          border-left: 4px solid #1a3a5c;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: #1a3a5c;
+        }
+        .subsection-header {
+          font-weight: 700;
+          font-size: 8.5pt;
+          text-decoration: underline;
+          margin: 0 0 4px 0;
+          color: #1a3a5c;
+        }
+
+        /* ── Grid layouts ── */
+        .two-col {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+          margin-bottom: 6px;
+        }
+        .three-col {
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr;
+          gap: 8px;
+          margin-bottom: 6px;
+        }
+
+        /* ── Data boxes ── */
+        .data-box {
+          border: 1px solid #ccd6e0;
+          border-radius: 3px;
+          padding: 6px 8px;
+          background: #fafbfc;
+          break-inside: avoid;
+        }
+
+        /* ── Field rows ── */
+        .field-row {
+          display: flex;
+          border-bottom: 1px dotted #ddd;
+          padding: 1.5px 0;
+          gap: 4px;
+          font-size: 8.5pt;
+        }
+        .field-label {
+          font-weight: 600;
+          min-width: 110px;
+          flex-shrink: 0;
+          color: #333;
+        }
+        .field-value {
+          color: #111;
+          flex: 1;
+        }
+
+        /* ── Checkbox items ── */
+        .checkbox-item {
+          display: flex;
+          align-items: flex-start;
+          gap: 4px;
+          padding: 1.5px 0;
+          font-size: 8.5pt;
+        }
+        .cb-bullet {
+          color: #1a3a5c;
+          font-size: 9pt;
+          flex-shrink: 0;
+        }
+        .cb-label {
+          font-weight: 600;
+          min-width: 110px;
+          flex-shrink: 0;
+          color: #333;
+        }
+        .cb-value {
+          color: #111;
+          flex: 1;
+        }
+
+        /* ── Care routine row ── */
+        .care-row {
+          border-top: 1px dashed #ccc;
+          margin-top: 6px;
+          padding-top: 4px;
+          font-size: 8.5pt;
+        }
+
+        /* ── Diagnosis ── */
+        .diagnosis-text {
+          font-size: 10pt;
+          font-weight: 700;
+          margin-bottom: 6px;
+          color: #1a3a5c;
+        }
+
+        /* ── Remarks ── */
+        .remarks-box {
+          border: 1px solid #ccd6e0;
+          background: #fffbe6;
+          border-radius: 3px;
+          padding: 6px 8px;
+          font-size: 8.5pt;
+          margin-bottom: 6px;
+        }
+
+        /* ── Footer ── */
+        .doc-footer {
+          margin-top: 16px;
+          padding-top: 6px;
+          border-top: 1px solid #ccc;
+          font-size: 7.5pt;
+          color: #666;
+          text-align: right;
+        }
+
+        /* ── Page breaks ── */
+        .page-break { page-break-before: always; }
       </style>
     </head>
     <body>
 
-    ${getLogoHTMLForPDF('small')}
+      ${getLogoHTMLForPDF('small')}
 
-    <!-- STRONA 1 -->
-    <div class="page">
-      <div class="header-pdf">
-        <div class="header-title">Karta Konsultacyjna</div>
-        <div class="page-num">str. 1</div>
+      <!-- Document header -->
+      <div class="doc-header">
+        <div class="doc-title">Karta Konsultacyjna</div>
+        <div class="doc-meta">Data: <strong>${formatDate(c.consultationDate)}</strong></div>
       </div>
-      <div>Data konsultacji: <strong>${formatDate(c.consultationDate)}</strong></div>
-      <div class="sec">DANE PACJENTA</div>
-      <div>Imię i nazwisko: <strong>${escapeHtml(p.firstName || '')} ${escapeHtml(p.lastName || '')}</strong></div>
-      <div>Wiek: ${p.age ?? '-'} &nbsp;&nbsp; płeć ${p.gender === 'FEMALE' ? '■' : '□'} K ${p.gender === 'MALE' ? '■' : '□'} M</div>
-      <div>Wykonywany zawód: ${escapeHtml(p.occupation || '')}</div>
-      <div>Adres zamieszkania: ${escapeHtml(p.address || '')}</div>
-      <div>Numer telefonu: ${escapeHtml(p.phone || '')} &nbsp; e-mail: ${escapeHtml(p.email || '')}</div>
-      <div class="sec">PROBLEM</div>
-      <div><strong>1. WYPADANIE WŁOSÓW:</strong></div>
-      <div class="row-cb">• Nasilenie: ${chk(cv(c,'hairLossSeverity'),'normie')} normie ${chk(cv(c,'hairLossSeverity'),'nasilone')} nasilone ${chk(cv(c,'hairLossSeverity'),'nadmierne')} nadmierne ${chk(cv(c,'hairLossSeverity'),'okresowe')} okresowe ${chk(cv(c,'hairLossSeverity'),'brak')} brak</div>
-      <div class="row-cb">• Lokalizacja: ${chk(cv(c,'hairLossLocalization'),'ciemieniowa')} ciemieniowa ${chk(cv(c,'hairLossLocalization'),'skronie')} skronie ${chk(cv(c,'hairLossLocalization'),'czołowa')} czołowa ${chk(cv(c,'hairLossLocalization'),'tonsura')} tonsura ${chk(cv(c,'hairLossLocalization'),'potylica')} potylica ${chk(cv(c,'hairLossLocalization'),'uogólnione')} uogólnione</div>
-      <div class="row-cb">  ${chk(cv(c,'hairLossLocalization'),'brwi')} brwi, rzęsy ${chk(cv(c,'hairLossLocalization'),'pachy')} pachy ${chk(cv(c,'hairLossLocalization'),'pachwiny')} pachwiny</div>
-      <div class="row-cb">• Czas trwania: ${chk(cv(c,'hairLossDuration'),'0-6')} 0-6 m-cy ${chk(cv(c,'hairLossDuration'),'6-12')} 6-12 m-cy ${chk(cv(c,'hairLossDuration'),'12-24')} 12-24 m-cy ${chk(cv(c,'hairLossDuration'),'powyżej')} powyżej roku</div>
-      <div class="row-cb">• Szampony: ${escapeHtml(String(cv(c,'hairLossShampoos') || ''))}</div>
-      <div><strong>2. PRZETŁUSZCZANIE WŁOSÓW:</strong></div>
-      <div class="row-cb">• Nasilenie: ${chk(cv(c,'oilyHairSeverity'),'normie')} normie ${chk(cv(c,'oilyHairSeverity'),'nasilone')} nasilone ${chk(cv(c,'oilyHairSeverity'),'nadmierne')} nadmierne ${chk(cv(c,'oilyHairSeverity'),'okresowe')} okresowe ${chk(cv(c,'oilyHairSeverity'),'brak')} brak</div>
-      <div class="row-cb">• Częstotliwość mycia: ${chk(cv(c,'oilyHairWashingFreq'),'codziennie')} codziennie ${chk(cv(c,'oilyHairWashingFreq'),'2,3')} co 2,3 dni ${chk(cv(c,'oilyHairWashingFreq'),'tygodniu')} raz w tygodniu</div>
-      <div class="row-cb">• Czas trwania: ${chk(cv(c,'oilyHairDuration'),'0-6')} 0-6 m-cy ${chk(cv(c,'oilyHairDuration'),'6-12')} 6-12 m-cy ${chk(cv(c,'oilyHairDuration'),'12-24')} 12-24 m-cy ${chk(cv(c,'oilyHairDuration'),'powyżej')} powyżej roku</div>
-      <div class="row-cb">• Szampony: ${escapeHtml(String(cv(c,'oilyHairShampoos') || ''))}</div>
-      <div><strong>3. ŁUSZCZENIE SKÓRY GŁOWY:</strong></div>
-      <div class="row-cb">• Nasilenie: ${chk(cv(c,'scalingSeverity'),'normie')} normie ${chk(cv(c,'scalingSeverity'),'nasilone')} nasilone ${chk(cv(c,'scalingSeverity'),'nadmierne')} nadmierne ${chk(cv(c,'scalingSeverity'),'okresowe')} okresowe ${chk(cv(c,'scalingSeverity'),'brak')} brak</div>
-      <div class="row-cb">• Rodzaj: ${chk(cv(c,'scalingType'),'suchy')} suchy ${chk(cv(c,'scalingType'),'tłusty')} tłusty ${chk(cv(c,'scalingType'),'miejscowy')} miejscowy ${chk(cv(c,'scalingType'),'uogólniony')} uogólniony</div>
-      <div class="row-cb">• Czas trwania: ${chk(cv(c,'scalingDuration'),'0-6')} 0-6 m-cy ${chk(cv(c,'scalingDuration'),'6-12')} 6-12 m-cy ${chk(cv(c,'scalingDuration'),'12-24')} 12-24 m-cy ${chk(cv(c,'scalingDuration'),'powyżej')} powyżej roku</div>
-      <div class="row-cb">• Inne: ${escapeHtml(String(cv(c,'scalingOther') || ''))}</div>
-      <div><strong>4. WRAŻLIWOŚĆ SKÓRY GŁOWY:</strong></div>
-      <div class="row-cb">• Nasilenie: ${chk(cv(c,'sensitivitySeverity'),'normie')} normie ${chk(cv(c,'sensitivitySeverity'),'nasilone')} nasilone ${chk(cv(c,'sensitivitySeverity'),'nadmierne')} nadmierne ${chk(cv(c,'sensitivitySeverity'),'okresowe')} okresowe ${chk(cv(c,'sensitivitySeverity'),'brak')} brak</div>
-      <div class="row-cb">• Rodzaj problemu: ${chk(cv(c,'sensitivityProblemType'),'świąd')} świąd ${chk(cv(c,'sensitivityProblemType'),'pieczenie')} pieczenie ${chk(cv(c,'sensitivityProblemType'),'nadwrażliwość')} nadwrażliwość na preparaty ${chk(cv(c,'sensitivityProblemType'),'trichodynia')} trichodynia</div>
-      <div class="row-cb">• Czas trwania: ${chk(cv(c,'sensitivityDuration'),'0-6')} 0-6 m-cy ${chk(cv(c,'sensitivityDuration'),'6-12')} 6-12 m-cy ${chk(cv(c,'sensitivityDuration'),'12-24')} 12-24 m-cy ${chk(cv(c,'sensitivityDuration'),'powyżej')} powyżej roku</div>
-      <div class="row-cb">• Inne: ${escapeHtml(String(cv(c,'sensitivityOther') || ''))}</div>
-      <div><strong>5. STANY ZAPALNE/ GRUDKI</strong></div>
-      <div>${escapeHtml(String(cv(c,'inflammatoryStates') || ''))}</div>
-    </div>
 
-    <!-- STRONA 2 -->
-    <div class="page">
-      <div class="header-pdf">
-        <div class="header-title">Karta Konsultacyjna</div>
-        <div class="page-num">str. 2</div>
-      </div>
-      <div class="sec">WYWIAD</div>
-      <div class="row-cb">1. Czy dany problem występuje u innych członków rodziny? ${chk(cv(c,'familyHistory'),'tak')} tak ${chk(cv(c,'familyHistory'),'nie')} nie</div>
-      <div class="row-cb">2. Czy była konieczna wizyta u dermatologa? Powód: ${escapeHtml(String(cv(c,'dermatologyVisitsReason') || ''))}</div>
-      <div class="row-cb">3. Czy jest Pani w ciąży? ${chk(cv(c,'pregnancy'),'tak')} tak ${chk(cv(c,'pregnancy'),'nie')} nie</div>
-      <div class="row-cb">4. Czy miesiączkuje regularnie? ${chk(cv(c,'menstruationRegularity'),'tak')} tak ${chk(cv(c,'menstruationRegularity'),'nie')} nie</div>
-      <div class="row-cb">Antykoncepcja hormonalna: ${escapeHtml(String(cv(c,'contraception') || ''))}</div>
-      <div class="row-cb">5. Czy zażywa Pan/Pani jakieś leki? ${chk(cv(c,'medications'),'tak')} tak ${chk(cv(c,'medications'),'nie')} nie</div>
-      <div class="row-cb">jakie: ${escapeHtml(String(cv(c,'medicationsList') || ''))}</div>
-      <div class="row-cb">6. Czy stosuje Pani/Pan suplementy? ${escapeHtml(String(cv(c,'supplements') || ''))}</div>
-      <div class="row-cb">7. Poziom stresu w życiu codziennym? ${chk(cv(c,'stressLevel'),'duży')} duży ${chk(cv(c,'stressLevel'),'mały')} mały ${chk(cv(c,'stressLevel'),'średni')} średni</div>
-      <div class="row-cb">8. Czy w ostatnim czasie była Pani/Pan poddana: ${chk(cv(c,'anesthesia'),'tak')} narkozie ${chk(cv(c,'chemotherapy'),'tak')} chemioterapii ${chk(cv(c,'radiotherapy'),'tak')} radioterapii ${chk(cv(c,'vaccination'),'tak')} szczepieniu ${escapeHtml(String(cv(c,'antibiotics') || ''))} antybiotyki</div>
-      <div class="row-cb">9. Czy choruje Pani/Pan na choroby przewlekłe? ${chk(cv(c,'chronicDiseases'),'tak')} tak ${chk(cv(c,'chronicDiseases'),'nie')} nie jakie: ${escapeHtml(String(cv(c,'chronicDiseasesList') || ''))}</div>
-      <div class="row-cb">10. Czy jest Pani/Pan pod opieką specjalisty? ${chk(cv(c,'specialists'),'tak')} tak ${chk(cv(c,'specialists'),'nie')} nie jakiego: ${escapeHtml(String(cv(c,'specialistsList') || ''))}</div>
-      <div class="row-cb">11. Czy występują u Pani/Pana zaburzenia odżywiania/wchłaniania? ${chk(cv(c,'eatingDisorders'),'tak')} tak ${chk(cv(c,'eatingDisorders'),'nie')} nie</div>
-      <div class="row-cb">Nietolerancje pokarmowe: ${escapeHtml(String(cv(c,'foodIntolerances') || ''))}</div>
-      <div class="row-cb">12. Czy w ostatnim czasie była Pani/Pan na diecie? ${chk(cv(c,'diet'),'tak')} tak ${chk(cv(c,'diet'),'nie')} nie</div>
-      <div class="row-cb">13. Czy występuje u Pani/Pana alergia lub uczulenie na jakieś substancje? ${chk(cv(c,'allergies'),'tak')} tak ${chk(cv(c,'allergies'),'nie')} nie</div>
-      <div class="row-cb">14. Czy ma Pani/Pan jakieś części metalowe w organizmie? ${chk(cv(c,'metalPartsInBody'),'tak')} tak ${chk(cv(c,'metalPartsInBody'),'nie')} nie</div>
-      <div class="row-cb">15. Jak pielęgnuje Pani/Pan skórę głowy i włosy:</div>
-      <div class="row-cb">• Szampon: ${escapeHtml(String(cv(c,'careRoutineShampoo') || ''))}</div>
-      <div class="row-cb">• Odżywka/maska: ${escapeHtml(String(cv(c,'careRoutineConditioner') || ''))}</div>
-      <div class="row-cb">• Wcierki/oleje: ${escapeHtml(String(cv(c,'careRoutineOils') || ''))}</div>
-      <div class="row-cb">• Zabiegi chemiczne/termiczne: ${escapeHtml(String(cv(c,'careRoutineChemical') || ''))}</div>
-    </div>
+      <!-- Patient info -->
+      ${patientSection}
 
-    <!-- STRONA 3 - TRICHOSKOPIA -->
-    <div class="page">
-      <div class="header-pdf">
-        <div class="header-title">Karta Konsultacyjna</div>
-        <div class="page-num">str. 3</div>
-      </div>
-      <div class="sec">TRICHOSKOPIA</div>
-      <div class="row-cb">TYP SKÓRY GŁOWY: ${chk(cv(c,'scalpType'),'sucha')} sucha ${chk(cv(c,'scalpType'),'tłusta')} tłusta ${chk(cv(c,'scalpType'),'wrażliwa')} wrażliwa ${chk(cv(c,'scalpType'),'nadreaktywna')} nadreaktywna ${chk(cv(c,'scalpType'),'erytrodermią')} z erytrodermią ${chk(cv(c,'scalpType'),'normalna')} normalna</div>
-      <div class="row-cb">WYGLĄD I OBJAWY NA SKÓRZE: ${chk(cv(c,'scalpAppearance'),'zaczerwienie')} zaczerwienie ${chk(cv(c,'scalpAppearance'),'świąd')} świąd ${chk(cv(c,'scalpAppearance'),'pieczenie')} pieczenie ${chk(cv(c,'scalpAppearance'),'ból')} ból ${chk(cv(c,'scalpAppearance'),'suchość')} suchość ${chk(cv(c,'scalpAppearance'),'łojotok')} łojotok</div>
-      <div class="row-cb">WYKWITY SKÓRNE: ${chk(cv(c,'skinLesions'),'plama')} plama ${chk(cv(c,'skinLesions'),'grudka')} grudka ${chk(cv(c,'skinLesions'),'krosta')} krosta ${chk(cv(c,'skinLesions'),'guzek')} guzek ${chk(cv(c,'skinLesions'),'blizna')} blizna ${chk(cv(c,'skinLesions'),'strup')} strup</div>
-      <div class="row-cb">HIPERHYDROZA ${chk(cv(c,'hyperhidrosis'),'miejscowa')} miejscowa ${chk(cv(c,'hyperhidrosis'),'uogólniona')} uogólniona ${chk(cv(c,'hyperhidrosis'),'brak')} brak</div>
-      <div class="row-cb">HIPERKERATYNIZACJA ${chk(cv(c,'hyperkeratinization'),'miejscowa')} miejscowa ${chk(cv(c,'hyperkeratinization'),'uogólniona')} uogólniona ${chk(cv(c,'hyperkeratinization'),'okołomieszkowa')} okołomieszkowa ${chk(cv(c,'hyperkeratinization'),'tubule')} tubule ${chk(cv(c,'hyperkeratinization'),'brak')} brak</div>
-      <div class="row-cb">WYDZIELINA G. ŁOJOWYCH ${chk(cv(c,'sebaceousSecretion'),'oleista')} oleista ${chk(cv(c,'sebaceousSecretion'),'zalegająca')} zalegająca ${chk(cv(c,'sebaceousSecretion'),'brak')} brak</div>
-      <div class="row-cb">ŁUPIEŻ ${chk(cv(c,'dandruffType'),'Suchy')} Suchy ${chk(cv(c,'dandruffType'),'Tłusty')} Tłusty ${chk(cv(c,'dandruffType'),'Kosmetyczny')} Kosmetyczny</div>
-      <div class="row-cb">WARTOŚĆ pH: ${escapeHtml(String(cv(c,'scalpPH') || ''))}</div>
-      <div class="sec">OCENA STANU WŁOSÓW</div>
-      <div class="row-cb">USZKODZENIA WŁOSA ${chk(cv(c,'hairDamage'),'naturalne')} naturalne ${chk(cv(c,'hairDamage'),'fizyczne')} fizyczne ${chk(cv(c,'hairDamage'),'mechaniczne')} mechaniczne ${chk(cv(c,'hairDamage'),'chemiczne')} chemiczne</div>
-      <div class="row-cb">POWODY USZKODZENIA ${chk(cv(c,'hairDamageReason'),'trwała')} trwała ${chk(cv(c,'hairDamageReason'),'prostowanie')} trwałe prostowanie ${chk(cv(c,'hairDamageReason'),'farby')} farby/rozjaśnianie</div>
-      <div class="row-cb">JAKOŚĆ WŁOSA ${chk(cv(c,'hairQuality'),'zdrowe')} zdrowe ${chk(cv(c,'hairQuality'),'suche')} suche ${chk(cv(c,'hairQuality'),'przetłuszczone')} przetłuszczone</div>
-      <div class="row-cb">KSZTAŁT WŁOSA ${chk(cv(c,'hairShape'),'prosty')} prosty ${chk(cv(c,'hairShape'),'kręcony')} kręcony ${chk(cv(c,'hairShape'),'falisty')} falisty</div>
-      <div class="row-cb">WŁOSY NASTĘPOWE ${chk(cv(c,'regrowingHairs'),'dużo')} dużo ${chk(cv(c,'regrowingHairs'),'niewiele')} niewiele</div>
-      <div class="row-cb">WŁOSY VELLUS/ZMINIATURYZOWANE ${chk(cv(c,'vellusMiniaturizedHairs'),'dużo')} dużo ${chk(cv(c,'vellusMiniaturizedHairs'),'mało')} mało ${chk(cv(c,'vellusMiniaturizedHairs'),'uogólnione')} uogólnione ${chk(cv(c,'vellusMiniaturizedHairs'),'miejscowo')} miejscowo ${chk(cv(c,'vellusMiniaturizedHairs'),'brak')} brak</div>
-      <div class="sec">DIAGNOSTYKA</div>
-      <div class="row-cb">UNACZYNIENIE ${formatJsonField(cv(c,'vascularPatterns')) || '-'}</div>
-      <div class="row-cb">CECHY OKOŁO MIESZKOWE ${formatJsonField(cv(c,'perifollicularFeatures')) || '-'}</div>
-      <div class="row-cb">CHOROBY SKÓRY GŁOWY ${formatJsonField(cv(c,'scalpDiseases')) || '-'}</div>
-      <div class="row-cb">INNE ${formatJsonField(cv(c,'otherDiagnostics')) || '-'}</div>
-    </div>
+      <!-- Problems -->
+      ${problemsSection}
 
-    <!-- STRONA 4 - DIAGNOSTYKA LABORATORYJNA -->
-    <div class="page">
-      <div class="header-pdf">
-        <div class="header-title">Karta Konsultacyjna</div>
-        <div class="page-num">str. 4</div>
-      </div>
-      <div class="sec">DIAGNOSTYKA LABORATORYJNA</div>
-      <div>Data: ${lab ? formatDate(lab.date) : ''}</div>
-      <div style="font-size:7pt; columns: 2; column-gap: 15px;">
-        <div>MORFOLOGIA: ${lab?.hgb != null ? lab.hgb : ''} ${lab?.rbc != null ? 'RBC:'+lab.rbc : ''} ${lab?.wbc != null ? 'WBC:'+lab.wbc : ''} ${lab?.plt != null ? 'PLT:'+lab.plt : ''}</div>
-        <div>OB: ${lab?.crp ?? '-'} CRP: ${lab?.crp ?? '-'}</div>
-        <div>FE: ${lab?.iron ?? '-'} kw.foliowy: ${lab?.folicAcid ?? '-'}</div>
-        <div>ferrytyna: ${lab?.ferritin ?? '-'}</div>
-        <div>Wit. B12: ${lab?.vitaminB12 ?? '-'} Homocysteina: -</div>
-        <div>Wit. D3: ${lab?.vitaminD3 ?? '-'}</div>
-        <div>TSH: ${lab?.tsh ?? '-'} fT3: ${lab?.ft3 ?? '-'} fT4: ${lab?.ft4 ?? '-'}</div>
-        <div>ANTY TPO: ${lab?.antiTPO ?? '-'} ANTY TG: ${lab?.antiTG ?? '-'}</div>
-        <div>Glukoza: ${lab?.glucose ?? '-'} HbA1c: ${lab?.hba1c ?? '-'}</div>
-        <div>Insulina: ${lab?.insulin ?? '-'}</div>
-        <div>testosteron: ${lab?.testosterone ?? '-'} DHEA-S: ${lab?.dheas ?? '-'}</div>
-        <div>prolaktyna: ${lab?.prolactin ?? '-'} progesteron: ${lab?.progesterone ?? '-'}</div>
-        <div>estradiol: ${lab?.estrogen ?? '-'}</div>
-      </div>
-    </div>
+      <!-- Anamnesis -->
+      ${anamnesisSection}
 
-    <!-- STRONA 5 - DIAGNOSTYKA ŁYSIENIA, ROZPOZNANIE, ZALECENIA -->
-    <div class="page">
-      <div class="header-pdf">
-        <div class="header-title">Karta Konsultacyjna</div>
-        <div class="page-num">str. 5</div>
-      </div>
-      <div class="sec">DIAGNOSTYKA ŁYSIENIA</div>
-      <div class="row-cb">ŁYSIENIE: ${formatJsonField(cv(c,'alopeciaTypes')) || '-'}</div>
-      <div class="row-cb">STOPIEŃ PRZERZEDZENIA: ${escapeHtml(String(cv(c,'degreeOfThinning') || ''))}</div>
-      <div class="row-cb">CECHY MINIATURYZACJI MIESZKÓW: ${chk(cv(c,'miniaturization'),'Występują')} Występują ${chk(cv(c,'miniaturization'),'Nie występują')} Nie występują</div>
-      <div class="row-cb">ZESPOŁY MIESZKOWE: ${escapeHtml(String(cv(c,'follicularUnits') || ''))}</div>
-      <div class="row-cb">PULL TEST: ${chk(cv(c,'pullTest'),'dodatni')} dodatni TE/AE ${chk(cv(c,'pullTest'),'ujemny')} ujemny AGA</div>
-      <div class="sec">ROZPOZNANIE</div>
-      <div style="min-height:80px; border-bottom:1px solid #ccc;">${escapeHtml(String(cv(c,'diagnosis') || ''))}</div>
-      <div class="sec">ZALECENIA DO PIELĘGNACJI</div>
-      <div>- preparaty do mycia: ${escapeHtml(String(cv(c,'careRecommendationsWashing') || ''))}</div>
-      <div>- preparaty do wcierania: ${escapeHtml(String(cv(c,'careRecommendationsTopical') || ''))}</div>
-      <div>- suplementacja: ${escapeHtml(String(cv(c,'careRecommendationsSupplement') || ''))}</div>
-      <div>- zmiany w pielęgnacji: ${escapeHtml(String(cv(c,'careRecommendationsBehavior') || ''))}</div>
-    </div>
+      <!-- Trichoscopy -->
+      ${hasTrichoscopy ? '<div class="page-break"></div>' : ''}
+      ${trichoscopySection}
 
-    <!-- STRONA 6 - WIZYTY/ZABIEGI, UWAGI -->
-    <div class="page">
-      <div class="header-pdf">
-        <div class="header-title">Karta Konsultacyjna</div>
-        <div class="page-num">str. 6</div>
-      </div>
-      <div class="sec">WIZYTY/ZABIEGI</div>
-      <div style="min-height:180px; border:1px solid #eee; padding:4px;">${escapeHtml(String(cv(c,'visitsProcedures') || ''))}</div>
-      <div class="sec">UWAGI</div>
-      <div style="min-height:80px; border:1px solid #eee; padding:4px;">${escapeHtml(String(cv(c,'generalRemarks') || ''))}</div>
-    </div>
+      <!-- Lab results -->
+      ${labSection}
 
-    <!-- STRONA 7 - SKALE NORWOOD-HAMILTON, LUDWIG -->
-    <div class="page">
-      <div class="header-pdf">
-        <div class="header-title">Karta Konsultacyjna</div>
-        <div class="page-num">str. 7</div>
-      </div>
-      <div style="margin-top:20px; font-weight:bold;">Skala Norwooda-Hamiltona: ${escapeHtml(String(cv(c,'norwoodHamiltonStage') ?? dyn.norwoodHamiltonStage ?? ''))} ${cv(c,'norwoodHamiltonNotes') || dyn.norwoodHamiltonNotes ? `(${escapeHtml(String(cv(c,'norwoodHamiltonNotes') ?? dyn.norwoodHamiltonNotes ?? ''))})` : ''}</div>
-      <div style="margin-top:15px; font-weight:bold;">Skala M. Ludwiga: ${escapeHtml(String(cv(c,'ludwigStage') ?? dyn.ludwigStage ?? ''))} ${cv(c,'ludwigNotes') || dyn.ludwigNotes ? `(${escapeHtml(String(cv(c,'ludwigNotes') ?? dyn.ludwigNotes ?? ''))})` : ''}</div>
-    </div>
+      <!-- Diagnosis + Recommendations -->
+      <div class="page-break"></div>
+      ${diagnosisSection}
 
-    <!-- STRONA 8 - PUSTA -->
-    <div class="page">
-      <div class="header-pdf">
-        <div class="header-title">Karta Konsultacyjna</div>
-        <div class="page-num">str. 8</div>
+      <!-- Remarks -->
+      ${remarksSection}
+
+      <!-- Footer -->
+      <div class="doc-footer">
+        Dokument wygenerowany elektronicznie. Lekarz prowadzący: ${escapeHtml(c.doctor?.name || '')} | Data wydruku: ${formatDateTime(new Date())}
       </div>
-      <div style="margin-top:40px; font-size:7pt; color:#666; text-align:right;">
-        Dokument wygenerowany elektronicznie. Lekarz: ${escapeHtml(c.doctor?.name || '')} | ${formatDateTime(new Date())}
-      </div>
-    </div>
 
     </body>
     </html>
