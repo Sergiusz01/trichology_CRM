@@ -33,18 +33,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const warningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // ─── Logout (optionally call backend) ────────────────────────────────────────
+  // ─── Logout (optionally call backend) ────────────────────────────────────────────────
   const logout = useCallback(async (notifyBackend = true) => {
     if (notifyBackend) {
       try {
-        const refreshToken = localStorage.getItem('refreshToken');
-        if (refreshToken) {
-          await api.post('/auth/logout', { refreshToken }).catch(() => {/* silent */ });
-        }
+        // [SEC-10] refreshToken is sent automatically via httpOnly cookie
+        await api.post('/auth/logout').catch(() => {/* silent */ });
       } catch { }
     }
     localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
     localStorage.removeItem('lastActivityTime');
     delete api.defaults.headers.common['Authorization'];
     setUser(null);
@@ -96,7 +93,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUser(response.data.user);
     } catch {
       localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
       delete api.defaults.headers.common['Authorization'];
       setUser(null);
     } finally {
@@ -108,10 +104,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (email: string, password: string) => {
     try {
       const response = await api.post('/auth/login', { email, password });
-      const { accessToken, refreshToken, user } = response.data;
+      const { accessToken, user } = response.data;
+      // [SEC-10] refreshToken is now set as httpOnly cookie by backend
 
       localStorage.setItem('accessToken', accessToken);
-      localStorage.setItem('refreshToken', refreshToken);
       localStorage.setItem('lastActivityTime', Date.now().toString());
       api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
 
@@ -119,7 +115,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       navigate('/');
     } catch (error: any) {
       localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
       delete api.defaults.headers.common['Authorization'];
       throw error;
     }
@@ -134,7 +129,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const now = Date.now();
       if (lastActivity && now - parseInt(lastActivity, 10) > IDLE_TIMEOUT_MS) {
         localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
         localStorage.removeItem('lastActivityTime');
         delete api.defaults.headers.common['Authorization'];
         setLoading(false);
@@ -149,7 +143,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const handleAuthLogout = () => {
       localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
       localStorage.removeItem('lastActivityTime');
       delete api.defaults.headers.common['Authorization'];
       setUser(null);

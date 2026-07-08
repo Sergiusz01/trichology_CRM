@@ -8,6 +8,7 @@ import jwt from 'jsonwebtoken';
 import { authenticate, requireWriteAccess, AuthRequest } from '../middleware/auth';
 import { canAccessPatient } from '../middleware/authorizePatientAccess';
 import { prisma } from '../prisma';
+import { logger } from '../utils/logger';
 
 const router = express.Router();
 
@@ -98,13 +99,13 @@ router.get('/secure/:filename', async (req, res) => {
     // [C-3] Path traversal prevention: validate filename BEFORE constructing any path
     const safeName = path.basename(filename);
     if (!safeName || safeName !== filename || safeName.startsWith('.')) {
-      console.warn(`[SECURITY] Path traversal attempt: filename="${filename}" ip=${req.ip} userId=${decoded.userId}`);
+      logger.warn(`[SECURITY] Path traversal attempt: filename="${filename}" ip=${req.ip} userId=${decoded.userId}`);
       return res.status(400).json({ error: 'Nieprawidłowa nazwa pliku' });
     }
     const normalizedFilePath = path.resolve(path.join(normalizedUploadDir, safeName));
     // defence-in-depth: confirm resolved path is still inside the upload dir
     if (!normalizedFilePath.startsWith(normalizedUploadDir + path.sep)) {
-      console.warn(`[SECURITY] Path traversal attempt: filename="${filename}" resolved="${normalizedFilePath}" ip=${req.ip}`);
+      logger.warn(`[SECURITY] Path traversal attempt: filename="${filename}" resolved="${normalizedFilePath}" ip=${req.ip}`);
       return res.status(403).json({ error: 'Odmowa dostępu: niedozwolona ścieżka' });
     }
 
@@ -118,7 +119,7 @@ router.get('/secure/:filename', async (req, res) => {
       },
     });
     if (!photo) {
-      console.warn(`[SECURITY] File without DB record requested: filename="${safeName}" ip=${req.ip}`);
+      logger.warn(`[SECURITY] File without DB record requested: filename="${safeName}" ip=${req.ip}`);
       return res.status(404).json({ error: 'Plik nie znaleziony' });
     }
 
@@ -130,7 +131,7 @@ router.get('/secure/:filename', async (req, res) => {
     if (!dbUser) return res.status(401).json({ error: 'Użytkownik nie istnieje' });
 
     if (!(await canAccessPatient(dbUser, photo.patient))) {
-      console.warn(
+      logger.warn(
         `[SECURITY] Unauthorized file download: userId=${dbUser.id} role=${dbUser.role} ` +
           `filename="${safeName}" patientId=${photo.patient.id} ip=${req.ip}`,
       );
@@ -183,7 +184,7 @@ router.post('/patient/:patientId', authenticate, upload.single('photo'), async (
     // [C-1] / [C-2] access check before creating photo record
     if (!(await canAccessPatient(req.user!, patient))) {
       fs.unlinkSync(req.file.path);
-      console.warn(`[SECURITY] Unauthorized photo upload: userId=${req.user!.id} patientId=${patientId} ip=${req.ip}`);
+      logger.warn(`[SECURITY] Unauthorized photo upload: userId=${req.user!.id} patientId=${patientId} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
     }
 
@@ -228,7 +229,7 @@ router.get('/patient/:patientId', authenticate, async (req: AuthRequest, res, ne
     });
     if (!patientCheck) return res.status(404).json({ error: 'Pacjent nie znaleziony' });
     if (!(await canAccessPatient(req.user!, patientCheck))) {
-      console.warn(`[SECURITY] Unauthorized photos list: userId=${req.user!.id} patientId=${patientId} ip=${req.ip}`);
+      logger.warn(`[SECURITY] Unauthorized photos list: userId=${req.user!.id} patientId=${patientId} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
     }
 
@@ -262,7 +263,7 @@ router.get('/:id/file', authenticate, async (req: AuthRequest, res, next) => {
       where: { id },
       include: {
         patient: {
-          select: { id: true, firstName: true, lastName: true },
+          select: { id: true, firstName: true, lastName: true, clinicId: true, assignedDoctorId: true },
         },
       },
     });
@@ -271,13 +272,19 @@ router.get('/:id/file', authenticate, async (req: AuthRequest, res, next) => {
       return res.status(404).json({ error: 'Zdjęcie nie znalezione' });
     }
 
+    // [SEC-6] Verify user has access to the patient owning this photo
+    if (!(await canAccessPatient(req.user!, scalpPhoto.patient))) {
+      logger.warn(
+        `[SECURITY] Unauthorized photo file download: userId=${req.user!.id} role=${req.user!.role} ` +
+          `photoId=${id} patientId=${scalpPhoto.patient.id} ip=${req.ip}`,
+      );
+      return res.status(403).json({ error: 'Brak dostępu do tego pliku' });
+    }
+
     // Verify file exists on disk
     if (!scalpPhoto.filePath || !fs.existsSync(scalpPhoto.filePath)) {
       return res.status(404).json({ error: 'Plik nie istnieje na serwerze' });
     }
-
-    // All authenticated users can access patient photos in this system
-    // (If role-based access is needed, add check here: e.g., requireRole('DOCTOR', 'ADMIN'))
 
     // Set appropriate headers
     res.setHeader('Content-Type', scalpPhoto.mimeType);

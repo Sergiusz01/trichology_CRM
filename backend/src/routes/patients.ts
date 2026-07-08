@@ -6,6 +6,7 @@ import { authorizePatientAccess, canAccessPatient } from '../middleware/authoriz
 import { prisma } from '../prisma';
 import { writeAuditLog } from '../services/auditService';
 import fs from 'fs';
+import { logger } from '../utils/logger';
 
 const router = express.Router();
 
@@ -368,7 +369,7 @@ router.delete('/:id/permanent', authenticate, requireRole('ADMIN'), async (req: 
           fs.unlinkSync(photoPath);
         }
       } catch (fileError) {
-        console.error(`Error deleting photo file ${photo.filePath}:`, fileError);
+        logger.error(`Error deleting photo file ${photo.filePath}`, { error: String(fileError) });
         // Continue with deletion even if file deletion fails
       }
     }

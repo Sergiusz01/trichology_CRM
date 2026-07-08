@@ -23,6 +23,7 @@ import { useNotification } from '../hooks/useNotification';
 import MultiSelectCheckboxes from '../components/MultiSelectCheckboxes';
 import DynamicConsultationForm from '../components/DynamicConsultationForm';
 import ConsultationTemplateBuilder, { TemplateField } from '../components/ConsultationTemplateBuilder';
+import ConsultationCardForm from '../components/card-editor/ConsultationCardForm';
 
 export default function ConsultationFormPage() {
   const { id, patientId } = useParams<{ id?: string; patientId?: string }>();
@@ -396,6 +397,46 @@ export default function ConsultationFormPage() {
     }
   };
 
+  // ── NEW CONSULTATION → Card Editor Form ─────────────────────
+  if (isNewConsultation && actualPatientId) {
+    return (
+      <Box sx={{ width: '100%', maxWidth: '100%', overflow: 'hidden', px: { xs: 0, sm: 0 } }}>
+        <PageHeader
+          title="Nowa konsultacja"
+          breadcrumbs={[
+            { label: 'Pacjenci', href: '/patients' },
+            { label: 'Profil pacjenta', href: `/patients/${actualPatientId}` },
+            { label: 'Nowa konsultacja' },
+          ]}
+        />
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+            {error}
+          </Alert>
+        )}
+
+        {success && (
+          <Alert severity="success" sx={{ mb: 2 }}>
+            Konsultacja zapisana pomyślnie!
+          </Alert>
+        )}
+
+        <ConsultationCardForm
+          patientId={actualPatientId}
+          consultationDate={formData.consultationDate}
+          onDateChange={(date) => setFormData((prev: any) => ({ ...prev, consultationDate: date }))}
+          onSuccess={() => {
+            setSuccess(true);
+            setTimeout(() => navigate(`/patients/${actualPatientId}`), 1500);
+          }}
+          onError={(msg) => setError(msg)}
+        />
+      </Box>
+    );
+  }
+
+  // ── EDIT EXISTING CONSULTATION → Legacy form ───────────────
   return (
     <Box sx={{ width: '100%', maxWidth: '100%', overflow: 'hidden', px: { xs: 0, sm: 0 } }}>
       <PageHeader

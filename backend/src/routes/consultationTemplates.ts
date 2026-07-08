@@ -2,6 +2,7 @@ import express from 'express';
 import { z } from 'zod';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { prisma } from '../prisma';
+import { logger } from '../utils/logger';
 
 const router = express.Router();
 
@@ -34,7 +35,7 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
   try {
     const doctorId = req.user!.id;
     const userEmail = req.user!.email;
-    console.log('[GET /consultation-templates] Doctor ID:', doctorId, 'Email:', userEmail);
+    logger.info('[GET /consultation-templates]', { doctorId, email: userEmail });
     
     // First check if doctor has any templates
     const doctorTemplates = await prisma.consultationTemplate.findMany({
@@ -43,11 +44,11 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
         isActive: true,
       },
     });
-    console.log('[GET /consultation-templates] Templates for this doctor:', doctorTemplates.length);
+    logger.info('[GET /consultation-templates] Templates for this doctor', { value: doctorTemplates.length });
     
     // If no templates, check if there's a default template for any doctor and copy it
     if (doctorTemplates.length === 0) {
-      console.log('[GET /consultation-templates] No templates found for doctor, checking for default template...');
+      logger.info('[GET /consultation-templates] No templates found for doctor, checking for default template...');
       const defaultTemplate = await prisma.consultationTemplate.findFirst({
         where: {
           isDefault: true,
@@ -56,7 +57,7 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
       });
       
       if (defaultTemplate) {
-        console.log('[GET /consultation-templates] Found default template, creating copy for this doctor...');
+        logger.info('[GET /consultation-templates] Found default template, creating copy for this doctor...');
         // Create a copy of default template for this doctor
         await prisma.consultationTemplate.create({
           data: {
@@ -67,7 +68,7 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
             isActive: true,
           },
         });
-        console.log('[GET /consultation-templates] Default template copied for doctor');
+        logger.info('[GET /consultation-templates] Default template copied for doctor');
       }
     }
     
@@ -83,14 +84,14 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
       ],
     });
 
-    console.log('[GET /consultation-templates] Returning templates:', templates.length);
+    logger.info('[GET /consultation-templates] Returning templates', { value: templates.length });
     templates.forEach(t => {
-      console.log(`[GET /consultation-templates] Template: ${t.name}, isDefault: ${t.isDefault}, doctorId: ${t.doctorId}, fields: ${Array.isArray(t.fields) ? t.fields.length : 0}`);
+      logger.info(`[GET /consultation-templates] Template: ${t.name}, isDefault: ${t.isDefault}, doctorId: ${t.doctorId}, fields: ${Array.isArray(t.fields) ? t.fields.length : 0}`);
     });
 
     res.json({ templates });
   } catch (error) {
-    console.error('[GET /consultation-templates] Error:', error);
+    logger.error('[GET /consultation-templates] Error', { error: String(error) });
     next(error);
   }
 });

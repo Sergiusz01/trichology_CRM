@@ -1,15 +1,52 @@
 import express from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { prisma } from '../prisma';
+import { Prisma } from '@prisma/client';
+import { logger } from '../utils/logger';
+import { buildAllActivities } from '../services/dashboardService';
 
 const router = express.Router();
+
+/**
+ * [SEC-4] Build a Prisma `where` filter that scopes patients to the current user.
+ * ADMIN / ASSISTANT → all patients (optionally filtered by clinicId).
+ * DOCTOR → only patients assigned to them OR with explicit DoctorPatientAccess.
+ */
+function patientWhereForUser(user: AuthRequest['user']): Prisma.PatientWhereInput {
+  if (!user) return {};
+  const where: Prisma.PatientWhereInput = {};
+
+  if (user.clinicId) {
+    where.clinicId = user.clinicId;
+  }
+
+  if (user.role === 'DOCTOR') {
+    where.OR = [
+      { assignedDoctorId: user.id },
+      { doctorAccess: { some: { doctorId: user.id } } },
+    ];
+  }
+
+  return where;
+}
 
 // Get all dashboard data in one request
 router.get('/', authenticate, async (req: AuthRequest, res, next) => {
   try {
+    // [SEC-4] Scope all queries to the user's accessible patients
+    const accessFilter = patientWhereForUser(req.user);
+    const patientWhere: Prisma.PatientWhereInput = { isArchived: false, ...accessFilter };
+
+    // Collect accessible patient IDs for filtering related entities
+    const accessiblePatientIds = (await prisma.patient.findMany({
+      where: patientWhere,
+      select: { id: true },
+      take: 500,
+    })).map(p => p.id);
+
     const [patients, consultations, emails, visits, labResults, scalpPhotos, carePlans, upcomingVisits, weeklyRevenue] = await Promise.all([
       prisma.patient.findMany({
-        where: { isArchived: false },
+        where: patientWhere,
         select: {
           id: true,
           firstName: true,
@@ -21,6 +58,7 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
         orderBy: { createdAt: 'desc' },
       }),
       prisma.consultation.findMany({
+        where: { patientId: { in: accessiblePatientIds } },
         select: {
           id: true,
           patientId: true,
@@ -32,7 +70,7 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
         orderBy: { createdAt: 'desc' },
       }),
       prisma.emailHistory.findMany({
-        where: { status: 'SENT' },
+        where: { status: 'SENT', patientId: { in: accessiblePatientIds } },
         select: {
           id: true,
           patientId: true,
@@ -50,6 +88,7 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
         take: 10,
       }),
       prisma.visit.findMany({
+        where: { patientId: { in: accessiblePatientIds } },
         select: {
           id: true,
           patientId: true,
@@ -70,6 +109,7 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
         take: 50,
       }),
       prisma.labResult.findMany({
+        where: { patientId: { in: accessiblePatientIds } },
         select: {
           id: true,
           patientId: true,
@@ -88,6 +128,7 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
         take: 50,
       }),
       prisma.scalpPhoto.findMany({
+        where: { patientId: { in: accessiblePatientIds } },
         select: {
           id: true,
           patientId: true,
@@ -105,6 +146,7 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
         take: 50,
       }),
       prisma.carePlan.findMany({
+        where: { patientId: { in: accessiblePatientIds } },
         select: {
           id: true,
           patientId: true,
@@ -124,6 +166,7 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
       }),
       prisma.visit.findMany({
         where: {
+          patientId: { in: accessiblePatientIds },
           data: {
             gte: (() => {
               const today = new Date();
@@ -233,187 +276,11 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
       !consultations.some((c: any) => c.patientId === p.id)
     ).length;
 
-    // Build recent activities - wszystkie zmiany
-    const activities: any[] = [];
-
-    // Pacjenci - dodanie i edycja
-    patients.forEach((patient: any) => {
-      const createdAt = patient.createdAt instanceof Date ? patient.createdAt : new Date(patient.createdAt);
-      const updatedAt = patient.updatedAt instanceof Date ? patient.updatedAt : new Date(patient.updatedAt);
-
-      // Dodanie pacjenta
-      activities.push({
-        id: `patient-create-${patient.id}`,
-        type: 'PATIENT',
-        title: 'Dodano nowego pacjenta',
-        subtitle: `${patient.firstName} ${patient.lastName}`,
-        date: createdAt.toISOString(),
-        link: `/patients/${patient.id}`,
-      });
-
-      // Edycja pacjenta (jeśli była edytowana)
-      if (updatedAt.getTime() > createdAt.getTime() + 1000) { // +1s aby uniknąć przypadków gdzie są identyczne
-        activities.push({
-          id: `patient-update-${patient.id}-${updatedAt.getTime()}`,
-          type: 'PATIENT_EDIT',
-          title: 'Zaktualizowano dane pacjenta',
-          subtitle: `${patient.firstName} ${patient.lastName}`,
-          date: updatedAt.toISOString(),
-          link: `/patients/${patient.id}`,
-        });
-      }
-    });
-
-    // Konsultacje - dodanie i edycja
-    consultations.forEach((consultation: any) => {
-      const patient = patients.find((p: any) => p.id === consultation.patientId);
-      const createdAt = consultation.createdAt instanceof Date ? consultation.createdAt : new Date(consultation.createdAt);
-      const updatedAt = consultation.updatedAt instanceof Date ? consultation.updatedAt : new Date(consultation.updatedAt);
-      const consultationDate = consultation.consultationDate instanceof Date
-        ? consultation.consultationDate
-        : new Date(consultation.consultationDate);
-
-      // Dodanie konsultacji
-      activities.push({
-        id: `consultation-create-${consultation.id}`,
-        type: 'CONSULTATION',
-        title: 'Dodano konsultację',
-        subtitle: patient ? `${patient.firstName} ${patient.lastName}` : 'Nieznany pacjent',
-        date: createdAt.toISOString(),
-        link: `/patients/${consultation.patientId}`,
-      });
-
-      // Edycja konsultacji
-      if (updatedAt.getTime() > createdAt.getTime() + 1000) {
-        activities.push({
-          id: `consultation-update-${consultation.id}-${updatedAt.getTime()}`,
-          type: 'CONSULTATION_EDIT',
-          title: 'Zaktualizowano konsultację',
-          subtitle: patient ? `${patient.firstName} ${patient.lastName}` : 'Nieznany pacjent',
-          date: updatedAt.toISOString(),
-          link: `/patients/${consultation.patientId}`,
-        });
-      }
-    });
-
-    // Wizyty - dodanie i edycja
-    visits.forEach((visit: any) => {
-      const createdAt = visit.createdAt instanceof Date ? visit.createdAt : new Date(visit.createdAt);
-      const updatedAt = visit.updatedAt instanceof Date ? visit.updatedAt : new Date(visit.updatedAt);
-      const patient = visit.patient || patients.find((p: any) => p.id === visit.patientId);
-
-      // Dodanie wizyty
-      activities.push({
-        id: `visit-create-${visit.id}`,
-        type: 'VISIT',
-        title: 'Dodano wizytę',
-        subtitle: patient ? `${patient.firstName} ${patient.lastName} - ${visit.rodzajZabiegu}` : visit.rodzajZabiegu,
-        date: createdAt.toISOString(),
-        link: `/patients/${visit.patientId}`,
-      });
-
-      // Edycja wizyty
-      if (updatedAt.getTime() > createdAt.getTime() + 1000) {
-        activities.push({
-          id: `visit-update-${visit.id}-${updatedAt.getTime()}`,
-          type: 'VISIT_EDIT',
-          title: 'Zaktualizowano wizytę',
-          subtitle: patient ? `${patient.firstName} ${patient.lastName} - ${visit.rodzajZabiegu}` : visit.rodzajZabiegu,
-          date: updatedAt.toISOString(),
-          link: `/patients/${visit.patientId}`,
-        });
-      }
-    });
-
-    // Lab Results - dodanie i edycja
-    labResults.forEach((labResult: any) => {
-      const createdAt = labResult.createdAt instanceof Date ? labResult.createdAt : new Date(labResult.createdAt);
-      const updatedAt = labResult.updatedAt instanceof Date ? labResult.updatedAt : new Date(labResult.updatedAt);
-      const patient = labResult.patient || patients.find((p: any) => p.id === labResult.patientId);
-      const labDate = labResult.date instanceof Date ? labResult.date : new Date(labResult.date);
-
-      // Dodanie wyniku
-      activities.push({
-        id: `labresult-create-${labResult.id}`,
-        type: 'LAB_RESULT',
-        title: 'Dodano wynik badań',
-        subtitle: patient ? `${patient.firstName} ${patient.lastName}` : 'Nieznany pacjent',
-        date: createdAt.toISOString(),
-        link: `/patients/${labResult.patientId}/lab-results`,
-      });
-
-      // Edycja wyniku
-      if (updatedAt.getTime() > createdAt.getTime() + 1000) {
-        activities.push({
-          id: `labresult-update-${labResult.id}-${updatedAt.getTime()}`,
-          type: 'LAB_RESULT_EDIT',
-          title: 'Zaktualizowano wynik badań',
-          subtitle: patient ? `${patient.firstName} ${patient.lastName}` : 'Nieznany pacjent',
-          date: updatedAt.toISOString(),
-          link: `/patients/${labResult.patientId}/lab-results`,
-        });
-      }
-    });
-
-    // Scalp Photos - tylko dodanie (nie ma updatedAt)
-    scalpPhotos.forEach((photo: any) => {
-      const createdAt = photo.createdAt instanceof Date ? photo.createdAt : new Date(photo.createdAt);
-      const patient = photo.patient || patients.find((p: any) => p.id === photo.patientId);
-
-      activities.push({
-        id: `scalpphoto-create-${photo.id}`,
-        type: 'SCALP_PHOTO',
-        title: 'Dodano zdjęcie skóry głowy',
-        subtitle: patient ? `${patient.firstName} ${patient.lastName} - ${photo.originalFilename}` : photo.originalFilename,
-        date: createdAt.toISOString(),
-        link: `/patients/${photo.patientId}/scalp-photos`,
-      });
-    });
-
-    // Care Plans - dodanie i edycja
-    carePlans.forEach((carePlan: any) => {
-      const createdAt = carePlan.createdAt instanceof Date ? carePlan.createdAt : new Date(carePlan.createdAt);
-      const updatedAt = carePlan.updatedAt instanceof Date ? carePlan.updatedAt : new Date(carePlan.updatedAt);
-      const patient = carePlan.patient || patients.find((p: any) => p.id === carePlan.patientId);
-
-      // Dodanie planu
-      activities.push({
-        id: `careplan-create-${carePlan.id}`,
-        type: 'CARE_PLAN',
-        title: 'Dodano plan leczenia',
-        subtitle: patient ? `${patient.firstName} ${patient.lastName} - ${carePlan.title}` : carePlan.title,
-        date: createdAt.toISOString(),
-        link: `/patients/${carePlan.patientId}/care-plans`,
-      });
-
-      // Edycja planu
-      if (updatedAt.getTime() > createdAt.getTime() + 1000) {
-        activities.push({
-          id: `careplan-update-${carePlan.id}-${updatedAt.getTime()}`,
-          type: 'CARE_PLAN_EDIT',
-          title: 'Zaktualizowano plan leczenia',
-          subtitle: patient ? `${patient.firstName} ${patient.lastName} - ${carePlan.title}` : carePlan.title,
-          date: updatedAt.toISOString(),
-          link: `/patients/${carePlan.patientId}/care-plans`,
-        });
-      }
-    });
-
-    // Emails - tylko wysłane
-    emails.forEach((email: any) => {
-      const sentAt = email.sentAt instanceof Date ? email.sentAt : new Date(email.sentAt);
-      activities.push({
-        id: `email-${email.id}`,
-        type: 'EMAIL',
-        title: 'Wysłano email',
-        subtitle: email.patient ? `${email.patient.firstName} ${email.patient.lastName} - ${email.subject}` : email.subject,
-        date: sentAt.toISOString(),
-        link: `/patients/${email.patientId}`,
-      });
-    });
-
-    // Sortuj wszystkie aktywności po dacie (najnowsze pierwsze)
-    activities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    // [CODE-2] Build activities using extracted service (eliminates 7x duplication)
+    const activities = buildAllActivities(
+      { patients, consultations, visits, labResults, scalpPhotos, carePlans, emails },
+      50,
+    );
 
     // Find patients needing attention
     const thirtyDaysAgo = new Date();
@@ -472,7 +339,7 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
       weeklyRevenue,
     });
   } catch (error: any) {
-    console.error('[Dashboard] Error fetching dashboard data:', error);
+    logger.error('[Dashboard] Error fetching dashboard data:', error);
     // Zwróć bardziej szczegółowy błąd
     if (error.code === 'P2002') {
       return res.status(400).json({
@@ -614,8 +481,9 @@ router.get('/visit-events', authenticate, async (req: AuthRequest, res, next) =>
 router.post('/visit-events/mark-read', authenticate, async (req: AuthRequest, res, next) => {
   try {
     const { eventIds } = req.body;
-    if (!Array.isArray(eventIds) || eventIds.length === 0) {
-      return res.status(400).json({ error: 'eventIds is required' });
+    // [SEC-5] Limit array size to prevent DoS
+    if (!Array.isArray(eventIds) || eventIds.length === 0 || eventIds.length > 200) {
+      return res.status(400).json({ error: 'eventIds is required (max 200)' });
     }
     await prisma.visitEvent.updateMany({
       where: { id: { in: eventIds } },

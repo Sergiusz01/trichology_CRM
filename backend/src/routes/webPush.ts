@@ -2,6 +2,7 @@ import express from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import webpush from 'web-push';
 import { prisma } from '../prisma';
+import { logger } from '../utils/logger';
 
 const router = express.Router();
 
@@ -11,9 +12,9 @@ const vapidSubject = process.env.VAPID_SUBJECT || 'mailto:admin@trichodiagnostic
 
 if (publicVapidKey && privateVapidKey) {
     webpush.setVapidDetails(vapidSubject, publicVapidKey, privateVapidKey);
-    console.log('🔔 Web Push VAPID skonfigurowany, subject:', vapidSubject);
+    logger.info('Web Push VAPID skonfigurowany', { subject: vapidSubject });
 } else {
-    console.warn('⚠️ VAPID keys not configured in environment! Web push will not work.');
+    logger.warn('⚠️ VAPID keys not configured in environment! Web push will not work.');
 }
 
 // Get VAPID Public Key
@@ -45,10 +46,10 @@ router.post('/subscribe', authenticate, async (req: AuthRequest, res, next) => {
             }
         });
 
-        console.log('🔔 Push subscription created for user:', userId, 'endpoint:', subscription.endpoint.substring(0, 60));
+        logger.info('Push subscription created', { userId, endpoint: subscription.endpoint.substring(0, 60) });
         res.status(201).json({ message: 'Subskrypcja dodana', id: newSub.id });
     } catch (err) {
-        console.error('❌ Push subscribe error:', err);
+        logger.error('Push subscribe error', { error: String(err) });
         next(err);
     }
 });
@@ -84,7 +85,7 @@ router.post('/test', authenticate, async (req: AuthRequest, res, next) => {
             where: { userId }
         });
 
-        console.log(`🔔 Test push for user ${userId}: found ${subs.length} subscription(s)`);
+        logger.info(`🔔 Test push for user ${userId}: found ${subs.length} subscription(s)`);
 
         if (subs.length === 0) {
             return res.status(404).json({ message: 'Użytkownik nie ma powiązanych urządzeń do powiadomień. Wyłącz i ponownie włącz przełącznik powiadomień Push.' });
@@ -101,7 +102,7 @@ router.post('/test', authenticate, async (req: AuthRequest, res, next) => {
 
         for (const sub of subs) {
             try {
-                console.log('🔔 Sending to endpoint:', sub.endpoint.substring(0, 80));
+                logger.info('Sending push notification', { endpoint: sub.endpoint.substring(0, 80) });
                 const result = await webpush.sendNotification({
                     endpoint: sub.endpoint,
                     keys: {
@@ -109,10 +110,10 @@ router.post('/test', authenticate, async (req: AuthRequest, res, next) => {
                         auth: sub.auth
                     }
                 }, payload);
-                console.log('🔔 Push sent OK, statusCode:', result.statusCode, 'headers:', JSON.stringify(result.headers));
+                logger.info('Push sent OK', { statusCode: result.statusCode });
                 sentCount++;
             } catch (e: any) {
-                console.error('❌ Push send error:', {
+                logger.error('❌ Push send error:', {
                     statusCode: e.statusCode,
                     body: e.body,
                     message: e.message,

@@ -7,6 +7,7 @@ import { writeAuditLog } from '../services/auditService';
 import { prisma } from '../prisma';
 import fs from 'fs';
 import path from 'path';
+import { logger } from '../utils/logger';
 
 const router = express.Router();
 
@@ -229,7 +230,7 @@ router.get('/patient/:patientId', authenticate, async (req: AuthRequest, res, ne
     });
     if (!patient) return res.status(404).json({ error: 'Pacjent nie znaleziony' });
     if (!(await canAccessPatient(req.user!, patient))) {
-      console.warn(`[SECURITY] Unauthorized consultation list: userId=${req.user!.id} patientId=${patientId} ip=${req.ip}`);
+      logger.warn(`[SECURITY] Unauthorized consultation list: userId=${req.user!.id} patientId=${patientId} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
     }
 
@@ -277,7 +278,7 @@ router.get('/:id/pdf', authenticate, async (req: AuthRequest, res, next) => {
 
     // [C-1] verify access to the patient this consultation belongs to
     if (!(await canAccessPatient(req.user!, consultation.patient as any))) {
-      console.warn(`[SECURITY] Unauthorized consultation PDF: userId=${req.user!.id} consultationId=${id} ip=${req.ip}`);
+      logger.warn(`[SECURITY] Unauthorized consultation PDF: userId=${req.user!.id} consultationId=${id} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tej konsultacji' });
     }
 
@@ -315,7 +316,7 @@ router.get('/:id', authenticate, async (req: AuthRequest, res, next) => {
 
     // [C-1] access check
     if (!(await canAccessPatient(req.user!, consultation.patient as any))) {
-      console.warn(`[SECURITY] Unauthorized consultation GET: userId=${req.user!.id} consultationId=${id} ip=${req.ip}`);
+      logger.warn(`[SECURITY] Unauthorized consultation GET: userId=${req.user!.id} consultationId=${id} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tej konsultacji' });
     }
 
@@ -383,7 +384,7 @@ const prepareDataForDb = (data: any) => {
       }
       // If it's an array (which shouldn't happen for non-JSON fields), log warning and set to null
       else if (Array.isArray(value)) {
-        console.warn(`[prepareDataForDb] Non-JSON field ${key} is an array, setting to null`);
+        logger.warn(`[prepareDataForDb] Non-JSON field ${key} is an array, setting to null`);
         prepared[key] = null;
       }
       // Otherwise keep the value as is
@@ -416,7 +417,7 @@ const prepareDataForDb = (data: any) => {
           }
         } catch (e) {
           // If parsing fails, it's not valid JSON - set to null
-          console.warn(`[prepareDataForDb] Failed to parse JSON for field ${field}:`, e);
+          logger.warn(`[prepareDataForDb] Failed to parse JSON for field ${field}`, { error: String(e) });
           prepared[field] = null;
         }
       }
@@ -557,7 +558,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res, next) => {
     });
     if (!existing) return res.status(404).json({ error: 'Konsultacja nie znaleziona' });
     if (!(await canAccessPatient(req.user!, existing.patient))) {
-      console.warn(`[SECURITY] Unauthorized consultation PUT: userId=${req.user!.id} consultationId=${id} ip=${req.ip}`);
+      logger.warn(`[SECURITY] Unauthorized consultation PUT: userId=${req.user!.id} consultationId=${id} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tej konsultacji' });
     }
 
@@ -648,7 +649,7 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res, next) => {
     });
     if (!existing) return res.status(404).json({ error: 'Konsultacja nie znaleziona' });
     if (!(await canAccessPatient(req.user!, existing.patient))) {
-      console.warn(`[SECURITY] Unauthorized consultation DELETE: userId=${req.user!.id} consultationId=${id} ip=${req.ip}`);
+      logger.warn(`[SECURITY] Unauthorized consultation DELETE: userId=${req.user!.id} consultationId=${id} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tej konsultacji' });
     }
 
@@ -688,7 +689,7 @@ router.post('/:id/restore', authenticate, async (req: AuthRequest, res, next) =>
 
     // [C-1] access check
     if (!(await canAccessPatient(req.user!, consultation.patient))) {
-      console.warn(`[SECURITY] Unauthorized consultation restore: userId=${req.user!.id} consultationId=${id} ip=${req.ip}`);
+      logger.warn(`[SECURITY] Unauthorized consultation restore: userId=${req.user!.id} consultationId=${id} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tej konsultacji' });
     }
 

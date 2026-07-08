@@ -7,6 +7,30 @@ import { prisma } from '../prisma';
 import { authLimiter, refreshLimiter } from '../middleware/rateLimit';
 
 import crypto from 'crypto';
+import { CookieOptions } from 'express';
+
+/**
+ * [SEC-10] Cookie configuration for refresh tokens.
+ * httpOnly: prevents JavaScript access (XSS protection)
+ * secure: only sent over HTTPS
+ * sameSite: strict CSRF protection
+ * path: only sent to auth endpoints (minimize exposure)
+ */
+const REFRESH_COOKIE_NAME = 'refreshToken';
+const getRefreshCookieOptions = (): CookieOptions => {
+  const isProd = process.env.NODE_ENV === 'production';
+  const refreshExpiresIn = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
+  const maxAgeMs = refreshExpiresIn.endsWith('d')
+    ? parseInt(refreshExpiresIn) * 86400000
+    : parseInt(refreshExpiresIn) * 1000;
+  return {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? 'strict' : 'lax',
+    path: '/api/auth',
+    maxAge: maxAgeMs,
+  };
+};
 
 const router = express.Router();
 
@@ -134,9 +158,11 @@ router.post('/login', authLimiter, async (req, res, next) => {
       /* nie przerywaj logowania przy błędzie audytu */
     }
 
+    // [SEC-10] Set refresh token as httpOnly cookie instead of response body
+    res.cookie(REFRESH_COOKIE_NAME, refreshToken, getRefreshCookieOptions());
+
     res.json({
       accessToken,
-      refreshToken,
       user: {
         id: user.id,
         name: user.name,
@@ -152,7 +178,9 @@ router.post('/login', authLimiter, async (req, res, next) => {
 // Refresh token
 router.post('/refresh', refreshLimiter, async (req, res, next) => {
   try {
-    const { refreshToken, lastActivityTime } = req.body;
+    // [SEC-10] Read refresh token from httpOnly cookie (fallback to body for backward compat)
+    const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME] || req.body?.refreshToken;
+    const { lastActivityTime } = req.body;
 
     if (!refreshToken) {
       return res.status(401).json({ error: 'Brak tokenu odświeżającego' });
@@ -236,9 +264,11 @@ router.post('/refresh', refreshLimiter, async (req, res, next) => {
       });
     }
 
+    // [SEC-10] Set new refresh token as httpOnly cookie
+    res.cookie(REFRESH_COOKIE_NAME, newRefreshToken, getRefreshCookieOptions());
+
     res.json({
       accessToken: newAccessToken,
-      refreshToken: newRefreshToken,
     });
   } catch (error) {
     next(error);
@@ -247,7 +277,8 @@ router.post('/refresh', refreshLimiter, async (req, res, next) => {
 
 // Logout - revoke refresh token (persisted in DB)
 router.post('/logout', async (req, res) => {
-  const { refreshToken } = req.body;
+  // [SEC-10] Read from cookie first, then body for backward compat
+  const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME] || req.body?.refreshToken;
   if (refreshToken && typeof refreshToken === 'string') {
     try {
       // Verify token before revoking — prevents polluting DB
@@ -272,6 +303,13 @@ router.post('/logout', async (req, res) => {
       // Invalid or expired token — ignore, session is ending anyway
     }
   }
+  // [SEC-10] Clear refresh token cookie
+  res.clearCookie(REFRESH_COOKIE_NAME, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+    path: '/api/auth',
+  });
   return res.json({ message: 'Wylogowano pomyślnie' });
 });
 

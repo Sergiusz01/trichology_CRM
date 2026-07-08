@@ -5,6 +5,7 @@ import { prisma } from '../prisma';
 import archiver from 'archiver';
 import path from 'path';
 import fs from 'fs';
+import { logger } from '../utils/logger';
 
 const router = express.Router();
 
@@ -29,7 +30,7 @@ router.get('/patients/zip', authenticate, requireRole('ADMIN', 'DOCTOR'), async 
 
     // Handle archive errors
     archive.on('error', (err) => {
-      console.error('Archive error:', err);
+      logger.error('Archive error', { error: String(err) });
       if (!res.headersSent) {
         res.status(500).json({ error: 'Błąd podczas tworzenia archiwum' });
       }
@@ -101,7 +102,7 @@ router.get('/patients/zip', authenticate, requireRole('ADMIN', 'DOCTOR'), async 
           name: `${basePath}/00_Informacje_Pacjenta.pdf`,
         });
       } catch (error) {
-        console.error(`Error generating patient info PDF for ${patient.id}:`, error);
+        logger.error(`Error generating patient info PDF for ${patient.id}`, { error: String(error) });
         archive.append(JSON.stringify({
           id: patient.id,
           firstName: patient.firstName,
@@ -134,7 +135,7 @@ router.get('/patients/zip', authenticate, requireRole('ADMIN', 'DOCTOR'), async 
               name: `${basePath}/01_Konsultacje/${consultationFileName}`,
             });
           } catch (error) {
-            console.error(`Error generating PDF for consultation ${consultation.id}:`, error);
+            logger.error(`Error generating PDF for consultation ${consultation.id}`, { error: String(error) });
             // Continue with other consultations
           }
         }
@@ -156,7 +157,7 @@ router.get('/patients/zip', authenticate, requireRole('ADMIN', 'DOCTOR'), async 
               name: `${basePath}/02_Wyniki_Badan/${resultFileName}`,
             });
           } catch (error) {
-            console.error(`Error generating PDF for lab result ${result.id}:`, error);
+            logger.error(`Error generating PDF for lab result ${result.id}`, { error: String(error) });
             // Fallback to JSON if PDF generation fails
             const resultDate = new Date(result.date).toISOString().split('T')[0].replace(/-/g, '');
             archive.append(JSON.stringify(result, null, 2), {
@@ -207,7 +208,7 @@ router.get('/patients/zip', authenticate, requireRole('ADMIN', 'DOCTOR'), async 
               name: `${basePath}/04_Plany_Opieki/${planFileName}`,
             });
           } catch (error) {
-            console.error(`Error generating PDF for care plan ${carePlan.id}:`, error);
+            logger.error(`Error generating PDF for care plan ${carePlan.id}`, { error: String(error) });
             // Continue with other care plans
           }
         }
@@ -236,7 +237,7 @@ router.get('/patients/zip', authenticate, requireRole('ADMIN', 'DOCTOR'), async 
     await archive.finalize();
 
   } catch (error) {
-    console.error('Export error:', error);
+    logger.error('Export error', { error: String(error) });
     if (!res.headersSent) {
       next(error);
     }

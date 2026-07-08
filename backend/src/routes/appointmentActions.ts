@@ -12,6 +12,7 @@ import { verifyActionToken, AppointmentAction } from '../services/appointmentTok
 import { sendEmail } from '../services/emailService';
 import { getLogoHTML } from '../utils/logo';
 import { VisitStatus } from '@prisma/client';
+import { logger } from '../utils/logger';
 
 const router = express.Router();
 
@@ -210,7 +211,7 @@ router.get('/', async (req, res) => {
                 }
             }
         } catch (emailError) {
-            console.error('Błąd wysyłania powiadomienia do lekarza:', emailError);
+            logger.error('Błąd wysyłania powiadomienia do lekarza', { error: String(emailError) });
             // Don't fail the patient action because of email error
         }
 
@@ -230,7 +231,7 @@ router.get('/', async (req, res) => {
 
         return res.send(renderResultPage(ACTION_LABELS[action], successMessage, true));
     } catch (error: any) {
-        console.error('Appointment action error:', error);
+        logger.error('Appointment action error', { error: String(error) });
 
         if (error.name === 'TokenExpiredError') {
             return res.status(410).send(renderResultPage(

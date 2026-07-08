@@ -120,15 +120,14 @@ function App() {
             <Route path="patients/:id/email" element={<EmailComposePage />} />
             <Route path="patients/:id/email-history" element={<EmailHistoryPage />} />
             <Route path="email/templates" element={<EmailTemplatesPage />} />
-            <Route path="consultation-templates" element={<ConsultationTemplatesPage />} />
+            <Route path="consultation-templates" element={<CardEditorPage />} />
             <Route path="lab-result-templates" element={<LabResultTemplatesPage />} />
             <Route path="profile" element={<UserProfilePage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="users" element={<UsersPage />} />
             <Route path="care-plans/:id" element={<CarePlanDetailPage />} />
             <Route path="scalp-photos/:photoId" element={<ScalpPhotoDetailPage />} />
-            <Route path="card-editor" element={<CardEditorPage />} />
-            <Route path="card-editor/:templateId" element={<CardEditorPage />} />
+            <Route path="card-editor" element={<Navigate to="/consultation-templates" replace />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>

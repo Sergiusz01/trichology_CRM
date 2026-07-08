@@ -5,6 +5,7 @@ import { canAccessPatient } from '../middleware/authorizePatientAccess';
 import { generateCarePlanPDF } from '../services/pdfService';
 import { writeAuditLog } from '../services/auditService';
 import { prisma } from '../prisma';
+import { logger } from '../utils/logger';
 
 const router = express.Router();
 
@@ -39,7 +40,7 @@ router.get('/patient/:patientId', authenticate, async (req: AuthRequest, res, ne
     });
     if (!patient) return res.status(404).json({ error: 'Pacjent nie znaleziony' });
     if (!(await canAccessPatient(req.user!, patient))) {
-      console.warn(`[SECURITY] Unauthorized carePlan list access: userId=${req.user!.id} patientId=${patientId} ip=${req.ip}`);
+      logger.warn(`[SECURITY] Unauthorized carePlan list access: userId=${req.user!.id} patientId=${patientId} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
     }
 
@@ -96,7 +97,7 @@ router.get('/:id', authenticate, async (req: AuthRequest, res, next) => {
     }
 
     if (!(await canAccessPatient(req.user!, carePlan.patient))) {
-      console.warn(`[SECURITY] Unauthorized carePlan access: userId=${req.user!.id} carePlanId=${id} ip=${req.ip}`);
+      logger.warn(`[SECURITY] Unauthorized carePlan access: userId=${req.user!.id} carePlanId=${id} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
     }
 
@@ -122,7 +123,7 @@ router.post('/', authenticate, async (req: AuthRequest, res, next) => {
     }
 
     if (!(await canAccessPatient(req.user!, patient))) {
-      console.warn(`[SECURITY] Unauthorized carePlan create: userId=${req.user!.id} patientId=${data.patientId} ip=${req.ip}`);
+      logger.warn(`[SECURITY] Unauthorized carePlan create: userId=${req.user!.id} patientId=${data.patientId} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
     }
 
@@ -185,7 +186,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res, next) => {
     });
     if (!existing) return res.status(404).json({ error: 'Plan opieki nie znaleziony' });
     if (!(await canAccessPatient(req.user!, existing.patient))) {
-      console.warn(`[SECURITY] Unauthorized carePlan update: userId=${req.user!.id} carePlanId=${id} ip=${req.ip}`);
+      logger.warn(`[SECURITY] Unauthorized carePlan update: userId=${req.user!.id} carePlanId=${id} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
     }
 
@@ -249,7 +250,7 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res, next) => {
     });
     if (!existing) return res.status(404).json({ error: 'Plan opieki nie znaleziony' });
     if (!(await canAccessPatient(req.user!, existing.patient))) {
-      console.warn(`[SECURITY] Unauthorized carePlan archive: userId=${req.user!.id} carePlanId=${id} ip=${req.ip}`);
+      logger.warn(`[SECURITY] Unauthorized carePlan archive: userId=${req.user!.id} carePlanId=${id} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
     }
 
@@ -288,7 +289,7 @@ router.post('/:id/restore', authenticate, async (req: AuthRequest, res, next) =>
     }
 
     if (!(await canAccessPatient(req.user!, carePlan.patient))) {
-      console.warn(`[SECURITY] Unauthorized carePlan restore: userId=${req.user!.id} carePlanId=${id} ip=${req.ip}`);
+      logger.warn(`[SECURITY] Unauthorized carePlan restore: userId=${req.user!.id} carePlanId=${id} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
     }
 
@@ -373,7 +374,7 @@ router.get('/:id/pdf', authenticate, async (req: AuthRequest, res, next) => {
     }
 
     if (!(await canAccessPatient(req.user!, carePlan.patient))) {
-      console.warn(`[SECURITY] Unauthorized carePlan PDF: userId=${req.user!.id} carePlanId=${id} ip=${req.ip}`);
+      logger.warn(`[SECURITY] Unauthorized carePlan PDF: userId=${req.user!.id} carePlanId=${id} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
     }
 

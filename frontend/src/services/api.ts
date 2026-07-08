@@ -11,6 +11,7 @@ export const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // [SEC-10] Send httpOnly cookies with requests
 });
 
 // Add token to requests if available
@@ -102,29 +103,22 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshToken = localStorage.getItem('refreshToken');
-        if (refreshToken) {
-          const refreshUrl = API_URL ? `${API_URL}/api/auth/refresh` : '/api/auth/refresh';
-          const lastActivityTime = localStorage.getItem('lastActivityTime');
-          const response = await axios.post(refreshUrl, {
-            refreshToken,
-            ...(lastActivityTime !== null && { lastActivityTime: parseInt(lastActivityTime, 10) }),
-          });
+        // [SEC-10] refreshToken is sent automatically via httpOnly cookie
+        const refreshUrl = API_URL ? `${API_URL}/api/auth/refresh` : '/api/auth/refresh';
+        const lastActivityTime = localStorage.getItem('lastActivityTime');
+        const response = await axios.post(refreshUrl, {
+          ...(lastActivityTime !== null && { lastActivityTime: parseInt(lastActivityTime, 10) }),
+        }, { withCredentials: true });
 
-          const { accessToken, refreshToken: newRefreshToken } = response.data;
-          localStorage.setItem('accessToken', accessToken);
-          if (newRefreshToken) {
-            localStorage.setItem('refreshToken', newRefreshToken);
-          }
-          api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
-          originalRequest.headers['Authorization'] = `Bearer ${accessToken}`;
+        const { accessToken } = response.data;
+        localStorage.setItem('accessToken', accessToken);
+        api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
+        originalRequest.headers['Authorization'] = `Bearer ${accessToken}`;
 
-          return api(originalRequest);
-        }
+        return api(originalRequest);
       } catch (refreshError) {
         // Clear tokens on refresh failure
         localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
         localStorage.removeItem('lastActivityTime');
         delete api.defaults.headers.common['Authorization'];
 

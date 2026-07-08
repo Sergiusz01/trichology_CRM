@@ -54,7 +54,6 @@ const templateItems = [
   { text: 'Konsultacje', icon: <Description sx={{ fontSize: 18 }} />, path: '/consultation-templates' },
   { text: 'Wyniki badań', icon: <Science sx={{ fontSize: 18 }} />, path: '/lab-result-templates' },
   { text: 'Emaile', icon: <FolderSpecial sx={{ fontSize: 18 }} />, path: '/email/templates' },
-  { text: 'Edytor kart', icon: <Brush sx={{ fontSize: 18 }} />, path: '/card-editor' },
 ];
 
 export default function Layout() {

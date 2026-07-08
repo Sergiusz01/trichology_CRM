@@ -9,6 +9,7 @@ import { sendEmail } from '../services/emailService';
 import { generateVisitICS, generateGoogleCalendarURL, generateOutlookCalendarURL } from '../utils/icalendar';
 import { getLogoHTML } from '../utils/logo';
 import { generateActionToken } from '../services/appointmentTokenService';
+import { logger } from '../utils/logger';
 
 const router = express.Router();
 
@@ -107,7 +108,7 @@ router.get('/patient/:id', authenticate, async (req: AuthRequest, res, next) => 
     });
     if (!patient) return res.status(404).json({ error: 'Pacjent nie znaleziony' });
     if (!(await canAccessPatient(req.user!, patient))) {
-      console.warn(`[SECURITY] Unauthorized visit list: userId=${req.user!.id} patientId=${id} ip=${req.ip}`);
+      logger.warn(`[SECURITY] Unauthorized visit list: userId=${req.user!.id} patientId=${id} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
     }
 
@@ -285,7 +286,7 @@ router.get('/:id', authenticate, async (req: AuthRequest, res, next) => {
       select: { id: true, clinicId: true, assignedDoctorId: true },
     });
     if (!visitPatient || !(await canAccessPatient(req.user!, visitPatient))) {
-      console.warn(`[SECURITY] Unauthorized visit GET: userId=${req.user!.id} visitId=${id} ip=${req.ip}`);
+      logger.warn(`[SECURITY] Unauthorized visit GET: userId=${req.user!.id} visitId=${id} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tej wizyty' });
     }
 
@@ -312,7 +313,7 @@ router.post('/', authenticate, async (req: AuthRequest, res, next) => {
 
     // [C-1] access check
     if (!(await canAccessPatient(req.user!, patient))) {
-      console.warn(`[SECURITY] Unauthorized visit POST: userId=${req.user!.id} patientId=${data.patientId} ip=${req.ip}`);
+      logger.warn(`[SECURITY] Unauthorized visit POST: userId=${req.user!.id} patientId=${data.patientId} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
     }
 
@@ -420,7 +421,7 @@ router.put('/:id', authenticate, requireWriteAccess(), async (req: AuthRequest, 
       select: { id: true, clinicId: true, assignedDoctorId: true },
     });
     if (!visitPatientForUpdate || !(await canAccessPatient(req.user!, visitPatientForUpdate))) {
-      console.warn(`[SECURITY] Unauthorized visit PUT: userId=${req.user!.id} visitId=${id} ip=${req.ip}`);
+      logger.warn(`[SECURITY] Unauthorized visit PUT: userId=${req.user!.id} visitId=${id} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tej wizyty' });
     }
 
@@ -549,7 +550,7 @@ router.patch('/:id/status', authenticate, async (req: AuthRequest, res, next) =>
       select: { id: true, clinicId: true, assignedDoctorId: true },
     });
     if (!statusPatient || !(await canAccessPatient(req.user!, statusPatient))) {
-      console.warn(`[SECURITY] Unauthorized status PATCH: userId=${req.user!.id} visitId=${id} ip=${req.ip}`);
+      logger.warn(`[SECURITY] Unauthorized status PATCH: userId=${req.user!.id} visitId=${id} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tej wizyty' });
     }
 
@@ -598,7 +599,7 @@ router.delete('/:id', authenticate, requireWriteAccess(), async (req: AuthReques
       select: { id: true, clinicId: true, assignedDoctorId: true },
     });
     if (!deletePatient || !(await canAccessPatient(req.user!, deletePatient))) {
-      console.warn(`[SECURITY] Unauthorized visit DELETE: userId=${req.user!.id} visitId=${id} ip=${req.ip}`);
+      logger.warn(`[SECURITY] Unauthorized visit DELETE: userId=${req.user!.id} visitId=${id} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tej wizyty' });
     }
 
@@ -857,7 +858,7 @@ router.post('/:id/reminder', authenticate, async (req: AuthRequest, res, next) =
         outlookCalendarURL,
       });
     } catch (emailError: any) {
-      console.error('Błąd wysyłania przypomnienia:', emailError);
+      logger.error('Błąd wysyłania przypomnienia', { error: String(emailError) });
 
       // Save failed email to history
       await prisma.emailHistory.create({

@@ -10,6 +10,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { prisma } from '../prisma';
+import { logger } from '../utils/logger';
 
 const router = express.Router();
 
@@ -85,7 +86,7 @@ router.post('/consultation/:id', authenticate, async (req: AuthRequest, res, nex
 
     // [C-4] access check — user must have access to the patient
     if (!(await canAccessPatient(req.user!, consultation.patient as any))) {
-      console.warn(`[SECURITY] Unauthorized consultation email: userId=${req.user!.id} consultationId=${id} ip=${req.ip}`);
+      logger.warn(`[SECURITY] Unauthorized consultation email: userId=${req.user!.id} consultationId=${id} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tej konsultacji' });
     }
 
@@ -217,7 +218,7 @@ router.post('/care-plan/:id', authenticate, async (req: AuthRequest, res, next) 
 
     // [C-4] access check
     if (!(await canAccessPatient(req.user!, carePlan.patient as any))) {
-      console.warn(`[SECURITY] Unauthorized care-plan email: userId=${req.user!.id} carePlanId=${id} ip=${req.ip}`);
+      logger.warn(`[SECURITY] Unauthorized care-plan email: userId=${req.user!.id} carePlanId=${id} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tego planu opieki' });
     }
 
@@ -641,7 +642,7 @@ router.post('/send', authenticate, upload.array('attachments', 5), async (req: A
     // [C-4] Verify user has access to this patient before sending email on their behalf
     if (!(await canAccessPatient(req.user!, patient))) {
       cleanupUploadedFiles();
-      console.warn(`[SECURITY] Unauthorized email send: userId=${req.user!.id} patientId=${data.patientId} ip=${req.ip}`);
+      logger.warn(`[SECURITY] Unauthorized email send: userId=${req.user!.id} patientId=${data.patientId} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tego pacjenta' });
     }
 
@@ -807,7 +808,7 @@ router.post('/lab-result/:id', authenticate, async (req: AuthRequest, res, next)
 
     // [C-4] access check
     if (!(await canAccessPatient(req.user!, labResult.patient as any))) {
-      console.warn(`[SECURITY] Unauthorized lab-result email: userId=${req.user!.id} labResultId=${id} ip=${req.ip}`);
+      logger.warn(`[SECURITY] Unauthorized lab-result email: userId=${req.user!.id} labResultId=${id} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tego wyniku badania' });
     }
 
@@ -962,7 +963,7 @@ router.post('/scalp-photo/:id', authenticate, async (req: AuthRequest, res, next
 
     // [C-4] access check
     if (!(await canAccessPatient(req.user!, scalpPhoto.patient as any))) {
-      console.warn(`[SECURITY] Unauthorized scalp-photo email: userId=${req.user!.id} photoId=${id} ip=${req.ip}`);
+      logger.warn(`[SECURITY] Unauthorized scalp-photo email: userId=${req.user!.id} photoId=${id} ip=${req.ip}`);
       return res.status(403).json({ error: 'Brak dostępu do tego zdjęcia' });
     }
 

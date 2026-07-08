@@ -115,8 +115,10 @@ router.post('/:id/reset-password', async (req, res, next) => {
         const { id } = req.params;
         const { newPassword } = req.body;
 
-        if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 6 || newPassword.length > 128) {
-            return res.status(400).json({ error: 'Hasło musi mieć od 6 do 128 znaków' });
+        // [SEC-2] Apply the same password strength rules as registration
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d\w\W]{8,}$/;
+        if (!newPassword || typeof newPassword !== 'string' || newPassword.length > 128 || !passwordRegex.test(newPassword)) {
+            return res.status(400).json({ error: 'Hasło musi zawierać min. 8 znaków, w tym małą i wielką literę oraz cyfrę (max 128 znaków)' });
         }
 
         const existing = await prisma.user.findUnique({ where: { id } });
