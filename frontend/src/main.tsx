@@ -11,6 +11,18 @@ import './index.css';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { registerSW } from 'virtual:pwa-register';
+
+// Auto-register service worker and check for updates
+const updateSW = registerSW({
+  onNeedRefresh() {
+    // Force reload to get the new version
+    window.location.reload();
+  },
+  onOfflineReady() {
+    console.log('App is ready for offline use.');
+  },
+});
 
 const queryClient = new QueryClient({
   defaultOptions: {
