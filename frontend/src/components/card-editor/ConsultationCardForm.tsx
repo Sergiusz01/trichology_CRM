@@ -1,31 +1,23 @@
 // ============================================================
 // ConsultationCardForm — Card editor in fill mode for consultations
-// Replaces the old DynamicConsultationForm for NEW consultations
+// Auto-fills patient data, doctor info, consultation date
+// Responsive, full-width layout for easy filling
 // ============================================================
 
-import { useState, useCallback, useMemo } from 'react';
-import { Box, Button, Typography, Alert, Snackbar, Paper, Chip } from '@mui/material';
-import { Save, Print, Visibility, Edit as EditIcon, ArrowBack } from '@mui/icons-material';
+import { useState, useCallback, useEffect } from 'react';
+import {
+  Box, Button, Typography, Alert, Snackbar, Paper, Chip,
+  TextField, CircularProgress, Accordion, AccordionSummary,
+  AccordionDetails, Checkbox, FormControlLabel, Divider,
+  FormGroup, Radio, RadioGroup,
+} from '@mui/material';
+import {
+  Save, Print, Visibility, Edit as EditIcon, ArrowBack,
+  ExpandMore, Person, MedicalServices, CheckCircle,
+} from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import {
-  DndContext,
-  closestCenter,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { CardBlock, ViewMode } from './types';
-import { createTemplatePreset } from './defaultBlocks';
-import SortableBlockWrapper from './SortableBlockWrapper';
-import BlockRenderer from './BlockRenderer';
+import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
-
-// A4 canvas dimensions
-const A4_WIDTH = 595;
 
 interface ConsultationCardFormProps {
   patientId: string;
@@ -33,73 +25,209 @@ interface ConsultationCardFormProps {
   onDateChange: (date: string) => void;
   onSuccess: () => void;
   onError: (msg: string) => void;
-  existingData?: any; // For editing existing card-editor consultations
+  existingData?: any;
 }
 
-/**
- * Serialize blocks into a flat dynamicData object for the backend.
- * Preserves the full blocks array under `_blocks` for reconstruction,
- * and extracts key values for search/display compatibility.
- */
-function serializeBlocksToData(blocks: CardBlock[]): Record<string, any> {
-  const data: Record<string, any> = {
-    _cardEditorVersion: 2,
-    _blocks: JSON.stringify(blocks),
+// All form sections mapped from the original consultation card
+interface FormData {
+  // Wypadanie
+  hairLossSeverity: string;
+  hairLossDuration: string;
+  hairLossLocalization: string[];
+  hairLossShampoos: string;
+  hairLossNotes: string;
+  // Przetłuszczanie
+  oilyHairSeverity: string;
+  oilyHairWashingFreq: string;
+  oilyHairDuration: string;
+  oilyHairShampoos: string;
+  oilyHairNotes: string;
+  // Łuszczenie
+  scalingSeverity: string;
+  scalingType: string[];
+  scalingDuration: string;
+  scalingOther: string;
+  // Wrażliwość
+  sensitivitySeverity: string;
+  sensitivityProblemType: string[];
+  sensitivityDuration: string;
+  sensitivityOther: string;
+  // Stany zapalne
+  inflammatoryStates: string;
+  // Wywiad
+  familyHistory: string;
+  dermatologyVisits: string;
+  dermatologyVisitsReason: string;
+  pregnancy: string;
+  menstruationRegularity: string;
+  contraception: string;
+  medications: string;
+  medicationsList: string;
+  supplements: string;
+  supplementsDetails: string;
+  stressLevel: string;
+  anesthesia: string;
+  chemotherapy: string;
+  radiotherapy: string;
+  vaccination: string;
+  antibiotics: string;
+  antibioticsDetails: string;
+  chronicDiseases: string;
+  chronicDiseasesList: string;
+  specialists: string;
+  specialistsList: string;
+  eatingDisorders: string;
+  foodIntolerances: string;
+  diet: string;
+  allergies: string;
+  metalPartsInBody: string;
+  careRoutineShampoo: string;
+  careRoutineConditioner: string;
+  careRoutineOils: string;
+  careRoutineChemical: string;
+  // Trichoskopia
+  scalpType: string[];
+  scalpAppearance: string[];
+  skinLesions: string[];
+  hyperhidrosis: string;
+  hyperkeratinization: string;
+  sebaceousSecretion: string;
+  seborrheaType: string[];
+  dandruffType: string[];
+  scalpPH: string;
+  hairDamage: string[];
+  hairDamageReason: string[];
+  hairQuality: string;
+  hairShape: string;
+  hairTypes: string[];
+  regrowingHairs: string;
+  vellusMiniaturizedHairs: string[];
+  // Diagnostyka
+  vascularPatterns: string[];
+  perifollicularFeatures: string[];
+  scalpDiseases: string[];
+  otherDiagnostics: string[];
+  // Diagnostyka łysienia
+  alopeciaTypes: string[];
+  degreeOfThinning: string;
+  alopeciaType: string;
+  alopeciaAffectedAreas: string[];
+  miniaturization: string;
+  follicularUnits: string;
+  pullTest: string;
+  alopeciaOther: string;
+  // Rozpoznanie
+  diagnosis: string;
+  // Zalecenia
+  careRecommendationsWashing: string;
+  careRecommendationsTopical: string;
+  careRecommendationsSupplement: string;
+  careRecommendationsBehavior: string;
+  // Wizyty/Zabiegi
+  visitsProcedures: string;
+  // Uwagi
+  generalRemarks: string;
+  // Skale
+  norwoodHamiltonStage: string;
+  ludwigStage: string;
+  [key: string]: any;
+}
+
+const INITIAL_FORM_DATA: FormData = {
+  hairLossSeverity: '', hairLossDuration: '', hairLossLocalization: [],
+  hairLossShampoos: '', hairLossNotes: '',
+  oilyHairSeverity: '', oilyHairWashingFreq: '', oilyHairDuration: '',
+  oilyHairShampoos: '', oilyHairNotes: '',
+  scalingSeverity: '', scalingType: [], scalingDuration: '', scalingOther: '',
+  sensitivitySeverity: '', sensitivityProblemType: [], sensitivityDuration: '', sensitivityOther: '',
+  inflammatoryStates: '',
+  familyHistory: '', dermatologyVisits: '', dermatologyVisitsReason: '',
+  pregnancy: '', menstruationRegularity: '', contraception: '',
+  medications: '', medicationsList: '', supplements: '', supplementsDetails: '',
+  stressLevel: '', anesthesia: '', chemotherapy: '', radiotherapy: '',
+  vaccination: '', antibiotics: '', antibioticsDetails: '',
+  chronicDiseases: '', chronicDiseasesList: '', specialists: '', specialistsList: '',
+  eatingDisorders: '', foodIntolerances: '', diet: '', allergies: '', metalPartsInBody: '',
+  careRoutineShampoo: '', careRoutineConditioner: '', careRoutineOils: '', careRoutineChemical: '',
+  scalpType: [], scalpAppearance: [], skinLesions: [],
+  hyperhidrosis: '', hyperkeratinization: '', sebaceousSecretion: '',
+  seborrheaType: [], dandruffType: [], scalpPH: '',
+  hairDamage: [], hairDamageReason: [],
+  hairQuality: '', hairShape: '', hairTypes: [], regrowingHairs: '',
+  vellusMiniaturizedHairs: [],
+  vascularPatterns: [], perifollicularFeatures: [],
+  scalpDiseases: [], otherDiagnostics: [],
+  alopeciaTypes: [], degreeOfThinning: '', alopeciaType: '',
+  alopeciaAffectedAreas: [], miniaturization: '', follicularUnits: '',
+  pullTest: '', alopeciaOther: '',
+  diagnosis: '',
+  careRecommendationsWashing: '', careRecommendationsTopical: '',
+  careRecommendationsSupplement: '', careRecommendationsBehavior: '',
+  visitsProcedures: '', generalRemarks: '',
+  norwoodHamiltonStage: '', ludwigStage: '',
+};
+
+const SEVERITY_OPTIONS = ['Brak', 'Łagodne', 'Umiarkowane', 'Nasilone', 'Bardzo nasilone'];
+
+// Styled section header
+function SectionHeader({ icon, title, color = '#2E5F8A' }: { icon: React.ReactNode; title: string; color?: string }) {
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
+      <Box sx={{ color, display: 'flex' }}>{icon}</Box>
+      <Typography sx={{ fontWeight: 700, fontSize: 15, color }}>{title}</Typography>
+    </Box>
+  );
+}
+
+// Radio severity selector
+function SeveritySelector({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+      {SEVERITY_OPTIONS.map((opt) => (
+        <Chip
+          key={opt}
+          label={opt}
+          size="small"
+          onClick={() => onChange(opt === value ? '' : opt)}
+          variant={value === opt ? 'filled' : 'outlined'}
+          color={value === opt ? 'primary' : 'default'}
+          sx={{ fontSize: 12, cursor: 'pointer' }}
+        />
+      ))}
+    </Box>
+  );
+}
+
+// Checkbox group
+function CheckboxGroup({ options, selected, onChange }: { options: string[]; selected: string[]; onChange: (v: string[]) => void }) {
+  const toggle = (opt: string) => {
+    onChange(selected.includes(opt) ? selected.filter((s) => s !== opt) : [...selected, opt]);
   };
-
-  // Extract key searchable/displayable fields from specific block types
-  for (const block of blocks) {
-    const c = block.content;
-    switch (block.type) {
-      case 'PROBLEM':
-        if (c.subsections) {
-          for (const sub of c.subsections) {
-            for (const field of sub.fields || []) {
-              if (field.selected?.length > 0) {
-                data[`problem_${sub.id}_${field.id}`] = field.selected;
-              }
-              if (field.value) {
-                data[`problem_${sub.id}_${field.id}_text`] = field.value;
-              }
-            }
-          }
-        }
-        break;
-      case 'DIAGNOSIS':
-        if (c.text) data.diagnosis = c.text;
-        break;
-      case 'RECOMMENDATIONS':
-        if (c.washing) data.rec_washing = c.washing;
-        if (c.topical) data.rec_topical = c.topical;
-        if (c.supplements) data.rec_supplements = c.supplements;
-        if (c.behaviorChanges) data.rec_behaviorChanges = c.behaviorChanges;
-        break;
-      case 'NOTES':
-        if (c.text) data.notes = c.text;
-        break;
-      case 'VISITS':
-        if (c.text) data.visits_notes = c.text;
-        break;
-      case 'SCALES':
-        if (c.norwood?.selected) data.norwood_stage = c.norwood.selected;
-        if (c.ludwig?.selected) data.ludwig_stage = c.ludwig.selected;
-        break;
-    }
-  }
-
-  return data;
+  return (
+    <FormGroup row sx={{ gap: 0 }}>
+      {options.map((opt) => (
+        <FormControlLabel
+          key={opt}
+          control={<Checkbox checked={selected.includes(opt)} onChange={() => toggle(opt)} size="small" />}
+          label={<Typography sx={{ fontSize: 13 }}>{opt}</Typography>}
+          sx={{ mr: 2, mb: 0 }}
+        />
+      ))}
+    </FormGroup>
+  );
 }
 
-/**
- * Deserialize dynamicData back into blocks array
- */
-function deserializeDataToBlocks(dynamicData: any): CardBlock[] | null {
-  if (!dynamicData?._cardEditorVersion || !dynamicData?._blocks) return null;
-  try {
-    return JSON.parse(dynamicData._blocks);
-  } catch {
-    return null;
-  }
+// Yes/No selector
+function YesNoSelector({ value, onChange, label }: { value: string; onChange: (v: string) => void; label: string }) {
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, flexWrap: 'wrap' }}>
+      <Typography sx={{ fontSize: 13, minWidth: 180, color: '#334155' }}>{label}</Typography>
+      <Box sx={{ display: 'flex', gap: 0.5 }}>
+        <Chip label="Tak" size="small" onClick={() => onChange('Tak')} variant={value === 'Tak' ? 'filled' : 'outlined'} color={value === 'Tak' ? 'primary' : 'default'} sx={{ fontSize: 12, cursor: 'pointer' }} />
+        <Chip label="Nie" size="small" onClick={() => onChange('Nie')} variant={value === 'Nie' ? 'filled' : 'outlined'} color={value === 'Nie' ? 'warning' : 'default'} sx={{ fontSize: 12, cursor: 'pointer' }} />
+      </Box>
+    </Box>
+  );
 }
 
 export default function ConsultationCardForm({
@@ -111,84 +239,115 @@ export default function ConsultationCardForm({
   existingData,
 }: ConsultationCardFormProps) {
   const navigate = useNavigate();
-
-  // Initialize blocks from existing data or default preset
-  const [blocks, setBlocks] = useState<CardBlock[]>(() => {
-    if (existingData?._cardEditorVersion) {
-      const restored = deserializeDataToBlocks(existingData);
-      if (restored) return restored;
-    }
-    return createTemplatePreset('full');
-  });
-
-  const [viewMode, setViewMode] = useState<ViewMode>('fill');
+  const { user } = useAuth();
+  const [formData, setFormData] = useState<FormData>({ ...INITIAL_FORM_DATA, ...existingData });
+  const [patient, setPatient] = useState<any>(null);
   const [saving, setSaving] = useState(false);
+  const [loadingPatient, setLoadingPatient] = useState(true);
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    problem: true, interview: false, trichoscopy: false,
+    diagnostics: false, alopecia: false, diagnosis: true,
+    recommendations: true, visits: false, notes: false, scales: false,
+  });
   const [toast, setToast] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
-  );
+  // Fetch patient data
+  useEffect(() => {
+    const fetchPatient = async () => {
+      try {
+        const res = await api.get(`/patients/${patientId}`);
+        setPatient(res.data.patient || res.data);
+      } catch (err) {
+        console.error('Error fetching patient:', err);
+      } finally {
+        setLoadingPatient(false);
+      }
+    };
+    fetchPatient();
+  }, [patientId]);
 
-  // Update block content
-  const updateBlockContent = useCallback((blockId: string, contentPatch: Record<string, any>) => {
-    setBlocks((prev) =>
-      prev.map((b) =>
-        b.id === blockId ? { ...b, content: { ...b.content, ...contentPatch } } : b
-      )
-    );
+  const update = useCallback((field: string, value: any) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
   }, []);
 
-  // Save consultation
+  const toggleSection = (section: string) => {
+    setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
+  };
+
+  // Save consultation using the SAME backend schema as old form
   const handleSave = useCallback(async () => {
     setSaving(true);
     try {
-      const dynamicData = serializeBlocksToData(blocks);
+      // Build payload matching consultationSchema exactly
+      const jsonArrayFields = [
+        'hairLossLocalization', 'scalingType', 'sensitivityProblemType',
+        'scalpType', 'scalpAppearance', 'skinLesions', 'seborrheaType',
+        'dandruffType', 'hairDamage', 'hairDamageReason', 'hairTypes',
+        'vellusMiniaturizedHairs', 'vascularPatterns', 'perifollicularFeatures',
+        'scalpDiseases', 'otherDiagnostics', 'alopeciaTypes', 'alopeciaAffectedAreas',
+      ];
 
-      const payload = {
+      const payload: Record<string, any> = {
         patientId,
         consultationDate,
-        dynamicData,
       };
+
+      // Copy all non-empty fields
+      Object.entries(formData).forEach(([key, value]) => {
+        if (value === undefined || value === null || value === '') return;
+        if (Array.isArray(value) && value.length === 0) return;
+
+        if (jsonArrayFields.includes(key) && Array.isArray(value)) {
+          payload[key] = JSON.stringify(value);
+        } else {
+          payload[key] = value;
+        }
+      });
 
       await api.post('/consultations', payload);
 
       setToast({ open: true, message: 'Konsultacja zapisana pomyślnie!', severity: 'success' });
       setTimeout(() => onSuccess(), 1000);
     } catch (err: any) {
-      console.error('Błąd zapisu konsultacji:', err);
+      console.error('Error saving consultation:', err);
       const msg = err.response?.data?.error || err.message || 'Błąd zapisywania konsultacji';
       onError(msg);
       setToast({ open: true, message: msg, severity: 'error' });
     } finally {
       setSaving(false);
     }
-  }, [blocks, patientId, consultationDate, onSuccess, onError]);
+  }, [formData, patientId, consultationDate, onSuccess, onError]);
 
-  const isPrintMode = viewMode === 'print';
-  const scale = isPrintMode ? 1 : 0.85;
+  if (loadingPatient) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+        <CircularProgress size={36} sx={{ color: '#2E5F8A' }} />
+      </Box>
+    );
+  }
+
+  const patientName = patient ? `${patient.firstName} ${patient.lastName}` : '';
+  const patientAge = patient?.age ? `${patient.age} lat` : '';
+  const patientGender = patient?.gender === 'MALE' ? 'M' : patient?.gender === 'FEMALE' ? 'K' : '';
+  const doctorName = user?.name || '';
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '80vh' }}>
-      {/* Toolbar */}
+    <Box sx={{ maxWidth: 900, mx: 'auto', pb: 4 }}>
+      {/* ── Sticky toolbar ── */}
       <Paper
-        elevation={0}
+        elevation={2}
         sx={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1,
-          px: 2,
-          py: 1.5,
-          mb: 2,
-          borderRadius: 2,
-          border: '1px solid #E2E8F0',
+          position: 'sticky', top: 0, zIndex: 10,
+          display: 'flex', alignItems: 'center', gap: 1,
+          px: 2, py: 1.5, mb: 3, borderRadius: 2,
+          bgcolor: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(10px)',
           flexWrap: 'wrap',
         }}
       >
-        <Typography sx={{ fontSize: 14, fontWeight: 700, color: '#2E5F8A', mr: 2 }}>
-          Karta konsultacyjna
+        <Typography sx={{ fontSize: 15, fontWeight: 700, color: '#2E5F8A', mr: 1 }}>
+          📋 Karta konsultacyjna
         </Typography>
-
-        {/* Date picker */}
+        <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Typography sx={{ fontSize: 12, color: '#64748B' }}>Data:</Typography>
           <input
@@ -196,140 +355,300 @@ export default function ConsultationCardForm({
             value={consultationDate}
             onChange={(e) => onDateChange(e.target.value)}
             style={{
-              border: '1px solid #E2E8F0',
-              borderRadius: 6,
-              padding: '4px 8px',
-              fontSize: 13,
-              color: '#0F172A',
+              border: '1px solid #CBD5E1', borderRadius: 6,
+              padding: '5px 10px', fontSize: 13, color: '#0F172A',
+              background: '#F8FAFC',
             }}
           />
         </Box>
-
-        <Box sx={{ width: 1, height: 28, bgcolor: '#E2E8F0', mx: 0.5 }} />
-
-        {/* View mode */}
-        <Chip
-          label="Wypełnij"
-          size="small"
-          onClick={() => setViewMode('fill')}
-          variant={viewMode === 'fill' ? 'filled' : 'outlined'}
-          color={viewMode === 'fill' ? 'primary' : 'default'}
-          icon={<EditIcon sx={{ fontSize: 14 }} />}
-          sx={{ fontSize: 12 }}
-        />
-        <Chip
-          label="Podgląd"
-          size="small"
-          onClick={() => setViewMode('preview')}
-          variant={viewMode === 'preview' ? 'filled' : 'outlined'}
-          color={viewMode === 'preview' ? 'primary' : 'default'}
-          icon={<Visibility sx={{ fontSize: 14 }} />}
-          sx={{ fontSize: 12 }}
-        />
-        <Chip
-          label="Druk"
-          size="small"
-          onClick={() => setViewMode('print')}
-          variant={viewMode === 'print' ? 'filled' : 'outlined'}
-          color={viewMode === 'print' ? 'primary' : 'default'}
-          icon={<Print sx={{ fontSize: 14 }} />}
-          sx={{ fontSize: 12 }}
-        />
-
         <Box sx={{ flex: 1 }} />
-
-        {/* Actions */}
         <Button
-          variant="outlined"
-          size="small"
-          startIcon={<ArrowBack />}
+          variant="outlined" size="small" startIcon={<ArrowBack />}
           onClick={() => navigate(-1)}
           sx={{ textTransform: 'none', fontSize: 12, color: '#64748B', borderColor: '#E2E8F0' }}
         >
           Wróć
         </Button>
         <Button
-          variant="contained"
-          size="small"
-          startIcon={<Save />}
-          onClick={handleSave}
-          disabled={saving}
-          sx={{
-            textTransform: 'none',
-            fontSize: 12,
-            bgcolor: '#2E5F8A',
-            '&:hover': { bgcolor: '#1E4F7A' },
-          }}
+          variant="contained" size="small" startIcon={saving ? <CircularProgress size={14} color="inherit" /> : <Save />}
+          onClick={handleSave} disabled={saving}
+          sx={{ textTransform: 'none', fontSize: 12, fontWeight: 700, bgcolor: '#2E5F8A', '&:hover': { bgcolor: '#1E4F7A' } }}
         >
           {saving ? 'Zapisuję...' : 'Zapisz konsultację'}
         </Button>
       </Paper>
 
-      {/* A4 Canvas */}
-      <Box
-        sx={{
-          flex: 1,
-          overflow: 'auto',
-          display: 'flex',
-          justifyContent: 'center',
-          bgcolor: isPrintMode ? '#FFF' : '#F0F2F5',
-          py: isPrintMode ? 0 : 3,
-          borderRadius: 2,
-        }}
-      >
-        <Box
-          sx={{
-            width: A4_WIDTH,
-            minHeight: 842,
-            bgcolor: '#FFFFFF',
-            boxShadow: isPrintMode ? 'none' : '0 4px 24px rgba(0,0,0,0.10)',
-            borderRadius: isPrintMode ? 0 : '4px',
-            transform: `scale(${scale})`,
-            transformOrigin: 'top center',
-            p: '12mm',
-          }}
-        >
-          <DndContext sensors={sensors} collisionDetection={closestCenter}>
-            <SortableContext items={blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
-              {blocks.map((block, index) => (
-                <SortableBlockWrapper
-                  key={block.id}
-                  block={block}
-                  isSelected={false}
-                  viewMode={viewMode}
-                  onSelect={() => {}}
-                  onMoveUp={() => {}}
-                  onMoveDown={() => {}}
-                  onDuplicate={() => {}}
-                  onDelete={() => {}}
-                  isFirst={index === 0}
-                  isLast={index === blocks.length - 1}
-                >
-                  <BlockRenderer
-                    block={block}
-                    viewMode={viewMode}
-                    onUpdateContent={(content) => updateBlockContent(block.id, content)}
-                  />
-                </SortableBlockWrapper>
-              ))}
-            </SortableContext>
-          </DndContext>
+      {/* ── Header — Patient + Doctor info (auto-filled) ── */}
+      <Paper elevation={0} sx={{ p: 2.5, mb: 2, borderRadius: 2, border: '1px solid #E2E8F0', bgcolor: '#F8FAFC' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+          <Typography sx={{ fontSize: 18, fontWeight: 800, color: '#2E5F8A', letterSpacing: '-0.3px' }}>
+            KARTA KONSULTACYJNA
+          </Typography>
         </Box>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+          <Box sx={{ flex: '1 1 200px' }}>
+            <Typography sx={{ fontSize: 11, fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', mb: 0.3 }}>Pacjent</Typography>
+            <Typography sx={{ fontSize: 15, fontWeight: 700, color: '#0F172A' }}>
+              {patientName} {patientAge && <Typography component="span" sx={{ fontSize: 13, color: '#64748B', fontWeight: 400 }}>({patientAge}, {patientGender})</Typography>}
+            </Typography>
+            {patient?.phone && <Typography sx={{ fontSize: 12, color: '#64748B' }}>Tel: {patient.phone}</Typography>}
+          </Box>
+          <Box sx={{ flex: '1 1 200px' }}>
+            <Typography sx={{ fontSize: 11, fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', mb: 0.3 }}>Lekarz</Typography>
+            <Typography sx={{ fontSize: 15, fontWeight: 700, color: '#0F172A' }}>{doctorName}</Typography>
+          </Box>
+          <Box sx={{ flex: '1 1 150px' }}>
+            <Typography sx={{ fontSize: 11, fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', mb: 0.3 }}>Data konsultacji</Typography>
+            <Typography sx={{ fontSize: 15, fontWeight: 700, color: '#0F172A' }}>
+              {new Date(consultationDate).toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </Typography>
+          </Box>
+        </Box>
+      </Paper>
+
+      {/* ── SEKCJA 1: Problem ── */}
+      <Accordion expanded={expandedSections.problem} onChange={() => toggleSection('problem')} elevation={0} sx={{ mb: 1, border: '1px solid #E2E8F0', borderRadius: '8px !important', '&:before': { display: 'none' } }}>
+        <AccordionSummary expandIcon={<ExpandMore />} sx={{ bgcolor: '#FAFBFC' }}>
+          <SectionHeader icon={<MedicalServices sx={{ fontSize: 20 }} />} title="1. Problem — Wypadanie / Przetłuszczanie / Łuszczenie / Wrażliwość" />
+        </AccordionSummary>
+        <AccordionDetails sx={{ pt: 0 }}>
+          {/* Wypadanie */}
+          <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#475569', mb: 1, mt: 1 }}>Wypadanie włosów</Typography>
+          <Box sx={{ pl: 1, mb: 2 }}>
+            <Typography sx={{ fontSize: 12, color: '#64748B', mb: 0.5 }}>Nasilenie:</Typography>
+            <SeveritySelector value={formData.hairLossSeverity} onChange={(v) => update('hairLossSeverity', v)} />
+            <TextField fullWidth size="small" label="Czas trwania" value={formData.hairLossDuration} onChange={(e) => update('hairLossDuration', e.target.value)} sx={{ mt: 1.5 }} />
+            <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Lokalizacja:</Typography>
+            <CheckboxGroup
+              options={['ciemieniowa', 'skronie', 'czołowa', 'tonsura', 'potylica', 'uogólnione', 'brwi, rzęsy', 'pachy', 'pachwiny']}
+              selected={formData.hairLossLocalization}
+              onChange={(v) => update('hairLossLocalization', v)}
+            />
+            <TextField fullWidth size="small" label="Używane szampony" value={formData.hairLossShampoos} onChange={(e) => update('hairLossShampoos', e.target.value)} sx={{ mt: 1 }} />
+            <TextField fullWidth size="small" label="Uwagi" multiline minRows={2} value={formData.hairLossNotes} onChange={(e) => update('hairLossNotes', e.target.value)} sx={{ mt: 1 }} />
+          </Box>
+          <Divider sx={{ my: 1.5 }} />
+
+          {/* Przetłuszczanie */}
+          <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#475569', mb: 1 }}>Przetłuszczanie włosów</Typography>
+          <Box sx={{ pl: 1, mb: 2 }}>
+            <SeveritySelector value={formData.oilyHairSeverity} onChange={(v) => update('oilyHairSeverity', v)} />
+            <TextField fullWidth size="small" label="Częstotliwość mycia" value={formData.oilyHairWashingFreq} onChange={(e) => update('oilyHairWashingFreq', e.target.value)} sx={{ mt: 1.5 }} />
+            <TextField fullWidth size="small" label="Czas trwania" value={formData.oilyHairDuration} onChange={(e) => update('oilyHairDuration', e.target.value)} sx={{ mt: 1 }} />
+            <TextField fullWidth size="small" label="Używane szampony" value={formData.oilyHairShampoos} onChange={(e) => update('oilyHairShampoos', e.target.value)} sx={{ mt: 1 }} />
+            <TextField fullWidth size="small" label="Uwagi" multiline minRows={2} value={formData.oilyHairNotes} onChange={(e) => update('oilyHairNotes', e.target.value)} sx={{ mt: 1 }} />
+          </Box>
+          <Divider sx={{ my: 1.5 }} />
+
+          {/* Łuszczenie */}
+          <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#475569', mb: 1 }}>Łuszczenie skóry głowy</Typography>
+          <Box sx={{ pl: 1, mb: 2 }}>
+            <SeveritySelector value={formData.scalingSeverity} onChange={(v) => update('scalingSeverity', v)} />
+            <TextField fullWidth size="small" label="Czas trwania" value={formData.scalingDuration} onChange={(e) => update('scalingDuration', e.target.value)} sx={{ mt: 1.5 }} />
+            <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1, mb: 0.5 }}>Typ łuszczenia:</Typography>
+            <CheckboxGroup options={['Drobne, białe', 'Duże, żółte', 'Tłuste', 'Suche', 'Zapalne', 'Inne']} selected={formData.scalingType} onChange={(v) => update('scalingType', v)} />
+            <TextField fullWidth size="small" label="Inne (opis)" value={formData.scalingOther} onChange={(e) => update('scalingOther', e.target.value)} sx={{ mt: 1 }} />
+          </Box>
+          <Divider sx={{ my: 1.5 }} />
+
+          {/* Wrażliwość */}
+          <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#475569', mb: 1 }}>Wrażliwość skóry głowy</Typography>
+          <Box sx={{ pl: 1, mb: 2 }}>
+            <SeveritySelector value={formData.sensitivitySeverity} onChange={(v) => update('sensitivitySeverity', v)} />
+            <TextField fullWidth size="small" label="Czas trwania" value={formData.sensitivityDuration} onChange={(e) => update('sensitivityDuration', e.target.value)} sx={{ mt: 1.5 }} />
+            <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1, mb: 0.5 }}>Typ problemu:</Typography>
+            <CheckboxGroup options={['Pieczenie', 'Świąd', 'Ból', 'Ściskanie', 'Inne']} selected={formData.sensitivityProblemType} onChange={(v) => update('sensitivityProblemType', v)} />
+            <TextField fullWidth size="small" label="Inne (opis)" value={formData.sensitivityOther} onChange={(e) => update('sensitivityOther', e.target.value)} sx={{ mt: 1 }} />
+          </Box>
+          <Divider sx={{ my: 1.5 }} />
+
+          {/* Stany zapalne */}
+          <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#475569', mb: 1 }}>Stany zapalne / grudki</Typography>
+          <TextField fullWidth size="small" label="Opis stanów zapalnych" multiline minRows={2} value={formData.inflammatoryStates} onChange={(e) => update('inflammatoryStates', e.target.value)} sx={{ pl: 1 }} />
+        </AccordionDetails>
+      </Accordion>
+
+      {/* ── SEKCJA 2: Wywiad ── */}
+      <Accordion expanded={expandedSections.interview} onChange={() => toggleSection('interview')} elevation={0} sx={{ mb: 1, border: '1px solid #E2E8F0', borderRadius: '8px !important', '&:before': { display: 'none' } }}>
+        <AccordionSummary expandIcon={<ExpandMore />} sx={{ bgcolor: '#FAFBFC' }}>
+          <SectionHeader icon={<Person sx={{ fontSize: 20 }} />} title="2. Wywiad" />
+        </AccordionSummary>
+        <AccordionDetails sx={{ pt: 0 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            <YesNoSelector label="Wypadanie włosów w rodzinie?" value={formData.familyHistory} onChange={(v) => update('familyHistory', v)} />
+            <YesNoSelector label="Wizyty u dermatologa?" value={formData.dermatologyVisits} onChange={(v) => update('dermatologyVisits', v)} />
+            {formData.dermatologyVisits === 'Tak' && <TextField fullWidth size="small" label="Powód wizyty" value={formData.dermatologyVisitsReason} onChange={(e) => update('dermatologyVisitsReason', e.target.value)} sx={{ ml: 2, mb: 1, maxWidth: 500 }} />}
+            <YesNoSelector label="Ciąża / karmienie piersią?" value={formData.pregnancy} onChange={(v) => update('pregnancy', v)} />
+            <YesNoSelector label="Regularna menstruacja?" value={formData.menstruationRegularity} onChange={(v) => update('menstruationRegularity', v)} />
+            <YesNoSelector label="Antykoncepcja?" value={formData.contraception} onChange={(v) => update('contraception', v)} />
+            <YesNoSelector label="Leki stałe?" value={formData.medications} onChange={(v) => update('medications', v)} />
+            {formData.medications === 'Tak' && <TextField fullWidth size="small" label="Lista leków" value={formData.medicationsList} onChange={(e) => update('medicationsList', e.target.value)} sx={{ ml: 2, mb: 1, maxWidth: 500 }} />}
+            <YesNoSelector label="Suplementy diety?" value={formData.supplements} onChange={(v) => update('supplements', v)} />
+            {formData.supplements === 'Tak' && <TextField fullWidth size="small" label="Jakie suplementy?" value={formData.supplementsDetails} onChange={(e) => update('supplementsDetails', e.target.value)} sx={{ ml: 2, mb: 1, maxWidth: 500 }} />}
+            <YesNoSelector label="Wysoki poziom stresu?" value={formData.stressLevel} onChange={(v) => update('stressLevel', v)} />
+            <YesNoSelector label="Znieczulenie ogólne (ostatni rok)?" value={formData.anesthesia} onChange={(v) => update('anesthesia', v)} />
+            <YesNoSelector label="Chemioterapia?" value={formData.chemotherapy} onChange={(v) => update('chemotherapy', v)} />
+            <YesNoSelector label="Radioterapia?" value={formData.radiotherapy} onChange={(v) => update('radiotherapy', v)} />
+            <YesNoSelector label="Szczepienia (ostatnie 6 mies.)?" value={formData.vaccination} onChange={(v) => update('vaccination', v)} />
+            <YesNoSelector label="Antybiotyki (ostatnie 6 mies.)?" value={formData.antibiotics} onChange={(v) => update('antibiotics', v)} />
+            {formData.antibiotics === 'Tak' && <TextField fullWidth size="small" label="Jakie antybiotyki?" value={formData.antibioticsDetails} onChange={(e) => update('antibioticsDetails', e.target.value)} sx={{ ml: 2, mb: 1, maxWidth: 500 }} />}
+            <YesNoSelector label="Choroby przewlekłe?" value={formData.chronicDiseases} onChange={(v) => update('chronicDiseases', v)} />
+            {formData.chronicDiseases === 'Tak' && <TextField fullWidth size="small" label="Jakie choroby?" value={formData.chronicDiseasesList} onChange={(e) => update('chronicDiseasesList', e.target.value)} sx={{ ml: 2, mb: 1, maxWidth: 500 }} />}
+            <YesNoSelector label="Pod opieką specjalistów?" value={formData.specialists} onChange={(v) => update('specialists', v)} />
+            {formData.specialists === 'Tak' && <TextField fullWidth size="small" label="Jacy specjaliści?" value={formData.specialistsList} onChange={(e) => update('specialistsList', e.target.value)} sx={{ ml: 2, mb: 1, maxWidth: 500 }} />}
+            <YesNoSelector label="Zaburzenia odżywiania?" value={formData.eatingDisorders} onChange={(v) => update('eatingDisorders', v)} />
+            <YesNoSelector label="Nietolerancje pokarmowe?" value={formData.foodIntolerances} onChange={(v) => update('foodIntolerances', v)} />
+            <TextField fullWidth size="small" label="Dieta" value={formData.diet} onChange={(e) => update('diet', e.target.value)} sx={{ mt: 1 }} />
+            <TextField fullWidth size="small" label="Alergie" value={formData.allergies} onChange={(e) => update('allergies', e.target.value)} sx={{ mt: 1 }} />
+            <YesNoSelector label="Części metalowe w organizmie?" value={formData.metalPartsInBody} onChange={(v) => update('metalPartsInBody', v)} />
+            <Divider sx={{ my: 1.5 }} />
+            <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#475569', mb: 1 }}>Pielęgnacja</Typography>
+            <TextField fullWidth size="small" label="Szampon" value={formData.careRoutineShampoo} onChange={(e) => update('careRoutineShampoo', e.target.value)} sx={{ mb: 1 }} />
+            <TextField fullWidth size="small" label="Odżywka" value={formData.careRoutineConditioner} onChange={(e) => update('careRoutineConditioner', e.target.value)} sx={{ mb: 1 }} />
+            <TextField fullWidth size="small" label="Olejki / wcierki" value={formData.careRoutineOils} onChange={(e) => update('careRoutineOils', e.target.value)} sx={{ mb: 1 }} />
+            <TextField fullWidth size="small" label="Zabiegi chemiczne" value={formData.careRoutineChemical} onChange={(e) => update('careRoutineChemical', e.target.value)} />
+          </Box>
+        </AccordionDetails>
+      </Accordion>
+
+      {/* ── SEKCJA 3: Trichoskopia ── */}
+      <Accordion expanded={expandedSections.trichoscopy} onChange={() => toggleSection('trichoscopy')} elevation={0} sx={{ mb: 1, border: '1px solid #E2E8F0', borderRadius: '8px !important', '&:before': { display: 'none' } }}>
+        <AccordionSummary expandIcon={<ExpandMore />} sx={{ bgcolor: '#FAFBFC' }}>
+          <SectionHeader icon={<Visibility sx={{ fontSize: 20 }} />} title="3. Trichoskopia" />
+        </AccordionSummary>
+        <AccordionDetails sx={{ pt: 0 }}>
+          <Typography sx={{ fontSize: 12, color: '#64748B', mb: 0.5 }}>Typ skóry:</Typography>
+          <CheckboxGroup options={['Sucha', 'Normalna', 'Tłusta', 'Mieszana']} selected={formData.scalpType} onChange={(v) => update('scalpType', v)} />
+          <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Wygląd skóry:</Typography>
+          <CheckboxGroup options={['Zaczerwienienie', 'Złuszczanie', 'Grudki', 'Krosty', 'Blizny', 'Przebarwienia']} selected={formData.scalpAppearance} onChange={(v) => update('scalpAppearance', v)} />
+          <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Wykwity:</Typography>
+          <CheckboxGroup options={['Grudki', 'Krosty', 'Strupy', 'Nadżerki', 'Owrzodzenia']} selected={formData.skinLesions} onChange={(v) => update('skinLesions', v)} />
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 1.5 }}>
+            <TextField size="small" label="Nadmierne pocenie" value={formData.hyperhidrosis} onChange={(e) => update('hyperhidrosis', e.target.value)} sx={{ flex: '1 1 200px' }} />
+            <TextField size="small" label="Rogowacenie" value={formData.hyperkeratinization} onChange={(e) => update('hyperkeratinization', e.target.value)} sx={{ flex: '1 1 200px' }} />
+            <TextField size="small" label="Wydzielina łojowa" value={formData.sebaceousSecretion} onChange={(e) => update('sebaceousSecretion', e.target.value)} sx={{ flex: '1 1 200px' }} />
+          </Box>
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 1.5 }}>
+            <TextField size="small" label="pH skóry" value={formData.scalpPH} onChange={(e) => update('scalpPH', e.target.value)} sx={{ flex: '1 1 120px' }} />
+            <TextField size="small" label="Jakość włosów" value={formData.hairQuality} onChange={(e) => update('hairQuality', e.target.value)} sx={{ flex: '1 1 200px' }} />
+            <TextField size="small" label="Kształt włosów" value={formData.hairShape} onChange={(e) => update('hairShape', e.target.value)} sx={{ flex: '1 1 200px' }} />
+          </Box>
+          <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Typy włosów:</Typography>
+          <CheckboxGroup options={['Cienkie', 'Normalne', 'Grube', 'Kręcone', 'Proste', 'Faliste']} selected={formData.hairTypes} onChange={(v) => update('hairTypes', v)} />
+          <TextField fullWidth size="small" label="Włosy odrastające" value={formData.regrowingHairs} onChange={(e) => update('regrowingHairs', e.target.value)} sx={{ mt: 1.5 }} />
+          <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Włosy vellusowe / zminiaturyzowane:</Typography>
+          <CheckboxGroup options={['Liczne', 'Nieliczne', 'Brak', 'Zminiaturyzowane', 'Łuszczenie wokół mieszków']} selected={formData.vellusMiniaturizedHairs} onChange={(v) => update('vellusMiniaturizedHairs', v)} />
+        </AccordionDetails>
+      </Accordion>
+
+      {/* ── SEKCJA 4: Diagnostyka łysienia ── */}
+      <Accordion expanded={expandedSections.alopecia} onChange={() => toggleSection('alopecia')} elevation={0} sx={{ mb: 1, border: '1px solid #E2E8F0', borderRadius: '8px !important', '&:before': { display: 'none' } }}>
+        <AccordionSummary expandIcon={<ExpandMore />} sx={{ bgcolor: '#FAFBFC' }}>
+          <SectionHeader icon={<MedicalServices sx={{ fontSize: 20 }} />} title="4. Diagnostyka łysienia" />
+        </AccordionSummary>
+        <AccordionDetails sx={{ pt: 0 }}>
+          <Typography sx={{ fontSize: 12, color: '#64748B', mb: 0.5 }}>Typy łysienia:</Typography>
+          <CheckboxGroup options={['Androgenowe', 'Plackowate', 'Bliznowaciejące', 'Telogenowe', 'Anagenowe', 'Trakcyjne', 'Inne']} selected={formData.alopeciaTypes} onChange={(v) => update('alopeciaTypes', v)} />
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 1.5 }}>
+            <TextField size="small" label="Stopień przerzedzenia" value={formData.degreeOfThinning} onChange={(e) => update('degreeOfThinning', e.target.value)} sx={{ flex: '1 1 200px' }} />
+            <TextField size="small" label="Miniaturyzacja" value={formData.miniaturization} onChange={(e) => update('miniaturization', e.target.value)} sx={{ flex: '1 1 200px' }} />
+            <TextField size="small" label="Jednostki folikularne" value={formData.follicularUnits} onChange={(e) => update('follicularUnits', e.target.value)} sx={{ flex: '1 1 200px' }} />
+          </Box>
+          <TextField fullWidth size="small" label="Pull test" value={formData.pullTest} onChange={(e) => update('pullTest', e.target.value)} sx={{ mt: 1.5 }} />
+          <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Dotknięte obszary:</Typography>
+          <CheckboxGroup options={['Czołowa', 'Ciemieniowa', 'Skroniowa', 'Potyliczna', 'Uogólniona', 'Ogniskowa']} selected={formData.alopeciaAffectedAreas} onChange={(v) => update('alopeciaAffectedAreas', v)} />
+          <TextField fullWidth size="small" label="Inne (opis)" value={formData.alopeciaOther} onChange={(e) => update('alopeciaOther', e.target.value)} sx={{ mt: 1.5 }} />
+        </AccordionDetails>
+      </Accordion>
+
+      {/* ── SEKCJA 5: Rozpoznanie ── */}
+      <Accordion expanded={expandedSections.diagnosis} onChange={() => toggleSection('diagnosis')} elevation={0} sx={{ mb: 1, border: '1px solid #E2E8F0', borderRadius: '8px !important', '&:before': { display: 'none' } }}>
+        <AccordionSummary expandIcon={<ExpandMore />} sx={{ bgcolor: '#FAFBFC' }}>
+          <SectionHeader icon={<CheckCircle sx={{ fontSize: 20 }} />} title="5. Rozpoznanie" color="#16A34A" />
+        </AccordionSummary>
+        <AccordionDetails>
+          <TextField
+            fullWidth multiline minRows={4}
+            label="Rozpoznanie / Diagnoza"
+            placeholder="Wpisz rozpoznanie..."
+            value={formData.diagnosis}
+            onChange={(e) => update('diagnosis', e.target.value)}
+          />
+        </AccordionDetails>
+      </Accordion>
+
+      {/* ── SEKCJA 6: Zalecenia ── */}
+      <Accordion expanded={expandedSections.recommendations} onChange={() => toggleSection('recommendations')} elevation={0} sx={{ mb: 1, border: '1px solid #E2E8F0', borderRadius: '8px !important', '&:before': { display: 'none' } }}>
+        <AccordionSummary expandIcon={<ExpandMore />} sx={{ bgcolor: '#FAFBFC' }}>
+          <SectionHeader icon={<MedicalServices sx={{ fontSize: 20 }} />} title="6. Zalecenia do pielęgnacji" color="#D97706" />
+        </AccordionSummary>
+        <AccordionDetails>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            <TextField fullWidth multiline minRows={2} label="Mycie (szampon, częstotliwość)" value={formData.careRecommendationsWashing} onChange={(e) => update('careRecommendationsWashing', e.target.value)} />
+            <TextField fullWidth multiline minRows={2} label="Wcieranie / stosowanie miejscowe" value={formData.careRecommendationsTopical} onChange={(e) => update('careRecommendationsTopical', e.target.value)} />
+            <TextField fullWidth multiline minRows={2} label="Suplementacja" value={formData.careRecommendationsSupplement} onChange={(e) => update('careRecommendationsSupplement', e.target.value)} />
+            <TextField fullWidth multiline minRows={2} label="Zmiany behawioralne / dieta" value={formData.careRecommendationsBehavior} onChange={(e) => update('careRecommendationsBehavior', e.target.value)} />
+          </Box>
+        </AccordionDetails>
+      </Accordion>
+
+      {/* ── SEKCJA 7: Wizyty / Zabiegi ── */}
+      <Accordion expanded={expandedSections.visits} onChange={() => toggleSection('visits')} elevation={0} sx={{ mb: 1, border: '1px solid #E2E8F0', borderRadius: '8px !important', '&:before': { display: 'none' } }}>
+        <AccordionSummary expandIcon={<ExpandMore />} sx={{ bgcolor: '#FAFBFC' }}>
+          <SectionHeader icon={<MedicalServices sx={{ fontSize: 20 }} />} title="7. Wizyty / Zabiegi" />
+        </AccordionSummary>
+        <AccordionDetails>
+          <TextField fullWidth multiline minRows={3} label="Zaplanowane wizyty i zabiegi" value={formData.visitsProcedures} onChange={(e) => update('visitsProcedures', e.target.value)} />
+        </AccordionDetails>
+      </Accordion>
+
+      {/* ── SEKCJA 8: Uwagi ── */}
+      <Accordion expanded={expandedSections.notes} onChange={() => toggleSection('notes')} elevation={0} sx={{ mb: 1, border: '1px solid #E2E8F0', borderRadius: '8px !important', '&:before': { display: 'none' } }}>
+        <AccordionSummary expandIcon={<ExpandMore />} sx={{ bgcolor: '#FAFBFC' }}>
+          <SectionHeader icon={<EditIcon sx={{ fontSize: 20 }} />} title="8. Uwagi ogólne" />
+        </AccordionSummary>
+        <AccordionDetails>
+          <TextField fullWidth multiline minRows={3} label="Dodatkowe uwagi" value={formData.generalRemarks} onChange={(e) => update('generalRemarks', e.target.value)} />
+        </AccordionDetails>
+      </Accordion>
+
+      {/* ── SEKCJA 9: Skale ── */}
+      <Accordion expanded={expandedSections.scales} onChange={() => toggleSection('scales')} elevation={0} sx={{ mb: 1, border: '1px solid #E2E8F0', borderRadius: '8px !important', '&:before': { display: 'none' } }}>
+        <AccordionSummary expandIcon={<ExpandMore />} sx={{ bgcolor: '#FAFBFC' }}>
+          <SectionHeader icon={<MedicalServices sx={{ fontSize: 20 }} />} title="9. Skale (Norwood-Hamilton / Ludwig)" />
+        </AccordionSummary>
+        <AccordionDetails>
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+            <TextField size="small" label="Stopień Norwood-Hamilton" value={formData.norwoodHamiltonStage} onChange={(e) => update('norwoodHamiltonStage', e.target.value)} sx={{ flex: '1 1 250px' }} />
+            <TextField size="small" label="Stopień Ludwig" value={formData.ludwigStage} onChange={(e) => update('ludwigStage', e.target.value)} sx={{ flex: '1 1 250px' }} />
+          </Box>
+        </AccordionDetails>
+      </Accordion>
+
+      {/* ── Bottom save button ── */}
+      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3, gap: 2 }}>
+        <Button
+          variant="outlined" size="large"
+          startIcon={<ArrowBack />}
+          onClick={() => navigate(-1)}
+          sx={{ textTransform: 'none', fontWeight: 600, px: 4, color: '#64748B', borderColor: '#CBD5E1' }}
+        >
+          Wróć
+        </Button>
+        <Button
+          variant="contained" size="large"
+          startIcon={saving ? <CircularProgress size={18} color="inherit" /> : <Save />}
+          onClick={handleSave}
+          disabled={saving}
+          sx={{ textTransform: 'none', fontWeight: 700, px: 4, bgcolor: '#2E5F8A', '&:hover': { bgcolor: '#1E4F7A' } }}
+        >
+          {saving ? 'Zapisuję...' : 'Zapisz konsultację'}
+        </Button>
       </Box>
 
-      {/* Toast */}
-      <Snackbar
-        open={toast.open}
-        autoHideDuration={3000}
-        onClose={() => setToast({ ...toast, open: false })}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert severity={toast.severity} onClose={() => setToast({ ...toast, open: false })}>
-          {toast.message}
-        </Alert>
+      <Snackbar open={toast.open} autoHideDuration={3000} onClose={() => setToast({ ...toast, open: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        <Alert severity={toast.severity} onClose={() => setToast({ ...toast, open: false })}>{toast.message}</Alert>
       </Snackbar>
     </Box>
   );
 }
-
-export { deserializeDataToBlocks, serializeBlocksToData };
