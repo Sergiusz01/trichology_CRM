@@ -56,9 +56,18 @@ jobs:
             fi
 
             # Delete old source files to avoid leftover files causing TS errors
+            # But preserve .env if it exists
+            cp ~/backend-src/.env /tmp/backend-env-backup 2>/dev/null || true
             rm -rf ~/backend-src/src ~/backend-src/prisma
             unzip -o ~/backend.zip -d ~/backend-src
             cd ~/backend-src
+
+            # Restore .env: prefer backup from backend-src, fallback to ~/backend/.env
+            if [ -f /tmp/backend-env-backup ]; then
+              cp /tmp/backend-env-backup .env
+            elif [ -f ~/backend/.env ]; then
+              cp ~/backend/.env .env
+            fi
 
             # Point UPLOAD_DIR to persistent directory
             grep -q 'UPLOAD_DIR' .env && sed -i 's|UPLOAD_DIR=.*|UPLOAD_DIR=/root/uploads|' .env || echo 'UPLOAD_DIR=/root/uploads' >> .env
