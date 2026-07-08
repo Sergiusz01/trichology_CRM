@@ -397,38 +397,31 @@ export default function ConsultationFormPage() {
     }
   };
 
-  // ── NEW CONSULTATION → Card Editor Form ─────────────────────
-  if (isNewConsultation && actualPatientId) {
+  // ── NEW & EDIT CONSULTATION → Card Editor Form ─────────────────────
+  if ((isNewConsultation && actualPatientId) || (actualConsultationId && !isNewConsultation && !loading && formData.patientId)) {
+    const resolvedPatientId = actualPatientId || formData.patientId;
     return (
       <Box sx={{ width: '100%', maxWidth: '100%', overflow: 'hidden', px: { xs: 0, sm: 0 } }}>
-        <PageHeader
-          title="Nowa konsultacja"
-          breadcrumbs={[
-            { label: 'Pacjenci', href: '/patients' },
-            { label: 'Profil pacjenta', href: `/patients/${actualPatientId}` },
-            { label: 'Nowa konsultacja' },
-          ]}
-        />
-
         {error && (
           <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
             {error}
           </Alert>
         )}
-
         {success && (
           <Alert severity="success" sx={{ mb: 2 }}>
-            Konsultacja zapisana pomyślnie!
+            {actualConsultationId ? 'Konsultacja zaktualizowana!' : 'Konsultacja zapisana pomyślnie!'}
           </Alert>
         )}
 
         <ConsultationCardForm
-          patientId={actualPatientId}
+          patientId={resolvedPatientId}
+          consultationId={actualConsultationId}
           consultationDate={formData.consultationDate}
           onDateChange={(date) => setFormData((prev: any) => ({ ...prev, consultationDate: date }))}
+          existingData={actualConsultationId ? formData : undefined}
           onSuccess={() => {
             setSuccess(true);
-            setTimeout(() => navigate(`/patients/${actualPatientId}`), 1500);
+            setTimeout(() => navigate(`/patients/${resolvedPatientId}`), 1500);
           }}
           onError={(msg) => setError(msg)}
         />

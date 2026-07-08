@@ -24,6 +24,7 @@ import { usePatientVisits, useCreateVisit, Visit } from '../../hooks/queries/use
 
 interface ConsultationCardFormProps {
   patientId: string;
+  consultationId?: string; // if provided → EDIT mode (PUT)
   consultationDate: string;
   onDateChange: (date: string) => void;
   onSuccess: () => void;
@@ -517,8 +518,33 @@ function VisitsSection({ patientId }: { patientId: string }) {
   );
 }
 
+// Normalize a value that may be an already-parsed array, a JSON string, or null/undefined → always returns string[]
+function toArray(val: any): string[] {
+  if (Array.isArray(val)) return val.map(String);
+  if (typeof val === 'string' && val.trim().startsWith('[')) {
+    try { const p = JSON.parse(val); return Array.isArray(p) ? p.map(String) : []; } catch { return []; }
+  }
+  return [];
+}
+
+const JSON_ARRAY_FIELDS = [
+  'hairLossLocalization', 'scalingType', 'sensitivityProblemType',
+  'scalpType', 'scalpAppearance', 'skinLesions', 'seborrheaType',
+  'dandruffType', 'hairDamage', 'hairDamageReason', 'hairTypes',
+  'vellusMiniaturizedHairs', 'vascularPatterns', 'perifollicularFeatures',
+  'scalpDiseases', 'otherDiagnostics', 'alopeciaTypes', 'alopeciaAffectedAreas',
+];
+
+function normalizeExistingData(data: any): Partial<FormData> {
+  if (!data) return {};
+  const out: any = { ...data };
+  JSON_ARRAY_FIELDS.forEach((f) => { out[f] = toArray(data[f]); });
+  return out;
+}
+
 export default function ConsultationCardForm({
   patientId,
+  consultationId,
   consultationDate,
   onDateChange,
   onSuccess,
@@ -527,7 +553,7 @@ export default function ConsultationCardForm({
 }: ConsultationCardFormProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [formData, setFormData] = useState<FormData>({ ...INITIAL_FORM_DATA, ...existingData });
+  const [formData, setFormData] = useState<FormData>({ ...INITIAL_FORM_DATA, ...normalizeExistingData(existingData) });
   const [patient, setPatient] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [loadingPatient, setLoadingPatient] = useState(true);
@@ -561,39 +587,36 @@ export default function ConsultationCardForm({
     setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
-  // Save consultation using the SAME backend schema as old form
+  // Save/update consultation
   const handleSave = useCallback(async () => {
     setSaving(true);
     try {
-      // Build payload matching consultationSchema exactly
-      const jsonArrayFields = [
-        'hairLossLocalization', 'scalingType', 'sensitivityProblemType',
-        'scalpType', 'scalpAppearance', 'skinLesions', 'seborrheaType',
-        'dandruffType', 'hairDamage', 'hairDamageReason', 'hairTypes',
-        'vellusMiniaturizedHairs', 'vascularPatterns', 'perifollicularFeatures',
-        'scalpDiseases', 'otherDiagnostics', 'alopeciaTypes', 'alopeciaAffectedAreas',
-      ];
-
       const payload: Record<string, any> = {
         patientId,
         consultationDate,
       };
 
-      // Copy all non-empty fields
+      // Copy all non-empty fields, serializing arrays
       Object.entries(formData).forEach(([key, value]) => {
         if (value === undefined || value === null || value === '') return;
         if (Array.isArray(value) && value.length === 0) return;
 
-        if (jsonArrayFields.includes(key) && Array.isArray(value)) {
+        if (JSON_ARRAY_FIELDS.includes(key) && Array.isArray(value)) {
           payload[key] = JSON.stringify(value);
         } else {
           payload[key] = value;
         }
       });
 
-      await api.post('/consultations', payload);
-
-      setToast({ open: true, message: 'Konsultacja zapisana pomyślnie!', severity: 'success' });
+      if (consultationId) {
+        // EDIT mode — PUT
+        await api.put(`/consultations/${consultationId}`, payload);
+        setToast({ open: true, message: 'Konsultacja zaktualizowana!', severity: 'success' });
+      } else {
+        // CREATE mode — POST
+        await api.post('/consultations', payload);
+        setToast({ open: true, message: 'Konsultacja zapisana pomyślnie!', severity: 'success' });
+      }
       setTimeout(() => onSuccess(), 1000);
     } catch (err: any) {
       console.error('Error saving consultation:', err);
@@ -603,7 +626,7 @@ export default function ConsultationCardForm({
     } finally {
       setSaving(false);
     }
-  }, [formData, patientId, consultationDate, onSuccess, onError]);
+  }, [formData, patientId, consultationId, consultationDate, onSuccess, onError]);
 
   if (loadingPatient) {
     return (

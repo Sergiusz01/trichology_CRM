@@ -569,7 +569,12 @@ export default function ConsultationViewPage() {
         )}
 
         {/* Section: Trichoscopy */}
-        {!hasTemplate && (consultation.scalpType || consultation.hairQuality || consultation.seborrheaType) && (
+        {!hasTemplate && (
+          getFieldValue('scalpType') || getFieldValue('hairQuality') || getFieldValue('seborrheaType') ||
+          getFieldValue('scalpAppearance') || getFieldValue('skinLesions') || getFieldValue('hairDamage') ||
+          getFieldValue('hairTypes') || getFieldValue('vellusMiniaturizedHairs') || getFieldValue('vascularPatterns') ||
+          getFieldValue('perifollicularFeatures') || getFieldValue('scalpDiseases') || getFieldValue('otherDiagnostics')
+        ) && (
           <>
             <Box sx={{
               backgroundColor: '#e0e0e0',
@@ -589,16 +594,16 @@ export default function ConsultationViewPage() {
                   <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, textDecoration: 'underline' }}>
                     SKÓRA GŁOWY
                   </Typography>
-                  {renderCheckboxInfo('Typ', consultation.scalpType)}
-                  {renderCheckboxInfo('Objawy', consultation.scalpAppearance)}
-                  {renderCheckboxInfo('Wykwity', consultation.skinLesions)}
-                  {renderCheckboxInfo('Potliwość', consultation.hyperhidrosis)}
-                  {renderCheckboxInfo('Hiperkeratynizacja', consultation.hyperkeratinization)}
-                  {renderCheckboxInfo('Wydzielina', consultation.sebaceousSecretion)}
-                  {renderCheckboxInfo('Łojotok', consultation.seborrheaType)}
-                  {consultation.seborrheaTypeOther && renderFieldRow('Inne', consultation.seborrheaTypeOther)}
-                  {renderCheckboxInfo('Złuszczanie', consultation.dandruffType)}
-                  {renderCheckboxInfo('pH', consultation.scalpPH)}
+                  {renderCheckboxInfo('Typ', getFieldValue('scalpType'))}
+                  {renderCheckboxInfo('Objawy', getFieldValue('scalpAppearance'))}
+                  {renderCheckboxInfo('Wykwity', getFieldValue('skinLesions'))}
+                  {renderCheckboxInfo('Potliwość', getFieldValue('hyperhidrosis'))}
+                  {renderCheckboxInfo('Hiperkeratynizacja', getFieldValue('hyperkeratinization'))}
+                  {renderCheckboxInfo('Wydzielina', getFieldValue('sebaceousSecretion'))}
+                  {renderCheckboxInfo('Łojotok', getFieldValue('seborrheaType'))}
+                  {getFieldValue('seborrheaTypeOther') && renderFieldRow('Inne', getFieldValue('seborrheaTypeOther'))}
+                  {renderCheckboxInfo('Złuszczanie', getFieldValue('dandruffType'))}
+                  {renderCheckboxInfo('pH', getFieldValue('scalpPH'))}
                 </Box>
               </Grid>
               <Grid size={{ xs: 12, sm: 4 }}>
@@ -606,13 +611,13 @@ export default function ConsultationViewPage() {
                   <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, textDecoration: 'underline' }}>
                     STAN WŁOSÓW
                   </Typography>
-                  {renderCheckboxInfo('Jakość', consultation.hairQuality)}
-                  {renderCheckboxInfo('Uszkodzenia', consultation.hairDamage)}
-                  {renderCheckboxInfo('Przyczyna', consultation.hairDamageReason)}
-                  {renderCheckboxInfo('Kształt', consultation.hairShape)}
-                  {renderCheckboxInfo('Typy', consultation.hairTypes)}
-                  {renderCheckboxInfo('Odrastające', consultation.regrowingHairs)}
-                  {renderCheckboxInfo('Vellus', consultation.vellusMiniaturizedHairs)}
+                  {renderCheckboxInfo('Jakość', getFieldValue('hairQuality'))}
+                  {renderCheckboxInfo('Uszkodzenia', getFieldValue('hairDamage'))}
+                  {renderCheckboxInfo('Przyczyna', getFieldValue('hairDamageReason'))}
+                  {renderCheckboxInfo('Kształt', getFieldValue('hairShape'))}
+                  {renderCheckboxInfo('Typy', getFieldValue('hairTypes'))}
+                  {renderCheckboxInfo('Odrastające', getFieldValue('regrowingHairs'))}
+                  {renderCheckboxInfo('Vellus', getFieldValue('vellusMiniaturizedHairs'))}
                 </Box>
               </Grid>
               <Grid size={{ xs: 12, sm: 4 }}>
@@ -621,17 +626,17 @@ export default function ConsultationViewPage() {
                     CECHY SPECYFICZNE
                   </Typography>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                    {consultation.vascularPatterns && (
-                      <Chip label={formatJsonField(consultation.vascularPatterns)} size="small" />
+                    {getFieldValue('vascularPatterns') && (
+                      <Chip label={formatJsonField(getFieldValue('vascularPatterns'))} size="small" />
                     )}
-                    {consultation.perifollicularFeatures && (
-                      <Chip label={formatJsonField(consultation.perifollicularFeatures)} size="small" />
+                    {getFieldValue('perifollicularFeatures') && (
+                      <Chip label={formatJsonField(getFieldValue('perifollicularFeatures'))} size="small" />
                     )}
-                    {consultation.scalpDiseases && (
-                      <Chip label={formatJsonField(consultation.scalpDiseases)} size="small" />
+                    {getFieldValue('scalpDiseases') && (
+                      <Chip label={formatJsonField(getFieldValue('scalpDiseases'))} size="small" />
                     )}
-                    {consultation.otherDiagnostics && (
-                      <Chip label={formatJsonField(consultation.otherDiagnostics)} size="small" />
+                    {getFieldValue('otherDiagnostics') && (
+                      <Chip label={formatJsonField(getFieldValue('otherDiagnostics'))} size="small" />
                     )}
                   </Box>
                 </Box>
@@ -657,42 +662,42 @@ export default function ConsultationViewPage() {
               </Box>
               <Box sx={{ mb: 2 }}>
                 <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
-                  {consultation.diagnosis || 'Brak wpisu'}
+                  {getFieldValue('diagnosis') || 'Brak wpisu'}
                 </Typography>
-                {consultation.alopeciaTypes && (
-                  <Typography variant="body2">Typ: {formatJsonField(consultation.alopeciaTypes)}</Typography>
+                {getFieldValue('alopeciaTypes') && (
+                  <Typography variant="body2">Typ: {formatJsonField(getFieldValue('alopeciaTypes'))}</Typography>
                 )}
-                {consultation.alopeciaType && (
-                  <Typography variant="body2">Klasyfikacja: {consultation.alopeciaType}</Typography>
+                {getFieldValue('alopeciaType') && (
+                  <Typography variant="body2">Klasyfikacja: {getFieldValue('alopeciaType')}</Typography>
                 )}
-                {consultation.degreeOfThinning && (
-                  <Typography variant="body2">Przerzedzenie: {consultation.degreeOfThinning}</Typography>
+                {getFieldValue('degreeOfThinning') && (
+                  <Typography variant="body2">Przerzedzenie: {getFieldValue('degreeOfThinning')}</Typography>
                 )}
-                {consultation.alopeciaAffectedAreas && (
-                  <Typography variant="body2">Obszary: {formatJsonField(consultation.alopeciaAffectedAreas)}</Typography>
+                {getFieldValue('alopeciaAffectedAreas') && (
+                  <Typography variant="body2">Obszary: {formatJsonField(getFieldValue('alopeciaAffectedAreas'))}</Typography>
                 )}
-                {consultation.miniaturization && (
-                  <Typography variant="body2">Miniaturyzacja: {consultation.miniaturization}</Typography>
+                {getFieldValue('miniaturization') && (
+                  <Typography variant="body2">Miniaturyzacja: {getFieldValue('miniaturization')}</Typography>
                 )}
-                {consultation.follicularUnits && (
-                  <Typography variant="body2">Jednostki: {consultation.follicularUnits}</Typography>
+                {getFieldValue('follicularUnits') && (
+                  <Typography variant="body2">Jednostki: {getFieldValue('follicularUnits')}</Typography>
                 )}
-                {consultation.pullTest && (
-                  <Typography variant="body2">Pull Test: {consultation.pullTest}</Typography>
+                {getFieldValue('pullTest') && (
+                  <Typography variant="body2">Pull Test: {getFieldValue('pullTest')}</Typography>
                 )}
-                {consultation.alopeciaOther && (
-                  <Typography variant="body2">Inne: {consultation.alopeciaOther}</Typography>
+                {getFieldValue('alopeciaOther') && (
+                  <Typography variant="body2">Inne: {getFieldValue('alopeciaOther')}</Typography>
                 )}
-                {consultation.norwoodHamiltonStage && (
+                {getFieldValue('norwoodHamiltonStage') && (
                   <Typography variant="body2" sx={{ mt: 1 }}>
-                    Norwood-Hamilton: {consultation.norwoodHamiltonStage}
-                    {consultation.norwoodHamiltonNotes && ` (${consultation.norwoodHamiltonNotes})`}
+                    Norwood-Hamilton: {getFieldValue('norwoodHamiltonStage')}
+                    {getFieldValue('norwoodHamiltonNotes') && ` (${getFieldValue('norwoodHamiltonNotes')})`}
                   </Typography>
                 )}
-                {consultation.ludwigStage && (
+                {getFieldValue('ludwigStage') && (
                   <Typography variant="body2">
-                    Ludwig: {consultation.ludwigStage}
-                    {consultation.ludwigNotes && ` (${consultation.ludwigNotes})`}
+                    Ludwig: {getFieldValue('ludwigStage')}
+                    {getFieldValue('ludwigNotes') && ` (${getFieldValue('ludwigNotes')})`}
                   </Typography>
                 )}
               </Box>
@@ -713,29 +718,29 @@ export default function ConsultationViewPage() {
                   Zalecenia Domowe
                 </Box>
                 <Box sx={{ fontSize: '0.875rem' }}>
-                  {consultation.careRecommendationsWashing && (
+                  {getFieldValue('careRecommendationsWashing') && (
                     <Box sx={{ mb: 1 }}>
-                      <Typography component="strong">Mycie:</Typography> {consultation.careRecommendationsWashing}
+                      <Typography component="strong">Mycie:</Typography> {getFieldValue('careRecommendationsWashing')}
                     </Box>
                   )}
-                  {consultation.careRecommendationsTopical && (
+                  {getFieldValue('careRecommendationsTopical') && (
                     <Box sx={{ mb: 1 }}>
-                      <Typography component="strong">Wcierki:</Typography> {consultation.careRecommendationsTopical}
+                      <Typography component="strong">Wcierki:</Typography> {getFieldValue('careRecommendationsTopical')}
                     </Box>
                   )}
-                  {consultation.careRecommendationsSupplement && (
+                  {getFieldValue('careRecommendationsSupplement') && (
                     <Box sx={{ mb: 1 }}>
-                      <Typography component="strong">Suplementy:</Typography> {consultation.careRecommendationsSupplement}
+                      <Typography component="strong">Suplementy:</Typography> {getFieldValue('careRecommendationsSupplement')}
                     </Box>
                   )}
-                  {consultation.careRecommendationsBehavior && (
+                  {getFieldValue('careRecommendationsBehavior') && (
                     <Box sx={{ mb: 1 }}>
-                      <Typography component="strong">Zachowanie:</Typography> {consultation.careRecommendationsBehavior}
+                      <Typography component="strong">Zachowanie:</Typography> {getFieldValue('careRecommendationsBehavior')}
                     </Box>
                   )}
-                  {consultation.visitsProcedures && (
+                  {getFieldValue('visitsProcedures') && (
                     <Box sx={{ mb: 1 }}>
-                      <Typography component="strong">Gabinet:</Typography> {consultation.visitsProcedures}
+                      <Typography component="strong">Gabinet:</Typography> {getFieldValue('visitsProcedures')}
                     </Box>
                   )}
                 </Box>
@@ -745,7 +750,7 @@ export default function ConsultationViewPage() {
         )}
 
         {/* General Remarks */}
-        {!hasTemplate && consultation.generalRemarks && (
+        {!hasTemplate && getFieldValue('generalRemarks') && (
           <Box sx={{
             border: '1px solid #ccc',
             mt: 3,
@@ -753,7 +758,7 @@ export default function ConsultationViewPage() {
             backgroundColor: '#fffbe6',
             borderRadius: 1
           }}>
-            <Typography component="strong">Uwagi dodatkowe:</Typography> {consultation.generalRemarks}
+            <Typography component="strong">Uwagi dodatkowe:</Typography> {getFieldValue('generalRemarks')}
           </Box>
         )}
 
