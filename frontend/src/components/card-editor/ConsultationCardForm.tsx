@@ -778,7 +778,7 @@ export default function ConsultationCardForm({
       {/* ── SEKCJA 3: Trichoskopia ── */}
       <Accordion expanded={expandedSections.trichoscopy} onChange={() => toggleSection('trichoscopy')} elevation={0} sx={{ mb: 1, border: '1px solid #E2E8F0', borderRadius: '8px !important', '&:before': { display: 'none' } }}>
         <AccordionSummary expandIcon={<ExpandMore />} sx={{ bgcolor: '#FAFBFC' }}>
-          <SectionHeader icon={<Visibility sx={{ fontSize: 20 }} />} title="3. Trichoskopia" />
+          <SectionHeader icon={<MedicalServices sx={{ fontSize: 20 }} />} title="3. Trichoskopia" />
         </AccordionSummary>
         <AccordionDetails sx={{ pt: 0 }}>
           <Typography sx={{ fontSize: 12, color: '#64748B', mb: 0.5 }}>Typ skóry:</Typography>
