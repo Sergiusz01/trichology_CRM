@@ -552,7 +552,7 @@ export default function ConsultationCardForm({
   const [loadingPatient, setLoadingPatient] = useState(true);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     problem: true, interview: false, trichoscopy: false,
-    diagnostics: false, alopecia: false, diagnosis: true,
+    laboratory: false, diagnostics: false, alopecia: false, diagnosis: true,
     recommendations: true, visits: false, notes: false, scales: false,
   });
   const [toast, setToast] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
@@ -866,6 +866,76 @@ export default function ConsultationCardForm({
 
           <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Inne cechy diagnostyczne:</Typography>
           <CheckboxGroup options={FIELD_OPTIONS['otherDiagnostics'] ?? []} selected={formData.otherDiagnostics} onChange={(v) => update('otherDiagnostics', v)} />
+        </AccordionDetails>
+      </Accordion>
+
+      {/* ── SEKCJA 3b: Diagnostyka laboratoryjna ── */}
+      <Accordion expanded={expandedSections.laboratory} onChange={() => toggleSection('laboratory')} elevation={0} sx={{ mb: 1, border: '1px solid #E2E8F0', borderRadius: '8px !important', '&:before': { display: 'none' } }}>
+        <AccordionSummary expandIcon={<ExpandMore />} sx={{ bgcolor: '#FAFBFC' }}>
+          <SectionHeader icon={<MedicalServices sx={{ fontSize: 20 }} />} title="Diagnostyka laboratoryjna" color="#7C3AED" />
+        </AccordionSummary>
+        <AccordionDetails sx={{ pt: 0 }}>
+          {/* Data + Morfologia */}
+          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', mb: 1.5 }}>
+            <TextField size="small" label="Data" value={formData.labDate ?? ''} onChange={(e) => update('labDate', e.target.value)} sx={{ flex: '0 0 160px' }} />
+            <TextField size="small" label="Morfologia" multiline minRows={2} value={formData.morphology ?? ''} onChange={(e) => update('morphology', e.target.value)} sx={{ flex: '1 1 300px' }} />
+          </Box>
+
+          {/* Markery zapalne i ogólne */}
+          <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#7C3AED', textTransform: 'uppercase', mb: 0.5 }}>Markery zapalne / ogólne</Typography>
+          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', mb: 1.5 }}>
+            {(['ob','crp','fe','folicAcid','ferritin','transferrin','vitB12','homocysteine','vitD3'] as const).map((k) => (
+              <TextField key={k} size="small" label={FIELD_LABELS[k] ?? k} value={formData[k] ?? ''} onChange={(e) => update(k, e.target.value)} sx={{ flex: '1 1 190px' }} />
+            ))}
+          </Box>
+
+          {/* Elektrolity */}
+          <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#7C3AED', textTransform: 'uppercase', mb: 0.5 }}>Elektrolity / Minerały</Typography>
+          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', mb: 1.5 }}>
+            {(['electrolytesNa','electrolytesK','electrolytesMg','zn','se'] as const).map((k) => (
+              <TextField key={k} size="small" label={FIELD_LABELS[k] ?? k} value={formData[k] ?? ''} onChange={(e) => update(k, e.target.value)} sx={{ flex: '1 1 120px' }} />
+            ))}
+          </Box>
+
+          {/* Wątroba + Lipidy */}
+          <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#7C3AED', textTransform: 'uppercase', mb: 0.5 }}>Wątroba / Lipidy</Typography>
+          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', mb: 1.5 }}>
+            {(['ast','alt','totalCholesterol','tg'] as const).map((k) => (
+              <TextField key={k} size="small" label={FIELD_LABELS[k] ?? k} value={formData[k] ?? ''} onChange={(e) => update(k, e.target.value)} sx={{ flex: '1 1 160px' }} />
+            ))}
+          </Box>
+
+          {/* Tarczyca */}
+          <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#7C3AED', textTransform: 'uppercase', mb: 0.5 }}>Tarczyca</Typography>
+          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', mb: 1.5 }}>
+            {(['tsh','ft3','ft4','tgThyroidMarker','antyTPO','antyTG','trab','tsi'] as const).map((k) => (
+              <TextField key={k} size="small" label={FIELD_LABELS[k] ?? k} value={formData[k] ?? ''} onChange={(e) => update(k, e.target.value)} sx={{ flex: '1 1 190px' }} />
+            ))}
+          </Box>
+
+          {/* Hormony */}
+          <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#7C3AED', textTransform: 'uppercase', mb: 0.5 }}>Hormony</Typography>
+          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', mb: 1.5 }}>
+            {(['lh','fsh','estradiol','progesterone','prolactin','androstendion','sDHEA','totalTestosterone','dht','shgb','cortisol'] as const).map((k) => (
+              <TextField key={k} size="small" label={FIELD_LABELS[k] ?? k} value={formData[k] ?? ''} onChange={(e) => update(k, e.target.value)} sx={{ flex: '1 1 180px' }} />
+            ))}
+          </Box>
+
+          {/* Immunologia + Glukoza */}
+          <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#7C3AED', textTransform: 'uppercase', mb: 0.5 }}>Immunologia / Glukoza / Inne</Typography>
+          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', mb: 1.5 }}>
+            {(['ana1','ana2','helicobacter','glucose','hba1c','insulin','candidaAlbicans','histamine','parasites'] as const).map((k) => (
+              <TextField key={k} size="small" label={FIELD_LABELS[k] ?? k} value={formData[k] ?? ''} onChange={(e) => update(k, e.target.value)} sx={{ flex: '1 1 180px' }} />
+            ))}
+          </Box>
+
+          {/* Badania specjalistyczne */}
+          <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#7C3AED', textTransform: 'uppercase', mb: 0.5 }}>Badania specjalistyczne</Typography>
+          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+            {(['woodLamp','demodex','mycologicalTest','microbiologicalTest'] as const).map((k) => (
+              <TextField key={k} size="small" label={FIELD_LABELS[k] ?? k} value={formData[k] ?? ''} onChange={(e) => update(k, e.target.value)} sx={{ flex: '1 1 220px' }} />
+            ))}
+          </Box>
         </AccordionDetails>
       </Accordion>
 

@@ -218,6 +218,59 @@ model Consultation {
   otherDiagnostics              Json?
   alopeciaTypes                 Json?
   recentProcedures              Json?
+  // ── Diagnostyka laboratoryjna ──────────────────────────────────────────
+  labDate                       String?
+  morphology                    String?
+  ob                            String?
+  crp                           String?
+  fe                            String?
+  folicAcid                     String?
+  ferritin                      String?
+  transferrin                   String?
+  vitB12                        String?
+  homocysteine                  String?
+  vitD3                         String?
+  electrolytesNa                String?
+  electrolytesK                 String?
+  electrolytesMg                String?
+  zn                            String?
+  se                            String?
+  ast                           String?
+  alt                           String?
+  totalCholesterol              String?
+  tg                            String?
+  tsh                           String?
+  ft3                           String?
+  ft4                           String?
+  tgThyroidMarker               String?
+  antyTPO                       String?
+  antyTG                        String?
+  trab                          String?
+  tsi                           String?
+  lh                            String?
+  fsh                           String?
+  estradiol                     String?
+  progesterone                  String?
+  prolactin                     String?
+  androstendion                 String?
+  sDHEA                         String?
+  totalTestosterone             String?
+  dht                           String?
+  shgb                          String?
+  cortisol                      String?
+  ana1                          String?
+  ana2                          String?
+  helicobacter                  String?
+  glucose                       String?
+  hba1c                         String?
+  insulin                       String?
+  candidaAlbicans               String?
+  histamine                     String?
+  parasites                     String?
+  woodLamp                      String?
+  demodex                       String?
+  mycologicalTest               String?
+  microbiologicalTest           String?
   carePlans                     CarePlan[]
   doctor                        User           @relation(fields: [doctorId], references: [id])
   patient                       Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)
