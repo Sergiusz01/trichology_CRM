@@ -26,6 +26,7 @@ import {
   INITIAL_FORM_DATA as SCHEMA_INITIAL_DATA,
   SEVERITY_OPTIONS,
   FIELD_OPTIONS,
+  FIELD_LABELS,
 } from '../../shared/consultationFields';
 
 interface ConsultationCardFormProps {
