@@ -11,7 +11,7 @@ import schema from './consultationCardSchema.json';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
-export type FieldType = 'string' | 'text' | 'array' | 'select' | 'yesno' | 'severity';
+export type FieldType = 'string' | 'text' | 'array' | 'select' | 'yesno' | 'severity' | 'duration';
 
 export interface FieldDef {
   key: string;

@@ -1,5 +1,7 @@
 {
-  "severityOptions": ["Brak", "Łagodne", "Umiarkowane", "Nasilone", "Bardzo nasilone"],
+  "formTitle": "KARTA KONSULTACYJNA",
+  "severityOptions": ["normie", "nasilone", "nadmierne", "okresowe", "brak"],
+  "durationOptions": ["0-6 m-cy", "6-12 m-cy", "12-24 m-cy", "powyżej roku"],
   "sections": [
     {
       "id": "problem",
@@ -9,34 +11,33 @@
           "id": "hairLoss",
           "title": "1. Wypadanie włosów",
           "fields": [
-            { "key": "hairLossSeverity",    "label": "Nasilenie",         "type": "severity" },
-            { "key": "hairLossDuration",    "label": "Czas trwania",      "type": "string" },
-            { "key": "hairLossLocalization","label": "Lokalizacja",        "type": "array",
-              "options": ["ciemieniowa","skronie","czołowa","tonsura","potylica","uogólnione","brwi, rzęsy","pachy","pachwiny"] },
-            { "key": "hairLossShampoos",    "label": "Używane szampony",  "type": "string" },
-            { "key": "hairLossNotes",       "label": "Uwagi",             "type": "text" }
+            { "key": "hairLossSeverity",     "label": "Nasilenie",    "type": "severity" },
+            { "key": "hairLossLocalization", "label": "Lokalizacja",  "type": "array",
+              "options": ["ciemieniowa", "skronie", "czołowa", "tonsura", "potylica", "uogólnione", "brwi, rzęsy", "pachy", "pachwiny"] },
+            { "key": "hairLossDuration",     "label": "Czas trwania", "type": "duration" },
+            { "key": "hairLossShampoos",     "label": "Szampony",     "type": "text" }
           ]
         },
         {
           "id": "oilyHair",
           "title": "2. Przetłuszczanie włosów",
           "fields": [
-            { "key": "oilyHairSeverity",    "label": "Nasilenie",              "type": "severity" },
-            { "key": "oilyHairWashingFreq", "label": "Częstotliwość mycia",    "type": "string" },
-            { "key": "oilyHairDuration",    "label": "Czas trwania",           "type": "string" },
-            { "key": "oilyHairShampoos",    "label": "Używane szampony",       "type": "string" },
-            { "key": "oilyHairNotes",       "label": "Uwagi",                  "type": "text" }
+            { "key": "oilyHairSeverity",    "label": "Nasilenie",           "type": "severity" },
+            { "key": "oilyHairWashingFreq", "label": "Częstotliwość mycia", "type": "select",
+              "options": ["codziennie", "co 2,3 dni", "raz w tygodniu"] },
+            { "key": "oilyHairDuration",    "label": "Czas trwania",        "type": "duration" },
+            { "key": "oilyHairShampoos",    "label": "Szampony",            "type": "text" }
           ]
         },
         {
           "id": "scaling",
           "title": "3. Łuszczenie skóry głowy",
           "fields": [
-            { "key": "scalingSeverity", "label": "Nasilenie",      "type": "severity" },
-            { "key": "scalingDuration", "label": "Czas trwania",   "type": "string" },
-            { "key": "scalingType",     "label": "Typ łuszczenia", "type": "array",
-              "options": ["Drobne, białe","Duże, żółte","Tłuste","Suche","Zapalne","Inne"] },
-            { "key": "scalingOther",    "label": "Inne (opis)",    "type": "string" }
+            { "key": "scalingSeverity", "label": "Nasilenie",    "type": "severity" },
+            { "key": "scalingType",     "label": "Rodzaj",       "type": "array",
+              "options": ["suchy", "tłusty", "miejscowy", "uogólniony"] },
+            { "key": "scalingDuration", "label": "Czas trwania", "type": "duration" },
+            { "key": "scalingOther",    "label": "Inne",         "type": "text" }
           ]
         },
         {
@@ -44,17 +45,17 @@
           "title": "4. Wrażliwość skóry głowy",
           "fields": [
             { "key": "sensitivitySeverity",    "label": "Nasilenie",       "type": "severity" },
-            { "key": "sensitivityDuration",    "label": "Czas trwania",    "type": "string" },
-            { "key": "sensitivityProblemType", "label": "Typ problemu",    "type": "array",
-              "options": ["Pieczenie","Świąd","Ból","Ściskanie","Inne"] },
-            { "key": "sensitivityOther",       "label": "Inne (opis)",     "type": "string" }
+            { "key": "sensitivityProblemType", "label": "Rodzaj problemu", "type": "array",
+              "options": ["świąd", "pieczenie", "nadwrażliwość na preparaty", "trichodynia"] },
+            { "key": "sensitivityDuration",    "label": "Czas trwania",    "type": "duration" },
+            { "key": "sensitivityOther",       "label": "Inne",            "type": "text" }
           ]
         },
         {
           "id": "inflammatory",
           "title": "5. Stany zapalne / grudki",
           "fields": [
-            { "key": "inflammatoryStates", "label": "Opis", "type": "text" }
+            { "key": "inflammatoryStates", "label": "Stany zapalne / grudki", "type": "text" }
           ]
         }
       ]
@@ -63,36 +64,33 @@
       "id": "interview",
       "title": "2. Wywiad",
       "fields": [
-        { "key": "familyHistory",           "label": "Wypadanie włosów w rodzinie?",        "type": "yesno" },
-        { "key": "dermatologyVisits",       "label": "Wizyty u dermatologa?",               "type": "yesno" },
-        { "key": "dermatologyVisitsReason", "label": "Powód wizyty u dermatologa",          "type": "string", "conditional": "dermatologyVisits" },
-        { "key": "pregnancy",               "label": "Ciąża / karmienie piersią?",          "type": "yesno" },
-        { "key": "menstruationRegularity",  "label": "Regularna menstruacja?",              "type": "yesno" },
-        { "key": "contraception",           "label": "Antykoncepcja?",                      "type": "yesno" },
-        { "key": "medications",             "label": "Leki stałe?",                         "type": "yesno" },
-        { "key": "medicationsList",         "label": "Lista leków",                         "type": "string", "conditional": "medications" },
-        { "key": "supplements",             "label": "Suplementy diety?",                  "type": "yesno" },
-        { "key": "supplementsDetails",      "label": "Jakie suplementy?",                  "type": "string", "conditional": "supplements" },
-        { "key": "stressLevel",             "label": "Wysoki poziom stresu?",              "type": "yesno" },
-        { "key": "anesthesia",              "label": "Znieczulenie ogólne (ostatni rok)?", "type": "yesno" },
-        { "key": "chemotherapy",            "label": "Chemioterapia?",                     "type": "yesno" },
-        { "key": "radiotherapy",            "label": "Radioterapia?",                      "type": "yesno" },
-        { "key": "vaccination",             "label": "Szczepienia (ostatnie 6 mies.)?",   "type": "yesno" },
-        { "key": "antibiotics",             "label": "Antybiotyki (ostatnie 6 mies.)?",   "type": "yesno" },
-        { "key": "antibioticsDetails",      "label": "Jakie antybiotyki?",                "type": "string", "conditional": "antibiotics" },
-        { "key": "chronicDiseases",         "label": "Choroby przewlekłe?",               "type": "yesno" },
-        { "key": "chronicDiseasesList",     "label": "Jakie choroby?",                    "type": "string", "conditional": "chronicDiseases" },
-        { "key": "specialists",             "label": "Pod opieką specjalistów?",          "type": "yesno" },
-        { "key": "specialistsList",         "label": "Jacy specjaliści?",                 "type": "string", "conditional": "specialists" },
-        { "key": "eatingDisorders",         "label": "Zaburzenia odżywiania?",            "type": "yesno" },
-        { "key": "foodIntolerances",        "label": "Nietolerancje pokarmowe?",          "type": "yesno" },
-        { "key": "diet",                    "label": "Dieta",                             "type": "string" },
-        { "key": "allergies",               "label": "Alergie",                           "type": "string" },
-        { "key": "metalPartsInBody",        "label": "Części metalowe w organizmie?",    "type": "yesno" },
-        { "key": "careRoutineShampoo",      "label": "Szampon",                           "type": "string" },
-        { "key": "careRoutineConditioner",  "label": "Odżywka",                           "type": "string" },
-        { "key": "careRoutineOils",         "label": "Olejki / wcierki",                 "type": "string" },
-        { "key": "careRoutineChemical",     "label": "Zabiegi chemiczne",                "type": "string" }
+        { "key": "familyHistory",           "label": "1. Czy dany problem występuje u innych członków rodziny?",          "type": "yesno" },
+        { "key": "dermatologyVisits",       "label": "2. Czy była konieczna wizyta u dermatologa?",                       "type": "yesno" },
+        { "key": "dermatologyVisitsReason", "label": "Powód",                                                             "type": "string", "conditional": "dermatologyVisits" },
+        { "key": "pregnancy",               "label": "3. Czy jest Pani w ciąży / karmi piersią?",                        "type": "yesno" },
+        { "key": "menstruationRegularity",  "label": "4. Czy miesiączkuje regularnie?",                                  "type": "yesno" },
+        { "key": "contraception",           "label": "Antykoncepcja hormonalna",                                         "type": "string" },
+        { "key": "medications",             "label": "5. Czy zażywa Pan/Pani jakieś leki?",                              "type": "yesno" },
+        { "key": "medicationsList",         "label": "Jakie leki",                                                        "type": "string", "conditional": "medications" },
+        { "key": "supplements",             "label": "6. Czy stosuje Pani/Pan suplementy?",                              "type": "string" },
+        { "key": "stressLevel",             "label": "7. Poziom stresu w życiu codziennym?",                             "type": "select",
+          "options": ["duży", "mały", "średni"] },
+        { "key": "recentProcedures",        "label": "8. Czy w ostatnim czasie była Pani/Pan poddana/y:",                "type": "array",
+          "options": ["narkozie", "chemioterapii", "radioterapii", "szczepieniu", "antybiotyki"] },
+        { "key": "antibioticsDetails",      "label": "Antybiotyki (jakie / kiedy)",                                      "type": "string", "conditional": "recentProcedures:antybiotyki" },
+        { "key": "chronicDiseases",         "label": "9. Czy choruje Pani/Pan na choroby przewlekłe?",                  "type": "yesno" },
+        { "key": "chronicDiseasesList",     "label": "Jakie choroby",                                                    "type": "string", "conditional": "chronicDiseases" },
+        { "key": "specialists",             "label": "10. Czy jest Pani/Pan pod opieką specjalisty?",                    "type": "yesno" },
+        { "key": "specialistsList",         "label": "Jakiego specjalisty",                                              "type": "string", "conditional": "specialists" },
+        { "key": "eatingDisorders",         "label": "11. Czy występują u Pani/Pana zaburzenia odżywiania/wchłaniania?","type": "yesno" },
+        { "key": "foodIntolerances",        "label": "Nietolerancje pokarmowe",                                          "type": "string" },
+        { "key": "diet",                    "label": "12. Czy w ostatnim czasie była Pani/Pan na diecie?",               "type": "yesno" },
+        { "key": "allergies",               "label": "13. Czy występuje alergia lub uczulenie na jakieś substancje?",    "type": "yesno" },
+        { "key": "metalPartsInBody",        "label": "14. Czy ma Pani/Pan jakieś części metalowe w organizmie?",        "type": "yesno" },
+        { "key": "careRoutineShampoo",      "label": "15. Pielęgnacja – Szampon",                                        "type": "string" },
+        { "key": "careRoutineConditioner",  "label": "Odżywka / maska",                                                  "type": "string" },
+        { "key": "careRoutineOils",         "label": "Wcierki / oleje",                                                  "type": "string" },
+        { "key": "careRoutineChemical",     "label": "Zabiegi chemiczne / termiczne",                                    "type": "string" }
       ]
     },
     {
@@ -103,52 +101,58 @@
           "id": "scalp",
           "title": "Skóra głowy",
           "fields": [
-            { "key": "scalpType",          "label": "Typ skóry",                       "type": "array",
-              "options": ["Sucha","Normalna","Tłusta","Mieszana"] },
-            { "key": "scalpAppearance",    "label": "Wygląd skóry",                   "type": "array",
-              "options": ["Zaczerwienienie","Złuszczanie","Grudki","Krosty","Blizny","Przebarwienia"] },
-            { "key": "skinLesions",        "label": "Wykwity skórne",                 "type": "array",
-              "options": ["Grudki","Krosty","Strupy","Nadżerki","Owrzodzenia"] },
-            { "key": "hyperhidrosis",      "label": "Nadmierne pocenie (hiperhidroza)","type": "string" },
-            { "key": "hyperkeratinization","label": "Rogowacenie (hiperkeratynizacja)","type": "string" },
-            { "key": "sebaceousSecretion", "label": "Wydzielina gruczołów łojowych",  "type": "string" },
+            { "key": "scalpType",          "label": "Typ skóry głowy",           "type": "array",
+              "options": ["sucha", "tłusta", "wrażliwa", "nadreaktywna", "z erytrodermią", "normalna"] },
+            { "key": "scalpAppearance",    "label": "Wygląd i objawy na skórze", "type": "array",
+              "options": ["zaczerwienie", "świąd", "pieczenie", "ból", "suchość", "łojotok"] },
+            { "key": "skinLesions",        "label": "Wykwity skórne",            "type": "array",
+              "options": ["plama", "grudka", "krosta", "guzek", "blizna", "strup", "pęknięcie", "łuska", "przeczos", "złuszczanie płatowe", "złuszczanie otrębiaste", "obj. Kebnera"] },
+            { "key": "hyperhidrosis",      "label": "Hiperhydroza",              "type": "array",
+              "options": ["miejscowa", "uogólniona", "brak"] },
+            { "key": "hyperkeratinization","label": "Hiperkeratynizacja",        "type": "array",
+              "options": ["miejscowa", "uogólniona", "okołomieszkowa", "tubule", "brak"] },
+            { "key": "sebaceousSecretion", "label": "Wydzielina g. łojowych",   "type": "array",
+              "options": ["oleista", "zalegająca", "brak"] },
             { "key": "seborrheaType",      "label": "Interpretacja rodzaju łojotoku", "type": "array",
-              "options": ["Łojotok płynny","Łojotok gęsty","Łojotok (mieszanina na czole gęsty na głowie płynny)","Inne"] },
-            { "key": "seborrheaTypeOther", "label": "Inny rodzaj łojotoku",           "type": "string", "conditional": "seborrheaType:Inne" },
-            { "key": "dandruffType",       "label": "Łupież",                         "type": "array",
-              "options": ["Suchy","Tłusty","Kosmetyczny","Miejscowy","Uogólniony"] },
-            { "key": "scalpPH",            "label": "pH skóry",                       "type": "string" }
+              "options": ["Skóra sucha, odwodniona / Cebulka tłusta", "Skóra tłusta / Cebulka tłusta", "Hiperhydroza / Cebulka tłusta", "Skóra tłusta / Cebulka dystroficzna", "Łojotok / Wypadanie włosów", "Inne"] },
+            { "key": "seborrheaTypeOther", "label": "Inne (opis)",               "type": "string", "conditional": "seborrheaType:Inne" },
+            { "key": "dandruffType",       "label": "Łupież",                   "type": "array",
+              "options": ["Suchy", "Tłusty", "Kosmetyczny", "miejscowy", "uogólniony"] },
+            { "key": "scalpPH",            "label": "Wartość pH",               "type": "string" }
           ]
         },
         {
           "id": "hair",
-          "title": "Stan włosów",
+          "title": "Ocena stanu włosów",
           "fields": [
-            { "key": "hairQuality",            "label": "Jakość włosów",                   "type": "string" },
-            { "key": "hairShape",              "label": "Kształt włosów",                  "type": "string" },
-            { "key": "hairDamage",             "label": "Uszkodzenia włosa",               "type": "array",
-              "options": ["Naturalne","Fizyczne","Mechaniczne","Chemiczne"] },
-            { "key": "hairDamageReason",       "label": "Powody uszkodzenia",              "type": "array",
-              "options": ["Trwała","Trwałe prostowanie","Farby/rozjaśnianie"] },
-            { "key": "hairTypes",              "label": "Typy włosów",                     "type": "array",
-              "options": ["Cienkie","Normalne","Grube","Kręcone","Proste","Faliste"] },
-            { "key": "regrowingHairs",         "label": "Włosy odrastające",              "type": "string" },
-            { "key": "vellusMiniaturizedHairs","label": "Włosy vellusowe / zminiaturyzowane","type": "array",
-              "options": ["Liczne","Nieliczne","Brak","Zminiaturyzowane","Łuszczenie wokół mieszków"] }
+            { "key": "hairDamage",             "label": "Uszkodzenia włosa",  "type": "array",
+              "options": ["naturalne", "fizyczne", "mechaniczne", "chemiczne"] },
+            { "key": "hairDamageReason",       "label": "Powody uszkodzenia", "type": "array",
+              "options": ["trwała", "trwałe prostowanie", "farby/rozjaśnianie", "lakier do włosów", "produkty do stylizacji", "prostownica/lokówka"] },
+            { "key": "hairQuality",            "label": "Jakość włosa",       "type": "array",
+              "options": ["zdrowe", "suche", "przetłuszczone", "zniszczona łuska włosa"] },
+            { "key": "hairShape",              "label": "Kształt włosa",      "type": "array",
+              "options": ["prosty", "kręcony", "falisty", "fil-fil"] },
+            { "key": "hairTypes",              "label": "Rodzaje włosów",     "type": "array",
+              "options": ["urwane", "kręte", "paciorkowate", "obrączkowate", "tulipanowe", "wykrzyknikowe"] },
+            { "key": "regrowingHairs",         "label": "Włosy następowe",    "type": "array",
+              "options": ["dużo", "niewiele"] },
+            { "key": "vellusMiniaturizedHairs","label": "Włosy vellus / zminiaturyzowane", "type": "array",
+              "options": ["dużo", "mało", "uogólnione", "miejscowo", "brak"] }
           ]
         },
         {
           "id": "specific",
-          "title": "Cechy specyficzne (diagnostyka trichoskopowa)",
+          "title": "Diagnostyka",
           "fields": [
-            { "key": "vascularPatterns",       "label": "Unaczynienie",                "type": "array",
-              "options": ["Naczynia kropkowate","Naczynia liniowe","Naczynia arborystyczne","Naczynia siatkowate","Brak naczyń","Prawidłowe"] },
-            { "key": "perifollicularFeatures", "label": "Cechy okołomieszkowe",         "type": "array",
-              "options": ["White dots","Yellow dots","Black dots","Prawidłowe"] },
-            { "key": "scalpDiseases",          "label": "Choroby skóry głowy",          "type": "array",
-              "options": ["ŁZS","LLP","AZS","Grzybica","Łuszczyca","Zapalenia okołomieszkowe"] },
-            { "key": "otherDiagnostics",       "label": "Inne cechy diagnostyczne",     "type": "array",
-              "options": ["Trychodynia","Plaster miodu","Cofnięcie linii czołowej","Trichokinesis"] }
+            { "key": "vascularPatterns",       "label": "Unaczynienie",         "type": "array",
+              "options": ["naczynia proste", "naczynia poskręcane", "naczynia drzewkowate", "wzorzec plastra miodu", "typ spinek", "okołomieszkowe", "miejscowe", "rozlane"] },
+            { "key": "perifollicularFeatures", "label": "Cechy okołomieszkowe", "type": "array",
+              "options": ["white dots", "yellow dots", "black dots", "prawidłowe"] },
+            { "key": "scalpDiseases",          "label": "Choroby skóry głowy",  "type": "array",
+              "options": ["ŁZS", "LLP", "AZS", "grzybica", "łuszczyca", "zapalenia okołomieszkowe"] },
+            { "key": "otherDiagnostics",       "label": "Inne cechy diagnostyczne", "type": "array",
+              "options": ["trychodynia", "plaster miodu", "cofnięcie linii czołowej", "trichokinesis"] }
           ]
         }
       ]
@@ -157,57 +161,63 @@
       "id": "alopecia",
       "title": "4. Diagnostyka łysienia",
       "fields": [
-        { "key": "alopeciaTypes",        "label": "Typy łysienia",         "type": "array",
-          "options": ["Androgenowe","Plackowate","Bliznowaciejące","Telogenowe","Anagenowe","Trakcyjne","Inne"] },
-        { "key": "alopeciaType",         "label": "Klasyfikacja łysienia", "type": "select",
-          "options": ["","Androgenowe typu męskiego","Androgenowe typu żeńskiego","Plackowate AA","Telogenowe TE"] },
-        { "key": "degreeOfThinning",     "label": "Stopień przerzedzenia", "type": "string" },
-        { "key": "miniaturization",      "label": "Miniaturyzacja",        "type": "string" },
-        { "key": "follicularUnits",      "label": "Jednostki folikularne", "type": "string" },
-        { "key": "pullTest",             "label": "Pull test",             "type": "string" },
-        { "key": "alopeciaAffectedAreas","label": "Dotknięte obszary",     "type": "array",
-          "options": ["Czołowa","Ciemieniowa","Skroniowa","Potyliczna","Uogólniona","Ogniskowa"] },
-        { "key": "alopeciaOther",        "label": "Inne (opis)",           "type": "string" }
+        { "key": "alopeciaTypes",        "label": "Łysienie",                      "type": "array",
+          "options": ["androgenetic alopecia MAGA, AG", "telogen efluvium TE", "anagen efluvium AE", "Alopecia areata AA", "folicularis decalvans / bliznowaciejące FD", "trichotillomania TTM", "trichodynia", "Idiopatyczne skrócenie anagenu", "łysienie starcze"] },
+        { "key": "degreeOfThinning",     "label": "Stopień przerzedzenia",         "type": "array",
+          "options": ["zanik", "mało", "miejscowo", "dużo"] },
+        { "key": "alopeciaType",         "label": "Typ łysienia",                  "type": "array",
+          "options": ["Androgenowe typu męskiego", "Androgenowe typu żeńskiego", "Plackowate AA", "Telogenowe TE", "Menopauzalne", "Tarczycowe", "Sezonowe", "Łojotokowe", "Żywieniowe", "Psychosomatyczne", "Jatrogenne", "Bliznowaciejące", "Choroby skóry głowy", "Inne"] },
+        { "key": "alopeciaAffectedAreas","label": "Obszar wypadania włosów",       "type": "array",
+          "options": ["Hormonozależny", "Tył głowy", "Cały obszar głowy", "Inne"] },
+        { "key": "miniaturization",      "label": "Cechy miniaturyzacji mieszków", "type": "select",
+          "options": ["Występują", "Nie występują"] },
+        { "key": "follicularUnits",      "label": "Zespoły mieszkowe",             "type": "array",
+          "options": ["Przewaga pojedynczych", "Przewaga podwójnych", "Przewaga potrójnych, poczwórnych", "Występują puste mieszki włosowe"] },
+        { "key": "pullTest",             "label": "Pull test",                     "type": "select",
+          "options": ["dodatni TE/AE", "ujemny AGA"] },
+        { "key": "alopeciaOther",        "label": "Inne (opis)",                   "type": "string" }
       ]
     },
     {
       "id": "diagnosis",
       "title": "5. Rozpoznanie",
       "fields": [
-        { "key": "diagnosis", "label": "Rozpoznanie / Diagnoza", "type": "text" }
+        { "key": "diagnosis", "label": "Rozpoznanie", "type": "text" }
       ]
     },
     {
       "id": "recommendations",
       "title": "6. Zalecenia do pielęgnacji",
       "fields": [
-        { "key": "careRecommendationsWashing",    "label": "Mycie (szampon, częstotliwość)",    "type": "text" },
-        { "key": "careRecommendationsTopical",    "label": "Wcieranie / stosowanie miejscowe",  "type": "text" },
-        { "key": "careRecommendationsSupplement", "label": "Suplementacja",                     "type": "text" },
-        { "key": "careRecommendationsBehavior",   "label": "Zmiany behawioralne / dieta",       "type": "text" }
+        { "key": "careRecommendationsWashing",    "label": "Preparaty do mycia",     "type": "text" },
+        { "key": "careRecommendationsTopical",    "label": "Preparaty do wcierania", "type": "text" },
+        { "key": "careRecommendationsSupplement", "label": "Suplementacja",          "type": "text" },
+        { "key": "careRecommendationsBehavior",   "label": "Zmiany w pielęgnacji",   "type": "text" }
       ]
     },
     {
       "id": "visits",
       "title": "7. Wizyty / Zabiegi",
       "fields": [
-        { "key": "visitsProcedures", "label": "Dodatkowe notatki o wizytach / zabiegach", "type": "text" }
+        { "key": "visitsProcedures", "label": "Wizyty / zabiegi", "type": "text" }
       ]
     },
     {
       "id": "notes",
-      "title": "8. Uwagi ogólne",
+      "title": "8. Uwagi",
       "fields": [
-        { "key": "generalRemarks", "label": "Dodatkowe uwagi", "type": "text" }
+        { "key": "generalRemarks", "label": "Uwagi", "type": "text" }
       ]
     },
     {
       "id": "scales",
       "title": "9. Skale (Norwood-Hamilton / Ludwig)",
       "fields": [
-        { "key": "norwoodHamiltonStage", "label": "Stopień Norwood-Hamilton", "type": "string" },
+        { "key": "norwoodHamiltonStage", "label": "Skala Norwooda-Hamiltona", "type": "select",
+          "options": ["", "2", "2A", "3", "3A", "3V", "4", "4A", "5", "5A", "5V", "6", "7"] },
         { "key": "norwoodHamiltonNotes", "label": "Uwagi (Norwood-Hamilton)", "type": "string" },
-        { "key": "ludwigStage",          "label": "Stopień Ludwig",           "type": "string" },
+        { "key": "ludwigStage",          "label": "Skala M. Ludwiga",         "type": "select",
+          "options": ["", "I-1", "I-2", "I-3", "I-4", "II-1", "II-2", "III"] },
         { "key": "ludwigNotes",          "label": "Uwagi (Ludwig)",           "type": "string" }
       ]
     }

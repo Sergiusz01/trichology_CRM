@@ -165,16 +165,16 @@ model Consultation {
   careRoutineConditioner        String?
   careRoutineOils               String?
   careRoutineChemical           String?
-  hyperhidrosis                 String?
-  hyperkeratinization           String?
-  sebaceousSecretion            String?
+  hyperhidrosis                 Json?
+  hyperkeratinization           Json?
+  sebaceousSecretion            Json?
   scalpPH                       String?
-  hairQuality                   String?
-  hairShape                     String?
-  regrowingHairs                String?
-  degreeOfThinning              String?
+  hairQuality                   Json?
+  hairShape                     Json?
+  regrowingHairs                Json?
+  degreeOfThinning              Json?
   miniaturization               String?
-  follicularUnits               String?
+  follicularUnits               Json?
   pullTest                      String?
   alopeciaOther                 String?
   diagnosis                     String?
@@ -217,6 +217,7 @@ model Consultation {
   perifollicularFeatures        Json?
   otherDiagnostics              Json?
   alopeciaTypes                 Json?
+  recentProcedures              Json?
   carePlans                     CarePlan[]
   doctor                        User           @relation(fields: [doctorId], references: [id])
   patient                       Patient        @relation(fields: [patientId], references: [id], onDelete: Cascade)

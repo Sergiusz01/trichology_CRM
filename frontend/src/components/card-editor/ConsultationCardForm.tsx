@@ -99,19 +99,19 @@ interface FormData {
   scalpType: string[];
   scalpAppearance: string[];
   skinLesions: string[];
-  hyperhidrosis: string;
-  hyperkeratinization: string;
-  sebaceousSecretion: string;
+  hyperhidrosis: string[];
+  hyperkeratinization: string[];
+  sebaceousSecretion: string[];
   seborrheaType: string[];
   seborrheaTypeOther: string;
   dandruffType: string[];
   scalpPH: string;
   hairDamage: string[];
   hairDamageReason: string[];
-  hairQuality: string;
-  hairShape: string;
+  hairQuality: string[];
+  hairShape: string[];
   hairTypes: string[];
-  regrowingHairs: string;
+  regrowingHairs: string[];
   vellusMiniaturizedHairs: string[];
   // Diagnostyka
   vascularPatterns: string[];
@@ -120,11 +120,11 @@ interface FormData {
   otherDiagnostics: string[];
   // Diagnostyka łysienia
   alopeciaTypes: string[];
-  degreeOfThinning: string;
-  alopeciaType: string;
+  degreeOfThinning: string[];
+  alopeciaType: string[];
   alopeciaAffectedAreas: string[];
   miniaturization: string;
-  follicularUnits: string;
+  follicularUnits: string[];
   pullTest: string;
   alopeciaOther: string;
   // Rozpoznanie
@@ -140,7 +140,11 @@ interface FormData {
   generalRemarks: string;
   // Skale
   norwoodHamiltonStage: string;
+  norwoodHamiltonNotes: string;
   ludwigStage: string;
+  ludwigNotes: string;
+  // Wywiad - nowe pole
+  recentProcedures: string[];
   [key: string]: any;
 }
 
@@ -169,6 +173,26 @@ function SeveritySelector({ value, onChange }: { value: string; onChange: (v: st
           onClick={() => onChange(opt === value ? '' : opt)}
           variant={value === opt ? 'filled' : 'outlined'}
           color={value === opt ? 'primary' : 'default'}
+          sx={{ fontSize: 12, cursor: 'pointer' }}
+        />
+      ))}
+    </Box>
+  );
+}
+
+// Duration selector (select with standard options)
+function DurationSelector({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const opts = ['0-6 m-cy', '6-12 m-cy', '12-24 m-cy', 'powyżej roku'];
+  return (
+    <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+      {opts.map((opt) => (
+        <Chip
+          key={opt}
+          label={opt}
+          size="small"
+          onClick={() => onChange(opt === value ? '' : opt)}
+          variant={value === opt ? 'filled' : 'outlined'}
+          color={value === opt ? 'secondary' : 'default'}
           sx={{ fontSize: 12, cursor: 'pointer' }}
         />
       ))}
@@ -674,14 +698,15 @@ export default function ConsultationCardForm({
           <Box sx={{ pl: 1, mb: 2 }}>
             <Typography sx={{ fontSize: 12, color: '#64748B', mb: 0.5 }}>Nasilenie:</Typography>
             <SeveritySelector value={formData.hairLossSeverity} onChange={(v) => update('hairLossSeverity', v)} />
-            <TextField fullWidth size="small" label="Czas trwania" value={formData.hairLossDuration} onChange={(e) => update('hairLossDuration', e.target.value)} sx={{ mt: 1.5 }} />
             <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Lokalizacja:</Typography>
             <CheckboxGroup
               options={FIELD_OPTIONS['hairLossLocalization'] ?? []}
               selected={formData.hairLossLocalization}
               onChange={(v) => update('hairLossLocalization', v)}
             />
-            <TextField fullWidth size="small" label="Używane szampony" value={formData.hairLossShampoos} onChange={(e) => update('hairLossShampoos', e.target.value)} sx={{ mt: 1 }} />
+            <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Czas trwania:</Typography>
+            <DurationSelector value={formData.hairLossDuration} onChange={(v) => update('hairLossDuration', v)} />
+            <TextField fullWidth size="small" label="Szampony" value={formData.hairLossShampoos} onChange={(e) => update('hairLossShampoos', e.target.value)} sx={{ mt: 1 }} />
             <TextField fullWidth size="small" label="Uwagi" multiline minRows={2} value={formData.hairLossNotes} onChange={(e) => update('hairLossNotes', e.target.value)} sx={{ mt: 1 }} />
           </Box>
           <Divider sx={{ my: 1.5 }} />
@@ -690,9 +715,15 @@ export default function ConsultationCardForm({
           <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#475569', mb: 1 }}>Przetłuszczanie włosów</Typography>
           <Box sx={{ pl: 1, mb: 2 }}>
             <SeveritySelector value={formData.oilyHairSeverity} onChange={(v) => update('oilyHairSeverity', v)} />
-            <TextField fullWidth size="small" label="Częstotliwość mycia" value={formData.oilyHairWashingFreq} onChange={(e) => update('oilyHairWashingFreq', e.target.value)} sx={{ mt: 1.5 }} />
-            <TextField fullWidth size="small" label="Czas trwania" value={formData.oilyHairDuration} onChange={(e) => update('oilyHairDuration', e.target.value)} sx={{ mt: 1 }} />
-            <TextField fullWidth size="small" label="Używane szampony" value={formData.oilyHairShampoos} onChange={(e) => update('oilyHairShampoos', e.target.value)} sx={{ mt: 1 }} />
+            <FormControl fullWidth size="small" sx={{ mt: 1.5 }}>
+              <InputLabel>Częstotliwość mycia</InputLabel>
+              <Select value={formData.oilyHairWashingFreq} label="Częstotliwość mycia" onChange={(e) => update('oilyHairWashingFreq', e.target.value)}>
+                {(FIELD_OPTIONS['oilyHairWashingFreq'] ?? []).map((o) => <MenuItem key={o} value={o}>{o}</MenuItem>)}
+              </Select>
+            </FormControl>
+            <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Czas trwania:</Typography>
+            <DurationSelector value={formData.oilyHairDuration} onChange={(v) => update('oilyHairDuration', v)} />
+            <TextField fullWidth size="small" label="Szampony" value={formData.oilyHairShampoos} onChange={(e) => update('oilyHairShampoos', e.target.value)} sx={{ mt: 1 }} />
             <TextField fullWidth size="small" label="Uwagi" multiline minRows={2} value={formData.oilyHairNotes} onChange={(e) => update('oilyHairNotes', e.target.value)} sx={{ mt: 1 }} />
           </Box>
           <Divider sx={{ my: 1.5 }} />
@@ -701,10 +732,11 @@ export default function ConsultationCardForm({
           <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#475569', mb: 1 }}>Łuszczenie skóry głowy</Typography>
           <Box sx={{ pl: 1, mb: 2 }}>
             <SeveritySelector value={formData.scalingSeverity} onChange={(v) => update('scalingSeverity', v)} />
-            <TextField fullWidth size="small" label="Czas trwania" value={formData.scalingDuration} onChange={(e) => update('scalingDuration', e.target.value)} sx={{ mt: 1.5 }} />
-            <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1, mb: 0.5 }}>Typ łuszczenia:</Typography>
+            <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1, mb: 0.5 }}>Rodzaj:</Typography>
             <CheckboxGroup options={FIELD_OPTIONS['scalingType'] ?? []} selected={formData.scalingType} onChange={(v) => update('scalingType', v)} />
-            <TextField fullWidth size="small" label="Inne (opis)" value={formData.scalingOther} onChange={(e) => update('scalingOther', e.target.value)} sx={{ mt: 1 }} />
+            <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Czas trwania:</Typography>
+            <DurationSelector value={formData.scalingDuration} onChange={(v) => update('scalingDuration', v)} />
+            <TextField fullWidth size="small" label="Inne" value={formData.scalingOther} onChange={(e) => update('scalingOther', e.target.value)} sx={{ mt: 1 }} />
           </Box>
           <Divider sx={{ my: 1.5 }} />
 
@@ -712,10 +744,11 @@ export default function ConsultationCardForm({
           <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#475569', mb: 1 }}>Wrażliwość skóry głowy</Typography>
           <Box sx={{ pl: 1, mb: 2 }}>
             <SeveritySelector value={formData.sensitivitySeverity} onChange={(v) => update('sensitivitySeverity', v)} />
-            <TextField fullWidth size="small" label="Czas trwania" value={formData.sensitivityDuration} onChange={(e) => update('sensitivityDuration', e.target.value)} sx={{ mt: 1.5 }} />
-            <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1, mb: 0.5 }}>Typ problemu:</Typography>
+            <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1, mb: 0.5 }}>Rodzaj problemu:</Typography>
             <CheckboxGroup options={FIELD_OPTIONS['sensitivityProblemType'] ?? []} selected={formData.sensitivityProblemType} onChange={(v) => update('sensitivityProblemType', v)} />
-            <TextField fullWidth size="small" label="Inne (opis)" value={formData.sensitivityOther} onChange={(e) => update('sensitivityOther', e.target.value)} sx={{ mt: 1 }} />
+            <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Czas trwania:</Typography>
+            <DurationSelector value={formData.sensitivityDuration} onChange={(v) => update('sensitivityDuration', v)} />
+            <TextField fullWidth size="small" label="Inne" value={formData.sensitivityOther} onChange={(e) => update('sensitivityOther', e.target.value)} sx={{ mt: 1 }} />
           </Box>
           <Divider sx={{ my: 1.5 }} />
 
@@ -732,38 +765,49 @@ export default function ConsultationCardForm({
         </AccordionSummary>
         <AccordionDetails sx={{ pt: 0 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-            <YesNoSelector label="Wypadanie włosów w rodzinie?" value={formData.familyHistory} onChange={(v) => update('familyHistory', v)} />
-            <YesNoSelector label="Wizyty u dermatologa?" value={formData.dermatologyVisits} onChange={(v) => update('dermatologyVisits', v)} />
-            {formData.dermatologyVisits === 'Tak' && <TextField fullWidth size="small" label="Powód wizyty" value={formData.dermatologyVisitsReason} onChange={(e) => update('dermatologyVisitsReason', e.target.value)} sx={{ ml: 2, mb: 1, maxWidth: 500 }} />}
-            <YesNoSelector label="Ciąża / karmienie piersią?" value={formData.pregnancy} onChange={(v) => update('pregnancy', v)} />
-            <YesNoSelector label="Regularna menstruacja?" value={formData.menstruationRegularity} onChange={(v) => update('menstruationRegularity', v)} />
-            <YesNoSelector label="Antykoncepcja?" value={formData.contraception} onChange={(v) => update('contraception', v)} />
-            <YesNoSelector label="Leki stałe?" value={formData.medications} onChange={(v) => update('medications', v)} />
-            {formData.medications === 'Tak' && <TextField fullWidth size="small" label="Lista leków" value={formData.medicationsList} onChange={(e) => update('medicationsList', e.target.value)} sx={{ ml: 2, mb: 1, maxWidth: 500 }} />}
-            <YesNoSelector label="Suplementy diety?" value={formData.supplements} onChange={(v) => update('supplements', v)} />
-            {formData.supplements === 'Tak' && <TextField fullWidth size="small" label="Jakie suplementy?" value={formData.supplementsDetails} onChange={(e) => update('supplementsDetails', e.target.value)} sx={{ ml: 2, mb: 1, maxWidth: 500 }} />}
-            <YesNoSelector label="Wysoki poziom stresu?" value={formData.stressLevel} onChange={(v) => update('stressLevel', v)} />
-            <YesNoSelector label="Znieczulenie ogólne (ostatni rok)?" value={formData.anesthesia} onChange={(v) => update('anesthesia', v)} />
-            <YesNoSelector label="Chemioterapia?" value={formData.chemotherapy} onChange={(v) => update('chemotherapy', v)} />
-            <YesNoSelector label="Radioterapia?" value={formData.radiotherapy} onChange={(v) => update('radiotherapy', v)} />
-            <YesNoSelector label="Szczepienia (ostatnie 6 mies.)?" value={formData.vaccination} onChange={(v) => update('vaccination', v)} />
-            <YesNoSelector label="Antybiotyki (ostatnie 6 mies.)?" value={formData.antibiotics} onChange={(v) => update('antibiotics', v)} />
-            {formData.antibiotics === 'Tak' && <TextField fullWidth size="small" label="Jakie antybiotyki?" value={formData.antibioticsDetails} onChange={(e) => update('antibioticsDetails', e.target.value)} sx={{ ml: 2, mb: 1, maxWidth: 500 }} />}
-            <YesNoSelector label="Choroby przewlekłe?" value={formData.chronicDiseases} onChange={(v) => update('chronicDiseases', v)} />
-            {formData.chronicDiseases === 'Tak' && <TextField fullWidth size="small" label="Jakie choroby?" value={formData.chronicDiseasesList} onChange={(e) => update('chronicDiseasesList', e.target.value)} sx={{ ml: 2, mb: 1, maxWidth: 500 }} />}
-            <YesNoSelector label="Pod opieką specjalistów?" value={formData.specialists} onChange={(v) => update('specialists', v)} />
-            {formData.specialists === 'Tak' && <TextField fullWidth size="small" label="Jacy specjaliści?" value={formData.specialistsList} onChange={(e) => update('specialistsList', e.target.value)} sx={{ ml: 2, mb: 1, maxWidth: 500 }} />}
-            <YesNoSelector label="Zaburzenia odżywiania?" value={formData.eatingDisorders} onChange={(v) => update('eatingDisorders', v)} />
-            <YesNoSelector label="Nietolerancje pokarmowe?" value={formData.foodIntolerances} onChange={(v) => update('foodIntolerances', v)} />
-            <TextField fullWidth size="small" label="Dieta" value={formData.diet} onChange={(e) => update('diet', e.target.value)} sx={{ mt: 1 }} />
-            <TextField fullWidth size="small" label="Alergie" value={formData.allergies} onChange={(e) => update('allergies', e.target.value)} sx={{ mt: 1 }} />
-            <YesNoSelector label="Części metalowe w organizmie?" value={formData.metalPartsInBody} onChange={(v) => update('metalPartsInBody', v)} />
+            <YesNoSelector label="1. Czy dany problem występuje u innych członków rodziny?" value={formData.familyHistory} onChange={(v) => update('familyHistory', v)} />
+            <YesNoSelector label="2. Czy była konieczna wizyta u dermatologa?" value={formData.dermatologyVisits} onChange={(v) => update('dermatologyVisits', v)} />
+            {formData.dermatologyVisits === 'Tak' && <TextField fullWidth size="small" label="Powód" value={formData.dermatologyVisitsReason} onChange={(e) => update('dermatologyVisitsReason', e.target.value)} sx={{ ml: 2, mb: 1, maxWidth: 500 }} />}
+            <YesNoSelector label="3. Czy jest Pani w ciąży / karmi piersią?" value={formData.pregnancy} onChange={(v) => update('pregnancy', v)} />
+            <YesNoSelector label="4. Czy miesiączkuje regularnie?" value={formData.menstruationRegularity} onChange={(v) => update('menstruationRegularity', v)} />
+            <TextField fullWidth size="small" label="Antykoncepcja hormonalna" value={formData.contraception} onChange={(e) => update('contraception', e.target.value)} sx={{ my: 0.5 }} />
+            <YesNoSelector label="5. Czy zażywa Pan/Pani jakieś leki?" value={formData.medications} onChange={(v) => update('medications', v)} />
+            {formData.medications === 'Tak' && <TextField fullWidth size="small" label="Jakie leki" value={formData.medicationsList} onChange={(e) => update('medicationsList', e.target.value)} sx={{ ml: 2, mb: 1, maxWidth: 500 }} />}
+            <TextField fullWidth size="small" label="6. Czy stosuje Pani/Pan suplementy?" value={formData.supplements} onChange={(e) => update('supplements', e.target.value)} sx={{ my: 0.5 }} />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, flexWrap: 'wrap' }}>
+              <Typography sx={{ fontSize: 13, minWidth: 180, color: '#334155' }}>7. Poziom stresu w życiu codziennym?</Typography>
+              <Box sx={{ display: 'flex', gap: 0.5 }}>
+                {(FIELD_OPTIONS['stressLevel'] ?? ['duży', 'mały', 'średni']).map((opt) => (
+                  <Chip key={opt} label={opt} size="small"
+                    onClick={() => update('stressLevel', opt === formData.stressLevel ? '' : opt)}
+                    variant={formData.stressLevel === opt ? 'filled' : 'outlined'}
+                    color={formData.stressLevel === opt ? 'primary' : 'default'}
+                    sx={{ fontSize: 12, cursor: 'pointer' }} />
+                ))}
+              </Box>
+            </Box>
+            <Box sx={{ mb: 1 }}>
+              <Typography sx={{ fontSize: 13, color: '#334155', mb: 0.5 }}>8. Czy w ostatnim czasie była Pani/Pan poddana/y:</Typography>
+              <CheckboxGroup options={FIELD_OPTIONS['recentProcedures'] ?? []} selected={formData.recentProcedures ?? []} onChange={(v) => update('recentProcedures', v)} />
+              {(formData.recentProcedures ?? []).includes('antybiotyki') && (
+                <TextField fullWidth size="small" label="Antybiotyki (jakie / kiedy)" value={formData.antibioticsDetails} onChange={(e) => update('antibioticsDetails', e.target.value)} sx={{ mt: 1, ml: 2, maxWidth: 500 }} />
+              )}
+            </Box>
+            <YesNoSelector label="9. Czy choruje Pani/Pan na choroby przewlekłe?" value={formData.chronicDiseases} onChange={(v) => update('chronicDiseases', v)} />
+            {formData.chronicDiseases === 'Tak' && <TextField fullWidth size="small" label="Jakie choroby" value={formData.chronicDiseasesList} onChange={(e) => update('chronicDiseasesList', e.target.value)} sx={{ ml: 2, mb: 1, maxWidth: 500 }} />}
+            <YesNoSelector label="10. Czy jest Pani/Pan pod opieką specjalisty?" value={formData.specialists} onChange={(v) => update('specialists', v)} />
+            {formData.specialists === 'Tak' && <TextField fullWidth size="small" label="Jakiego specjalisty" value={formData.specialistsList} onChange={(e) => update('specialistsList', e.target.value)} sx={{ ml: 2, mb: 1, maxWidth: 500 }} />}
+            <YesNoSelector label="11. Czy występują u Pani/Pana zaburzenia odżywiania/wchłaniania?" value={formData.eatingDisorders} onChange={(v) => update('eatingDisorders', v)} />
+            <TextField fullWidth size="small" label="Nietolerancje pokarmowe" value={formData.foodIntolerances} onChange={(e) => update('foodIntolerances', e.target.value)} sx={{ my: 0.5 }} />
+            <YesNoSelector label="12. Czy w ostatnim czasie była Pani/Pan na diecie?" value={formData.diet} onChange={(v) => update('diet', v)} />
+            <YesNoSelector label="13. Czy występuje alergia lub uczulenie na jakieś substancje?" value={formData.allergies} onChange={(v) => update('allergies', v)} />
+            <YesNoSelector label="14. Czy ma Pani/Pan jakieś części metalowe w organizmie?" value={formData.metalPartsInBody} onChange={(v) => update('metalPartsInBody', v)} />
             <Divider sx={{ my: 1.5 }} />
-            <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#475569', mb: 1 }}>Pielęgnacja</Typography>
+            <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#475569', mb: 1 }}>15. Pielęgnacja</Typography>
             <TextField fullWidth size="small" label="Szampon" value={formData.careRoutineShampoo} onChange={(e) => update('careRoutineShampoo', e.target.value)} sx={{ mb: 1 }} />
-            <TextField fullWidth size="small" label="Odżywka" value={formData.careRoutineConditioner} onChange={(e) => update('careRoutineConditioner', e.target.value)} sx={{ mb: 1 }} />
-            <TextField fullWidth size="small" label="Olejki / wcierki" value={formData.careRoutineOils} onChange={(e) => update('careRoutineOils', e.target.value)} sx={{ mb: 1 }} />
-            <TextField fullWidth size="small" label="Zabiegi chemiczne" value={formData.careRoutineChemical} onChange={(e) => update('careRoutineChemical', e.target.value)} />
+            <TextField fullWidth size="small" label="Odżywka / maska" value={formData.careRoutineConditioner} onChange={(e) => update('careRoutineConditioner', e.target.value)} sx={{ mb: 1 }} />
+            <TextField fullWidth size="small" label="Wcierki / oleje" value={formData.careRoutineOils} onChange={(e) => update('careRoutineOils', e.target.value)} sx={{ mb: 1 }} />
+            <TextField fullWidth size="small" label="Zabiegi chemiczne / termiczne" value={formData.careRoutineChemical} onChange={(e) => update('careRoutineChemical', e.target.value)} />
           </Box>
         </AccordionDetails>
       </Accordion>
@@ -774,17 +818,18 @@ export default function ConsultationCardForm({
           <SectionHeader icon={<MedicalServices sx={{ fontSize: 20 }} />} title="3. Trichoskopia" />
         </AccordionSummary>
         <AccordionDetails sx={{ pt: 0 }}>
-          <Typography sx={{ fontSize: 12, color: '#64748B', mb: 0.5 }}>Typ skóry:</Typography>
+          <Typography sx={{ fontSize: 12, color: '#64748B', mb: 0.5 }}>Typ skóry głowy:</Typography>
           <CheckboxGroup options={FIELD_OPTIONS['scalpType'] ?? []} selected={formData.scalpType} onChange={(v) => update('scalpType', v)} />
-          <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Wygląd skóry:</Typography>
+          <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Wygląd i objawy na skórze:</Typography>
           <CheckboxGroup options={FIELD_OPTIONS['scalpAppearance'] ?? []} selected={formData.scalpAppearance} onChange={(v) => update('scalpAppearance', v)} />
-          <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Wykwity:</Typography>
+          <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Wykwity skórne:</Typography>
           <CheckboxGroup options={FIELD_OPTIONS['skinLesions'] ?? []} selected={formData.skinLesions} onChange={(v) => update('skinLesions', v)} />
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 1.5 }}>
-            <TextField size="small" label="Nadmierne pocenie" value={formData.hyperhidrosis} onChange={(e) => update('hyperhidrosis', e.target.value)} sx={{ flex: '1 1 200px' }} />
-            <TextField size="small" label="Rogowacenie" value={formData.hyperkeratinization} onChange={(e) => update('hyperkeratinization', e.target.value)} sx={{ flex: '1 1 200px' }} />
-            <TextField size="small" label="Wydzielina łojowa" value={formData.sebaceousSecretion} onChange={(e) => update('sebaceousSecretion', e.target.value)} sx={{ flex: '1 1 200px' }} />
-          </Box>
+          <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Hiperhydroza:</Typography>
+          <CheckboxGroup options={FIELD_OPTIONS['hyperhidrosis'] ?? []} selected={formData.hyperhidrosis ?? []} onChange={(v) => update('hyperhidrosis', v)} />
+          <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Hiperkeratynizacja:</Typography>
+          <CheckboxGroup options={FIELD_OPTIONS['hyperkeratinization'] ?? []} selected={formData.hyperkeratinization ?? []} onChange={(v) => update('hyperkeratinization', v)} />
+          <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Wydzielina g. łojowych:</Typography>
+          <CheckboxGroup options={FIELD_OPTIONS['sebaceousSecretion'] ?? []} selected={formData.sebaceousSecretion ?? []} onChange={(v) => update('sebaceousSecretion', v)} />
           
           <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Interpretacja rodzaju łojotoku:</Typography>
           <CheckboxGroup options={FIELD_OPTIONS['seborrheaType'] ?? []} selected={formData.seborrheaType} onChange={(v) => update('seborrheaType', v)} />
@@ -795,15 +840,19 @@ export default function ConsultationCardForm({
           <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Łupież:</Typography>
           <CheckboxGroup options={FIELD_OPTIONS['dandruffType'] ?? []} selected={formData.dandruffType} onChange={(v) => update('dandruffType', v)} />
 
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 1.5 }}>
-            <TextField size="small" label="pH skóry" value={formData.scalpPH} onChange={(e) => update('scalpPH', e.target.value)} sx={{ flex: '1 1 120px' }} />
-            <TextField size="small" label="Jakość włosów" value={formData.hairQuality} onChange={(e) => update('hairQuality', e.target.value)} sx={{ flex: '1 1 200px' }} />
-            <TextField size="small" label="Kształt włosów" value={formData.hairShape} onChange={(e) => update('hairShape', e.target.value)} sx={{ flex: '1 1 200px' }} />
-          </Box>
-          <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Typy włosów:</Typography>
+          <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Uszkodzenia włosa:</Typography>
+          <CheckboxGroup options={FIELD_OPTIONS['hairDamage'] ?? []} selected={formData.hairDamage} onChange={(v) => update('hairDamage', v)} />
+          <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Powody uszkodzenia:</Typography>
+          <CheckboxGroup options={FIELD_OPTIONS['hairDamageReason'] ?? []} selected={formData.hairDamageReason} onChange={(v) => update('hairDamageReason', v)} />
+          <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Jakość włosa:</Typography>
+          <CheckboxGroup options={FIELD_OPTIONS['hairQuality'] ?? []} selected={formData.hairQuality ?? []} onChange={(v) => update('hairQuality', v)} />
+          <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Kształt włosa:</Typography>
+          <CheckboxGroup options={FIELD_OPTIONS['hairShape'] ?? []} selected={formData.hairShape ?? []} onChange={(v) => update('hairShape', v)} />
+          <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Rodzaje włosów (typ trichotrichoskopowy):</Typography>
           <CheckboxGroup options={FIELD_OPTIONS['hairTypes'] ?? []} selected={formData.hairTypes} onChange={(v) => update('hairTypes', v)} />
-          <TextField fullWidth size="small" label="Włosy odrastające" value={formData.regrowingHairs} onChange={(e) => update('regrowingHairs', e.target.value)} sx={{ mt: 1.5 }} />
-          <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Włosy vellusowe / zminiaturyzowane:</Typography>
+          <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Włosy następowe:</Typography>
+          <CheckboxGroup options={FIELD_OPTIONS['regrowingHairs'] ?? []} selected={formData.regrowingHairs ?? []} onChange={(v) => update('regrowingHairs', v)} />
+          <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Włosy vellus / zminiaturyzowane:</Typography>
           <CheckboxGroup options={FIELD_OPTIONS['vellusMiniaturizedHairs'] ?? []} selected={formData.vellusMiniaturizedHairs} onChange={(v) => update('vellusMiniaturizedHairs', v)} />
           
           <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Unaczynienie:</Typography>
@@ -826,28 +875,29 @@ export default function ConsultationCardForm({
           <SectionHeader icon={<MedicalServices sx={{ fontSize: 20 }} />} title="4. Diagnostyka łysienia" />
         </AccordionSummary>
         <AccordionDetails sx={{ pt: 0 }}>
-          <Typography sx={{ fontSize: 12, color: '#64748B', mb: 0.5 }}>Typy łysienia:</Typography>
+          <Typography sx={{ fontSize: 12, color: '#64748B', mb: 0.5 }}>Łysienie (typy):</Typography>
           <CheckboxGroup options={FIELD_OPTIONS['alopeciaTypes'] ?? []} selected={formData.alopeciaTypes} onChange={(v) => update('alopeciaTypes', v)} />
-          
+          <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Stopień przerzedzenia:</Typography>
+          <CheckboxGroup options={FIELD_OPTIONS['degreeOfThinning'] ?? []} selected={formData.degreeOfThinning ?? []} onChange={(v) => update('degreeOfThinning', v)} />
+          <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Typ łysienia:</Typography>
+          <CheckboxGroup options={FIELD_OPTIONS['alopeciaType'] ?? []} selected={formData.alopeciaType ?? []} onChange={(v) => update('alopeciaType', v)} />
+          <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Obszar wypadania włosów:</Typography>
+          <CheckboxGroup options={FIELD_OPTIONS['alopeciaAffectedAreas'] ?? []} selected={formData.alopeciaAffectedAreas} onChange={(v) => update('alopeciaAffectedAreas', v)} />
           <FormControl fullWidth size="small" sx={{ mt: 1.5 }}>
-            <InputLabel>Klasyfikacja łysienia</InputLabel>
-            <Select value={formData.alopeciaType} label="Klasyfikacja łysienia" onChange={(e) => update('alopeciaType', e.target.value)}>
-              <MenuItem value="">Brak</MenuItem>
-              <MenuItem value="Androgenowe typu męskiego">Androgenowe typu męskiego</MenuItem>
-              <MenuItem value="Androgenowe typu żeńskiego">Androgenowe typu żeńskiego</MenuItem>
-              <MenuItem value="Plackowate AA">Plackowate AA</MenuItem>
-              <MenuItem value="Telogenowe TE">Telogenowe TE</MenuItem>
+            <InputLabel>Cechy miniaturyzacji mieszków</InputLabel>
+            <Select value={formData.miniaturization} label="Cechy miniaturyzacji mieszków" onChange={(e) => update('miniaturization', e.target.value)}>
+              {(FIELD_OPTIONS['miniaturization'] ?? ['Występują', 'Nie występują']).map((o) => <MenuItem key={o} value={o}>{o}</MenuItem>)}
             </Select>
           </FormControl>
-
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 1.5 }}>
-            <TextField size="small" label="Stopień przerzedzenia" value={formData.degreeOfThinning} onChange={(e) => update('degreeOfThinning', e.target.value)} sx={{ flex: '1 1 200px' }} />
-            <TextField size="small" label="Miniaturyzacja" value={formData.miniaturization} onChange={(e) => update('miniaturization', e.target.value)} sx={{ flex: '1 1 200px' }} />
-            <TextField size="small" label="Jednostki folikularne" value={formData.follicularUnits} onChange={(e) => update('follicularUnits', e.target.value)} sx={{ flex: '1 1 200px' }} />
-          </Box>
-          <TextField fullWidth size="small" label="Pull test" value={formData.pullTest} onChange={(e) => update('pullTest', e.target.value)} sx={{ mt: 1.5 }} />
-          <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Dotknięte obszary:</Typography>
-          <CheckboxGroup options={FIELD_OPTIONS['alopeciaAffectedAreas'] ?? []} selected={formData.alopeciaAffectedAreas} onChange={(v) => update('alopeciaAffectedAreas', v)} />
+          <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Zespoły mieszkowe:</Typography>
+          <CheckboxGroup options={FIELD_OPTIONS['follicularUnits'] ?? []} selected={formData.follicularUnits ?? []} onChange={(v) => update('follicularUnits', v)} />
+          <FormControl fullWidth size="small" sx={{ mt: 1.5 }}>
+            <InputLabel>Pull test</InputLabel>
+            <Select value={formData.pullTest} label="Pull test" onChange={(e) => update('pullTest', e.target.value)}>
+              <MenuItem value="">—</MenuItem>
+              {(FIELD_OPTIONS['pullTest'] ?? ['dodatni TE/AE', 'ujemny AGA']).map((o) => <MenuItem key={o} value={o}>{o}</MenuItem>)}
+            </Select>
+          </FormControl>
           <TextField fullWidth size="small" label="Inne (opis)" value={formData.alopeciaOther} onChange={(e) => update('alopeciaOther', e.target.value)} sx={{ mt: 1.5 }} />
         </AccordionDetails>
       </Accordion>
@@ -912,8 +962,24 @@ export default function ConsultationCardForm({
         </AccordionSummary>
         <AccordionDetails>
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-            <TextField size="small" label="Stopień Norwood-Hamilton" value={formData.norwoodHamiltonStage} onChange={(e) => update('norwoodHamiltonStage', e.target.value)} sx={{ flex: '1 1 250px' }} />
-            <TextField size="small" label="Stopień Ludwig" value={formData.ludwigStage} onChange={(e) => update('ludwigStage', e.target.value)} sx={{ flex: '1 1 250px' }} />
+            <FormControl size="small" sx={{ flex: '1 1 250px' }}>
+              <InputLabel>Skala Norwooda-Hamiltona</InputLabel>
+              <Select value={formData.norwoodHamiltonStage} label="Skala Norwooda-Hamiltona" onChange={(e) => update('norwoodHamiltonStage', e.target.value)}>
+                <MenuItem value="">—</MenuItem>
+                {['2','2A','3','3A','3V','4','4A','5','5A','5V','6','7'].map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
+              </Select>
+            </FormControl>
+            <TextField size="small" label="Uwagi (Norwood-Hamilton)" value={formData.norwoodHamiltonNotes ?? ''} onChange={(e) => update('norwoodHamiltonNotes', e.target.value)} sx={{ flex: '1 1 250px' }} />
+          </Box>
+          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 1.5 }}>
+            <FormControl size="small" sx={{ flex: '1 1 250px' }}>
+              <InputLabel>Skala M. Ludwiga</InputLabel>
+              <Select value={formData.ludwigStage} label="Skala M. Ludwiga" onChange={(e) => update('ludwigStage', e.target.value)}>
+                <MenuItem value="">—</MenuItem>
+                {['I-1','I-2','I-3','I-4','II-1','II-2','III'].map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
+              </Select>
+            </FormControl>
+            <TextField size="small" label="Uwagi (Ludwig)" value={formData.ludwigNotes ?? ''} onChange={(e) => update('ludwigNotes', e.target.value)} sx={{ flex: '1 1 250px' }} />
           </Box>
         </AccordionDetails>
       </Accordion>
