@@ -317,7 +317,14 @@ router.get('/:id/pdf', authenticate, async (req: AuthRequest, res, next) => {
     const consultation = await prisma.consultation.findUnique({
       where: { id },
       include: {
-        patient: { include: { assignedDoctor: false } }, // includes clinicId & assignedDoctorId
+        patient: {
+          include: {
+            visits: {
+              orderBy: { data: 'asc' },
+              select: { id: true, data: true, rodzajZabiegu: true, notatki: true, status: true, numerWSerii: true, liczbaSerii: true },
+            },
+          },
+        },
         doctor: {
           select: { id: true, name: true, email: true },
         },

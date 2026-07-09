@@ -82,7 +82,7 @@ const fieldRow = (label: string, value: any): string => {
     </div>`;
 };
 
-// Render a checkbox-style row — only shown if value is non-empty
+// Render a checkbox-style row — only shown if value is non-empty (legacy, used in compact views)
 const checkboxRow = (label: string, value: any): string => {
   const v = formatJsonField(value);
   if (!v) return '';
@@ -91,6 +91,69 @@ const checkboxRow = (label: string, value: any): string => {
       <span class="cb-bullet">■</span>
       <span class="cb-label">${escapeHtml(label)}:</span>
       <span class="cb-value">${v}</span>
+    </div>`;
+};
+
+// ── FORM-STYLE HELPERS (always render for printable forms) ──────────────────
+
+// Normalize stored value to array of strings for comparison
+const toArr = (val: any): string[] => {
+  if (!val) return [];
+  if (Array.isArray(val)) return val.map(String);
+  if (typeof val === 'string') {
+    try { const p = JSON.parse(val); if (Array.isArray(p)) return p.map(String); } catch {}
+    return val.split(',').map(s => s.trim()).filter(Boolean);
+  }
+  return [String(val)];
+};
+
+// Checkbox options row — shows ALL options, ticks selected ones
+const formCheckboxRow = (label: string, options: string[], value: any): string => {
+  const selected = toArr(value);
+  const opts = options.map(opt => {
+    const checked = selected.some(s => s.toLowerCase() === opt.toLowerCase());
+    return `<span class="form-opt">${checked ? '■' : '□'} ${escapeHtml(opt)}</span>`;
+  }).join('');
+  return `
+    <div class="form-row">
+      <div class="form-label">${escapeHtml(label)}</div>
+      <div class="form-opts">${opts}</div>
+    </div>`;
+};
+
+// Yes/No question row — always shows □ Tak  □ Nie
+const formYesNo = (label: string, value: any): string => {
+  const v = String(value || '').toLowerCase();
+  const tak = (v === 'tak' || v === 'yes' || v === 'true') ? '■' : '□';
+  const nie = (v === 'nie' || v === 'no' || v === 'false') ? '■' : '□';
+  return `
+    <div class="form-row">
+      <div class="form-label">${escapeHtml(label)}</div>
+      <div class="form-opts">${tak} Tak &nbsp;&nbsp; ${nie} Nie</div>
+    </div>`;
+};
+
+// Text field row — label + filled value OR blank underline for handwriting
+const formTextField = (label: string, value: any, wide = false): string => {
+  const v = formatJsonField(value);
+  return `
+    <div class="form-row${wide ? ' form-row-wide' : ''}">
+      <div class="form-label">${escapeHtml(label)}</div>
+      <div class="form-text-val">${v ? escapeHtml(v) : '<span class="form-blank">___________________________________________</span>'}</div>
+    </div>`;
+};
+
+// Select row (single choice) — shows all options as □
+const formSelectRow = (label: string, options: string[], value: any): string => {
+  const selected = String(value || '');
+  const opts = options.filter(Boolean).map(opt => {
+    const checked = opt.toLowerCase() === selected.toLowerCase();
+    return `<span class="form-opt">${checked ? '■' : '□'} ${escapeHtml(opt)}</span>`;
+  }).join('');
+  return `
+    <div class="form-row">
+      <div class="form-label">${escapeHtml(label)}</div>
+      <div class="form-opts">${opts || '<span class="form-blank">_______________________</span>'}</div>
     </div>`;
 };
 
@@ -189,107 +252,120 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
   const sensitivityContent = `
         ${checkboxRow(FIELD_LABELS['sensitivityProblemType'] ?? 'Typ problemu', cv(c, 'sensitivityProblemType'))}
         ${checkboxRow('Nasilenie', cv(c, 'sensitivitySeverity'))}
-        ${checkboxRow('Czas trwania', cv(c, 'sensitivityDuration'))}
-        ${fieldRow('Inne (opis)', cv(c, 'sensitivityOther'))}
-        ${fieldRow(FIELD_LABELS['inflammatoryStates'] ?? 'Stany zapalne / grudki', cv(c, 'inflammatoryStates'))}
+        ${formSelectRow('Nasilenie', ['normie','nasilone','nadmierne','okresowe','brak'], cv(c, 'sensitivitySeverity'))}
+        ${formCheckboxRow('Rodzaj problemu', ['świąd','pieczenie','nadwrażliwość na preparaty','trichodynia'], cv(c, 'sensitivityProblemType'))}
+        ${formSelectRow('Czas trwania', ['0-6 m-cy','6-12 m-cy','12-24 m-cy','powyżej roku'], cv(c, 'sensitivityDuration'))}
+        ${formTextField('Inne', cv(c, 'sensitivityOther'))}
         ${noteRow(notes, 'sensitivity')}`;
-  const sensitivityBox = sectionBox('4. WRAŻLIWOŚĆ SKÓRY GŁOWY', sensitivityContent,
-    Boolean(cv(c, 'sensitivitySeverity') || cv(c, 'sensitivityProblemType')));
+  const sensitivityBox = sectionBox('4. WRAŻLIWOŚĆ SKÓRY GŁOWY', sensitivityContent, true);
+
+  const hairLossContent2 = `
+        ${formSelectRow('Nasilenie', ['normie','nasilone','nadmierne','okresowe','brak'], cv(c, 'hairLossSeverity'))}
+        ${formCheckboxRow('Lokalizacja', ['ciemieniowa','skronie','czołowa','tonsura','potylica','uogólnione','brwi, rzęsy','pachy','pachwiny'], cv(c, 'hairLossLocalization'))}
+        ${formSelectRow('Czas trwania', ['0-6 m-cy','6-12 m-cy','12-24 m-cy','powyżej roku'], cv(c, 'hairLossDuration'))}
+        ${formTextField('Szampony', cv(c, 'hairLossShampoos'))}
+        ${noteRow(notes, 'hairLoss')}`;
+  const hairLossBox2 = sectionBox('1. WYPADANIE WŁOSÓW', hairLossContent2, true);
+
+  const oilyHairContent2 = `
+        ${formSelectRow('Nasilenie', ['normie','nasilone','nadmierne','okresowe','brak'], cv(c, 'oilyHairSeverity'))}
+        ${formSelectRow('Częstotliwość mycia', ['codziennie','co 2,3 dni','raz w tygodniu'], cv(c, 'oilyHairWashingFreq'))}
+        ${formSelectRow('Czas trwania', ['0-6 m-cy','6-12 m-cy','12-24 m-cy','powyżej roku'], cv(c, 'oilyHairDuration'))}
+        ${formTextField('Szampony', cv(c, 'oilyHairShampoos'))}
+        ${noteRow(notes, 'oilyHair')}`;
+  const oilyHairBox2 = sectionBox('2. PRZETŁUSZCZANIE WŁOSÓW', oilyHairContent2, true);
+
+  const scalingContent2 = `
+        ${formSelectRow('Nasilenie', ['normie','nasilone','nadmierne','okresowe','brak'], cv(c, 'scalingSeverity'))}
+        ${formCheckboxRow('Rodzaj', ['suchy','tłusty','miejscowy','uogólniony'], cv(c, 'scalingType'))}
+        ${formSelectRow('Czas trwania', ['0-6 m-cy','6-12 m-cy','12-24 m-cy','powyżej roku'], cv(c, 'scalingDuration'))}
+        ${formTextField('Inne', cv(c, 'scalingOther'))}
+        ${noteRow(notes, 'scaling')}`;
+  const scalingBox2 = sectionBox('3. ŁUSZCZENIE SKÓRY GŁOWY', scalingContent2, true);
 
   const problemsSection = `
       ${sectionHeader('PROBLEMY ZGŁASZANE PRZEZ PACJENTA')}
       <div class="two-col">
-        ${hairLossBox}
-        ${oilyHairBox}
-        ${scalingBox}
+        ${hairLossBox2}
+        ${oilyHairBox2}
+        ${scalingBox2}
         ${sensitivityBox}
       </div>`;
 
 
 
-  // ─── WYWIAD (zawsze widoczny) ─────────────────────────────────────────────
+  // ─── WYWIAD (zawsze widoczny — format formularza) ────────────────────────────
   const anamnesisSection = `
     ${sectionHeader('2. WYWIAD')}
     <div class="two-col">
       <div>
-        ${checkboxRow(FIELD_LABELS['familyHistory'] ?? 'Wypadanie w rodzinie', cv(c, 'familyHistory')) || '<span class="empty-field">Nie podano</span>'}
+        ${formYesNo('1. Czy dany problem występuje u innych członków rodziny?', cv(c, 'familyHistory'))}
         ${noteRow(notes, 'familyHistory')}
-        ${checkboxRow(FIELD_LABELS['dermatologyVisits'] ?? 'Dermatolog', cv(c, 'dermatologyVisits'))}
-        ${fieldRow(FIELD_LABELS['dermatologyVisitsReason'] ?? 'Powód wizyty', cv(c, 'dermatologyVisitsReason'))}
-        ${checkboxRow(FIELD_LABELS['pregnancy'] ?? 'Ciąża', cv(c, 'pregnancy'))}
-        ${checkboxRow(FIELD_LABELS['menstruationRegularity'] ?? 'Miesiączki', cv(c, 'menstruationRegularity'))}
-        ${fieldRow(FIELD_LABELS['contraception'] ?? 'Antykoncepcja', cv(c, 'contraception'))}
-        ${checkboxRow(FIELD_LABELS['stressLevel'] ?? 'Stres', cv(c, 'stressLevel'))}
-        ${checkboxRow(FIELD_LABELS['medications'] ?? 'Leki stałe', cv(c, 'medications'))}
-        ${fieldRow(FIELD_LABELS['medicationsList'] ?? 'Lista leków', cv(c, 'medicationsList'))}
-        ${fieldRow(FIELD_LABELS['supplements'] ?? 'Suplementy', cv(c, 'supplements'))}
-        ${fieldRow(FIELD_LABELS['supplementsDetails'] ?? 'Jakie suplementy?', cv(c, 'supplementsDetails'))}
+        ${formYesNo('2. Czy była konieczna wizyta u dermatologa?', cv(c, 'dermatologyVisits'))}
+        ${formTextField('   Powód wizyty', cv(c, 'dermatologyVisitsReason'))}
+        ${formYesNo('3. Czy jest Pani w ciąży / karmi piersią?', cv(c, 'pregnancy'))}
+        ${formYesNo('4. Czy miesiączkuje regularnie?', cv(c, 'menstruationRegularity'))}
+        ${formTextField('   Antykoncepcja hormonalna', cv(c, 'contraception'))}
+        ${formYesNo('5. Czy zażywa Pan/Pani jakieś leki?', cv(c, 'medications'))}
+        ${formTextField('   Jakie leki', cv(c, 'medicationsList'))}
+        ${formTextField('6. Czy stosuje Pani/Pan suplementy?', cv(c, 'supplements'))}
+        ${formSelectRow('7. Poziom stresu w życiu codziennym?', ['duży','mały','średni'], cv(c, 'stressLevel'))}
         ${noteRow(notes, 'medications')}
       </div>
       <div>
-        ${checkboxRow(FIELD_LABELS['anesthesia'] ?? 'Znieczulenie', cv(c, 'anesthesia'))}
-        ${checkboxRow(FIELD_LABELS['chemotherapy'] ?? 'Chemioterapia', cv(c, 'chemotherapy'))}
-        ${checkboxRow(FIELD_LABELS['radiotherapy'] ?? 'Radioterapia', cv(c, 'radiotherapy'))}
-        ${checkboxRow(FIELD_LABELS['vaccination'] ?? 'Szczepienia', cv(c, 'vaccination'))}
-        ${fieldRow(FIELD_LABELS['antibiotics'] ?? 'Antybiotyki', cv(c, 'antibiotics'))}
-        ${fieldRow(FIELD_LABELS['antibioticsDetails'] ?? 'Jakie antybiotyki?', cv(c, 'antibioticsDetails'))}
-        ${checkboxRow(FIELD_LABELS['chronicDiseases'] ?? 'Choroby przewlekłe', cv(c, 'chronicDiseases'))}
-        ${fieldRow(FIELD_LABELS['chronicDiseasesList'] ?? 'Lista chorób', cv(c, 'chronicDiseasesList'))}
+        ${formCheckboxRow('8. Czy w ostatnim czasie była Pani/Pan poddana/y:', ['narkozie','chemioterapii','radioterapii','szczepieniu','antybiotyki'], cv(c, 'recentProcedures'))}
+        ${formTextField('   Antybiotyki (jakie / kiedy)', cv(c, 'antibioticsDetails'))}
+        ${formYesNo('9. Czy choruje Pani/Pan na choroby przewlekłe?', cv(c, 'chronicDiseases'))}
+        ${formTextField('   Jakie choroby', cv(c, 'chronicDiseasesList'))}
         ${noteRow(notes, 'chronicDiseases')}
-        ${checkboxRow(FIELD_LABELS['specialists'] ?? 'Specjaliści', cv(c, 'specialists'))}
-        ${fieldRow(FIELD_LABELS['specialistsList'] ?? 'Jacy specjaliści?', cv(c, 'specialistsList'))}
-        ${checkboxRow(FIELD_LABELS['eatingDisorders'] ?? 'Zaburzenia odżywiania', cv(c, 'eatingDisorders'))}
-        ${fieldRow(FIELD_LABELS['foodIntolerances'] ?? 'Nietolerancje pokarmowe', cv(c, 'foodIntolerances'))}
-        ${fieldRow(FIELD_LABELS['diet'] ?? 'Dieta', cv(c, 'diet'))}
-        ${fieldRow(FIELD_LABELS['allergies'] ?? 'Alergie', cv(c, 'allergies'))}
-        ${checkboxRow(FIELD_LABELS['metalPartsInBody'] ?? 'Części metalowe', cv(c, 'metalPartsInBody'))}
+        ${formYesNo('10. Czy jest Pani/Pan pod opieką specjalisty?', cv(c, 'specialists'))}
+        ${formTextField('   Jakiego specjalisty', cv(c, 'specialistsList'))}
+        ${formYesNo('11. Czy występują zaburzenia odżywiania/wchłaniania?', cv(c, 'eatingDisorders'))}
+        ${formTextField('   Nietolerancje pokarmowe', cv(c, 'foodIntolerances'))}
+        ${formYesNo('12. Czy w ostatnim czasie była Pani/Pan na diecie?', cv(c, 'diet'))}
+        ${formYesNo('13. Czy występuje alergia lub uczulenie?', cv(c, 'allergies'))}
+        ${formYesNo('14. Czy ma Pani/Pan części metalowe w organizmie?', cv(c, 'metalPartsInBody'))}
         ${noteRow(notes, 'nutrition')}
       </div>
     </div>
     <div class="care-row">
-      <strong>Aktualna pielęgnacja:</strong>
-      ${cv(c, 'careRoutineShampoo') ? `Szampon: ${escapeHtml(cv(c, 'careRoutineShampoo'))}, ` : ''}
-      ${cv(c, 'careRoutineConditioner') ? `Odżywka: ${escapeHtml(cv(c, 'careRoutineConditioner'))}, ` : ''}
-      ${cv(c, 'careRoutineOils') ? `Wcierki: ${escapeHtml(cv(c, 'careRoutineOils'))}, ` : ''}
-      ${cv(c, 'careRoutineChemical') ? `Zabiegi: ${escapeHtml(cv(c, 'careRoutineChemical'))}` : ''}
-      ${!cv(c, 'careRoutineShampoo') && !cv(c, 'careRoutineConditioner') && !cv(c, 'careRoutineOils') && !cv(c, 'careRoutineChemical')
-        ? '<em class="empty-field">Nie uzupełniono</em>' : ''}
+      <strong>15. Pielęgnacja:</strong>
+      ${formTextField('Szampon', cv(c, 'careRoutineShampoo'))}
+      ${formTextField('Odżywka / maska', cv(c, 'careRoutineConditioner'))}
+      ${formTextField('Wcierki / oleje', cv(c, 'careRoutineOils'))}
+      ${formTextField('Zabiegi chemiczne / termiczne', cv(c, 'careRoutineChemical'))}
+      ${noteRow(notes, 'careRoutine')}
     </div>
-    ${noteRow(notes, 'careRoutine')}
   `;
 
-  // ─── TRICHOSKOPIA (zawsze widoczna) ─────────────────────────────────────────────
+  // ─── TRICHOSKOPIA (format formularza) ─────────────────────────────────────────────
   const trichoscopySection = `
     ${sectionHeader('3. TRICHOSKOPIA — BADANIE')}
     <div class="three-col">
       ${sectionBox('SKÓRA GŁOWY', `
-        ${checkboxRow(FIELD_LABELS['scalpType'] ?? 'Typ skóry', cv(c, 'scalpType'))}
+        ${formCheckboxRow('Typ skóry głowy', ['sucha','tłusta','wrażliwa','nadreaktywna','z erytrodermią','normalna'], cv(c, 'scalpType'))}
         ${noteRow(notes, 'scalpType')}
-        ${checkboxRow(FIELD_LABELS['scalpAppearance'] ?? 'Wygląd skóry', cv(c, 'scalpAppearance'))}
-        ${checkboxRow(FIELD_LABELS['skinLesions'] ?? 'Wykwity skórne', cv(c, 'skinLesions'))}
-        ${checkboxRow(FIELD_LABELS['hyperhidrosis'] ?? 'Potliwość', cv(c, 'hyperhidrosis'))}
-        ${checkboxRow(FIELD_LABELS['hyperkeratinization'] ?? 'Rogowacenie', cv(c, 'hyperkeratinization'))}
-        ${checkboxRow(FIELD_LABELS['sebaceousSecretion'] ?? 'Wydzielina', cv(c, 'sebaceousSecretion'))}
-        ${checkboxRow(FIELD_LABELS['seborrheaType'] ?? 'Łojotok', cv(c, 'seborrheaType'))}
-        ${fieldRow(FIELD_LABELS['seborrheaTypeOther'] ?? 'Inny łojotok', cv(c, 'seborrheaTypeOther'))}
-        ${checkboxRow(FIELD_LABELS['dandruffType'] ?? 'Łupież', cv(c, 'dandruffType'))}
-        ${fieldRow(FIELD_LABELS['scalpPH'] ?? 'pH skóry', cv(c, 'scalpPH'))}`,
-        Boolean(cv(c, 'scalpType') || cv(c, 'scalpAppearance') || cv(c, 'seborrheaType') || cv(c, 'dandruffType')))}
+        ${formCheckboxRow('Wygląd i objawy na skórze', ['zaczerwienie','świąd','pieczenie','ból','suchość','łojotok'], cv(c, 'scalpAppearance'))}
+        ${formCheckboxRow('Wykwity skórne', ['plama','grudka','krosta','guzek','blizna','strup','pęknięcie','łuska','przeczos','złuszczanie płatowe','złuszczanie otrębiaste','obj. Kebnera'], cv(c, 'skinLesions'))}
+        ${formCheckboxRow('Hiperhydroza', ['miejscowa','uogólniona','brak'], cv(c, 'hyperhidrosis'))}
+        ${formCheckboxRow('Hiperkeratynizacja', ['miejscowa','uogólniona','okołomieszkowa','tubule','brak'], cv(c, 'hyperkeratinization'))}
+        ${formCheckboxRow('Wydzielina g. łojowych', ['oleista','zalegająca','brak'], cv(c, 'sebaceousSecretion'))}
+        ${formCheckboxRow('Interpretacja rodzaju łojotoku', ['Skóra sucha, odwodniona / Cebulka tłusta','Skóra tłusta / Cebulka tłusta','Hiperhydroza / Cebulka tłusta','Skóra tłusta / Cebulka dystroficzna','Łojotok / Wypadanie włosów','Inne'], cv(c, 'seborrheaType'))}
+        ${formTextField('Łupież', cv(c, 'dandruffType'))}
+        ${formTextField('Wartość pH', cv(c, 'scalpPH'))}`, true)}
       ${sectionBox('STAN WŁOSÓW', `
-        ${checkboxRow(FIELD_LABELS['hairQuality'] ?? 'Jakość', cv(c, 'hairQuality'))}
-        ${checkboxRow(FIELD_LABELS['hairDamage'] ?? 'Uszkodzenia', cv(c, 'hairDamage'))}
-        ${checkboxRow(FIELD_LABELS['hairDamageReason'] ?? 'Przyczyna', cv(c, 'hairDamageReason'))}
-        ${checkboxRow(FIELD_LABELS['hairShape'] ?? 'Kształt', cv(c, 'hairShape'))}
-        ${checkboxRow(FIELD_LABELS['hairTypes'] ?? 'Typy', cv(c, 'hairTypes'))}
-        ${checkboxRow(FIELD_LABELS['regrowingHairs'] ?? 'Odrastające', cv(c, 'regrowingHairs'))}
-        ${checkboxRow(FIELD_LABELS['vellusMiniaturizedHairs'] ?? 'Vellus / Zminiaturyzowane', cv(c, 'vellusMiniaturizedHairs'))}`,
-        Boolean(cv(c, 'hairQuality') || cv(c, 'hairDamage') || cv(c, 'hairTypes') || cv(c, 'vellusMiniaturizedHairs')))}
-      ${sectionBox('CECHY SPECYFICZNE', `
-        ${checkboxRow(FIELD_LABELS['vascularPatterns'] ?? 'Unaczynienie', cv(c, 'vascularPatterns'))}
-        ${checkboxRow(FIELD_LABELS['perifollicularFeatures'] ?? 'Cechy okołomieszkowe', cv(c, 'perifollicularFeatures'))}
-        ${checkboxRow(FIELD_LABELS['scalpDiseases'] ?? 'Choroby skóry głowy', cv(c, 'scalpDiseases'))}
-        ${checkboxRow(FIELD_LABELS['otherDiagnostics'] ?? 'Inne', cv(c, 'otherDiagnostics'))}`,
-        Boolean(cv(c, 'vascularPatterns') || cv(c, 'perifollicularFeatures') || cv(c, 'scalpDiseases') || cv(c, 'otherDiagnostics')))}
+        ${formCheckboxRow('Uszkodzenia włosa', ['naturalne','fizyczne','mechaniczne','chemiczne'], cv(c, 'hairDamage'))}
+        ${formCheckboxRow('Powody uszkodzenia', ['trwała','trwałe prostowanie','farby/roz jaśnianie','lakier do włosów','produkty do stylizacji','prostownica/lokówka'], cv(c, 'hairDamageReason'))}
+        ${formCheckboxRow('Jakość włosa', ['zdrowe','suche','przetluśczone','zniszczona łuska włosa'], cv(c, 'hairQuality'))}
+        ${formCheckboxRow('Kształt włosa', ['prosty','kręcony','falisty','fil-fil'], cv(c, 'hairShape'))}
+        ${formCheckboxRow('Rodzaje włosów', ['urwane','kręte','paciorkowate','obrączkowane','tulipanowe','wykrzyknikowe'], cv(c, 'hairTypes'))}
+        ${formCheckboxRow('Włosy następowe', ['dużo','niewie le'], cv(c, 'regrowingHairs'))}
+        ${formCheckboxRow('Włosy vellus / zminiaturyzowane', ['dużo','mało','uogólnione','miejscowo','brak'], cv(c, 'vellusMiniaturizedHairs'))}`, true)}
+      ${sectionBox('DIAGNOSTYKA', `
+        ${formCheckboxRow('Unaczynienie', ['naczynia proste','naczynia poskręcane','naczynia drzewkowate','wzórzec plastra miodu','typ spinek','okołomieszkowe','miejscowe','rozlane'], cv(c, 'vascularPatterns'))}
+        ${formCheckboxRow('Cechy okołomieszkowe', ['white dots','yellow dots','black dots','prawidłowe'], cv(c, 'perifollicularFeatures'))}
+        ${formCheckboxRow('Choroby skóry głowy', ['ŁZS','LLP','AZS','grzybica','łuszczyca','zapalenia okołomieszkowe'], cv(c, 'scalpDiseases'))}
+        ${formCheckboxRow('Inne cechy diagnostyczne', ['trychodynia','plaster miodu','cofnięcie linii czołowej','trichokinesis'], cv(c, 'otherDiagnostics'))}`, true)}
     </div>
   `;
 
@@ -351,6 +427,57 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
     ${sectionHeader('8. UWAGI OGÓLNE')}
     <div class="remarks-box">${escapeHtml(String(cv(c, 'generalRemarks')))}</div>
   ` : '';
+
+  // ─── EWIDENCJA WIZYT ──────────────────────────────────────────────────────
+  const allVisits: any[] = Array.isArray(p.visits) ? p.visits : [];
+  const pastVisits = allVisits.filter((v: any) => ['ODBYTA','NIEOBECNOSC','ANULOWANA'].includes(v.status));
+  const plannedVisits = allVisits.filter((v: any) => ['ZAPLANOWANA','POTWIERDZONA','ZMIANA_TERMINU'].includes(v.status));
+
+  const statusLabel = (s: string) => ({
+    ODBYTA: 'Odbyta', NIEOBECNOSC: 'Nieobecność', ANULOWANA: 'Anulowana',
+    ZAPLANOWANA: 'Zaplanowana', POTWIERDZONA: 'Potwierdzona', ZMIANA_TERMINU: 'Zmiana terminu',
+  }[s] || s);
+
+  const visitRow = (v: any) => `
+    <tr class="visit-row">
+      <td class="visit-date">${formatDate(v.data)}</td>
+      <td class="visit-type">${escapeHtml(v.rodzajZabiegu || '—')}</td>
+      <td class="visit-status visit-status-${(v.status || '').toLowerCase()}">${statusLabel(v.status)}</td>
+      <td class="visit-notes">${v.notatki ? escapeHtml(v.notatki) : '—'}</td>
+      <td class="visit-series">${v.numerWSerii && v.liczbaSerii ? `${v.numerWSerii}/${v.liczbaSerii}` : '—'}</td>
+    </tr>`;
+
+  const emptyVisitRow = () => `
+    <tr class="visit-row visit-row-empty">
+      <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
+    </tr>`;
+
+  const visitsSection = `
+    ${sectionHeader('EWIDENCJA WIZYT')}
+    <div class="page-break"></div>
+
+    <p class="visits-subtitle">WIZYTY ODBYTE</p>
+    <table class="visit-table">
+      <thead><tr>
+        <th>Data</th><th>Rodzaj zabiegu</th><th>Status</th><th>Notatki</th><th>Seria</th>
+      </tr></thead>
+      <tbody>
+        ${pastVisits.length > 0 ? pastVisits.map(visitRow).join('') : emptyVisitRow()}
+        ${emptyVisitRow()}${emptyVisitRow()}${emptyVisitRow()}
+      </tbody>
+    </table>
+
+    <p class="visits-subtitle" style="margin-top:14px">WIZYTY ZAPLANOWANE</p>
+    <table class="visit-table">
+      <thead><tr>
+        <th>Data</th><th>Rodzaj zabiegu</th><th>Status</th><th>Notatki</th><th>Seria</th>
+      </tr></thead>
+      <tbody>
+        ${plannedVisits.length > 0 ? plannedVisits.map(visitRow).join('') : emptyVisitRow()}
+        ${emptyVisitRow()}${emptyVisitRow()}${emptyVisitRow()}
+      </tbody>
+    </table>
+  `;
 
   // ─── FULL HTML ─────────────────────────────────────────────────────────────
   const html = `
@@ -548,6 +675,94 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
           margin-bottom: 6px;
         }
 
+        /* ── Form-style rows (always visible questions) ── */
+        .form-row {
+          display: flex;
+          align-items: flex-start;
+          gap: 6px;
+          margin: 3px 0;
+          font-size: 7.5pt;
+          border-bottom: 1px dotted #e0e0e0;
+          padding-bottom: 2px;
+        }
+        .form-row-wide { flex-direction: column; gap: 2px; }
+        .form-label {
+          flex: 0 0 45%;
+          font-weight: 600;
+          color: #333;
+          line-height: 1.3;
+        }
+        .form-opts {
+          flex: 1;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 4px 8px;
+          align-items: center;
+        }
+        .form-opt {
+          white-space: nowrap;
+          font-size: 7pt;
+          color: #444;
+        }
+        .form-text-val {
+          flex: 1;
+          color: #222;
+          min-height: 12px;
+          border-bottom: 1px solid #aaa;
+        }
+        .form-blank {
+          color: #ccc;
+          font-size: 7pt;
+          letter-spacing: 1px;
+        }
+
+        /* ── Visit table ── */
+        .visits-subtitle {
+          font-size: 9pt;
+          font-weight: 700;
+          color: #1a3a5c;
+          margin: 8px 0 4px 0;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          border-left: 4px solid #1a3a5c;
+          padding-left: 6px;
+        }
+        .visit-table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 7.5pt;
+          margin-bottom: 8px;
+        }
+        .visit-table th {
+          background: #1a3a5c;
+          color: #fff;
+          padding: 4px 6px;
+          text-align: left;
+          font-weight: 600;
+          font-size: 7pt;
+        }
+        .visit-row td {
+          padding: 4px 6px;
+          border-bottom: 1px solid #ddd;
+          vertical-align: top;
+        }
+        .visit-row-empty td {
+          height: 18px;
+          background: #fafafa;
+          border-bottom: 1px dashed #e0e0e0;
+        }
+        .visit-date { white-space: nowrap; width: 80px; font-weight: 600; }
+        .visit-type { width: 35%; }
+        .visit-status { width: 80px; font-weight: 600; }
+        .visit-notes { }
+        .visit-series { width: 45px; text-align: center; }
+        .visit-status-odbyta { color: #1a6b2a; }
+        .visit-status-nieobecnosc { color: #b45309; }
+        .visit-status-anulowana { color: #9e2a2b; }
+        .visit-status-zaplanowana { color: #1d4ed8; }
+        .visit-status-potwierdzona { color: #047857; }
+        .visit-status-zmiana_terminu { color: #7c3aed; }
+
         /* ── Footer ── */
         .doc-footer {
           margin-top: 16px;
@@ -594,6 +809,9 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
 
       <!-- Remarks -->
       ${remarksSection}
+
+      <!-- Visits log -->
+      ${visitsSection}
 
       <!-- Footer -->
       <div class="doc-footer">
