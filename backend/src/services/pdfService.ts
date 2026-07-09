@@ -127,7 +127,17 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
     `<p class="subsection-header">${escapeHtml(title)}</p>`;
 
   const box = (content: string) =>
-    content.trim() ? `<div class="data-box">${content}</div>` : '';
+    `<div class="data-box">${content}</div>`;
+
+  // Empty section box — gray tinted, shown when section has no data
+  const emptyBox = (title: string) =>
+    `<div class="data-box empty-box"><p class="subsection-header">${escapeHtml(title)}</p><p class="empty-note">Nie uzupełniono</p></div>`;
+
+  // Renders box if has content, otherwise empty variant
+  const sectionBox = (title: string, content: string, hasContent: boolean) =>
+    hasContent ? box(`${subsectionHeader(title)}${content}`) : emptyBox(title);
+
+
 
   // ─── DANE PACJENTA ─────────────────────────────────────────────────────────
   const patientSection = `
@@ -137,59 +147,54 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
         ${fieldRow('Imię i nazwisko', `${p.firstName || ''} ${p.lastName || ''}`.trim())}
         ${fieldRow('Wiek', p.age)}
         ${fieldRow('Płeć', p.gender === 'FEMALE' ? 'Kobieta' : p.gender === 'MALE' ? 'Mężczyzna' : p.gender)}
-        ${fieldRow('Zawód', p.occupation)}
-      </div>
-      <div>
-        ${fieldRow('Adres', p.address)}
-        ${fieldRow('Telefon', p.phone)}
-        ${fieldRow('E-mail', p.email)}
-        ${fieldRow('Lekarz', c.doctor?.name)}
-      </div>
-    </div>`;
-
-  // ─── PROBLEMY ─────────────────────────────────────────────────────────────
-  const hairLossBox = cv(c, 'hairLossSeverity') || cv(c, 'hairLossLocalization') || cv(c, 'hairLossDuration')
-    ? box(`
-        ${subsectionHeader('1. WYPADANIE WŁOSÓW')}
+      // ─── PROBLEMY (zawsze widoczne) ──────────────────────────────────────────
+  const hairLossContent = `
         ${checkboxRow('Nasilenie', cv(c, 'hairLossSeverity'))}
         ${checkboxRow('Lokalizacja', cv(c, 'hairLossLocalization'))}
         ${checkboxRow('Czas trwania', cv(c, 'hairLossDuration'))}
         ${fieldRow('Szampony', cv(c, 'hairLossShampoos'))}
         ${fieldRow('Uwagi', cv(c, 'hairLossNotes'))}
-        ${noteRow(notes, 'hairLoss')}
-      `)
-    : '';
+        ${noteRow(notes, 'hairLoss')}`;
+  const hairLossBox = sectionBox('1. WYPADANIE WŁOSÓW', hairLossContent,
+    Boolean(cv(c, 'hairLossSeverity') || cv(c, 'hairLossLocalization') || cv(c, 'hairLossDuration')));
 
-  const oilyHairBox = cv(c, 'oilyHairSeverity') || cv(c, 'oilyHairWashingFreq')
-    ? box(`
-        ${subsectionHeader('2. PRZETŁUSZCZANIE WŁOSÓW')}
+  const oilyHairContent = `
         ${checkboxRow('Nasilenie', cv(c, 'oilyHairSeverity'))}
         ${checkboxRow('Częstotliwość mycia', cv(c, 'oilyHairWashingFreq'))}
         ${checkboxRow('Czas trwania', cv(c, 'oilyHairDuration'))}
         ${fieldRow('Szampony', cv(c, 'oilyHairShampoos'))}
         ${fieldRow('Uwagi', cv(c, 'oilyHairNotes'))}
-        ${noteRow(notes, 'oilyHair')}
-      `)
-    : '';
+        ${noteRow(notes, 'oilyHair')}`;
+  const oilyHairBox = sectionBox('2. PRETŁUSZCZANIE WŁOSÓW', oilyHairContent,
+    Boolean(cv(c, 'oilyHairSeverity') || cv(c, 'oilyHairWashingFreq')));
 
-  const scalingBox = cv(c, 'scalingSeverity') || cv(c, 'scalingType')
-    ? box(`
-        ${subsectionHeader('3. ŁUSZCZENIE SKÓRY GŁOWY')}
+  const scalingContent = `
         ${checkboxRow('Nasilenie', cv(c, 'scalingSeverity'))}
         ${checkboxRow(FIELD_LABELS['scalingType'] ?? 'Typ łuszczenia', cv(c, 'scalingType'))}
         ${checkboxRow('Czas trwania', cv(c, 'scalingDuration'))}
         ${fieldRow('Inne (opis)', cv(c, 'scalingOther'))}
-      `)
-    : '';
+        ${noteRow(notes, 'scaling')}`;
+  const scalingBox = sectionBox('3. ŁUSZCZENIE SKÓRY GŁOWY', scalingContent,
+    Boolean(cv(c, 'scalingSeverity') || cv(c, 'scalingType')));
 
-  const sensitivityBox = cv(c, 'sensitivitySeverity') || cv(c, 'sensitivityProblemType')
-    ? box(`
-        ${subsectionHeader('4. WRAŻLIWOŚĆ SKÓRY GŁOWY')}
+  const sensitivityContent = `
         ${checkboxRow(FIELD_LABELS['sensitivityProblemType'] ?? 'Typ problemu', cv(c, 'sensitivityProblemType'))}
         ${checkboxRow('Nasilenie', cv(c, 'sensitivitySeverity'))}
         ${checkboxRow('Czas trwania', cv(c, 'sensitivityDuration'))}
         ${fieldRow('Inne (opis)', cv(c, 'sensitivityOther'))}
         ${fieldRow(FIELD_LABELS['inflammatoryStates'] ?? 'Stany zapalne / grudki', cv(c, 'inflammatoryStates'))}
+        ${noteRow(notes, 'sensitivity')}`;
+  const sensitivityBox = sectionBox('4. WRAZLIWOŚĆ SKÓRY GŁOWY', sensitivityContent,
+    Boolean(cv(c, 'sensitivitySeverity') || cv(c, 'sensitivityProblemType')));
+
+  const problemsSection = `
+      ${sectionHeader('PROBLEMY ZGŁASZANE PRZEZ PACJENTA')}
+      <div class="two-col">
+        ${hairLossBox}
+        ${oilyHairBox}
+        ${scalingBox}
+        ${sensitivityBox}
+      </div>`;['inflammatoryStates'] ?? 'Stany zapalne / grudki', cv(c, 'inflammatoryStates'))}
       `)
     : '';
 
@@ -204,15 +209,12 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
       </div>`
     : '';
 
-  // ─── WYWIAD ───────────────────────────────────────────────────────────────
-  const hasAnamnesis = cv(c, 'familyHistory') || cv(c, 'medications') || cv(c, 'stressLevel') ||
-    cv(c, 'supplements') || cv(c, 'antibiotics') || cv(c, 'chronicDiseases');
-
-  const anamnesisSection = hasAnamnesis ? `
+  // ─── WYWIAD (zawsze widoczny) ─────────────────────────────────────────────
+  const anamnesisSection = `
     ${sectionHeader('2. WYWIAD')}
     <div class="two-col">
       <div>
-        ${checkboxRow(FIELD_LABELS['familyHistory'] ?? 'Wypadanie w rodzinie', cv(c, 'familyHistory'))}
+        ${checkboxRow(FIELD_LABELS['familyHistory'] ?? 'Wypadanie w rodzinie', cv(c, 'familyHistory')) || '<span class="empty-field">Nie podano</span>'}
         ${noteRow(notes, 'familyHistory')}
         ${checkboxRow(FIELD_LABELS['dermatologyVisits'] ?? 'Dermatolog', cv(c, 'dermatologyVisits'))}
         ${fieldRow(FIELD_LABELS['dermatologyVisitsReason'] ?? 'Powód wizyty', cv(c, 'dermatologyVisitsReason'))}
@@ -246,30 +248,26 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
         ${noteRow(notes, 'nutrition')}
       </div>
     </div>
-    ${(cv(c, 'careRoutineShampoo') || cv(c, 'careRoutineConditioner') || cv(c, 'careRoutineOils') || cv(c, 'careRoutineChemical')) ? `
-      <div class="care-row">
-        <strong>Aktualna pielęgnacja:</strong>
-        ${cv(c, 'careRoutineShampoo') ? `Szampon: ${escapeHtml(cv(c, 'careRoutineShampoo'))}, ` : ''}
-        ${cv(c, 'careRoutineConditioner') ? `Odżywka: ${escapeHtml(cv(c, 'careRoutineConditioner'))}, ` : ''}
-        ${cv(c, 'careRoutineOils') ? `Wcierki: ${escapeHtml(cv(c, 'careRoutineOils'))}, ` : ''}
-        ${cv(c, 'careRoutineChemical') ? `Zabiegi: ${escapeHtml(cv(c, 'careRoutineChemical'))}` : ''}
-      </div>` : ''}
+    <div class="care-row">
+      <strong>Aktualna pielęgnacja:</strong>
+      ${cv(c, 'careRoutineShampoo') ? `Szampon: ${escapeHtml(cv(c, 'careRoutineShampoo'))}, ` : ''}
+      ${cv(c, 'careRoutineConditioner') ? `Odżywka: ${escapeHtml(cv(c, 'careRoutineConditioner'))}, ` : ''}
+      ${cv(c, 'careRoutineOils') ? `Wcierki: ${escapeHtml(cv(c, 'careRoutineOils'))}, ` : ''}
+      ${cv(c, 'careRoutineChemical') ? `Zabiegi: ${escapeHtml(cv(c, 'careRoutineChemical'))}` : ''}
+      ${!cv(c, 'careRoutineShampoo') && !cv(c, 'careRoutineConditioner') && !cv(c, 'careRoutineOils') && !cv(c, 'careRoutineChemical')
+        ? '<em class="empty-field">Nie uzupełniono</em>' : ''}
+    </div>
     ${noteRow(notes, 'careRoutine')}
-  ` : '';
+  `;
 
-  // ─── TRICHOSKOPIA ─────────────────────────────────────────────────────────
-  const hasTrichoscopy = cv(c, 'scalpType') || cv(c, 'hairQuality') || cv(c, 'seborrheaType') ||
-    cv(c, 'scalpAppearance') || cv(c, 'skinLesions') || cv(c, 'hairDamage') ||
-    cv(c, 'hairTypes') || cv(c, 'vellusMiniaturizedHairs') || cv(c, 'vascularPatterns') ||
-    cv(c, 'perifollicularFeatures') || cv(c, 'scalpDiseases') || cv(c, 'otherDiagnostics');
-
-  const trichoscopySection = hasTrichoscopy ? `
+  // ─── TRICHOSKOPIA (zawsze widoczna) ─────────────────────────────────────────────
+  const trichoscopySection = `
     ${sectionHeader('3. TRICHOSKOPIA — BADANIE')}
     <div class="three-col">
-      ${box(`
-        ${subsectionHeader('SKÓRA GŁOWY')}
+      ${sectionBox('SKÓRA GŁOWY', `
         ${checkboxRow(FIELD_LABELS['scalpType'] ?? 'Typ skóry', cv(c, 'scalpType'))}
-        ${noteRow(notes, 'scalpType')}        ${checkboxRow(FIELD_LABELS['scalpAppearance'] ?? 'Wygląd skóry', cv(c, 'scalpAppearance'))}
+        ${noteRow(notes, 'scalpType')}
+        ${checkboxRow(FIELD_LABELS['scalpAppearance'] ?? 'Wygląd skóry', cv(c, 'scalpAppearance'))}
         ${checkboxRow(FIELD_LABELS['skinLesions'] ?? 'Wykwity skórne', cv(c, 'skinLesions'))}
         ${checkboxRow(FIELD_LABELS['hyperhidrosis'] ?? 'Potliwość', cv(c, 'hyperhidrosis'))}
         ${checkboxRow(FIELD_LABELS['hyperkeratinization'] ?? 'Rogowacenie', cv(c, 'hyperkeratinization'))}
@@ -277,27 +275,25 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
         ${checkboxRow(FIELD_LABELS['seborrheaType'] ?? 'Łojotok', cv(c, 'seborrheaType'))}
         ${fieldRow(FIELD_LABELS['seborrheaTypeOther'] ?? 'Inny łojotok', cv(c, 'seborrheaTypeOther'))}
         ${checkboxRow(FIELD_LABELS['dandruffType'] ?? 'Łupież', cv(c, 'dandruffType'))}
-        ${fieldRow(FIELD_LABELS['scalpPH'] ?? 'pH skóry', cv(c, 'scalpPH'))}
-      `)}
-      ${box(`
-        ${subsectionHeader('STAN WŁOSÓW')}
+        ${fieldRow(FIELD_LABELS['scalpPH'] ?? 'pH skóry', cv(c, 'scalpPH'))}`,
+        Boolean(cv(c, 'scalpType') || cv(c, 'scalpAppearance') || cv(c, 'seborrheaType') || cv(c, 'dandruffType')))}
+      ${sectionBox('STAN WŁOSÓW', `
         ${checkboxRow(FIELD_LABELS['hairQuality'] ?? 'Jakość', cv(c, 'hairQuality'))}
         ${checkboxRow(FIELD_LABELS['hairDamage'] ?? 'Uszkodzenia', cv(c, 'hairDamage'))}
         ${checkboxRow(FIELD_LABELS['hairDamageReason'] ?? 'Przyczyna', cv(c, 'hairDamageReason'))}
         ${checkboxRow(FIELD_LABELS['hairShape'] ?? 'Kształt', cv(c, 'hairShape'))}
         ${checkboxRow(FIELD_LABELS['hairTypes'] ?? 'Typy', cv(c, 'hairTypes'))}
         ${checkboxRow(FIELD_LABELS['regrowingHairs'] ?? 'Odrastające', cv(c, 'regrowingHairs'))}
-        ${checkboxRow(FIELD_LABELS['vellusMiniaturizedHairs'] ?? 'Vellus / Zminiaturyzowane', cv(c, 'vellusMiniaturizedHairs'))}
-      `)}
-      ${box(`
-        ${subsectionHeader('CECHY SPECYFICZNE')}
+        ${checkboxRow(FIELD_LABELS['vellusMiniaturizedHairs'] ?? 'Vellus / Zminiaturyzowane', cv(c, 'vellusMiniaturizedHairs'))}`,
+        Boolean(cv(c, 'hairQuality') || cv(c, 'hairDamage') || cv(c, 'hairTypes') || cv(c, 'vellusMiniaturizedHairs')))}
+      ${sectionBox('CECHY SPECYFICZNE', `
         ${checkboxRow(FIELD_LABELS['vascularPatterns'] ?? 'Unaczynienie', cv(c, 'vascularPatterns'))}
         ${checkboxRow(FIELD_LABELS['perifollicularFeatures'] ?? 'Cechy okołomieszkowe', cv(c, 'perifollicularFeatures'))}
         ${checkboxRow(FIELD_LABELS['scalpDiseases'] ?? 'Choroby skóry głowy', cv(c, 'scalpDiseases'))}
-        ${checkboxRow(FIELD_LABELS['otherDiagnostics'] ?? 'Inne', cv(c, 'otherDiagnostics'))}
-      `)}
+        ${checkboxRow(FIELD_LABELS['otherDiagnostics'] ?? 'Inne', cv(c, 'otherDiagnostics'))}`,
+        Boolean(cv(c, 'vascularPatterns') || cv(c, 'perifollicularFeatures') || cv(c, 'scalpDiseases') || cv(c, 'otherDiagnostics')))}
     </div>
-  ` : '';
+  `;
 
   // ─── DIAGNOSTYKA LABORATORYJNA ────────────────────────────────────────────
   const labSection = lab ? `
@@ -518,6 +514,24 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
         .doctor-note .note-icon { margin-right: 4px; }
         .doctor-note .note-text { }
 
+        /* ── Empty section state ── */
+        .empty-box {
+          background: #F8F9FA;
+          border-color: #E0E0E0;
+          opacity: 0.8;
+        }
+        .empty-note {
+          font-style: italic;
+          color: #9E9E9E;
+          font-size: 8pt;
+          margin: 4px 0;
+        }
+        .empty-field {
+          font-style: italic;
+          color: #9E9E9E;
+          font-size: 8pt;
+        }
+
         /* ── Diagnosis ── */
         .diagnosis-text {
           font-size: 10pt;
@@ -570,7 +584,7 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
       ${anamnesisSection}
 
       <!-- Trichoscopy -->
-      ${hasTrichoscopy ? '<div class="page-break"></div>' : ''}
+      <div class="page-break"></div>
       ${trichoscopySection}
 
       <!-- Lab results -->

@@ -117,6 +117,26 @@ const renderNote = (notes: Record<string, string> | null | undefined, key: strin
   );
 };
 
+// Empty placeholder — gray italic block for unfilled sections/fields
+const EmptyPlaceholder = () => (
+  <Typography sx={{ fontSize: 12, color: '#9E9E9E', fontStyle: 'italic', py: 0.5 }}>
+    Nie uzupełniono
+  </Typography>
+);
+
+// Section box wrapper: white if has content, gray-tinted if empty
+const SectionBox = ({ hasContent, children }: { hasContent: boolean; children: React.ReactNode }) => (
+  <Box sx={{
+    border: `1px solid ${hasContent ? '#ccc' : '#E0E0E0'}`,
+    bgcolor: hasContent ? '#fff' : '#FAFAFA',
+    p: 1.5, borderRadius: 1, mb: 2,
+    opacity: hasContent ? 1 : 0.75,
+  }}>
+    {children}
+    {!hasContent && <EmptyPlaceholder />}
+  </Box>
+);
+
 export default function ConsultationViewPage() {
   const { id } = useParams<{ id: string }>();
   const [consultation, setConsultation] = useState<any>(null);
@@ -456,95 +476,81 @@ export default function ConsultationViewPage() {
           </Box>
         )}
 
-        {/* Section: Problems */}
-        {!hasTemplate && (hasHairLossData || hasOilyHairData || consultation.scalingSeverity || consultation.sensitivitySeverity) && (
+        {/* Section: Problems — always visible */}
+        {!hasTemplate && (
           <>
             <Box sx={{
-              backgroundColor: '#e0e0e0',
-              fontWeight: 'bold',
-              fontSize: '1rem',
-              p: 1,
-              mt: 3,
-              mb: 2,
-              borderLeft: '5px solid #333',
-              textTransform: 'uppercase'
+              backgroundColor: '#e0e0e0', fontWeight: 'bold', fontSize: '1rem',
+              p: 1, mt: 3, mb: 2, borderLeft: '5px solid #333', textTransform: 'uppercase'
             }}>
               Problemy zgłaszane przez pacjenta
             </Box>
             <Grid container spacing={2} sx={{ mb: 2 }}>
-              {hasHairLossData && (
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <Box sx={{ border: '1px solid #ccc', p: 1.5, borderRadius: 1, mb: 2 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, textDecoration: 'underline' }}>
-                      1. WYPADANIE WŁOSÓW
-                    </Typography>
-                    {renderCheckboxInfo('Nasilenie', getFieldValue('hairLossSeverity'))}
-                    {renderCheckboxInfo('Lokalizacja', getFieldValue('hairLossLocalization'))}
-                    {renderCheckboxInfo('Czas trwania', getFieldValue('hairLossDuration'))}
-                    {getFieldValue('hairLossShampoos') && renderFieldRow('Szampony', getFieldValue('hairLossShampoos'))}
-                    {hairLossNotesValue && renderFieldRow('Uwagi', hairLossNotesValue)}
-                    {renderNote(fieldNotes, 'hairLoss')}
-                  </Box>
-                </Grid>
-              )}
-              {hasOilyHairData && (
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <Box sx={{ border: '1px solid #ccc', p: 1.5, borderRadius: 1, mb: 2 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, textDecoration: 'underline' }}>
-                      2. PRZETŁUSZCZANIE WŁOSÓW
-                    </Typography>
-                    {renderCheckboxInfo('Nasilenie', getFieldValue('oilyHairSeverity'))}
-                    {renderCheckboxInfo('Częstotliwość mycia', getFieldValue('oilyHairWashingFreq'))}
-                    {renderCheckboxInfo('Czas trwania', getFieldValue('oilyHairDuration'))}
-                    {getFieldValue('oilyHairShampoos') && renderFieldRow('Szampony', getFieldValue('oilyHairShampoos'))}
-                    {oilyHairNotesValue && renderFieldRow('Uwagi', oilyHairNotesValue)}
-                    {renderNote(fieldNotes, 'oilyHair')}
-                  </Box>
-                </Grid>
-              )}
-              {(getFieldValue('scalingSeverity') || getFieldValue('scalingType')) && (
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <Box sx={{ border: '1px solid #ccc', p: 1.5, borderRadius: 1, mb: 2 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, textDecoration: 'underline' }}>
-                      3. ŁUSZCZENIE SKÓRY GŁOWY
-                    </Typography>
-                    {renderCheckboxInfo('Nasilenie', getFieldValue('scalingSeverity'))}
-                    {renderCheckboxInfo('Typ łuszczenia', getFieldValue('scalingType'))}
-                    {renderCheckboxInfo('Czas trwania', getFieldValue('scalingDuration'))}
-                    {getFieldValue('scalingOther') && renderFieldRow('Inne', getFieldValue('scalingOther'))}
-                  </Box>
-                </Grid>
-              )}
-              {(getFieldValue('sensitivitySeverity') || getFieldValue('sensitivityProblemType')) && (
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <Box sx={{ border: '1px solid #ccc', p: 1.5, borderRadius: 1, mb: 2 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, textDecoration: 'underline' }}>
-                      4. WRAŻLIWOŚĆ SKÓRY GŁOWY
-                    </Typography>
-                    {renderCheckboxInfo('Typ problemu', getFieldValue('sensitivityProblemType'))}
-                    {renderCheckboxInfo('Nasilenie', getFieldValue('sensitivitySeverity'))}
-                    {renderCheckboxInfo('Czas trwania', getFieldValue('sensitivityDuration'))}
-                    {getFieldValue('sensitivityOther') && renderFieldRow('Inne', getFieldValue('sensitivityOther'))}
-                    {getFieldValue('inflammatoryStates') && renderFieldRow('Stany zapalne / grudki', getFieldValue('inflammatoryStates'))}
-                  </Box>
-                </Grid>
-              )}
+              {/* 1. Wypadanie */}
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <SectionBox hasContent={hasHairLossData}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, textDecoration: 'underline' }}>
+                    1. WYPADANIE WŁOSÓW
+                  </Typography>
+                  {renderCheckboxInfo('Nasilenie', getFieldValue('hairLossSeverity'))}
+                  {renderCheckboxInfo('Lokalizacja', getFieldValue('hairLossLocalization'))}
+                  {renderCheckboxInfo('Czas trwania', getFieldValue('hairLossDuration'))}
+                  {getFieldValue('hairLossShampoos') && renderFieldRow('Szampony', getFieldValue('hairLossShampoos'))}
+                  {hairLossNotesValue && renderFieldRow('Uwagi', hairLossNotesValue)}
+                  {renderNote(fieldNotes, 'hairLoss')}
+                </SectionBox>
+              </Grid>
+              {/* 2. Pretłuszczanie */}
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <SectionBox hasContent={hasOilyHairData}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, textDecoration: 'underline' }}>
+                    2. PRETŁUSZCZANIE WŁOSÓW
+                  </Typography>
+                  {renderCheckboxInfo('Nasilenie', getFieldValue('oilyHairSeverity'))}
+                  {renderCheckboxInfo('Częstotliwość mycia', getFieldValue('oilyHairWashingFreq'))}
+                  {renderCheckboxInfo('Czas trwania', getFieldValue('oilyHairDuration'))}
+                  {getFieldValue('oilyHairShampoos') && renderFieldRow('Szampony', getFieldValue('oilyHairShampoos'))}
+                  {oilyHairNotesValue && renderFieldRow('Uwagi', oilyHairNotesValue)}
+                  {renderNote(fieldNotes, 'oilyHair')}
+                </SectionBox>
+              </Grid>
+              {/* 3. Łuszczenie */}
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <SectionBox hasContent={Boolean(getFieldValue('scalingSeverity') || getFieldValue('scalingType'))}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, textDecoration: 'underline' }}>
+                    3. ŁUSZCZENIE SKÓRY GŁOWY
+                  </Typography>
+                  {renderCheckboxInfo('Nasilenie', getFieldValue('scalingSeverity'))}
+                  {renderCheckboxInfo('Typ łuszczenia', getFieldValue('scalingType'))}
+                  {renderCheckboxInfo('Czas trwania', getFieldValue('scalingDuration'))}
+                  {getFieldValue('scalingOther') && renderFieldRow('Inne', getFieldValue('scalingOther'))}
+                  {renderNote(fieldNotes, 'scaling')}
+                </SectionBox>
+              </Grid>
+              {/* 4. Wrażliwość */}
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <SectionBox hasContent={Boolean(getFieldValue('sensitivitySeverity') || getFieldValue('sensitivityProblemType'))}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, textDecoration: 'underline' }}>
+                    4. WRAZLIWOŚĆ SKÓRY GŁOWY
+                  </Typography>
+                  {renderCheckboxInfo('Typ problemu', getFieldValue('sensitivityProblemType'))}
+                  {renderCheckboxInfo('Nasilenie', getFieldValue('sensitivitySeverity'))}
+                  {renderCheckboxInfo('Czas trwania', getFieldValue('sensitivityDuration'))}
+                  {getFieldValue('sensitivityOther') && renderFieldRow('Inne', getFieldValue('sensitivityOther'))}
+                  {getFieldValue('inflammatoryStates') && renderFieldRow('Stany zapalne / grudki', getFieldValue('inflammatoryStates'))}
+                  {renderNote(fieldNotes, 'sensitivity')}
+                </SectionBox>
+              </Grid>
             </Grid>
           </>
         )}
 
-        {/* Section: Anamnesis */}
-        {!hasTemplate && (getFieldValue('familyHistory') || getFieldValue('medications') || getFieldValue('stressLevel') || getFieldValue('supplements') || getFieldValue('antibiotics') || supplementsDetailsValue || antibioticsDetailsValue) && (
+        {/* Section: Anamnesis — always visible */}
+        {!hasTemplate && (
           <>
             <Box sx={{
-              backgroundColor: '#e0e0e0',
-              fontWeight: 'bold',
-              fontSize: '1rem',
-              p: 1,
-              mt: 3,
-              mb: 2,
-              borderLeft: '5px solid #333',
-              textTransform: 'uppercase'
+              backgroundColor: '#e0e0e0', fontWeight: 'bold', fontSize: '1rem',
+              p: 1, mt: 3, mb: 2, borderLeft: '5px solid #333', textTransform: 'uppercase'
             }}>
               Wywiad (Anamneza)
             </Box>
@@ -563,6 +569,8 @@ export default function ConsultationViewPage() {
                 {getFieldValue('supplements') && renderFieldRow(FIELD_LABELS['supplements'] ?? 'Suplementy', getFieldValue('supplements'))}
                 {supplementsDetailsValue && renderFieldRow(FIELD_LABELS['supplementsDetails'] ?? 'Jakie suplementy?', supplementsDetailsValue)}
                 {renderNote(fieldNotes, 'medications')}
+                {!getFieldValue('familyHistory') && !getFieldValue('dermatologyVisits') && !getFieldValue('pregnancy') &&
+                  !getFieldValue('stressLevel') && !getFieldValue('medications') && <EmptyPlaceholder />}
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
                 {renderCheckboxInfo(FIELD_LABELS['anesthesia'] ?? 'Znieczulenie', getFieldValue('anesthesia'))}
@@ -582,100 +590,92 @@ export default function ConsultationViewPage() {
                 {getFieldValue('allergies') && renderFieldRow(FIELD_LABELS['allergies'] ?? 'Alergie', getFieldValue('allergies'))}
                 {renderCheckboxInfo(FIELD_LABELS['metalPartsInBody'] ?? 'Metal w ciele', getFieldValue('metalPartsInBody'))}
                 {renderNote(fieldNotes, 'nutrition')}
+                {!getFieldValue('chronicDiseases') && !getFieldValue('specialists') && !getFieldValue('eatingDisorders') &&
+                  !getFieldValue('allergies') && !getFieldValue('anesthesia') && <EmptyPlaceholder />}
               </Grid>
             </Grid>
-            {(getFieldValue('careRoutineShampoo') || getFieldValue('careRoutineConditioner') || getFieldValue('careRoutineOils') || getFieldValue('careRoutineChemical')) && (
-              <Box sx={{
-                borderTop: '1px dashed #ccc',
-                mt: 2,
-                pt: 1,
-                fontSize: '0.875rem',
-                mb: 2
-              }}>
-                <Typography component="strong">Aktualna pielęgnacja:</Typography>{' '}
-                {getFieldValue('careRoutineShampoo') && `Szampon: ${getFieldValue('careRoutineShampoo')}, `}
-                {getFieldValue('careRoutineConditioner') && `Odżywka: ${getFieldValue('careRoutineConditioner')}, `}
-                {getFieldValue('careRoutineOils') && `Wcierki: ${getFieldValue('careRoutineOils')}, `}
-                {getFieldValue('careRoutineChemical') && `Zabiegi: ${getFieldValue('careRoutineChemical')}`}
-              </Box>
-            )}
+            <Box sx={{ borderTop: '1px dashed #ccc', mt: 2, pt: 1, fontSize: '0.875rem', mb: 2 }}>
+              <Typography component="strong">Aktualna pielęgnacja:</Typography>{' '}
+              {getFieldValue('careRoutineShampoo') ? `Szampon: ${getFieldValue('careRoutineShampoo')}, ` : ''}
+              {getFieldValue('careRoutineConditioner') ? `Odżywka: ${getFieldValue('careRoutineConditioner')}, ` : ''}
+              {getFieldValue('careRoutineOils') ? `Wcierki: ${getFieldValue('careRoutineOils')}, ` : ''}
+              {getFieldValue('careRoutineChemical') ? `Zabiegi: ${getFieldValue('careRoutineChemical')}` : ''}
+              {!getFieldValue('careRoutineShampoo') && !getFieldValue('careRoutineConditioner') &&
+                !getFieldValue('careRoutineOils') && !getFieldValue('careRoutineChemical') && (
+                  <Typography component="span" sx={{ color: '#9E9E9E', fontStyle: 'italic', fontSize: '0.875rem' }}>Nie uzupełniono</Typography>
+              )}
+            </Box>
             {renderNote(fieldNotes, 'careRoutine')}
           </>
         )}
 
-        {/* Section: Trichoscopy */}
+        {/* Section: Trichoscopy — always visible */}
         {!hasTemplate && (
-          getFieldValue('scalpType') || getFieldValue('hairQuality') || getFieldValue('seborrheaType') ||
-          getFieldValue('scalpAppearance') || getFieldValue('skinLesions') || getFieldValue('hairDamage') ||
-          getFieldValue('hairTypes') || getFieldValue('vellusMiniaturizedHairs') || getFieldValue('vascularPatterns') ||
-          getFieldValue('perifollicularFeatures') || getFieldValue('scalpDiseases') || getFieldValue('otherDiagnostics')
-        ) && (
           <>
             <Box sx={{
-              backgroundColor: '#e0e0e0',
-              fontWeight: 'bold',
-              fontSize: '1rem',
-              p: 1,
-              mt: 3,
-              mb: 2,
-              borderLeft: '5px solid #333',
-              textTransform: 'uppercase'
+              backgroundColor: '#e0e0e0', fontWeight: 'bold', fontSize: '1rem',
+              p: 1, mt: 3, mb: 2, borderLeft: '5px solid #333', textTransform: 'uppercase'
             }}>
               Trichoskopia - Badanie
             </Box>
             <Grid container spacing={2} sx={{ mb: 2 }}>
               <Grid size={{ xs: 12, sm: 4 }}>
-                <Box sx={{ border: '1px solid #ccc', p: 1.5, borderRadius: 1 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, textDecoration: 'underline' }}>
-                    SKÓRA GŁOWY
-                  </Typography>
-                  {renderCheckboxInfo('Typ', getFieldValue('scalpType'))}
-                  {renderNote(fieldNotes, 'scalpType')}
-                  {renderCheckboxInfo('Objawy', getFieldValue('scalpAppearance'))}
-                  {renderCheckboxInfo('Wykwity', getFieldValue('skinLesions'))}
-                  {renderCheckboxInfo('Potliwość', getFieldValue('hyperhidrosis'))}
-                  {renderCheckboxInfo('Hiperkeratynizacja', getFieldValue('hyperkeratinization'))}
-                  {renderCheckboxInfo('Wydzielina', getFieldValue('sebaceousSecretion'))}
-                  {renderCheckboxInfo('Łojotok', getFieldValue('seborrheaType'))}
-                  {getFieldValue('seborrheaTypeOther') && renderFieldRow('Inne', getFieldValue('seborrheaTypeOther'))}
-                  {renderCheckboxInfo('Złuszczanie', getFieldValue('dandruffType'))}
-                  {renderCheckboxInfo('pH', getFieldValue('scalpPH'))}
-                </Box>
+                {(() => {
+                  const hasSkalp = getFieldValue('scalpType') || getFieldValue('scalpAppearance') || getFieldValue('skinLesions') ||
+                    getFieldValue('hyperhidrosis') || getFieldValue('hyperkeratinization') || getFieldValue('seborrheaType') ||
+                    getFieldValue('dandruffType') || getFieldValue('scalpPH');
+                  return (
+                    <SectionBox hasContent={Boolean(hasSkalp)}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, textDecoration: 'underline' }}>SKÓRA GŁOWY</Typography>
+                      {renderCheckboxInfo('Typ', getFieldValue('scalpType'))}
+                      {renderNote(fieldNotes, 'scalpType')}
+                      {renderCheckboxInfo('Objawy', getFieldValue('scalpAppearance'))}
+                      {renderCheckboxInfo('Wykwity', getFieldValue('skinLesions'))}
+                      {renderCheckboxInfo('Potliwość', getFieldValue('hyperhidrosis'))}
+                      {renderCheckboxInfo('Hiperkeratynizacja', getFieldValue('hyperkeratinization'))}
+                      {renderCheckboxInfo('Wydzielina', getFieldValue('sebaceousSecretion'))}
+                      {renderCheckboxInfo('Łojotok', getFieldValue('seborrheaType'))}
+                      {getFieldValue('seborrheaTypeOther') && renderFieldRow('Inne', getFieldValue('seborrheaTypeOther'))}
+                      {renderCheckboxInfo('Złuszczanie', getFieldValue('dandruffType'))}
+                      {renderCheckboxInfo('pH', getFieldValue('scalpPH'))}
+                    </SectionBox>
+                  );
+                })()}
               </Grid>
               <Grid size={{ xs: 12, sm: 4 }}>
-                <Box sx={{ border: '1px solid #ccc', p: 1.5, borderRadius: 1 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, textDecoration: 'underline' }}>
-                    STAN WŁOSÓW
-                  </Typography>
-                  {renderCheckboxInfo('Jakość', getFieldValue('hairQuality'))}
-                  {renderCheckboxInfo('Uszkodzenia', getFieldValue('hairDamage'))}
-                  {renderCheckboxInfo('Przyczyna', getFieldValue('hairDamageReason'))}
-                  {renderCheckboxInfo('Kształt', getFieldValue('hairShape'))}
-                  {renderCheckboxInfo('Typy', getFieldValue('hairTypes'))}
-                  {renderCheckboxInfo('Odrastające', getFieldValue('regrowingHairs'))}
-                  {renderCheckboxInfo('Vellus', getFieldValue('vellusMiniaturizedHairs'))}
-                </Box>
+                {(() => {
+                  const hasHair = getFieldValue('hairQuality') || getFieldValue('hairDamage') || getFieldValue('hairShape') ||
+                    getFieldValue('hairTypes') || getFieldValue('vellusMiniaturizedHairs');
+                  return (
+                    <SectionBox hasContent={Boolean(hasHair)}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, textDecoration: 'underline' }}>STAN WŁOSÓW</Typography>
+                      {renderCheckboxInfo('Jakość', getFieldValue('hairQuality'))}
+                      {renderCheckboxInfo('Uszkodzenia', getFieldValue('hairDamage'))}
+                      {renderCheckboxInfo('Przyczyna', getFieldValue('hairDamageReason'))}
+                      {renderCheckboxInfo('Kształt', getFieldValue('hairShape'))}
+                      {renderCheckboxInfo('Typy', getFieldValue('hairTypes'))}
+                      {renderCheckboxInfo('Odrastające', getFieldValue('regrowingHairs'))}
+                      {renderCheckboxInfo('Vellus', getFieldValue('vellusMiniaturizedHairs'))}
+                    </SectionBox>
+                  );
+                })()}
               </Grid>
               <Grid size={{ xs: 12, sm: 4 }}>
-                <Box sx={{ border: '1px solid #ccc', p: 1.5, borderRadius: 1 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, textDecoration: 'underline' }}>
-                    CECHY SPECYFICZNE
-                  </Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                    {getFieldValue('vascularPatterns') && (
-                      <Chip label={formatJsonField(getFieldValue('vascularPatterns'))} size="small" />
-                    )}
-                    {getFieldValue('perifollicularFeatures') && (
-                      <Chip label={formatJsonField(getFieldValue('perifollicularFeatures'))} size="small" />
-                    )}
-                    {getFieldValue('scalpDiseases') && (
-                      <Chip label={formatJsonField(getFieldValue('scalpDiseases'))} size="small" />
-                    )}
-                    {getFieldValue('otherDiagnostics') && (
-                      <Chip label={formatJsonField(getFieldValue('otherDiagnostics'))} size="small" />
-                    )}
-                  </Box>
-                </Box>
+                {(() => {
+                  const hasSpecific = getFieldValue('vascularPatterns') || getFieldValue('perifollicularFeatures') ||
+                    getFieldValue('scalpDiseases') || getFieldValue('otherDiagnostics');
+                  return (
+                    <SectionBox hasContent={Boolean(hasSpecific)}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, textDecoration: 'underline' }}>CECHY SPECYFICZNE</Typography>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                        {getFieldValue('vascularPatterns') && (<Chip label={formatJsonField(getFieldValue('vascularPatterns'))} size="small" />)}
+                        {getFieldValue('perifollicularFeatures') && (<Chip label={formatJsonField(getFieldValue('perifollicularFeatures'))} size="small" />)}
+                        {getFieldValue('scalpDiseases') && (<Chip label={formatJsonField(getFieldValue('scalpDiseases'))} size="small" />)}
+                        {getFieldValue('otherDiagnostics') && (<Chip label={formatJsonField(getFieldValue('otherDiagnostics'))} size="small" />)}
+                      </Box>
+                    </SectionBox>
+                  );
+                })()}
               </Grid>
             </Grid>
           </>
@@ -785,16 +785,18 @@ export default function ConsultationViewPage() {
           </Grid>
         )}
 
-        {/* General Remarks */}
-        {!hasTemplate && getFieldValue('generalRemarks') && (
+        {/* General Remarks — always visible */}
+        {!hasTemplate && (
           <Box sx={{
-            border: '1px solid #ccc',
-            mt: 3,
-            p: 2,
-            backgroundColor: '#fffbe6',
+            border: '1px solid #ccc', mt: 3, p: 2,
+            backgroundColor: getFieldValue('generalRemarks') ? '#fffbe6' : '#FAFAFA',
             borderRadius: 1
           }}>
-            <Typography component="strong">Uwagi dodatkowe:</Typography> {getFieldValue('generalRemarks')}
+            <Typography component="strong">Uwagi dodatkowe: </Typography>
+            {getFieldValue('generalRemarks')
+              ? <Typography component="span">{getFieldValue('generalRemarks')}</Typography>
+              : <Typography component="span" sx={{ color: '#9E9E9E', fontStyle: 'italic', fontSize: '0.875rem' }}>Nie uzupełniono</Typography>
+            }
           </Box>
         )}
 
