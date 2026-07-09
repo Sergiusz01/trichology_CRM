@@ -138,7 +138,6 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
     hasContent ? box(`${subsectionHeader(title)}${content}`) : emptyBox(title);
 
 
-
   // ─── DANE PACJENTA ─────────────────────────────────────────────────────────
   const patientSection = `
     ${sectionHeader('DANE PACJENTA')}
@@ -147,7 +146,17 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
         ${fieldRow('Imię i nazwisko', `${p.firstName || ''} ${p.lastName || ''}`.trim())}
         ${fieldRow('Wiek', p.age)}
         ${fieldRow('Płeć', p.gender === 'FEMALE' ? 'Kobieta' : p.gender === 'MALE' ? 'Mężczyzna' : p.gender)}
-      // ─── PROBLEMY (zawsze widoczne) ──────────────────────────────────────────
+        ${fieldRow('Zawód', p.occupation)}
+      </div>
+      <div>
+        ${fieldRow('Adres', p.address)}
+        ${fieldRow('Telefon', p.phone)}
+        ${fieldRow('E-mail', p.email)}
+        ${fieldRow('Lekarz', c.doctor?.name)}
+      </div>
+    </div>`;
+
+  // ─── PROBLEMY (zawsze widoczne) ──────────────────────────────────────────
   const hairLossContent = `
         ${checkboxRow('Nasilenie', cv(c, 'hairLossSeverity'))}
         ${checkboxRow('Lokalizacja', cv(c, 'hairLossLocalization'))}
@@ -165,7 +174,7 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
         ${fieldRow('Szampony', cv(c, 'oilyHairShampoos'))}
         ${fieldRow('Uwagi', cv(c, 'oilyHairNotes'))}
         ${noteRow(notes, 'oilyHair')}`;
-  const oilyHairBox = sectionBox('2. PRETŁUSZCZANIE WŁOSÓW', oilyHairContent,
+  const oilyHairBox = sectionBox('2. PRZETŁUSZCZANIE WŁOSÓW', oilyHairContent,
     Boolean(cv(c, 'oilyHairSeverity') || cv(c, 'oilyHairWashingFreq')));
 
   const scalingContent = `
@@ -184,7 +193,7 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
         ${fieldRow('Inne (opis)', cv(c, 'sensitivityOther'))}
         ${fieldRow(FIELD_LABELS['inflammatoryStates'] ?? 'Stany zapalne / grudki', cv(c, 'inflammatoryStates'))}
         ${noteRow(notes, 'sensitivity')}`;
-  const sensitivityBox = sectionBox('4. WRAZLIWOŚĆ SKÓRY GŁOWY', sensitivityContent,
+  const sensitivityBox = sectionBox('4. WRAŻLIWOŚĆ SKÓRY GŁOWY', sensitivityContent,
     Boolean(cv(c, 'sensitivitySeverity') || cv(c, 'sensitivityProblemType')));
 
   const problemsSection = `
@@ -194,20 +203,9 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
         ${oilyHairBox}
         ${scalingBox}
         ${sensitivityBox}
-      </div>`;['inflammatoryStates'] ?? 'Stany zapalne / grudki', cv(c, 'inflammatoryStates'))}
-      `)
-    : '';
+      </div>`;
 
-  const problemsSection = (hairLossBox || oilyHairBox || scalingBox || sensitivityBox)
-    ? `
-      ${sectionHeader('PROBLEMY ZGŁASZANE PRZEZ PACJENTA')}
-      <div class="two-col">
-        ${hairLossBox}
-        ${oilyHairBox}
-        ${scalingBox}
-        ${sensitivityBox}
-      </div>`
-    : '';
+
 
   // ─── WYWIAD (zawsze widoczny) ─────────────────────────────────────────────
   const anamnesisSection = `
