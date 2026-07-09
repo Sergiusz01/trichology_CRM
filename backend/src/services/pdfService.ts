@@ -94,10 +94,30 @@ const checkboxRow = (label: string, value: any): string => {
     </div>`;
 };
 
+// Render a doctor note block — amber italic, only if note exists
+const noteRow = (notes: Record<string, string> | null, key: string): string => {
+  if (!notes || !notes[key]) return '';
+  return `
+    <div class="doctor-note">
+      <span class="note-icon">✏</span>
+      <span class="note-text">Notatka lekarza: ${escapeHtml(notes[key])}</span>
+    </div>`;
+};
+
+// Safely extract fieldNotes from consultation (may be string JSON or object)
+const getFieldNotes = (c: any): Record<string, string> => {
+  const raw = cv(c, 'fieldNotes');
+  if (!raw) return {};
+  if (typeof raw === 'string') { try { return JSON.parse(raw); } catch { return {}; } }
+  if (typeof raw === 'object' && !Array.isArray(raw)) return raw;
+  return {};
+};
+
 export const generateConsultationPDF = async (consultation: any): Promise<Buffer> => {
   const c = consultation;
   const p = c.patient || {};
   const lab = Array.isArray(c.labResults) && c.labResults.length > 0 ? c.labResults[0] : null;
+  const notes = getFieldNotes(c);  // doctor inline notes per field
 
   // ─── Section helpers ───────────────────────────────────────────────────────
   const sectionHeader = (title: string) =>
@@ -136,6 +156,7 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
         ${checkboxRow('Czas trwania', cv(c, 'hairLossDuration'))}
         ${fieldRow('Szampony', cv(c, 'hairLossShampoos'))}
         ${fieldRow('Uwagi', cv(c, 'hairLossNotes'))}
+        ${noteRow(notes, 'hairLoss')}
       `)
     : '';
 
@@ -147,6 +168,7 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
         ${checkboxRow('Czas trwania', cv(c, 'oilyHairDuration'))}
         ${fieldRow('Szampony', cv(c, 'oilyHairShampoos'))}
         ${fieldRow('Uwagi', cv(c, 'oilyHairNotes'))}
+        ${noteRow(notes, 'oilyHair')}
       `)
     : '';
 
@@ -191,6 +213,7 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
     <div class="two-col">
       <div>
         ${checkboxRow(FIELD_LABELS['familyHistory'] ?? 'Wypadanie w rodzinie', cv(c, 'familyHistory'))}
+        ${noteRow(notes, 'familyHistory')}
         ${checkboxRow(FIELD_LABELS['dermatologyVisits'] ?? 'Dermatolog', cv(c, 'dermatologyVisits'))}
         ${fieldRow(FIELD_LABELS['dermatologyVisitsReason'] ?? 'Powód wizyty', cv(c, 'dermatologyVisitsReason'))}
         ${checkboxRow(FIELD_LABELS['pregnancy'] ?? 'Ciąża', cv(c, 'pregnancy'))}
@@ -201,6 +224,7 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
         ${fieldRow(FIELD_LABELS['medicationsList'] ?? 'Lista leków', cv(c, 'medicationsList'))}
         ${fieldRow(FIELD_LABELS['supplements'] ?? 'Suplementy', cv(c, 'supplements'))}
         ${fieldRow(FIELD_LABELS['supplementsDetails'] ?? 'Jakie suplementy?', cv(c, 'supplementsDetails'))}
+        ${noteRow(notes, 'medications')}
       </div>
       <div>
         ${checkboxRow(FIELD_LABELS['anesthesia'] ?? 'Znieczulenie', cv(c, 'anesthesia'))}
@@ -211,6 +235,7 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
         ${fieldRow(FIELD_LABELS['antibioticsDetails'] ?? 'Jakie antybiotyki?', cv(c, 'antibioticsDetails'))}
         ${checkboxRow(FIELD_LABELS['chronicDiseases'] ?? 'Choroby przewlekłe', cv(c, 'chronicDiseases'))}
         ${fieldRow(FIELD_LABELS['chronicDiseasesList'] ?? 'Lista chorób', cv(c, 'chronicDiseasesList'))}
+        ${noteRow(notes, 'chronicDiseases')}
         ${checkboxRow(FIELD_LABELS['specialists'] ?? 'Specjaliści', cv(c, 'specialists'))}
         ${fieldRow(FIELD_LABELS['specialistsList'] ?? 'Jacy specjaliści?', cv(c, 'specialistsList'))}
         ${checkboxRow(FIELD_LABELS['eatingDisorders'] ?? 'Zaburzenia odżywiania', cv(c, 'eatingDisorders'))}
@@ -218,6 +243,7 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
         ${fieldRow(FIELD_LABELS['diet'] ?? 'Dieta', cv(c, 'diet'))}
         ${fieldRow(FIELD_LABELS['allergies'] ?? 'Alergie', cv(c, 'allergies'))}
         ${checkboxRow(FIELD_LABELS['metalPartsInBody'] ?? 'Części metalowe', cv(c, 'metalPartsInBody'))}
+        ${noteRow(notes, 'nutrition')}
       </div>
     </div>
     ${(cv(c, 'careRoutineShampoo') || cv(c, 'careRoutineConditioner') || cv(c, 'careRoutineOils') || cv(c, 'careRoutineChemical')) ? `
@@ -228,6 +254,7 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
         ${cv(c, 'careRoutineOils') ? `Wcierki: ${escapeHtml(cv(c, 'careRoutineOils'))}, ` : ''}
         ${cv(c, 'careRoutineChemical') ? `Zabiegi: ${escapeHtml(cv(c, 'careRoutineChemical'))}` : ''}
       </div>` : ''}
+    ${noteRow(notes, 'careRoutine')}
   ` : '';
 
   // ─── TRICHOSKOPIA ─────────────────────────────────────────────────────────
@@ -242,7 +269,7 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
       ${box(`
         ${subsectionHeader('SKÓRA GŁOWY')}
         ${checkboxRow(FIELD_LABELS['scalpType'] ?? 'Typ skóry', cv(c, 'scalpType'))}
-        ${checkboxRow(FIELD_LABELS['scalpAppearance'] ?? 'Wygląd skóry', cv(c, 'scalpAppearance'))}
+        ${noteRow(notes, 'scalpType')}        ${checkboxRow(FIELD_LABELS['scalpAppearance'] ?? 'Wygląd skóry', cv(c, 'scalpAppearance'))}
         ${checkboxRow(FIELD_LABELS['skinLesions'] ?? 'Wykwity skórne', cv(c, 'skinLesions'))}
         ${checkboxRow(FIELD_LABELS['hyperhidrosis'] ?? 'Potliwość', cv(c, 'hyperhidrosis'))}
         ${checkboxRow(FIELD_LABELS['hyperkeratinization'] ?? 'Rogowacenie', cv(c, 'hyperkeratinization'))}
@@ -476,6 +503,20 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
           padding-top: 4px;
           font-size: 8.5pt;
         }
+
+        /* ── Doctor inline notes ── */
+        .doctor-note {
+          background: #FFFBEB;
+          border: 1px solid #FCD34D;
+          border-radius: 3px;
+          padding: 3px 6px;
+          margin: 3px 0;
+          font-size: 8pt;
+          font-style: italic;
+          color: #92400E;
+        }
+        .doctor-note .note-icon { margin-right: 4px; }
+        .doctor-note .note-text { }
 
         /* ── Diagnosis ── */
         .diagnosis-text {

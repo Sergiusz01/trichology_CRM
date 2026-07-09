@@ -127,6 +127,8 @@ const consultationSchema = z.object({
   // DIAGNOSTYKA
   vascularPatterns: z.union([z.array(z.string()), z.string()]).optional(), // Json array
   perifollicularFeatures: z.union([z.array(z.string()), z.string()]).optional(), // Json array
+  recentProcedures: z.union([z.array(z.string()), z.string()]).optional(),
+  fieldNotes: z.record(z.string()).optional(), // { fieldKey: "doctor note" }
   scalpDiseases: z.union([z.array(z.string()), z.string()]).optional(), // Json array
   otherDiagnostics: z.union([z.array(z.string()), z.string()]).optional(), // Json array
   // DIAGNOSTYKA ŁYSIENIA

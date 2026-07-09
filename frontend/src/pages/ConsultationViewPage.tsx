@@ -101,6 +101,22 @@ const renderFieldRow = (label: string, value: any) => {
   );
 };
 
+// Render doctor note — amber italic block shown below field
+const renderNote = (notes: Record<string, string> | null | undefined, key: string) => {
+  if (!notes || !notes[key]) return null;
+  return (
+    <Box sx={{
+      display: 'flex', alignItems: 'flex-start', gap: 0.5,
+      bgcolor: '#FFFBEB', border: '1px solid #FCD34D', borderRadius: 1,
+      px: 1, py: 0.5, mb: 0.5, mt: 0.3,
+    }}>
+      <Typography sx={{ fontSize: 11, color: '#92400E', fontStyle: 'italic', lineHeight: 1.4 }}>
+        ✏️ Notatka lekarza: {notes[key]}
+      </Typography>
+    </Box>
+  );
+};
+
 export default function ConsultationViewPage() {
   const { id } = useParams<{ id: string }>();
   const [consultation, setConsultation] = useState<any>(null);
@@ -225,6 +241,17 @@ export default function ConsultationViewPage() {
   const oilyHairNotesValue = getFieldValue('oilyHairNotes');
   const supplementsDetailsValue = getFieldValue('supplementsDetails');
   const antibioticsDetailsValue = getFieldValue('antibioticsDetails');
+
+  // Extract fieldNotes (doctor inline notes) — stored as JSON object in DB
+  const fieldNotes: Record<string, string> = (() => {
+    const raw = getFieldValue('fieldNotes');
+    if (!raw) return {};
+    if (typeof raw === 'string') { try { return JSON.parse(raw); } catch { return {}; } }
+    if (typeof raw === 'object' && !Array.isArray(raw)) return raw;
+    return {};
+  })();
+
+
   const hasHairLossData = Boolean(
     getFieldValue('hairLossSeverity') ||
     getFieldValue('hairLossLocalization') ||
@@ -456,6 +483,7 @@ export default function ConsultationViewPage() {
                     {renderCheckboxInfo('Czas trwania', getFieldValue('hairLossDuration'))}
                     {getFieldValue('hairLossShampoos') && renderFieldRow('Szampony', getFieldValue('hairLossShampoos'))}
                     {hairLossNotesValue && renderFieldRow('Uwagi', hairLossNotesValue)}
+                    {renderNote(fieldNotes, 'hairLoss')}
                   </Box>
                 </Grid>
               )}
@@ -470,6 +498,7 @@ export default function ConsultationViewPage() {
                     {renderCheckboxInfo('Czas trwania', getFieldValue('oilyHairDuration'))}
                     {getFieldValue('oilyHairShampoos') && renderFieldRow('Szampony', getFieldValue('oilyHairShampoos'))}
                     {oilyHairNotesValue && renderFieldRow('Uwagi', oilyHairNotesValue)}
+                    {renderNote(fieldNotes, 'oilyHair')}
                   </Box>
                 </Grid>
               )}
@@ -522,6 +551,7 @@ export default function ConsultationViewPage() {
             <Grid container spacing={2} sx={{ mb: 2, fontSize: '0.875rem' }}>
               <Grid size={{ xs: 12, sm: 6 }}>
                 {renderCheckboxInfo(FIELD_LABELS['familyHistory'] ?? 'Wypadanie w rodzinie', getFieldValue('familyHistory'))}
+                {renderNote(fieldNotes, 'familyHistory')}
                 {renderCheckboxInfo(FIELD_LABELS['dermatologyVisits'] ?? 'Dermatolog', getFieldValue('dermatologyVisits'))}
                 {getFieldValue('dermatologyVisitsReason') && renderFieldRow(FIELD_LABELS['dermatologyVisitsReason'] ?? 'Powód', getFieldValue('dermatologyVisitsReason'))}
                 {renderCheckboxInfo(FIELD_LABELS['pregnancy'] ?? 'Ciąża', getFieldValue('pregnancy'))}
@@ -532,6 +562,7 @@ export default function ConsultationViewPage() {
                 {getFieldValue('medicationsList') && renderFieldRow(FIELD_LABELS['medicationsList'] ?? 'Lista leków', getFieldValue('medicationsList'))}
                 {getFieldValue('supplements') && renderFieldRow(FIELD_LABELS['supplements'] ?? 'Suplementy', getFieldValue('supplements'))}
                 {supplementsDetailsValue && renderFieldRow(FIELD_LABELS['supplementsDetails'] ?? 'Jakie suplementy?', supplementsDetailsValue)}
+                {renderNote(fieldNotes, 'medications')}
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
                 {renderCheckboxInfo(FIELD_LABELS['anesthesia'] ?? 'Znieczulenie', getFieldValue('anesthesia'))}
@@ -542,6 +573,7 @@ export default function ConsultationViewPage() {
                 {antibioticsDetailsValue && renderFieldRow(FIELD_LABELS['antibioticsDetails'] ?? 'Jakie antybiotyki?', antibioticsDetailsValue)}
                 {renderCheckboxInfo(FIELD_LABELS['chronicDiseases'] ?? 'Choroby', getFieldValue('chronicDiseases'))}
                 {getFieldValue('chronicDiseasesList') && renderFieldRow(FIELD_LABELS['chronicDiseasesList'] ?? 'Lista chorób', getFieldValue('chronicDiseasesList'))}
+                {renderNote(fieldNotes, 'chronicDiseases')}
                 {renderCheckboxInfo(FIELD_LABELS['specialists'] ?? 'Specjaliści', getFieldValue('specialists'))}
                 {getFieldValue('specialistsList') && renderFieldRow(FIELD_LABELS['specialistsList'] ?? 'Jacy specjaliści?', getFieldValue('specialistsList'))}
                 {renderCheckboxInfo(FIELD_LABELS['eatingDisorders'] ?? 'Zab. odżywiania', getFieldValue('eatingDisorders'))}
@@ -549,6 +581,7 @@ export default function ConsultationViewPage() {
                 {getFieldValue('diet') && renderFieldRow(FIELD_LABELS['diet'] ?? 'Dieta', getFieldValue('diet'))}
                 {getFieldValue('allergies') && renderFieldRow(FIELD_LABELS['allergies'] ?? 'Alergie', getFieldValue('allergies'))}
                 {renderCheckboxInfo(FIELD_LABELS['metalPartsInBody'] ?? 'Metal w ciele', getFieldValue('metalPartsInBody'))}
+                {renderNote(fieldNotes, 'nutrition')}
               </Grid>
             </Grid>
             {(getFieldValue('careRoutineShampoo') || getFieldValue('careRoutineConditioner') || getFieldValue('careRoutineOils') || getFieldValue('careRoutineChemical')) && (
@@ -566,6 +599,7 @@ export default function ConsultationViewPage() {
                 {getFieldValue('careRoutineChemical') && `Zabiegi: ${getFieldValue('careRoutineChemical')}`}
               </Box>
             )}
+            {renderNote(fieldNotes, 'careRoutine')}
           </>
         )}
 
@@ -596,6 +630,7 @@ export default function ConsultationViewPage() {
                     SKÓRA GŁOWY
                   </Typography>
                   {renderCheckboxInfo('Typ', getFieldValue('scalpType'))}
+                  {renderNote(fieldNotes, 'scalpType')}
                   {renderCheckboxInfo('Objawy', getFieldValue('scalpAppearance'))}
                   {renderCheckboxInfo('Wykwity', getFieldValue('skinLesions'))}
                   {renderCheckboxInfo('Potliwość', getFieldValue('hyperhidrosis'))}

@@ -218,6 +218,7 @@ model Consultation {
   otherDiagnostics              Json?
   alopeciaTypes                 Json?
   recentProcedures              Json?
+  fieldNotes                    Json?
   // ── Diagnostyka laboratoryjna ──────────────────────────────────────────
   labDate                       String?
   morphology                    String?

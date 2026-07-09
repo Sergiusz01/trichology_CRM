@@ -15,7 +15,7 @@ import {
 import {
   Save, Edit as EditIcon, ArrowBack, Close, Add,
   ExpandMore, Person, MedicalServices, CheckCircle,
-  EventAvailable, CalendarToday,
+  EventAvailable, CalendarToday, EditNote,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -146,6 +146,8 @@ interface FormData {
   ludwigNotes: string;
   // Wywiad - nowe pole
   recentProcedures: string[];
+  // Notatki lekarza do pól (zapisywane jako JSON obj)
+  fieldNotes: Record<string, string>;
   [key: string]: any;
 }
 
@@ -197,6 +199,57 @@ function DurationSelector({ value, onChange }: { value: string; onChange: (v: st
           sx={{ fontSize: 12, cursor: 'pointer' }}
         />
       ))}
+    </Box>
+  );
+}
+
+// ── FieldNoteButton ────────────────────────────────────────────────────────────
+// Small pencil icon next to a label — expands inline textarea for doctor note
+function FieldNoteButton({
+  fieldKey, notes, setNotes,
+}: {
+  fieldKey: string;
+  notes: Record<string, string>;
+  setNotes: (n: Record<string, string>) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const hasNote = Boolean(notes[fieldKey]);
+  return (
+    <Box sx={{ display: 'inline-flex', flexDirection: 'column', width: '100%', mt: 0.3 }}>
+      <Box
+        component="span"
+        onClick={() => setOpen((o) => !o)}
+        title={hasNote ? `Notatka: ${notes[fieldKey]}` : 'Dodaj notatkę lekarza'}
+        sx={{
+          display: 'inline-flex', alignItems: 'center', gap: 0.4, cursor: 'pointer',
+          color: hasNote ? '#F59E0B' : '#CBD5E1',
+          '&:hover': { color: '#F59E0B' }, userSelect: 'none',
+        }}
+      >
+        <EditNote sx={{ fontSize: 15 }} />
+        {hasNote && !open && (
+          <Typography sx={{ fontSize: 11, color: '#F59E0B', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontStyle: 'italic' }}>
+            {notes[fieldKey]}
+          </Typography>
+        )}
+      </Box>
+      {open && (
+        <TextField
+          size="small" multiline minRows={1} maxRows={4}
+          placeholder="Notatka lekarza..."
+          value={notes[fieldKey] || ''}
+          onChange={(e) => setNotes({ ...notes, [fieldKey]: e.target.value })}
+          autoFocus
+          sx={{ mt: 0.5, '& .MuiInputBase-root': { fontSize: 12, bgcolor: '#FFFBEB' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: '#FCD34D' } }}
+          InputProps={{
+            endAdornment: (
+              <IconButton size="small" onClick={() => { setNotes({ ...notes, [fieldKey]: '' }); setOpen(false); }} sx={{ p: 0.2 }}>
+                <Close sx={{ fontSize: 12 }} />
+              </IconButton>
+            ),
+          }}
+        />
+      )}
     </Box>
   );
 }
@@ -533,6 +586,18 @@ function normalizeExistingData(data: any): Partial<FormData> {
   if (!data) return {};
   const out: any = { ...data };
   JSON_ARRAY_FIELDS.forEach((f) => { out[f] = toArray(data[f]); });
+  // Normalize fieldNotes: may come as a string JSON or object from DB
+  if (data.fieldNotes) {
+    if (typeof data.fieldNotes === 'string') {
+      try { out.fieldNotes = JSON.parse(data.fieldNotes); } catch { out.fieldNotes = {}; }
+    } else if (typeof data.fieldNotes === 'object' && !Array.isArray(data.fieldNotes)) {
+      out.fieldNotes = data.fieldNotes;
+    } else {
+      out.fieldNotes = {};
+    }
+  } else {
+    out.fieldNotes = {};
+  }
   return out;
 }
 
@@ -547,7 +612,11 @@ export default function ConsultationCardForm({
 }: ConsultationCardFormProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [formData, setFormData] = useState<FormData>({ ...INITIAL_FORM_DATA, ...normalizeExistingData(existingData) });
+  const [formData, setFormData] = useState<FormData>({
+    ...INITIAL_FORM_DATA,
+    fieldNotes: {},
+    ...normalizeExistingData(existingData),
+  });
   const [patient, setPatient] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [loadingPatient, setLoadingPatient] = useState(true);
@@ -576,6 +645,12 @@ export default function ConsultationCardForm({
   const update = useCallback((field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   }, []);
+
+  // Helper: update a single note in fieldNotes
+  const setNotes = useCallback((notes: Record<string, string>) => {
+    setFormData((prev) => ({ ...prev, fieldNotes: notes }));
+  }, []);
+
 
   const toggleSection = (section: string) => {
     setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
@@ -695,7 +770,10 @@ export default function ConsultationCardForm({
         </AccordionSummary>
         <AccordionDetails sx={{ pt: 0 }}>
           {/* Wypadanie */}
-          <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#475569', mb: 1, mt: 1 }}>Wypadanie włosów</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5, mt: 1 }}>
+            <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#475569' }}>Wypadanie włosów</Typography>
+            <FieldNoteButton fieldKey="hairLoss" notes={formData.fieldNotes} setNotes={setNotes} />
+          </Box>
           <Box sx={{ pl: 1, mb: 2 }}>
             <Typography sx={{ fontSize: 12, color: '#64748B', mb: 0.5 }}>Nasilenie:</Typography>
             <SeveritySelector value={formData.hairLossSeverity} onChange={(v) => update('hairLossSeverity', v)} />
@@ -713,7 +791,10 @@ export default function ConsultationCardForm({
           <Divider sx={{ my: 1.5 }} />
 
           {/* Przetłuszczanie */}
-          <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#475569', mb: 1 }}>Przetłuszczanie włosów</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+            <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#475569' }}>Przetłuszczanie włosów</Typography>
+            <FieldNoteButton fieldKey="oilyHair" notes={formData.fieldNotes} setNotes={setNotes} />
+          </Box>
           <Box sx={{ pl: 1, mb: 2 }}>
             <SeveritySelector value={formData.oilyHairSeverity} onChange={(v) => update('oilyHairSeverity', v)} />
             <FormControl fullWidth size="small" sx={{ mt: 1.5 }}>
@@ -730,7 +811,10 @@ export default function ConsultationCardForm({
           <Divider sx={{ my: 1.5 }} />
 
           {/* Łuszczenie */}
-          <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#475569', mb: 1 }}>Łuszczenie skóry głowy</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+            <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#475569' }}>Łuszczenie skóry głowy</Typography>
+            <FieldNoteButton fieldKey="scaling" notes={formData.fieldNotes} setNotes={setNotes} />
+          </Box>
           <Box sx={{ pl: 1, mb: 2 }}>
             <SeveritySelector value={formData.scalingSeverity} onChange={(v) => update('scalingSeverity', v)} />
             <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1, mb: 0.5 }}>Rodzaj:</Typography>
@@ -742,7 +826,10 @@ export default function ConsultationCardForm({
           <Divider sx={{ my: 1.5 }} />
 
           {/* Wrażliwość */}
-          <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#475569', mb: 1 }}>Wrażliwość skóry głowy</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+            <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#475569' }}>Wrażliwość skóry głowy</Typography>
+            <FieldNoteButton fieldKey="sensitivity" notes={formData.fieldNotes} setNotes={setNotes} />
+          </Box>
           <Box sx={{ pl: 1, mb: 2 }}>
             <SeveritySelector value={formData.sensitivitySeverity} onChange={(v) => update('sensitivitySeverity', v)} />
             <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1, mb: 0.5 }}>Rodzaj problemu:</Typography>
@@ -754,7 +841,10 @@ export default function ConsultationCardForm({
           <Divider sx={{ my: 1.5 }} />
 
           {/* Stany zapalne */}
-          <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#475569', mb: 1 }}>Stany zapalne / grudki</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+            <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#475569' }}>Stany zapalne / grudki</Typography>
+            <FieldNoteButton fieldKey="inflammatoryStates" notes={formData.fieldNotes} setNotes={setNotes} />
+          </Box>
           <TextField fullWidth size="small" label="Opis stanów zapalnych" multiline minRows={2} value={formData.inflammatoryStates} onChange={(e) => update('inflammatoryStates', e.target.value)} sx={{ pl: 1 }} />
         </AccordionDetails>
       </Accordion>
@@ -767,6 +857,7 @@ export default function ConsultationCardForm({
         <AccordionDetails sx={{ pt: 0 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
             <YesNoSelector label="1. Czy dany problem występuje u innych członków rodziny?" value={formData.familyHistory} onChange={(v) => update('familyHistory', v)} />
+            <FieldNoteButton fieldKey="familyHistory" notes={formData.fieldNotes} setNotes={setNotes} />
             <YesNoSelector label="2. Czy była konieczna wizyta u dermatologa?" value={formData.dermatologyVisits} onChange={(v) => update('dermatologyVisits', v)} />
             {formData.dermatologyVisits === 'Tak' && <TextField fullWidth size="small" label="Powód" value={formData.dermatologyVisitsReason} onChange={(e) => update('dermatologyVisitsReason', e.target.value)} sx={{ ml: 2, mb: 1, maxWidth: 500 }} />}
             <YesNoSelector label="3. Czy jest Pani w ciąży / karmi piersią?" value={formData.pregnancy} onChange={(v) => update('pregnancy', v)} />
@@ -775,6 +866,7 @@ export default function ConsultationCardForm({
             <YesNoSelector label="5. Czy zażywa Pan/Pani jakieś leki?" value={formData.medications} onChange={(v) => update('medications', v)} />
             {formData.medications === 'Tak' && <TextField fullWidth size="small" label="Jakie leki" value={formData.medicationsList} onChange={(e) => update('medicationsList', e.target.value)} sx={{ ml: 2, mb: 1, maxWidth: 500 }} />}
             <TextField fullWidth size="small" label="6. Czy stosuje Pani/Pan suplementy?" value={formData.supplements} onChange={(e) => update('supplements', e.target.value)} sx={{ my: 0.5 }} />
+            <FieldNoteButton fieldKey="medications" notes={formData.fieldNotes} setNotes={setNotes} />
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, flexWrap: 'wrap' }}>
               <Typography sx={{ fontSize: 13, minWidth: 180, color: '#334155' }}>7. Poziom stresu w życiu codziennym?</Typography>
               <Box sx={{ display: 'flex', gap: 0.5 }}>
@@ -796,15 +888,20 @@ export default function ConsultationCardForm({
             </Box>
             <YesNoSelector label="9. Czy choruje Pani/Pan na choroby przewlekłe?" value={formData.chronicDiseases} onChange={(v) => update('chronicDiseases', v)} />
             {formData.chronicDiseases === 'Tak' && <TextField fullWidth size="small" label="Jakie choroby" value={formData.chronicDiseasesList} onChange={(e) => update('chronicDiseasesList', e.target.value)} sx={{ ml: 2, mb: 1, maxWidth: 500 }} />}
+            <FieldNoteButton fieldKey="chronicDiseases" notes={formData.fieldNotes} setNotes={setNotes} />
             <YesNoSelector label="10. Czy jest Pani/Pan pod opieką specjalisty?" value={formData.specialists} onChange={(v) => update('specialists', v)} />
             {formData.specialists === 'Tak' && <TextField fullWidth size="small" label="Jakiego specjalisty" value={formData.specialistsList} onChange={(e) => update('specialistsList', e.target.value)} sx={{ ml: 2, mb: 1, maxWidth: 500 }} />}
             <YesNoSelector label="11. Czy występują u Pani/Pana zaburzenia odżywiania/wchłaniania?" value={formData.eatingDisorders} onChange={(v) => update('eatingDisorders', v)} />
             <TextField fullWidth size="small" label="Nietolerancje pokarmowe" value={formData.foodIntolerances} onChange={(e) => update('foodIntolerances', e.target.value)} sx={{ my: 0.5 }} />
+            <FieldNoteButton fieldKey="nutrition" notes={formData.fieldNotes} setNotes={setNotes} />
             <YesNoSelector label="12. Czy w ostatnim czasie była Pani/Pan na diecie?" value={formData.diet} onChange={(v) => update('diet', v)} />
             <YesNoSelector label="13. Czy występuje alergia lub uczulenie na jakieś substancje?" value={formData.allergies} onChange={(v) => update('allergies', v)} />
             <YesNoSelector label="14. Czy ma Pani/Pan jakieś części metalowe w organizmie?" value={formData.metalPartsInBody} onChange={(v) => update('metalPartsInBody', v)} />
             <Divider sx={{ my: 1.5 }} />
-            <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#475569', mb: 1 }}>15. Pielęgnacja</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+              <Typography sx={{ fontSize: 13, fontWeight: 700, color: '#475569' }}>15. Pielęgnacja</Typography>
+              <FieldNoteButton fieldKey="careRoutine" notes={formData.fieldNotes} setNotes={setNotes} />
+            </Box>
             <TextField fullWidth size="small" label="Szampon" value={formData.careRoutineShampoo} onChange={(e) => update('careRoutineShampoo', e.target.value)} sx={{ mb: 1 }} />
             <TextField fullWidth size="small" label="Odżywka / maska" value={formData.careRoutineConditioner} onChange={(e) => update('careRoutineConditioner', e.target.value)} sx={{ mb: 1 }} />
             <TextField fullWidth size="small" label="Wcierki / oleje" value={formData.careRoutineOils} onChange={(e) => update('careRoutineOils', e.target.value)} sx={{ mb: 1 }} />
@@ -819,7 +916,10 @@ export default function ConsultationCardForm({
           <SectionHeader icon={<MedicalServices sx={{ fontSize: 20 }} />} title="3. Trichoskopia" />
         </AccordionSummary>
         <AccordionDetails sx={{ pt: 0 }}>
-          <Typography sx={{ fontSize: 12, color: '#64748B', mb: 0.5 }}>Typ skóry głowy:</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+            <Typography sx={{ fontSize: 12, color: '#64748B' }}>Typ skóry głowy:</Typography>
+            <FieldNoteButton fieldKey="scalpType" notes={formData.fieldNotes} setNotes={setNotes} />
+          </Box>
           <CheckboxGroup options={FIELD_OPTIONS['scalpType'] ?? []} selected={formData.scalpType} onChange={(v) => update('scalpType', v)} />
           <Typography sx={{ fontSize: 12, color: '#64748B', mt: 1.5, mb: 0.5 }}>Wygląd i objawy na skórze:</Typography>
           <CheckboxGroup options={FIELD_OPTIONS['scalpAppearance'] ?? []} selected={formData.scalpAppearance} onChange={(v) => update('scalpAppearance', v)} />
