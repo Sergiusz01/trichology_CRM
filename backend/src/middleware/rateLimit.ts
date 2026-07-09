@@ -14,7 +14,8 @@ export const apiLimiter = rateLimit({
 export const authLimiter = rateLimit({
   ...standard,
   windowMs: 15 * 60 * 1000,
-  limit: 10,
+  limit: 30,
+  message: { error: 'Zbyt wiele prób logowania. Poczekaj 15 minut i spróbuj ponownie.' },
 });
 
 export const refreshLimiter = rateLimit({
