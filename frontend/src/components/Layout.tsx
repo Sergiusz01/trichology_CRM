@@ -152,49 +152,6 @@ export default function Layout() {
             Konfiguracja
           </Typography>
 
-          <ListItem disablePadding sx={{ mb: 0.5 }}>
-            <ListItemButton
-              onClick={() => setTemplatesOpen(!templatesOpen)}
-              sx={{ borderRadius: 2, py: 1, '&:hover': { bgcolor: '#F1F5F9' } }}
-            >
-              <ListItemIcon sx={{ minWidth: 36, color: 'text.secondary' }}>
-                <FolderSpecial sx={{ fontSize: 20 }} />
-              </ListItemIcon>
-              <ListItemText primary="Szablony" primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 500, color: 'text.primary' }} />
-              {templatesOpen ? <ExpandLess sx={{ fontSize: 20, color: 'text.secondary' }} /> : <ExpandMore sx={{ fontSize: 20, color: 'text.secondary' }} />}
-            </ListItemButton>
-          </ListItem>
-
-          <Collapse in={templatesOpen} timeout="auto" unmountOnExit>
-            <List component="div" disablePadding sx={{ pl: 2, mb: 1 }}>
-              {templateItems.map((item) => {
-                const active = activeRoute(item.path);
-                return (
-                  <ListItemButton
-                    key={item.text}
-                    selected={active}
-                    onClick={() => handleNavigate(item.path)}
-                    sx={{
-                      borderRadius: 2,
-                      py: 0.75,
-                      mb: 0.5,
-                      '&.Mui-selected': {
-                        bgcolor: 'transparent',
-                        '& .MuiListItemIcon-root': { color: 'primary.main' },
-                        '& .MuiListItemText-primary': { color: 'primary.main', fontWeight: 600 },
-                      },
-                      '&:hover': { bgcolor: '#F1F5F9' },
-                    }}
-                  >
-                    <ListItemIcon sx={{ minWidth: 32, color: active ? 'primary.main' : 'text.secondary' }}>
-                      {item.icon}
-                    </ListItemIcon>
-                    <ListItemText primary={item.text} primaryTypographyProps={{ fontSize: '0.8125rem', fontWeight: active ? 600 : 500, color: active ? 'primary.main' : 'text.secondary' }} />
-                  </ListItemButton>
-                );
-              })}
-            </List>
-          </Collapse>
 
           <ListItem disablePadding>
             <ListItemButton
