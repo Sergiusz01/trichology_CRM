@@ -65,25 +65,11 @@ export default function LoginPage() {
     >
       <Container maxWidth="xs">
         <Box sx={{ mb: 4, textAlign: 'center' }}>
-          <Box sx={{
-            width: 48,
-            height: 48,
-            borderRadius: 3,
-            bgcolor: 'primary.main',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            mx: 'auto',
-            mb: 2,
-            boxShadow: '0 4px 14px 0 rgba(59, 130, 246, 0.39)'
-          }}>
-            <Typography variant="h5" sx={{ color: '#fff', fontWeight: 800, lineHeight: 1 }}>T</Typography>
+          <Box sx={{ mx: 'auto', mb: 3 }}>
+            <img src="/logo.png" alt="Logo" style={{ maxHeight: 80, maxWidth: '100%' }} />
           </Box>
           <Typography variant="h4" sx={{ fontWeight: 800, mb: 1, letterSpacing: '-0.02em' }}>
             Zaloguj się
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            System Zarządzania Light Clinic
           </Typography>
         </Box>
 
