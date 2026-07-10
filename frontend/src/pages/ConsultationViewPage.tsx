@@ -736,6 +736,17 @@ export default function ConsultationViewPage() {
                     {getFieldValue('ludwigNotes') && ` (${getFieldValue('ludwigNotes')})`}
                   </Typography>
                 )}
+                {/* Scale reference images */}
+                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 2, justifyContent: 'center' }}>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="caption" sx={{ fontWeight: 600, color: '#475569', display: 'block', mb: 0.5 }}>Skala Norwooda-Hamiltona</Typography>
+                    <img src="/norwood-hamilton.png" alt="Skala Norwooda-Hamiltona" style={{ maxWidth: 350, width: '100%', borderRadius: 6, border: '1px solid #E2E8F0' }} />
+                  </Box>
+                  <Box sx={{ textAlign: 'center' }}>
+                    <Typography variant="caption" sx={{ fontWeight: 600, color: '#475569', display: 'block', mb: 0.5 }}>Skala M. Ludwiga</Typography>
+                    <img src="/ludwig.png" alt="Skala M. Ludwiga" style={{ maxWidth: 220, width: '100%', borderRadius: 6, border: '1px solid #E2E8F0' }} />
+                  </Box>
+                </Box>
               </Box>
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>

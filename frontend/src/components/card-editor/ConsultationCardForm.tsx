@@ -1152,6 +1152,17 @@ export default function ConsultationCardForm({
             </FormControl>
             <TextField size="small" label="Uwagi (Ludwig)" value={formData.ludwigNotes ?? ''} onChange={(e) => update('ludwigNotes', e.target.value)} sx={{ flex: '1 1 250px' }} />
           </Box>
+          {/* Scale reference images */}
+          <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', mt: 3, justifyContent: 'center' }}>
+            <Box sx={{ flex: '1 1 300px', maxWidth: 500, textAlign: 'center' }}>
+              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, color: '#475569' }}>Skala Norwooda-Hamiltona</Typography>
+              <img src="/norwood-hamilton.png" alt="Skala Norwooda-Hamiltona" style={{ width: '100%', maxWidth: 450, borderRadius: 8, border: '1px solid #E2E8F0' }} />
+            </Box>
+            <Box sx={{ flex: '1 1 200px', maxWidth: 350, textAlign: 'center' }}>
+              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, color: '#475569' }}>Skala M. Ludwiga</Typography>
+              <img src="/ludwig.png" alt="Skala M. Ludwiga" style={{ width: '100%', maxWidth: 280, borderRadius: 8, border: '1px solid #E2E8F0' }} />
+            </Box>
+          </Box>
         </AccordionDetails>
       </Accordion>
 

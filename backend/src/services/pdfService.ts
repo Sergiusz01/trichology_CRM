@@ -1,7 +1,30 @@
 import puppeteer from 'puppeteer';
+import fs from 'fs';
+import path from 'path';
 import { prisma } from '../prisma';
 import { getLogoHTMLForPDF } from '../utils/logo';
 import { FIELD_LABELS, SECTIONS } from '../shared/consultationFields';
+
+// Load scale images as base64 for PDF embedding
+function getScaleImageBase64(filename: string): string {
+  try {
+    const possiblePaths = [
+      path.join(__dirname, '../assets', filename),
+      path.join(__dirname, '../../src/assets', filename),
+      path.join(process.cwd(), 'src/assets', filename),
+      path.join(process.cwd(), 'backend/src/assets', filename),
+    ];
+    for (const p of possiblePaths) {
+      if (fs.existsSync(p)) {
+        const buf = fs.readFileSync(p);
+        return `data:image/png;base64,${buf.toString('base64')}`;
+      }
+    }
+  } catch (e) {
+    console.warn(`Cannot load scale image ${filename}:`, e);
+  }
+  return '';
+}
 
 // Export helper functions for use in other modules
 export const formatDate = (date: Date | string | null | undefined): string => {
@@ -420,6 +443,11 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
         ${fieldRow(FIELD_LABELS['careRecommendationsBehavior'] ?? 'Zmiany behawioralne', cv(c, 'careRecommendationsBehavior'))}
         ${fieldRow(FIELD_LABELS['visitsProcedures'] ?? 'Zabiegi gabinetowe', cv(c, 'visitsProcedures'))}
       </div>
+    </div>
+    ${sectionHeader('9. SKALE (NORWOOD-HAMILTON / LUDWIG)')}
+    <div style="display:flex;gap:20px;flex-wrap:wrap;justify-content:center;margin:8px 0 12px;">
+      ${(() => { const img = getScaleImageBase64('norwood-hamilton.png'); return img ? `<div style="text-align:center;"><div style="font-size:9px;font-weight:bold;margin-bottom:4px;">Skala Norwooda-Hamiltona</div><img src="${img}" style="max-width:320px;width:100%;border:1px solid #ddd;border-radius:4px;" /></div>` : ''; })()}
+      ${(() => { const img = getScaleImageBase64('ludwig.png'); return img ? `<div style="text-align:center;"><div style="font-size:9px;font-weight:bold;margin-bottom:4px;">Skala M. Ludwiga</div><img src="${img}" style="max-width:200px;width:100%;border:1px solid #ddd;border-radius:4px;" /></div>` : ''; })()}
     </div>`;
 
   // ─── UWAGI ────────────────────────────────────────────────────────────────
