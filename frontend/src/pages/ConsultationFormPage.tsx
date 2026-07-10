@@ -430,7 +430,7 @@ export default function ConsultationFormPage() {
           existingData={actualConsultationId ? formData : undefined}
           onSuccess={() => {
             setSuccess(true);
-            setTimeout(() => navigate(`/patients/${resolvedPatientId}`), 1500);
+            setTimeout(() => navigate(`/patients/${resolvedPatientId}`, { state: { refresh: true } }), 1500);
           }}
           onError={(msg) => setError(msg)}
         />

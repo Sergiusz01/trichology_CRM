@@ -631,11 +631,11 @@ export default function PatientDetailPage() {
   }
 
   const stats = [
-    { label: 'Konsultacje', value: consultations.length, icon: Assignment, color: '#007AFF' },
-    { label: 'Wyniki badań', value: labResults.length, icon: Science, color: '#34C759' },
-    { label: 'Zdjęcia', value: scalpPhotos.length, icon: PhotoCamera, color: '#FF9500' },
-    { label: 'Plany opieki', value: carePlans.length, icon: LocalHospital, color: '#FF3B30' },
-    { label: 'Wizyty', value: visits.length, icon: EventAvailable, color: '#AF52DE' },
+    { label: 'Konsultacje', value: consultations.length, icon: Assignment, color: '#007AFF', sectionId: 'patient-tabpanel-1' },
+    { label: 'Wyniki badań', value: labResults.length, icon: Science, color: '#34C759', sectionId: 'patient-tabpanel-2' },
+    { label: 'Zdjęcia', value: scalpPhotos.length, icon: PhotoCamera, color: '#FF9500', sectionId: 'patient-tabpanel-3' },
+    { label: 'Plany opieki', value: carePlans.length, icon: LocalHospital, color: '#FF3B30', sectionId: 'patient-tabpanel-4' },
+    { label: 'Wizyty', value: visits.length, icon: EventAvailable, color: '#AF52DE', sectionId: 'patient-tabpanel-5' },
   ];
 
   return (
@@ -856,7 +856,12 @@ export default function PatientDetailPage() {
               <Grid key={index} size={{ xs: 6, md: 3 }}>
                 <Paper
                   elevation={0}
-                  onClick={() => setTabValue(index + 1)}
+                  onClick={() => {
+                    setTabValue(index + 1);
+                    setTimeout(() => {
+                      document.getElementById(stat.sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 50);
+                  }}
                   sx={{
                     p: { xs: 2, sm: 3 },
                     borderRadius: 4,
@@ -1210,11 +1215,13 @@ export default function PatientDetailPage() {
                     <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: 'flex-start', gap: 2 }}>
                       <Box sx={{ flex: 1 }}>
                         <Typography variant="h6" sx={{ fontWeight: 700, color: '#1d1d1f', mb: 1, fontSize: '1.15rem' }}>
-                          {new Date(consultation.consultationDate).toLocaleDateString('pl-PL', {
+                          {new Date(consultation.createdAt || consultation.consultationDate).toLocaleString('pl-PL', {
                             year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                          })}
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          }).replace(',', '')}
                         </Typography>
                         {consultation.diagnosis && (
                           <Typography variant="body2" sx={{ color: '#86868b', fontSize: '0.95rem', lineHeight: 1.6 }}>
