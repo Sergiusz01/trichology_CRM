@@ -107,22 +107,8 @@ export default function Layout() {
   const drawerContent = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: '#FFFFFF' }}>
       {/* Brand Header */}
-      <Box sx={{ p: 3, display: 'flex', alignItems: 'center' }}>
-        <Box sx={{
-          width: 32,
-          height: 32,
-          borderRadius: 2,
-          bgcolor: 'primary.main',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          mr: 1.5
-        }}>
-          <Typography variant="h6" sx={{ color: '#fff', fontWeight: 800, lineHeight: 1 }}>T</Typography>
-        </Box>
-        <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary', letterSpacing: '-0.02em' }}>
-          Light Clinic
-        </Typography>
+      <Box sx={{ p: 3, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <img src="/logo.png" alt="Logo" style={{ maxHeight: 60, maxWidth: '100%' }} />
       </Box>
 
       {/* Navigation */}
@@ -305,8 +291,8 @@ export default function Layout() {
           <IconButton color="inherit" aria-label="open drawer" edge="start" onClick={handleDrawerToggle} sx={{ mr: 2, color: 'text.primary' }}>
             <Menu />
           </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, fontWeight: 'bold', color: 'text.primary' }}>
-            Light Clinic
+          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
+            <img src="/logo.png" alt="Logo" style={{ maxHeight: 40 }} />
           </Typography>
         </Toolbar>
       </AppBar>
