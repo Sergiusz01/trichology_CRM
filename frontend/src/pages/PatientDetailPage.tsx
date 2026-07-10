@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Box,
   Paper,
@@ -150,6 +151,7 @@ export default function PatientDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const { success: showSuccess, error: showError } = useNotification();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -270,9 +272,14 @@ export default function PatientDetailPage() {
   const handleRefreshSignal = useCallback(() => {
     if (location.state?.refresh && id) {
       refetchPatient();
+      queryClient.invalidateQueries({ queryKey: ['consultations', 'patient', id] });
+      queryClient.invalidateQueries({ queryKey: ['labResults', 'patient', id] });
+      queryClient.invalidateQueries({ queryKey: ['carePlans', 'patient', id] });
+      queryClient.invalidateQueries({ queryKey: ['visits', 'patient', id] });
+      queryClient.invalidateQueries({ queryKey: ['scalpPhotos', 'patient', id] });
       navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [location.state, id, refetchPatient, navigate]);
+  }, [location.state, id, refetchPatient, navigate, queryClient]);
 
   useEffect(() => {
     handleRefreshSignal();
