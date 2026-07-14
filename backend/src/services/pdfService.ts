@@ -393,9 +393,9 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
     </div>
   `;
 
-  // ─── DIAGNOSTYKA LABORATORYJNA ────────────────────────────────────────────
-  const labSection = lab ? `
-    ${sectionHeader('DIAGNOSTYKA LABORATORYJNA')}
+  // ─── DIAGNOSTYKA LABORATORYJNA (z osobnego modelu LabResult) ────────────────
+  const labModelSection = lab ? `
+    ${sectionHeader('WYNIKI BADAŃ LABORATORYJNYCH')}
     <div class="two-col">
       <div>
         ${fieldRow('Data badania', lab.date ? formatDate(lab.date) : '')}
@@ -419,30 +419,67 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
     </div>
   ` : '';
 
-  // ─── DIAGNOSTYKA ŁYSIENIA + ROZPOZNANIE ───────────────────────────────────
+  // ─── DIAGNOSTYKA LABORATORYJNA (z karty konsultacyjnej) ───────────────────
+  const labCardFields: [string, string][] = [
+    ['labDate','Data badania'],['morphology','Morfologia'],['ob','OB'],['crp','CRP'],
+    ['fe','FE'],['folicAcid','Kw. foliowy'],['ferritin','Ferrytyna'],['transferrin','Transferryna'],
+    ['vitB12','Wit. B12'],['homocysteine','Homocysteina'],['vitD3','Wit. D3'],
+    ['electrolytesNa','Na'],['electrolytesK','K'],['electrolytesMg','Mg'],['zn','Zn'],['se','Se'],
+    ['ast','AST'],['alt','ALT'],['alp','ALP'],['totalCholesterol','Cholesterol'],['tg','TG'],
+    ['tsh','TSH'],['ft3','fT3'],['ft4','fT4'],['tgThyroidMarker','TG (tarczyca)'],
+    ['antyTPO','ANTY TPO'],['antyTG','ANTY TG'],['trab','TRAB'],['tsi','TSI'],
+    ['lh','LH'],['fsh','FSH'],['estradiol','Estradiol'],['progesterone','Progesteron'],
+    ['prolactin','Prolaktyna'],['androstendion','Androstendion'],['sDHEA','S-DHEA'],
+    ['totalTestosterone','Testosteron'],['dht','DHT'],['shgb','SHGB'],['cortisol','Kortyzol'],
+    ['ana1','ANA-1'],['ana2','ANA-2'],['helicobacter','Helikobakter'],
+    ['glucose','Glukoza'],['hba1c','HbA1c'],['insulin','Insulina'],
+    ['candidaAlbicans','Candida'],['histamine','Histamina'],['parasites','Pasożyty'],
+    ['woodLamp','Lampa Wooda'],['demodex','Demodex'],['mycologicalTest','Bad. mykol.'],['microbiologicalTest','Bad. mikrobiol.'],
+  ];
+  const labCardRows = labCardFields.map(([key, label]) => {
+    const val = cv(c, key);
+    const display = val ? escapeHtml(String(val)) : '<span class="form-blank">________</span>';
+    return `<div class="lab-field"><span class="lab-label">${escapeHtml(label)}:</span><span class="lab-val">${display}</span></div>`;
+  }).join('');
+  const labCardSection = `
+    ${sectionHeader('4. DIAGNOSTYKA LABORATORYJNA')}
+    <div class="lab-grid">${labCardRows}</div>
+  `;
+
+  // ─── DIAGNOSTYKA ŁYSIENIA ──────────────────────────────────────────────────
+  const alopeciaFields: [string, string][] = [
+    ['alopeciaTypes','Łysienie'],['degreeOfThinning','Stopień przerzedzenia'],
+    ['alopeciaType','Typ łysienia'],['alopeciaAffectedAreas','Obszar wypadania'],
+    ['miniaturization','Miniaturyzacja mieszków'],['follicularUnits','Zespoły mieszkowe'],
+    ['pullTest','Pull test'],['alopeciaOther','Inne'],
+  ];
+  const alopeciaRows = alopeciaFields.map(([key, label]) => {
+    const val = cv(c, key);
+    const display = val ? formatJsonField(val) : '<span class="form-blank">___________________________</span>';
+    return `<div class="field-row"><span class="field-label">${escapeHtml(label)}:</span><span class="field-value">${display}</span></div>`;
+  }).join('');
+  const alopeciaSection = `
+    ${sectionHeader('DIAGNOSTYKA ŁYSIENIA')}
+    <div class="two-col"><div>${alopeciaRows}</div><div>
+      ${formTextField('Norwood-Hamilton', cv(c, 'norwoodHamiltonStage'))}
+      ${formTextField('Ludwig', cv(c, 'ludwigStage'))}
+    </div></div>
+  `;
+
+  // ─── ROZPOZNANIE + ZALECENIA ───────────────────────────────────────────────
   const diagnosisSection = `
     ${sectionHeader('5. ROZPOZNANIE (DIAGNOZA)')}
     <div class="two-col">
       <div>
         <div class="diagnosis-text">${escapeHtml(String(cv(c, 'diagnosis') || 'Brak wpisu'))}</div>
-        ${checkboxRow(FIELD_LABELS['alopeciaTypes'] ?? 'Typ łysienia', cv(c, 'alopeciaTypes'))}
-        ${fieldRow(FIELD_LABELS['alopeciaType'] ?? 'Klasyfikacja', cv(c, 'alopeciaType'))}
-        ${fieldRow(FIELD_LABELS['degreeOfThinning'] ?? 'Stopień przerzedzenia', cv(c, 'degreeOfThinning'))}
-        ${checkboxRow(FIELD_LABELS['alopeciaAffectedAreas'] ?? 'Dotkięte obszary', cv(c, 'alopeciaAffectedAreas'))}
-        ${fieldRow(FIELD_LABELS['miniaturization'] ?? 'Miniaturyzacja', cv(c, 'miniaturization'))}
-        ${fieldRow(FIELD_LABELS['follicularUnits'] ?? 'Jednostki folikularne', cv(c, 'follicularUnits'))}
-        ${fieldRow(FIELD_LABELS['pullTest'] ?? 'Pull Test', cv(c, 'pullTest'))}
-        ${fieldRow(FIELD_LABELS['alopeciaOther'] ?? 'Inne', cv(c, 'alopeciaOther'))}
-        ${fieldRow(FIELD_LABELS['norwoodHamiltonStage'] ?? 'Norwood-Hamilton', cv(c, 'norwoodHamiltonStage'))}
-        ${fieldRow(FIELD_LABELS['ludwigStage'] ?? 'Ludwig', cv(c, 'ludwigStage'))}
       </div>
       <div>
         ${sectionHeader('6. ZALECENIA DO PIELĘGNACJI')}
-        ${fieldRow(FIELD_LABELS['careRecommendationsWashing'] ?? 'Mycie', cv(c, 'careRecommendationsWashing'))}
-        ${fieldRow(FIELD_LABELS['careRecommendationsTopical'] ?? 'Wcierki', cv(c, 'careRecommendationsTopical'))}
-        ${fieldRow(FIELD_LABELS['careRecommendationsSupplement'] ?? 'Suplementacja', cv(c, 'careRecommendationsSupplement'))}
-        ${fieldRow(FIELD_LABELS['careRecommendationsBehavior'] ?? 'Zmiany behawioralne', cv(c, 'careRecommendationsBehavior'))}
-        ${fieldRow(FIELD_LABELS['visitsProcedures'] ?? 'Zabiegi gabinetowe', cv(c, 'visitsProcedures'))}
+        ${formTextField('Mycie', cv(c, 'careRecommendationsWashing'))}
+        ${formTextField('Wcierki', cv(c, 'careRecommendationsTopical'))}
+        ${formTextField('Suplementacja', cv(c, 'careRecommendationsSupplement'))}
+        ${formTextField('Zmiany behawioralne', cv(c, 'careRecommendationsBehavior'))}
+        ${formTextField('Zabiegi gabinetowe', cv(c, 'visitsProcedures'))}
       </div>
     </div>
     ${sectionHeader('9. SKALE (NORWOOD-HAMILTON / LUDWIG)')}
@@ -590,7 +627,7 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
         .three-col {
           display: grid;
           grid-template-columns: 1fr 1fr 1fr;
-          gap: 8px;
+          gap: 6px;
           margin-bottom: 6px;
         }
 
@@ -601,6 +638,9 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
           padding: 6px 8px;
           background: #fafbfc;
           break-inside: avoid;
+          overflow: hidden;
+          word-wrap: break-word;
+          overflow-wrap: break-word;
         }
 
         /* ── Field rows ── */
@@ -610,16 +650,23 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
           padding: 1.5px 0;
           gap: 4px;
           font-size: 8.5pt;
+          overflow: hidden;
         }
         .field-label {
           font-weight: 600;
-          min-width: 110px;
+          min-width: 90px;
+          max-width: 120px;
           flex-shrink: 0;
           color: #333;
+          word-wrap: break-word;
+          overflow-wrap: break-word;
         }
         .field-value {
           color: #111;
           flex: 1;
+          min-width: 0;
+          word-wrap: break-word;
+          overflow-wrap: break-word;
         }
 
         /* ── Checkbox items ── */
@@ -637,13 +684,17 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
         }
         .cb-label {
           font-weight: 600;
-          min-width: 110px;
+          min-width: 90px;
+          max-width: 120px;
           flex-shrink: 0;
           color: #333;
         }
         .cb-value {
           color: #111;
           flex: 1;
+          min-width: 0;
+          word-wrap: break-word;
+          overflow-wrap: break-word;
         }
 
         /* ── Care routine row ── */
@@ -704,6 +755,35 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
           margin-bottom: 6px;
         }
 
+        /* ── Lab grid (card fields) ── */
+        .lab-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 2px 8px;
+          margin-bottom: 8px;
+        }
+        .lab-field {
+          display: flex;
+          border-bottom: 1px dotted #ddd;
+          padding: 1px 0;
+          font-size: 7.5pt;
+          overflow: hidden;
+        }
+        .lab-label {
+          font-weight: 600;
+          color: #333;
+          min-width: 55px;
+          flex-shrink: 0;
+          font-size: 7pt;
+        }
+        .lab-val {
+          flex: 1;
+          min-width: 0;
+          font-size: 7.5pt;
+          word-wrap: break-word;
+          overflow-wrap: break-word;
+        }
+
         /* ── Form-style rows (always visible questions) ── */
         .form-row {
           display: flex;
@@ -713,6 +793,7 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
           font-size: 7.5pt;
           border-bottom: 1px dotted #e0e0e0;
           padding-bottom: 2px;
+          overflow: hidden;
         }
         .form-row-wide { flex-direction: column; gap: 2px; }
         .form-label {
@@ -720,16 +801,20 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
           font-weight: 600;
           color: #333;
           line-height: 1.3;
+          word-wrap: break-word;
+          overflow-wrap: break-word;
         }
         .form-opts {
           flex: 1;
           display: flex;
           flex-wrap: wrap;
-          gap: 4px 8px;
+          gap: 3px 6px;
           align-items: center;
+          min-width: 0;
         }
         .form-opt {
-          white-space: nowrap;
+          white-space: normal;
+          word-wrap: break-word;
           font-size: 7pt;
           color: #444;
         }
@@ -737,7 +822,10 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
           flex: 1;
           color: #222;
           min-height: 12px;
+          min-width: 0;
           border-bottom: 1px solid #aaa;
+          word-wrap: break-word;
+          overflow-wrap: break-word;
         }
         .form-blank {
           color: #ccc;
@@ -829,8 +917,14 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
       <div class="page-break"></div>
       ${trichoscopySection}
 
-      <!-- Lab results -->
-      ${labSection}
+      <!-- Lab results (from LabResult model) -->
+      ${labModelSection}
+
+      <!-- Lab card fields -->
+      ${labCardSection}
+
+      <!-- Diagnostyka Łysienia -->
+      ${alopeciaSection}
 
       <!-- Diagnosis + Recommendations -->
       <div class="page-break"></div>
