@@ -477,7 +477,7 @@ export default function ConsultationViewPage() {
         )}
 
         {/* Section: Problems — always visible */}
-        {!hasTemplate && (
+        {(
           <>
             <Box sx={{
               backgroundColor: '#e0e0e0', fontWeight: 'bold', fontSize: '1rem',
@@ -546,7 +546,7 @@ export default function ConsultationViewPage() {
         )}
 
         {/* Section: Anamnesis — always visible */}
-        {!hasTemplate && (
+        {(
           <>
             <Box sx={{
               backgroundColor: '#e0e0e0', fontWeight: 'bold', fontSize: '1rem',
@@ -611,7 +611,7 @@ export default function ConsultationViewPage() {
         )}
 
         {/* Section: Trichoscopy — always visible */}
-        {!hasTemplate && (
+        {(
           <>
             <Box sx={{
               backgroundColor: '#e0e0e0', fontWeight: 'bold', fontSize: '1rem',
@@ -683,7 +683,7 @@ export default function ConsultationViewPage() {
         )}
 
         {/* Section: Diagnosis and Recommendations */}
-        {!hasTemplate && (
+        {(
           <Grid container spacing={2} sx={{ mt: 2 }}>
             <Grid size={{ xs: 12, md: 6 }}>
               <Box sx={{
@@ -798,7 +798,7 @@ export default function ConsultationViewPage() {
         )}
 
         {/* General Remarks — always visible */}
-        {!hasTemplate && (
+        {(
           <Box sx={{
             border: '1px solid #ccc', mt: 3, p: 2,
             backgroundColor: getFieldValue('generalRemarks') ? '#fffbe6' : '#FAFAFA',
