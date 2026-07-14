@@ -587,6 +587,7 @@ export default function ConsultationViewPage() {
                 {renderCheckboxInfo(FIELD_LABELS['eatingDisorders'] ?? 'Zab. odżywiania', getFieldValue('eatingDisorders'))}
                 {getFieldValue('foodIntolerances') && renderFieldRow(FIELD_LABELS['foodIntolerances'] ?? 'Nietolerancje', getFieldValue('foodIntolerances'))}
                 {getFieldValue('diet') && renderFieldRow(FIELD_LABELS['diet'] ?? 'Dieta', getFieldValue('diet'))}
+                {getFieldValue('dietDescription') && renderFieldRow(FIELD_LABELS['dietDescription'] ?? 'Opis diety', getFieldValue('dietDescription'))}
                 {getFieldValue('allergies') && renderFieldRow(FIELD_LABELS['allergies'] ?? 'Alergie', getFieldValue('allergies'))}
                 {renderCheckboxInfo(FIELD_LABELS['metalPartsInBody'] ?? 'Metal w ciele', getFieldValue('metalPartsInBody'))}
                 {renderNote(fieldNotes, 'nutrition')}

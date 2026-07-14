@@ -90,6 +90,7 @@ interface FormData {
   eatingDisorders: string;
   foodIntolerances: string;
   diet: string;
+  dietDescription: string;
   allergies: string;
   metalPartsInBody: string;
   careRoutineShampoo: string;
@@ -895,6 +896,7 @@ export default function ConsultationCardForm({
             <TextField fullWidth size="small" label="Nietolerancje pokarmowe" value={formData.foodIntolerances} onChange={(e) => update('foodIntolerances', e.target.value)} sx={{ my: 0.5 }} />
             <FieldNoteButton fieldKey="nutrition" notes={formData.fieldNotes} setNotes={setNotes} />
             <YesNoSelector label="12. Czy w ostatnim czasie była Pani/Pan na diecie?" value={formData.diet} onChange={(v) => update('diet', v)} />
+            {formData.diet === 'Tak' && <TextField fullWidth size="small" label="Opis diety" value={formData.dietDescription} onChange={(e) => update('dietDescription', e.target.value)} sx={{ ml: 2, mb: 1, maxWidth: 500 }} />}
             <YesNoSelector label="13. Czy występuje alergia lub uczulenie na jakieś substancje?" value={formData.allergies} onChange={(v) => update('allergies', v)} />
             <YesNoSelector label="14. Czy ma Pani/Pan jakieś części metalowe w organizmie?" value={formData.metalPartsInBody} onChange={(v) => update('metalPartsInBody', v)} />
             <Divider sx={{ my: 1.5 }} />
@@ -1001,7 +1003,7 @@ export default function ConsultationCardForm({
           {/* Wątroba + Lipidy */}
           <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#7C3AED', textTransform: 'uppercase', mb: 0.5 }}>Wątroba / Lipidy</Typography>
           <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', mb: 1.5 }}>
-            {(['ast','alt','totalCholesterol','tg'] as const).map((k) => (
+            {(['ast','alt','alp','totalCholesterol','tg'] as const).map((k) => (
               <TextField key={k} size="small" label={FIELD_LABELS[k] ?? k} value={formData[k] ?? ''} onChange={(e) => update(k, e.target.value)} sx={{ flex: '1 1 160px' }} />
             ))}
           </Box>
