@@ -159,6 +159,7 @@ model Consultation {
   eatingDisorders               String?
   foodIntolerances              String?
   diet                          String?
+  dietDescription               String?
   allergies                     String?
   metalPartsInBody              String?
   careRoutineShampoo            String?
@@ -238,6 +239,7 @@ model Consultation {
   se                            String?
   ast                           String?
   alt                           String?
+  alp                           String?
   totalCholesterol              String?
   tg                            String?
   tsh                           String?

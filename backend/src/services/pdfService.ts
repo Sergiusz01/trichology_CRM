@@ -346,6 +346,7 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
         ${formYesNo('11. Czy występują zaburzenia odżywiania/wchłaniania?', cv(c, 'eatingDisorders'))}
         ${formTextField('   Nietolerancje pokarmowe', cv(c, 'foodIntolerances'))}
         ${formYesNo('12. Czy w ostatnim czasie była Pani/Pan na diecie?', cv(c, 'diet'))}
+        ${formTextField('   Opis diety', cv(c, 'dietDescription'))}
         ${formYesNo('13. Czy występuje alergia lub uczulenie?', cv(c, 'allergies'))}
         ${formYesNo('14. Czy ma Pani/Pan części metalowe w organizmie?', cv(c, 'metalPartsInBody'))}
         ${noteRow(notes, 'nutrition')}
