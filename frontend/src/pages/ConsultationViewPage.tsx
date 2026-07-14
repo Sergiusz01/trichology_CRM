@@ -682,6 +682,70 @@ export default function ConsultationViewPage() {
           </>
         )}
 
+        {/* Section: Diagnostyka Laboratoryjna */}
+        <Box sx={{
+          backgroundColor: '#e0e0e0', fontWeight: 'bold', fontSize: '1rem',
+          p: 1, mt: 3, mb: 2, borderLeft: '5px solid #333', textTransform: 'uppercase'
+        }}>
+          Diagnostyka Laboratoryjna
+        </Box>
+        <Grid container spacing={1} sx={{ mb: 2 }}>
+          {[
+            ['labDate', 'Data badania'], ['morphology', 'Morfologia'], ['ob', 'OB'], ['crp', 'CRP'],
+            ['fe', 'FE'], ['folicAcid', 'Kw. foliowy'], ['ferritin', 'Ferrytyna'], ['transferrin', 'Transferryna'],
+            ['vitB12', 'Wit. B12'], ['homocysteine', 'Homocysteina'], ['vitD3', 'Wit. D3'],
+            ['electrolytesNa', 'Na'], ['electrolytesK', 'K'], ['electrolytesMg', 'Mg'], ['zn', 'Zn'], ['se', 'Se'],
+            ['ast', 'AST'], ['alt', 'ALT'], ['alp', 'ALP'], ['totalCholesterol', 'Cholesterol'], ['tg', 'TG'],
+            ['tsh', 'TSH'], ['ft3', 'fT3'], ['ft4', 'fT4'], ['tgThyroidMarker', 'TG (marker tarczycy)'],
+            ['antyTPO', 'ANTY TPO'], ['antyTG', 'ANTY TG'], ['trab', 'TRAB'], ['tsi', 'TSI'],
+            ['lh', 'LH'], ['fsh', 'FSH'], ['estradiol', 'Estradiol'], ['progesterone', 'Progesteron'],
+            ['prolactin', 'Prolaktyna'], ['androstendion', 'Androstendion'], ['sDHEA', 'S-DHEA'],
+            ['totalTestosterone', 'Testosteron'], ['dht', 'DHT'], ['shgb', 'SHGB'], ['cortisol', 'Kortyzol'],
+            ['ana1', 'ANA-1'], ['ana2', 'ANA-2'], ['helicobacter', 'Helikobakter'],
+            ['glucose', 'Glukoza'], ['hba1c', 'HbA1c'], ['insulin', 'Insulina'],
+            ['candidaAlbicans', 'Candida albicans'], ['histamine', 'Histamina'], ['parasites', 'Pasożyty'],
+            ['woodLamp', 'Lampa Wood\'a'], ['demodex', 'Demodex'], ['mycologicalTest', 'Bad. mykologiczne'], ['microbiologicalTest', 'Bad. mikrobiologiczne'],
+          ].map(([key, label]) => (
+            <Grid key={key} size={{ xs: 6, sm: 4, md: 3 }}>
+              <Box sx={{ display: 'flex', borderBottom: '1px dotted #ccc', pb: 0.5, mb: 0.5, fontSize: '0.8rem' }}>
+                <Typography component="span" sx={{ fontWeight: 'bold', mr: 0.5, fontSize: '0.8rem', minWidth: 80 }}>{label}:</Typography>
+                <Typography component="span" sx={{ fontSize: '0.8rem', color: getFieldValue(key) ? '#000' : '#bbb' }}>
+                  {getFieldValue(key) || '___________'}
+                </Typography>
+              </Box>
+            </Grid>
+          ))}
+        </Grid>
+
+        {/* Section: Diagnostyka Łysienia */}
+        <Box sx={{
+          backgroundColor: '#e0e0e0', fontWeight: 'bold', fontSize: '1rem',
+          p: 1, mt: 3, mb: 2, borderLeft: '5px solid #333', textTransform: 'uppercase'
+        }}>
+          Diagnostyka Łysienia
+        </Box>
+        <Grid container spacing={2} sx={{ mb: 2 }}>
+          {[
+            ['alopeciaTypes', 'Łysienie'],
+            ['degreeOfThinning', 'Stopień przerzedzenia'],
+            ['alopeciaType', 'Typ łysienia'],
+            ['alopeciaAffectedAreas', 'Obszar wypadania włosów'],
+            ['miniaturization', 'Cechy miniaturyzacji mieszków'],
+            ['follicularUnits', 'Zespoły mieszkowe'],
+            ['pullTest', 'Pull test'],
+            ['alopeciaOther', 'Inne'],
+          ].map(([key, label]) => (
+            <Grid key={key} size={{ xs: 12, sm: 6 }}>
+              <Box sx={{ display: 'flex', borderBottom: '1px dotted #ccc', pb: 0.5, mb: 0.5, fontSize: '0.875rem' }}>
+                <Typography component="span" sx={{ fontWeight: 'bold', mr: 1, minWidth: 180, fontSize: '0.875rem' }}>{label}:</Typography>
+                <Typography component="span" sx={{ fontSize: '0.875rem', color: getFieldValue(key) ? '#000' : '#bbb' }}>
+                  {formatJsonField(getFieldValue(key)) || '___________'}
+                </Typography>
+              </Box>
+            </Grid>
+          ))}
+        </Grid>
+
         {/* Section: Diagnosis and Recommendations */}
         {(
           <Grid container spacing={2} sx={{ mt: 2 }}>
@@ -701,30 +765,6 @@ export default function ConsultationViewPage() {
                 <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
                   {getFieldValue('diagnosis') || 'Brak wpisu'}
                 </Typography>
-                {getFieldValue('alopeciaTypes') && (
-                  <Typography variant="body2">Typ: {formatJsonField(getFieldValue('alopeciaTypes'))}</Typography>
-                )}
-                {getFieldValue('alopeciaType') && (
-                  <Typography variant="body2">Klasyfikacja: {getFieldValue('alopeciaType')}</Typography>
-                )}
-                {getFieldValue('degreeOfThinning') && (
-                  <Typography variant="body2">Przerzedzenie: {getFieldValue('degreeOfThinning')}</Typography>
-                )}
-                {getFieldValue('alopeciaAffectedAreas') && (
-                  <Typography variant="body2">Obszary: {formatJsonField(getFieldValue('alopeciaAffectedAreas'))}</Typography>
-                )}
-                {getFieldValue('miniaturization') && (
-                  <Typography variant="body2">Miniaturyzacja: {getFieldValue('miniaturization')}</Typography>
-                )}
-                {getFieldValue('follicularUnits') && (
-                  <Typography variant="body2">Jednostki: {getFieldValue('follicularUnits')}</Typography>
-                )}
-                {getFieldValue('pullTest') && (
-                  <Typography variant="body2">Pull Test: {getFieldValue('pullTest')}</Typography>
-                )}
-                {getFieldValue('alopeciaOther') && (
-                  <Typography variant="body2">Inne: {getFieldValue('alopeciaOther')}</Typography>
-                )}
                 {getFieldValue('norwoodHamiltonStage') && (
                   <Typography variant="body2" sx={{ mt: 1 }}>
                     Norwood-Hamilton: {getFieldValue('norwoodHamiltonStage')}
@@ -766,31 +806,21 @@ export default function ConsultationViewPage() {
                   Zalecenia Domowe
                 </Box>
                 <Box sx={{ fontSize: '0.875rem' }}>
-                  {getFieldValue('careRecommendationsWashing') && (
-                    <Box sx={{ mb: 1 }}>
-                      <Typography component="strong">Mycie:</Typography> {getFieldValue('careRecommendationsWashing')}
-                    </Box>
-                  )}
-                  {getFieldValue('careRecommendationsTopical') && (
-                    <Box sx={{ mb: 1 }}>
-                      <Typography component="strong">Wcierki:</Typography> {getFieldValue('careRecommendationsTopical')}
-                    </Box>
-                  )}
-                  {getFieldValue('careRecommendationsSupplement') && (
-                    <Box sx={{ mb: 1 }}>
-                      <Typography component="strong">Suplementy:</Typography> {getFieldValue('careRecommendationsSupplement')}
-                    </Box>
-                  )}
-                  {getFieldValue('careRecommendationsBehavior') && (
-                    <Box sx={{ mb: 1 }}>
-                      <Typography component="strong">Zachowanie:</Typography> {getFieldValue('careRecommendationsBehavior')}
-                    </Box>
-                  )}
-                  {getFieldValue('visitsProcedures') && (
-                    <Box sx={{ mb: 1 }}>
-                      <Typography component="strong">Gabinet:</Typography> {getFieldValue('visitsProcedures')}
-                    </Box>
-                  )}
+                  <Box sx={{ mb: 1 }}>
+                    <Typography component="strong">Mycie:</Typography> {getFieldValue('careRecommendationsWashing') || <Typography component="span" sx={{ color: '#bbb', fontStyle: 'italic' }}>___________</Typography>}
+                  </Box>
+                  <Box sx={{ mb: 1 }}>
+                    <Typography component="strong">Wcierki:</Typography> {getFieldValue('careRecommendationsTopical') || <Typography component="span" sx={{ color: '#bbb', fontStyle: 'italic' }}>___________</Typography>}
+                  </Box>
+                  <Box sx={{ mb: 1 }}>
+                    <Typography component="strong">Suplementy:</Typography> {getFieldValue('careRecommendationsSupplement') || <Typography component="span" sx={{ color: '#bbb', fontStyle: 'italic' }}>___________</Typography>}
+                  </Box>
+                  <Box sx={{ mb: 1 }}>
+                    <Typography component="strong">Zachowanie:</Typography> {getFieldValue('careRecommendationsBehavior') || <Typography component="span" sx={{ color: '#bbb', fontStyle: 'italic' }}>___________</Typography>}
+                  </Box>
+                  <Box sx={{ mb: 1 }}>
+                    <Typography component="strong">Gabinet:</Typography> {getFieldValue('visitsProcedures') || <Typography component="span" sx={{ color: '#bbb', fontStyle: 'italic' }}>___________</Typography>}
+                  </Box>
                 </Box>
               </Box>
             </Grid>
