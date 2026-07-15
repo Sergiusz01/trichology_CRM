@@ -131,7 +131,7 @@ api.interceptors.response.use(
 
     // Show error toast for non-401 errors (401 is handled above or will trigger logout)
     // Also show toast if it's a network error (no response)
-    const skipToast = (originalRequest as any)._skipErrorToast;
+    const skipToast = originalRequest._skipErrorToast;
     if (!skipToast && globalErrorHandler && (!error.response || error.response.status !== 401)) {
       const message = formatErrorMessage(error);
       const isNetworkError = !error.response;

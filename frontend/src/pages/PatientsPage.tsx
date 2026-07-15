@@ -221,7 +221,7 @@ export default function PatientsPage() {
               Twoja lista pacjentów jest obecnie pusta. Dodaj pierwszego pacjenta, aby rozpocząć budowanie bazy i historii leczenia.
             </Typography>
             <AppButton
-              variant="primary"
+              variant="contained"
               startIcon={<Add />}
               onClick={() => navigate('/patients/new')}
               size="large"
@@ -249,7 +249,7 @@ export default function PatientsPage() {
               width: { xs: '100%', sm: 'auto' },
             }}>
               <AppButton
-                variant={showArchived ? 'outlined' : 'secondary'}
+                variant={showArchived ? 'contained' : 'outlined'}
                 startIcon={<Archive />}
                 onClick={() => {
                   setShowArchived(!showArchived);
@@ -272,7 +272,7 @@ export default function PatientsPage() {
               )}
               {!showArchived && (
                 <AppButton
-                  variant="primary"
+                  variant="contained"
                   startIcon={<Add />}
                   onClick={() => navigate('/patients/new')}
                   size={isMobile ? 'medium' : 'medium'}
@@ -736,7 +736,8 @@ export default function PatientsPage() {
             </AppButton>
             <AppButton
               onClick={handleDeleteConfirm}
-              variant="danger"
+              variant="contained"
+              color="error"
               size={isMobile ? 'small' : 'medium'}
             >
               Zarchiwizuj
@@ -775,7 +776,7 @@ export default function PatientsPage() {
             <AppButton
               onClick={handleRestoreConfirm}
               color="success"
-              variant="primary"
+              variant="contained"
               size={isMobile ? 'small' : 'medium'}
             >
               Przywróć
@@ -829,7 +830,8 @@ export default function PatientsPage() {
             </AppButton>
             <AppButton
               onClick={handlePermanentDeleteConfirm}
-              variant="danger"
+              variant="contained"
+              color="error"
               size={isMobile ? 'small' : 'medium'}
             >
               Trwale usuń

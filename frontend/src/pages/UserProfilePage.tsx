@@ -108,7 +108,7 @@ export default function UserProfilePage() {
 
       <Grid container spacing={{ xs: 2, sm: 3 }}>
         {/* Profile Information */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -168,7 +168,7 @@ export default function UserProfilePage() {
         </Grid>
 
         {/* Change Password */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>

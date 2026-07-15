@@ -5,6 +5,7 @@ interface MultiSelectCheckboxesProps {
   options: string[];
   value: string[];
   onChange: (value: string[]) => void;
+  required?: boolean;
 }
 
 export default function MultiSelectCheckboxes({

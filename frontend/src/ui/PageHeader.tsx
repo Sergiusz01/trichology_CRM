@@ -7,6 +7,8 @@ export interface PageHeaderProps {
     subtitle?: string;
     breadcrumbs?: { label: string; href?: string }[];
     action?: React.ReactNode;
+    backPath?: string;
+    backLabel?: string;
 }
 
 export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, breadcrumbs, action }) => {

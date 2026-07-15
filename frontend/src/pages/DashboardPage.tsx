@@ -572,7 +572,7 @@ export default function DashboardPage() {
                         Wygląda na to, że nie masz jeszcze żadnych pacjentów w swojej bazie. Rozpocznij pracę, dodając pierwszą osobę, a następnie zaplanuj dla niej konsultację lub wizytę w kalendarzu.
                     </Typography>
                     <AppButton
-                        variant="primary"
+                        variant="contained"
                         startIcon={<Add />}
                         onClick={() => navigate('/patients/new')}
                         size="large"

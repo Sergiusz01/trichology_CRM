@@ -5,8 +5,8 @@ export interface Visit {
   id: string;
   data: string;
   rodzajZabiegu: string;
-  status: 'ZAPLANOWANA' | 'ODBYTA' | 'NIEOBECNOSC' | 'ANULOWANA';
-  cena?: number;
+  status: 'ZAPLANOWANA' | 'POTWIERDZONA' | 'ODBYTA' | 'NIEOBECNOSC' | 'ANULOWANA' | 'ZMIANA_TERMINU';
+  cena?: number | null;
   notatki?: string;
   patient: { id: string; firstName: string; lastName: string };
   patientId?: string;
@@ -19,10 +19,10 @@ export interface CreateVisitData {
   data: string;
   rodzajZabiegu: string;
   status: Visit['status'];
-  cena?: number;
-  notatki?: string;
-  numerWSerii?: number;
-  liczbaSerii?: number;
+  cena?: number | null;
+  notatki?: string | null;
+  numerWSerii?: number | null;
+  liczbaSerii?: number | null;
 }
 
 // ── Query Keys ────────────────────────────────────────────────────────────────

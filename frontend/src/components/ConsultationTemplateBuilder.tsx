@@ -238,7 +238,7 @@ export default function ConsultationTemplateBuilder({
 
       <Paper sx={{ p: 3, mb: 3 }}>
         <Grid container spacing={2}>
-          <Grid item xs={12}>
+          <Grid size={12}>
             <TextField
               fullWidth
               label="Nazwa szablonu"
@@ -247,7 +247,7 @@ export default function ConsultationTemplateBuilder({
               required
             />
           </Grid>
-          <Grid item xs={12}>
+          <Grid size={12}>
             <FormControlLabel
               control={
                 <Switch
@@ -352,7 +352,7 @@ export default function ConsultationTemplateBuilder({
         </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <FormControl fullWidth required>
                 <InputLabel>Typ pytania</InputLabel>
                 <Select
@@ -374,7 +374,7 @@ export default function ConsultationTemplateBuilder({
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <TextField
                 fullWidth
                 label="Etykieta"
@@ -385,7 +385,7 @@ export default function ConsultationTemplateBuilder({
                 required
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <TextField
                 fullWidth
                 label="Klucz (identyfikator)"
@@ -397,7 +397,7 @@ export default function ConsultationTemplateBuilder({
                 helperText="Tylko litery, cyfry i podkreślenia"
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <TextField
                 fullWidth
                 label="Placeholder"
@@ -407,7 +407,7 @@ export default function ConsultationTemplateBuilder({
                 }
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={12}>
               <FormControlLabel
                 control={
                   <Switch
@@ -421,7 +421,7 @@ export default function ConsultationTemplateBuilder({
               />
             </Grid>
             {(currentField.type === 'SELECT' || currentField.type === 'MULTISELECT') && (
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <Divider sx={{ my: 2 }} />
                 <Typography variant="subtitle2" sx={{ mb: 1 }}>
                   Opcje wyboru

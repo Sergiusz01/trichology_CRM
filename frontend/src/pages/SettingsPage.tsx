@@ -206,8 +206,7 @@ export default function SettingsPage() {
             {/* Tab 0: System Information (Original Settings view) */}
             <CustomTabPanel value={tabValue} index={0}>
                 <Grid container spacing={3}>
-                    {/* @ts-ignore */}
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                         <Card elevation={2} sx={{ height: '100%', borderRadius: 2 }}>
                             <CardContent>
                                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -279,8 +278,7 @@ export default function SettingsPage() {
                         </Card>
                     </Grid>
 
-                    {/* @ts-ignore */}
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                         <Card elevation={2} sx={{ height: '100%', borderRadius: 2 }}>
                             <CardContent>
                                 {/* Nagłówek karty */}

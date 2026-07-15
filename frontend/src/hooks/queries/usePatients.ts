@@ -9,6 +9,9 @@ export interface Patient {
   gender?: string;
   phone?: string;
   email?: string;
+  occupation?: string | null;
+  address?: string | null;
+  notes?: string | null;
   isArchived: boolean;
   assignedDoctorId?: string | null;
   assignedDoctor?: { id: string; name: string } | null;

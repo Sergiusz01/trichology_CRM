@@ -177,7 +177,7 @@ export default function ConsultationTemplatesPage() {
                         <IconButton
                           edge="end"
                           color="error"
-                          onClick={() => handleDeleteTemplate(template.id)}
+                          onClick={() => handleDeleteTemplate(template.id!)}
                           title="Usuń szablon"
                         >
                           <Delete />
