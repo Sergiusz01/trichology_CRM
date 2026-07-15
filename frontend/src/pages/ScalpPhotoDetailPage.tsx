@@ -415,7 +415,6 @@ export default function ScalpPhotoDetailPage() {
                 src={imageBlobUrl || ''}
                 alt={photo.originalFilename || 'Zdjęcie skóry głowy'}
                 onLoad={() => {
-                  console.log('Obraz załadowany:', photo.filename || photo.filePath);
                   handleImageLoad();
                 }}
                 onError={(e) => {

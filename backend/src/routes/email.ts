@@ -14,6 +14,9 @@ import { logger } from '../utils/logger';
 
 const router = express.Router();
 
+const escapeHtml = (str: string) =>
+  str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
 // Configure multer for file uploads
 const uploadDir = path.join(__dirname, '../../storage/email-attachments');
 if (!fs.existsSync(uploadDir)) {
@@ -39,7 +42,9 @@ const upload = multer({
       'application/pdf', 'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     ];
-    if (allowedMimes.includes(file.mimetype)) {
+    const allowedExts = ['.jpg', '.jpeg', '.png', '.webp', '.pdf', '.doc', '.docx'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowedMimes.includes(file.mimetype) && allowedExts.includes(ext)) {
       cb(null, true);
     } else {
       cb(new Error('Niedozwolony format pliku. Dozwolone: JPG, PNG, WEBP, PDF, DOC, DOCX.'));
@@ -125,9 +130,9 @@ router.post('/consultation/:id', authenticate, async (req: AuthRequest, res, nex
       htmlBody = `
         <h2>Konsultacja trychologiczna</h2>
         <p>Dzień dobry,</p>
-        <p>W załączeniu przesyłamy szczegóły konsultacji z dnia ${consultationDate}.</p>
-        <p>Pacjent: ${consultation.patient.firstName} ${consultation.patient.lastName}</p>
-        <p>Lekarz: ${consultation.doctor.name}</p>
+        <p>W załączeniu przesyłamy szczegóły konsultacji z dnia ${escapeHtml(consultationDate)}.</p>
+        <p>Pacjent: ${escapeHtml(consultation.patient.firstName)} ${escapeHtml(consultation.patient.lastName)}</p>
+        <p>Lekarz: ${escapeHtml(consultation.doctor.name)}</p>
         <p>Pozdrawiamy,<br>Zespół kliniki</p>
       `;
     }
@@ -256,9 +261,9 @@ router.post('/care-plan/:id', authenticate, async (req: AuthRequest, res, next) 
       htmlBody = `
         <h2>Plan opieki trychologicznej</h2>
         <p>Dzień dobry,</p>
-        <p>W załączeniu przesyłamy Twój indywidualny plan opieki trychologicznej: ${carePlan.title} (${carePlan.totalDurationWeeks} tygodni).</p>
-        <p>Pacjent: ${carePlan.patient.firstName} ${carePlan.patient.lastName}</p>
-        <p>Lekarz: ${carePlan.createdBy.name}</p>
+        <p>W załączeniu przesyłamy Twój indywidualny plan opieki trychologicznej: ${escapeHtml(carePlan.title)} (${carePlan.totalDurationWeeks} tygodni).</p>
+        <p>Pacjent: ${escapeHtml(carePlan.patient.firstName)} ${escapeHtml(carePlan.patient.lastName)}</p>
+        <p>Lekarz: ${escapeHtml(carePlan.createdBy.name)}</p>
         <p>Pozdrawiamy,<br>Zespół kliniki</p>
       `;
     }
@@ -609,9 +614,6 @@ const sendEmailSchema = z.object({
   attachConsultationId: z.string().optional(),
   attachCarePlanId: z.string().optional(),
 });
-
-const escapeHtml = (str: string) =>
-  str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 router.post('/send', authenticate, upload.array('attachments', 5), async (req: AuthRequest, res, next) => {
   const files = req.files as Express.Multer.File[];
@@ -998,9 +1000,9 @@ router.post('/scalp-photo/:id', authenticate, async (req: AuthRequest, res, next
         html: `
           <h2>Zdjęcie skóry głowy</h2>
           <p>Dzień dobry,</p>
-          <p>W załączeniu przesyłamy zdjęcie skóry głowy z dnia ${new Date(scalpPhoto.createdAt).toLocaleDateString('pl-PL')}.</p>
-          ${scalpPhoto.notes ? `<p><strong>Uwagi:</strong> ${scalpPhoto.notes}</p>` : ''}
-          <p>Pacjent: ${scalpPhoto.patient.firstName} ${scalpPhoto.patient.lastName}</p>
+          <p>W załączeniu przesyłamy zdjęcie skóry głowy z dnia ${escapeHtml(new Date(scalpPhoto.createdAt).toLocaleDateString('pl-PL'))}.</p>
+          ${scalpPhoto.notes ? `<p><strong>Uwagi:</strong> ${escapeHtml(scalpPhoto.notes)}</p>` : ''}
+          <p>Pacjent: ${escapeHtml(scalpPhoto.patient.firstName)} ${escapeHtml(scalpPhoto.patient.lastName)}</p>
           <p>Pozdrawiamy,<br>Zespół kliniki</p>
         `,
         attachments: [

@@ -91,14 +91,11 @@ export default function ConsultationFormPage() {
   const fetchTemplates = async () => {
     try {
       const response = await api.get('/consultation-templates');
-      console.log('[ConsultationFormPage] Templates response:', response.data);
       const templatesList = response.data.templates || [];
-      console.log('[ConsultationFormPage] Templates count:', templatesList.length);
       setTemplates(templatesList);
       // Auto-select default template if available
       const pdfTemplate = templatesList.find((t: any) => t.name === 'Karta konsultacyjna (PDF)');
       const defaultTemplate = pdfTemplate || templatesList.find((t: any) => t.isDefault);
-      console.log('[ConsultationFormPage] Default template:', defaultTemplate);
       if (defaultTemplate) {
         setSelectedTemplate(defaultTemplate);
         setUseTemplate(true);
@@ -122,17 +119,14 @@ export default function ConsultationFormPage() {
   const fetchConsultation = async () => {
     // Don't fetch if we're creating a new consultation
     if (!actualConsultationId || isNewConsultation) {
-      console.log('[ConsultationFormPage] Skipping fetch - creating new consultation');
       return;
     }
 
     try {
       setLoading(true);
       setError('');
-      console.log('[ConsultationFormPage] Fetching consultation with ID:', actualConsultationId);
 
       const response = await api.get(`/consultations/${actualConsultationId}`);
-      console.log('[ConsultationFormPage] Consultation response:', response.data);
 
       const consultation = response.data.consultation;
 
@@ -346,9 +340,6 @@ export default function ConsultationFormPage() {
       }
     });
 
-    console.log('[ConsultationFormPage] Data to send keys:', Object.keys(dataToSend));
-    console.log('[ConsultationFormPage] PatientId:', dataToSend.patientId);
-
     try {
       if (actualConsultationId && !isNewConsultation) {
         await api.put(`/consultations/${actualConsultationId}`, dataToSend);
@@ -551,7 +542,6 @@ export default function ConsultationFormPage() {
                     size="small"
                     startIcon={<Edit />}
                     onClick={() => {
-                      console.log('[ConsultationFormPage] Opening edit template dialog for:', selectedTemplate);
                       setEditTemplateOpen(true);
                     }}
                   >
