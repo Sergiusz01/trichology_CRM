@@ -48,6 +48,7 @@ import {
     Today,
     Schedule,
     Notifications,
+    DeleteSweep,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
@@ -167,6 +168,15 @@ function PatientActivityCard() {
         }
     };
 
+    const clearHistory = async (mode: 'read' | 'all') => {
+        try {
+            await api.delete(`/dashboard/visit-events/clear?mode=${mode}`);
+            refetch();
+        } catch (_) {}
+    };
+
+    const readCount = events.filter(e => e.isRead).length;
+
     return (
         <Box sx={{ mb: 4, px: { xs: 1, sm: 0 } }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
@@ -181,16 +191,40 @@ function PatientActivityCard() {
                         />
                     )}
                 </Typography>
-                {unreadCount > 0 && (
-                    <Button
-                        size="small"
-                        variant="text"
-                        onClick={markAllRead}
-                        sx={{ fontSize: '0.75rem', textTransform: 'none', color: 'text.secondary' }}
-                    >
-                        Oznacz wszystkie jako przeczytane
-                    </Button>
-                )}
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                    {unreadCount > 0 && (
+                        <Button
+                            size="small"
+                            variant="text"
+                            onClick={markAllRead}
+                            sx={{ fontSize: '0.75rem', textTransform: 'none', color: 'text.secondary' }}
+                        >
+                            Oznacz jako przeczytane
+                        </Button>
+                    )}
+                    {readCount > 0 && (
+                        <Tooltip title="Wyczyść przeczytane">
+                            <IconButton
+                                size="small"
+                                onClick={() => clearHistory('read')}
+                                sx={{ color: 'text.secondary', '&:hover': { color: '#d32f2f', bgcolor: alpha('#d32f2f', 0.08) } }}
+                            >
+                                <DeleteSweep sx={{ fontSize: 18 }} />
+                            </IconButton>
+                        </Tooltip>
+                    )}
+                    {events.length > 0 && readCount === 0 && (
+                        <Tooltip title="Wyczyść całą historię">
+                            <IconButton
+                                size="small"
+                                onClick={() => clearHistory('all')}
+                                sx={{ color: 'text.secondary', '&:hover': { color: '#d32f2f', bgcolor: alpha('#d32f2f', 0.08) } }}
+                            >
+                                <DeleteSweep sx={{ fontSize: 18 }} />
+                            </IconButton>
+                        </Tooltip>
+                    )}
+                </Box>
             </Box>
             <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3, overflow: 'hidden' }}>
                 {isLoading ? (

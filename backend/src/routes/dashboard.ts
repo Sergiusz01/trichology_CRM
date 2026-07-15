@@ -495,5 +495,22 @@ router.post('/visit-events/mark-read', authenticate, async (req: AuthRequest, re
   }
 });
 
+// Clear old / read visit events
+router.delete('/visit-events/clear', authenticate, async (req: AuthRequest, res, next) => {
+  try {
+    const mode = (req.query.mode as string) || 'read'; // 'read' = only read, 'all' = everything
+    const where: any = {
+      eventType: { in: ['CONFIRMED', 'CANCELED', 'RESCHEDULE_REQUESTED', 'REMINDER_SENT'] },
+    };
+    if (mode === 'read') {
+      where.isRead = true;
+    }
+    const result = await prisma.visitEvent.deleteMany({ where });
+    res.json({ success: true, deleted: result.count });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;
 
