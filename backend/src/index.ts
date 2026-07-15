@@ -7,7 +7,7 @@ import { initializeDefaultConsultationTemplate } from './utils/initializeDefault
 const PORT = process.env.PORT || 3001;
 
 // ── Startup env validation ────────────────────────────────────────────────────
-const REQUIRED_ENV_VARS = ['JWT_SECRET', 'REFRESH_TOKEN_SECRET', 'DATABASE_URL'];
+const REQUIRED_ENV_VARS = ['JWT_SECRET', 'JWT_REFRESH_SECRET', 'DATABASE_URL'];
 const missingVars = REQUIRED_ENV_VARS.filter((v) => !process.env[v]);
 if (missingVars.length > 0) {
   console.error(`❌ Brakujące zmienne środowiskowe: ${missingVars.join(', ')}`);
