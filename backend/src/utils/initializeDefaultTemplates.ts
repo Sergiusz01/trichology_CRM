@@ -1,4 +1,5 @@
 import { prisma as defaultPrisma } from '../prisma';
+import { logger } from './logger';
 
 /**
  * Initialize default email templates if they don't exist
@@ -16,11 +17,11 @@ export async function initializeDefaultTemplates(adminUserId: string, prisma = d
     });
     
     if (existingDefaults.length >= 4) {
-      console.log('📧 Domyślne szablony emaili już istnieją, pomijam inicjalizację');
+      logger.info('Domyślne szablony emaili już istnieją, pomijam inicjalizację');
       return;
     }
 
-    console.log('📧 Inicjalizacja domyślnych szablonów emaili...');
+    logger.info('Inicjalizacja domyślnych szablonów emaili...');
 
     // Consultation template
     await db.emailTemplate.upsert({
@@ -113,9 +114,9 @@ export async function initializeDefaultTemplates(adminUserId: string, prisma = d
       },
     });
 
-    console.log('✅ Domyślne szablony emaili zostały zainicjalizowane');
+    logger.info('Domyślne szablony emaili zostały zainicjalizowane');
   } catch (error) {
-    console.error('❌ Błąd podczas inicjalizacji domyślnych szablonów:', error);
+    logger.error('Błąd podczas inicjalizacji domyślnych szablonów emaili', { error });
     throw error;
   }
 }

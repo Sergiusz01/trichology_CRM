@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { logger } from './logger';
 
 /**
  * Get logo as base64 data URL for embedding in emails and PDFs
@@ -22,7 +23,7 @@ export function getLogoBase64(): string {
       }
     }
   } catch (error) {
-    console.error('Błąd wczytywania logo:', error);
+    logger.error('Błąd wczytywania logo', { error });
   }
   return '';
 }

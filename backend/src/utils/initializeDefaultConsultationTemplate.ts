@@ -1,5 +1,6 @@
 import { prisma as defaultPrisma } from '../prisma';
 import { generateDefaultFields } from '../scripts/seedDefaultConsultationTemplate';
+import { logger } from './logger';
 
 export async function initializeDefaultConsultationTemplate(prisma = defaultPrisma) {
   const db = prisma;
@@ -11,7 +12,7 @@ export async function initializeDefaultConsultationTemplate(prisma = defaultPris
     });
 
     if (doctors.length === 0) {
-      console.log('⚠️ Brak lekarzy - pomijam inicjalizację szablonu konsultacji');
+      logger.info('Brak lekarzy - pomijam inicjalizację szablonu konsultacji');
       return;
     }
 
@@ -36,7 +37,7 @@ export async function initializeDefaultConsultationTemplate(prisma = defaultPris
               fields: defaultFields,
             },
           });
-          console.log(`✅ Zaktualizowano domyślny szablon konsultacji dla ${doctor.email}`);
+          logger.info(`Zaktualizowano domyślny szablon konsultacji dla ${doctor.email}`);
         } else if (existing.name === 'Karta konsultacyjna (PDF)' && Array.isArray(existing.fields)) {
           const existingKeys = new Set((existing.fields as any[]).map((field) => field.key));
           const missingScaleFields = scaleFields.filter((field) => !existingKeys.has(field.key));
@@ -51,7 +52,7 @@ export async function initializeDefaultConsultationTemplate(prisma = defaultPris
                 fields: mergedFields,
               },
             });
-            console.log(`✅ Dodano pola skali do szablonu konsultacji dla ${doctor.email}`);
+            logger.info(`Dodano pola skali do szablonu konsultacji dla ${doctor.email}`);
           }
         }
       } else {
@@ -64,10 +65,10 @@ export async function initializeDefaultConsultationTemplate(prisma = defaultPris
             isActive: true,
           },
         });
-        console.log(`✅ Utworzono domyślny szablon konsultacji dla ${doctor.email}`);
+        logger.info(`Utworzono domyślny szablon konsultacji dla ${doctor.email}`);
       }
     }
   } catch (error) {
-    console.error('❌ Błąd podczas inicjalizacji szablonu konsultacji:', error);
+    logger.error('Błąd podczas inicjalizacji szablonu konsultacji', { error });
   }
 }

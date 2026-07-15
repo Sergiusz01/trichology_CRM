@@ -111,8 +111,8 @@ export default function ConsultationFormPage() {
         });
         setFormData(initialData);
       }
-    } catch (error) {
-      console.error('Błąd pobierania szablonów:', error);
+    } catch {
+      // ignore
     }
   };
 
@@ -131,7 +131,6 @@ export default function ConsultationFormPage() {
       const consultation = response.data.consultation;
 
       if (!consultation) {
-        console.error('[ConsultationFormPage] No consultation in response');
         setError('Konsultacja nie znaleziona');
         setLoading(false);
         return;

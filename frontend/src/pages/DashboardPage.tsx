@@ -155,7 +155,7 @@ function PatientActivityCard() {
         if (!event.isRead) {
             try {
                 await api.post('/dashboard/visit-events/mark-read', { eventIds: [event.id] });
-                refetch();
+                await refetch();
             } catch (_) {}
         }
     };
@@ -163,15 +163,17 @@ function PatientActivityCard() {
     const markAllRead = async () => {
         const ids = events.filter(e => !e.isRead).map(e => e.id);
         if (ids.length > 0) {
-            await api.post('/dashboard/visit-events/mark-read', { eventIds: ids });
-            refetch();
+            try {
+                await api.post('/dashboard/visit-events/mark-read', { eventIds: ids });
+                await refetch();
+            } catch (_) {}
         }
     };
 
     const clearHistory = async (mode: 'read' | 'all') => {
         try {
             await api.delete(`/dashboard/visit-events/clear?mode=${mode}`);
-            refetch();
+            await refetch();
         } catch (_) {}
     };
 

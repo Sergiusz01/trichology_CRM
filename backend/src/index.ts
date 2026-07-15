@@ -3,6 +3,7 @@ import app from './app';
 import { startReminderWorker } from './services/reminderWorker';
 import { prisma } from './prisma';
 import { initializeDefaultConsultationTemplate } from './utils/initializeDefaultConsultationTemplate';
+import { logger } from './utils/logger';
 
 const PORT = process.env.PORT || 3001;
 
@@ -10,14 +11,14 @@ const PORT = process.env.PORT || 3001;
 const REQUIRED_ENV_VARS = ['JWT_SECRET', 'JWT_REFRESH_SECRET', 'DATABASE_URL'];
 const missingVars = REQUIRED_ENV_VARS.filter((v) => !process.env[v]);
 if (missingVars.length > 0) {
-  console.error(`❌ Brakujące zmienne środowiskowe: ${missingVars.join(', ')}`);
+  logger.error(`Brakujące zmienne środowiskowe: ${missingVars.join(', ')}`);
   process.exit(1);
 }
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  logger.info(`Server running on port ${PORT}`);
+  logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
 // Start reminder worker
@@ -38,25 +39,25 @@ startReminderWorker();
     if (admin && prisma) {
       await initializeDefaultTemplates(admin.id, prisma);
     } else {
-      console.log('⚠️ Brak użytkownika admin - pomijam inicjalizację szablonów emaili');
+      logger.info('Brak użytkownika admin - pomijam inicjalizację szablonów emaili');
     }
 
     await initializeDefaultConsultationTemplate(prisma);
     await initializeDefaultLabResultTemplate(prisma);
   } catch (error) {
-    console.error('❌ Błąd podczas inicjalizacji domyślnych szablonów:', error);
+    logger.error('Błąd podczas inicjalizacji domyślnych szablonów', { error });
   }
 })();
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
-  console.log('SIGTERM received, shutting down gracefully...');
+  logger.info('SIGTERM received, shutting down gracefully...');
   await prisma.$disconnect();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
-  console.log('SIGINT received, shutting down gracefully...');
+  logger.info('SIGINT received, shutting down gracefully...');
   await prisma.$disconnect();
   process.exit(0);
 });

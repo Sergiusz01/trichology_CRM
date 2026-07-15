@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
 import { Prisma } from '@prisma/client';
+import { logger } from '../utils/logger';
 
 export const errorHandler = (
   err: Error,
@@ -8,8 +9,7 @@ export const errorHandler = (
   res: Response,
   next: NextFunction
 ) => {
-  console.error('Error:', err);
-  console.error('Error stack:', err.stack);
+  logger.error('Unhandled error', { message: err.message, stack: err.stack });
 
   // Zod validation errors - format nicely
   if (err instanceof ZodError) {
