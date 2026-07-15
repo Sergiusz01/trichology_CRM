@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { AxiosError } from 'axios';
+import { Patient } from '../hooks/queries/usePatients';
 import {
     Box,
     Grid,
@@ -102,7 +104,7 @@ interface VisitEvent {
     createdAt: string;
     createdBy: string;
     isRead: boolean;
-    payload: any;
+    payload: Record<string, unknown>;
     visit: {
         id: string;
         rodzajZabiegu: string;
@@ -317,7 +319,7 @@ export default function DashboardPage() {
 
     // --- Search & Modal Local State ---
     const [searchQuery, setSearchQuery] = useState('');
-    const [searchResults, setSearchResults] = useState<any[]>([]);
+    const [searchResults, setSearchResults] = useState<Patient[]>([]);
     const [searchLoading, setSearchLoading] = useState(false);
 
     const [reminderDialog, setReminderDialog] = useState<{
@@ -358,7 +360,7 @@ export default function DashboardPage() {
         retry: 1,
     });
 
-    const error = isError ? (queryError as any)?.response?.data?.message || (queryError as any)?.response?.data?.error || (queryError as Error).message || 'Nie udało się załadować danych dashboardu' : null;
+    const error = isError ? (queryError as AxiosError<{ message?: string; error?: string }>)?.response?.data?.message || (queryError as AxiosError<{ message?: string; error?: string }>)?.response?.data?.error || (queryError as Error).message || 'Nie udało się załadować danych dashboardu' : null;
 
     // --- Derived State ---
     const stats = dashboardData?.stats || {
@@ -463,7 +465,7 @@ export default function DashboardPage() {
             try {
                 const response = await api.get('/patients');
                 const patients = response.data.patients || [];
-                const filtered = patients.filter((p: any) =>
+                const filtered = patients.filter((p: Patient) =>
                     `${p.firstName} ${p.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
                     p.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                     p.phone?.includes(searchQuery)

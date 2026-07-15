@@ -4,6 +4,7 @@ import path from 'path';
 import { authenticate, requireRole, requireWriteAccess, AuthRequest } from '../middleware/auth';
 import { authorizePatientAccess, canAccessPatient } from '../middleware/authorizePatientAccess';
 import { prisma } from '../prisma';
+import { Prisma } from '@prisma/client';
 import { writeAuditLog } from '../services/auditService';
 import fs from 'fs';
 import { logger } from '../utils/logger';
@@ -37,7 +38,8 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
     const skip = (pageNum - 1) * limitNum;
     const isArchived = archived === 'true';
 
-    const where: any = { isArchived };
+    const andConditions: Prisma.PatientWhereInput[] = [];
+    const where: Prisma.PatientWhereInput = { isArchived };
 
     // [C-1] Defence-in-depth: scope list query to accessible patients
     const user = req.user!;
@@ -46,8 +48,7 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
       if (user.role === 'DOCTOR') {
         // DOCTOR sees patients assigned to them OR with explicit DoctorPatientAccess
         // Use AND to safely combine with search OR below
-        where.AND = where.AND || [];
-        where.AND.push({
+        andConditions.push({
           OR: [
             { assignedDoctorId: user.id },
             { doctorAccess: { some: { doctorId: user.id } } },
@@ -58,8 +59,7 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
 
     if (search) {
       const searchStr = search as string;
-      where.AND = where.AND || [];
-      where.AND.push({
+      andConditions.push({
         OR: [
           { firstName: { contains: searchStr, mode: 'insensitive' } },
           { lastName: { contains: searchStr, mode: 'insensitive' } },
@@ -67,6 +67,10 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
           { email: { contains: searchStr, mode: 'insensitive' } },
         ],
       });
+    }
+
+    if (andConditions.length > 0) {
+      where.AND = andConditions;
     }
 
     let patients;
@@ -109,9 +113,9 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
       // Map to remove 'visits' payload to match usual schema
       patients = allPatients.slice(skip, skip + limitNum).map(({ visits, ...rest }: any) => rest);
     } else {
-      let orderByObj: any = { createdAt: 'desc' };
-      if (sortBy === 'lastName') orderByObj = { lastName: sortOrder };
-      else if (sortBy === 'createdAt') orderByObj = { createdAt: sortOrder };
+      let orderByObj: Prisma.PatientOrderByWithRelationInput = { createdAt: 'desc' };
+      if (sortBy === 'lastName') orderByObj = { lastName: sortOrder as Prisma.SortOrder };
+      else if (sortBy === 'createdAt') orderByObj = { createdAt: sortOrder as Prisma.SortOrder };
 
       patients = await prisma.patient.findMany({
         where,

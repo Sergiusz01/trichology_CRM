@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Produkcja (za Nginx): nie ustawiaj VITE_API_URL → używamy względnego /api (brak CORS przy samej domenie).
 // Lokalnie: VITE_API_URL=http://localhost:3001 w .env – frontend na :5173, API na :3001.
-const API_URL = (import.meta as any).env?.VITE_API_URL || '';
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 export const BASE_URL = API_URL;
 
@@ -14,21 +14,8 @@ export const api = axios.create({
   withCredentials: true, // [SEC-10] Send httpOnly cookies with requests
 });
 
-// Add token to requests if available
-const getToken = () => localStorage.getItem('accessToken');
-const token = getToken();
-if (token) {
-  api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-}
-
-// Update token when it changes
+// [SEC-10] Access token is now an httpOnly cookie — no localStorage, no Authorization header needed
 api.interceptors.request.use((config) => {
-  const token = getToken();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  } else {
-    delete config.headers.Authorization;
-  }
   // Don't set Content-Type for FormData (let browser set it with boundary)
   if (config.data instanceof FormData) {
     delete config.headers['Content-Type'];
@@ -44,16 +31,23 @@ export const setupApiErrorHandler = (errorHandler: (message: string, variant: 'e
 };
 
 // Helper function to format error messages
-const formatErrorMessage = (error: any): string => {
+const formatErrorMessage = (error: unknown): string => {
   if (!navigator.onLine) {
     return 'Jesteś w trybie offline. Sprawdź połączenie z internetem.';
+  }
+
+  if (!axios.isAxiosError(error)) {
+    return 'Nieoczekiwany błąd';
   }
 
   if (!error.response) {
     return 'Brak połączenia z serwerem. Sprawdź internet lub status backendu.';
   }
 
-  const { status, data } = error.response;
+  const { status, data } = error.response as {
+    status: number;
+    data: { message?: string; error?: string; details?: Array<{ field?: string; message?: string }> };
+  };
 
   // Handle validation errors
   if (status === 400 && data?.details && Array.isArray(data.details)) {
@@ -103,24 +97,17 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        // [SEC-10] refreshToken is sent automatically via httpOnly cookie
+        // [SEC-10] Both tokens travel as httpOnly cookies — server sets new accessToken cookie on success
         const refreshUrl = API_URL ? `${API_URL}/api/auth/refresh` : '/api/auth/refresh';
         const lastActivityTime = localStorage.getItem('lastActivityTime');
-        const response = await axios.post(refreshUrl, {
+        await axios.post(refreshUrl, {
           ...(lastActivityTime !== null && { lastActivityTime: parseInt(lastActivityTime, 10) }),
         }, { withCredentials: true });
 
-        const { accessToken } = response.data;
-        localStorage.setItem('accessToken', accessToken);
-        api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
-        originalRequest.headers['Authorization'] = `Bearer ${accessToken}`;
-
         return api(originalRequest);
       } catch (refreshError) {
-        // Clear tokens on refresh failure
-        localStorage.removeItem('accessToken');
+        // Clear activity timestamp on refresh failure
         localStorage.removeItem('lastActivityTime');
-        delete api.defaults.headers.common['Authorization'];
 
         // Dispatch custom event for AuthContext to handle navigation
         window.dispatchEvent(new CustomEvent('auth:logout', { detail: { reason: 'token_refresh_failed' } }));

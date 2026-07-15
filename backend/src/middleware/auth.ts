@@ -22,12 +22,15 @@ export const authenticate = async (
   next: NextFunction
 ) => {
   try {
+    // [SEC-10] Prefer httpOnly cookie; fall back to Authorization header for non-browser clients
+    const cookieToken: string | undefined = req.cookies?.accessToken;
     const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const headerToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : undefined;
+    const token = cookieToken || headerToken;
+
+    if (!token) {
       return res.status(401).json({ error: 'Brak tokenu autoryzacyjnego' });
     }
-
-    const token = authHeader.substring(7);
     const jwtSecret = process.env.JWT_SECRET;
     
     if (!jwtSecret) {

@@ -32,6 +32,30 @@ const getRefreshCookieOptions = (): CookieOptions => {
   };
 };
 
+/**
+ * [SEC-10] Cookie configuration for access tokens.
+ * path: '/' so the cookie is sent with all API requests.
+ */
+const ACCESS_COOKIE_NAME = 'accessToken';
+const getAccessCookieOptions = (): CookieOptions => {
+  const isProd = process.env.NODE_ENV === 'production';
+  const accessExpiresIn = process.env.JWT_EXPIRES_IN || '5m';
+  const maxAgeMs = accessExpiresIn.endsWith('m')
+    ? parseInt(accessExpiresIn) * 60000
+    : accessExpiresIn.endsWith('h')
+    ? parseInt(accessExpiresIn) * 3600000
+    : accessExpiresIn.endsWith('d')
+    ? parseInt(accessExpiresIn) * 86400000
+    : parseInt(accessExpiresIn) * 1000;
+  return {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? 'strict' : 'lax',
+    path: '/',
+    maxAge: maxAgeMs,
+  };
+};
+
 const router = express.Router();
 
 /**
@@ -158,11 +182,11 @@ router.post('/login', authLimiter, async (req, res, next) => {
       /* nie przerywaj logowania przy błędzie audytu */
     }
 
-    // [SEC-10] Set refresh token as httpOnly cookie instead of response body
+    // [SEC-10] Set both tokens as httpOnly cookies — JS cannot access them
     res.cookie(REFRESH_COOKIE_NAME, refreshToken, getRefreshCookieOptions());
+    res.cookie(ACCESS_COOKIE_NAME, accessToken, getAccessCookieOptions());
 
     res.json({
-      accessToken,
       user: {
         id: user.id,
         name: user.name,
@@ -264,12 +288,11 @@ router.post('/refresh', refreshLimiter, async (req, res, next) => {
       });
     }
 
-    // [SEC-10] Set new refresh token as httpOnly cookie
+    // [SEC-10] Set new tokens as httpOnly cookies
     res.cookie(REFRESH_COOKIE_NAME, newRefreshToken, getRefreshCookieOptions());
+    res.cookie(ACCESS_COOKIE_NAME, newAccessToken, getAccessCookieOptions());
 
-    res.json({
-      accessToken: newAccessToken,
-    });
+    res.json({ ok: true });
   } catch (error) {
     next(error);
   }
@@ -303,12 +326,18 @@ router.post('/logout', async (req, res) => {
       // Invalid or expired token — ignore, session is ending anyway
     }
   }
-  // [SEC-10] Clear refresh token cookie
+  // [SEC-10] Clear both httpOnly cookies
   res.clearCookie(REFRESH_COOKIE_NAME, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
     path: '/api/auth',
+  });
+  res.clearCookie(ACCESS_COOKIE_NAME, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+    path: '/',
   });
   return res.json({ message: 'Wylogowano pomyślnie' });
 });

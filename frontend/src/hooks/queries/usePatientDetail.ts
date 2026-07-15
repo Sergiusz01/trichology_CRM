@@ -1,6 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../services/api';
 
+interface Consultation { id: string; consultationDate: string; [key: string]: unknown }
+interface LabResult { id: string; date: string; [key: string]: unknown }
+interface ScalpPhoto { id: string; filename: string; [key: string]: unknown }
+interface CarePlan { id: string; title: string; [key: string]: unknown }
+interface Visit { id: string; data: string; [key: string]: unknown }
+
 // ── Query Keys ────────────────────────────────────────────────────────────────
 export const patientDetailKeys = {
   patient: (id: string) => ['patients', 'detail', id] as const,
@@ -32,7 +38,7 @@ export function usePatientDetailConsultations(id: string | undefined, archived: 
         params: { archived: archived ? 'true' : 'false' },
         _skipErrorToast: true,
       });
-      return (res.data.consultations || []) as any[];
+      return (res.data.consultations || []) as Consultation[];
     },
     enabled: !!id,
   });
@@ -47,7 +53,7 @@ export function usePatientLabResults(id: string | undefined, archived: boolean) 
         params: { archived: archived ? 'true' : 'false' },
         _skipErrorToast: true,
       });
-      return (res.data.labResults || []) as any[];
+      return (res.data.labResults || []) as LabResult[];
     },
     enabled: !!id,
   });
@@ -59,7 +65,7 @@ export function usePatientScalpPhotos(id: string | undefined) {
     queryKey: patientDetailKeys.scalpPhotos(id!),
     queryFn: async () => {
       const res = await api.get(`/patients/${id}`, { _skipErrorToast: true });
-      return (res.data.patient?.scalpPhotos || []) as any[];
+      return (res.data.patient?.scalpPhotos || []) as ScalpPhoto[];
     },
     enabled: !!id,
   });
@@ -74,7 +80,7 @@ export function usePatientCarePlans(id: string | undefined, archived: boolean) {
         params: { archived: archived ? 'true' : 'false' },
         _skipErrorToast: true,
       });
-      return (res.data.carePlans || []) as any[];
+      return (res.data.carePlans || []) as CarePlan[];
     },
     enabled: !!id,
   });
@@ -86,7 +92,7 @@ export function usePatientDetailVisits(id: string | undefined) {
     queryKey: patientDetailKeys.visits(id!),
     queryFn: async () => {
       const res = await api.get(`/visits/patient/${id}`, { _skipErrorToast: true });
-      return (res.data.visits || []) as any[];
+      return (res.data.visits || []) as Visit[];
     },
     enabled: !!id,
   });

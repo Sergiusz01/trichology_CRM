@@ -1,5 +1,6 @@
 import express from 'express';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 import { canAccessPatient } from '../middleware/authorizePatientAccess';
 import { generateConsultationPDF } from '../services/pdfService';
@@ -220,7 +221,7 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
     const pageNum = Math.max(parseInt(page as string, 10) || 1, 1);
     const skip = (pageNum - 1) * limitNum;
 
-    const where: any = {};
+    const where: Prisma.ConsultationWhereInput = {};
 
     // [C-1] Defence-in-depth: scope list to accessible consultations
     const user = req.user!;

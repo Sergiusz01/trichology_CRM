@@ -37,13 +37,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = useCallback(async (notifyBackend = true) => {
     if (notifyBackend) {
       try {
-        // [SEC-10] refreshToken is sent automatically via httpOnly cookie
+        // [SEC-10] Both tokens are httpOnly cookies — backend clears them on logout
         await api.post('/auth/logout').catch(() => {/* silent */ });
       } catch { }
     }
-    localStorage.removeItem('accessToken');
     localStorage.removeItem('lastActivityTime');
-    delete api.defaults.headers.common['Authorization'];
     setUser(null);
     setShowWarning(false);
     navigate('/login');
@@ -92,8 +90,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const response = await api.get('/auth/me');
       setUser(response.data.user);
     } catch {
-      localStorage.removeItem('accessToken');
-      delete api.defaults.headers.common['Authorization'];
       setUser(null);
     } finally {
       setLoading(false);
@@ -104,47 +100,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = async (email: string, password: string) => {
     try {
       const response = await api.post('/auth/login', { email, password });
-      const { accessToken, user } = response.data;
-      // [SEC-10] refreshToken is now set as httpOnly cookie by backend
+      const { user } = response.data;
+      // [SEC-10] Both tokens are now set as httpOnly cookies by backend
 
-      localStorage.setItem('accessToken', accessToken);
       localStorage.setItem('lastActivityTime', Date.now().toString());
-      api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
-
       setUser(user);
       navigate('/');
-    } catch (error: any) {
-      localStorage.removeItem('accessToken');
-      delete api.defaults.headers.common['Authorization'];
+    } catch (error) {
       throw error;
     }
   };
 
   // ─── Init: load user + listen for forced logout events ───────────────────────
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      // Sprawdź czy sesja nie wygasła przez bezczynność (również po odświeżeniu strony)
-      const lastActivity = localStorage.getItem('lastActivityTime');
-      const now = Date.now();
-      if (lastActivity && now - parseInt(lastActivity, 10) > IDLE_TIMEOUT_MS) {
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('lastActivityTime');
-        delete api.defaults.headers.common['Authorization'];
-        setLoading(false);
-        navigate('/login');
-        return;
-      }
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      fetchUser();
-    } else {
-      setLoading(false);
-    }
+    // [SEC-10] Token is now an httpOnly cookie — just call fetchUser(); interceptor handles refresh
+    fetchUser();
 
     const handleAuthLogout = () => {
-      localStorage.removeItem('accessToken');
       localStorage.removeItem('lastActivityTime');
-      delete api.defaults.headers.common['Authorization'];
       setUser(null);
       setShowWarning(false);
       navigate('/login');
