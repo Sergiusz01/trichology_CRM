@@ -19,10 +19,15 @@ import { useSnackbar } from 'notistack';
 import { api } from '../services/api';
 
 // Schemat walidacji Zod
+const ACCEPTED_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+
 const scalpPhotoSchema = z.object({
   photo: z.instanceof(File, { message: 'Proszę wybrać plik' })
     .refine((file) => file.size <= 10 * 1024 * 1024, 'Plik nie może być większy niż 10MB')
-    .refine((file) => file.type.startsWith('image/'), 'Plik musi być obrazem'),
+    .refine(
+      (file) => ACCEPTED_MIME_TYPES.includes(file.type),
+      'Nieobsługiwany format. Wybierz plik JPG, PNG lub WebP. Zdjęcia HEIC z iPhone — użyj opcji "Zrób zdjęcie" lub wyeksportuj jako JPEG.'
+    ),
   notes: z.string().max(1000, 'Notatki mogą mieć maksymalnie 1000 znaków').optional().or(z.literal('')),
 });
 
@@ -117,7 +122,7 @@ export default function ScalpPhotoFormPage() {
                   <>
                     <input
                       {...field}
-                      accept="image/*"
+                      accept="image/jpeg,image/png,image/webp"
                       style={{ display: 'none' }}
                       id="photo-upload"
                       type="file"
@@ -149,7 +154,7 @@ export default function ScalpPhotoFormPage() {
                           {selectedFile ? 'Zmieniono plik' : 'Wybierz zdjęcie lub przeciągnij'}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
-                          {selectedFile ? selectedFile.name : 'Dozwolone formaty: JPG, PNG (max 10MB)'}
+                          {selectedFile ? selectedFile.name : 'Dozwolone formaty: JPG, PNG, WebP (max 10MB)'}
                         </Typography>
                         <Button
                           variant="contained"
