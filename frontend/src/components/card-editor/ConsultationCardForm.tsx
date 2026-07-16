@@ -28,6 +28,7 @@ import {
   FIELD_OPTIONS,
   FIELD_LABELS,
 } from '../../shared/consultationFields';
+import { formatPhone } from '../../utils/formatPhone';
 
 interface ConsultationCardFormProps {
   patientId: string;
@@ -387,7 +388,7 @@ function PatientHeader({ patient, patientId, doctorName, consultationDate, onPat
             <Typography sx={{ fontSize: 15, fontWeight: 700, color: '#0F172A' }}>
               {patientName} {patientAge && <Typography component="span" sx={{ fontSize: 13, color: '#64748B', fontWeight: 400 }}>({patientAge}, {patientGender})</Typography>}
             </Typography>
-            {patient?.phone && <Typography sx={{ fontSize: 12, color: '#64748B' }}>Tel: {patient.phone}</Typography>}
+            {patient?.phone && <Typography sx={{ fontSize: 12, color: '#64748B' }}>Tel: {formatPhone(patient.phone)}</Typography>}
             {patient?.email && <Typography sx={{ fontSize: 12, color: '#64748B' }}>{patient.email}</Typography>}
           </Box>
           <Box sx={{ flex: '1 1 200px' }}>

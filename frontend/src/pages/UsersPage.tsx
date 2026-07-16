@@ -48,6 +48,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../hooks/useNotification';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
+import { formatPhone } from '../utils/formatPhone';
 
 interface User {
     id: string;
@@ -580,7 +581,7 @@ export default function UsersPage() {
                                                 </ListItemIcon>
                                                 <ListItemText
                                                     primary={`${patient.lastName} ${patient.firstName}`}
-                                                    secondary={[patient.phone, patient.email].filter(Boolean).join(' • ') || undefined}
+                                                    secondary={[patient.phone ? formatPhone(patient.phone) : null, patient.email].filter(Boolean).join(' • ') || undefined}
                                                     primaryTypographyProps={{ fontWeight: accessPatientIds.has(patient.id) ? 600 : 400 }}
                                                 />
                                             </ListItemButton>

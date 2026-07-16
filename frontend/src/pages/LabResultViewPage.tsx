@@ -19,6 +19,7 @@ import {
 import { Edit, GetApp, ArrowBack } from '@mui/icons-material';
 import { api } from '../services/api';
 import { useNotification } from '../hooks/useNotification';
+import { formatPhone } from '../utils/formatPhone';
 
 // Helper function to format date
 const formatDate = (date: Date | string): string => {
@@ -254,7 +255,7 @@ export default function LabResultViewPage() {
             </Box>
             <Box>
               {patient.phone && (
-                <Typography><strong>Telefon:</strong> {patient.phone}</Typography>
+                <Typography><strong>Telefon:</strong> {formatPhone(patient.phone)}</Typography>
               )}
               {patient.email && (
                 <Typography><strong>Email:</strong> {patient.email}</Typography>

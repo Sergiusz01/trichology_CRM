@@ -48,6 +48,7 @@ import {
   useRestorePatient,
   usePermanentDeletePatient,
 } from '../hooks/queries/usePatients';
+import { formatPhone } from '../utils/formatPhone';
 
 export default function PatientsPage() {
   const { user } = useAuth();
@@ -427,7 +428,7 @@ export default function PatientsPage() {
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Phone sx={{ fontSize: 16, color: 'text.secondary' }} />
                             <Typography variant="body2" color="text.primary" sx={{ fontWeight: 500 }}>
-                              {patient.phone}
+                              {formatPhone(patient.phone)}
                             </Typography>
                           </Box>
                         )}
@@ -577,7 +578,7 @@ export default function PatientsPage() {
                         fontSize: { xs: '0.75rem', sm: '0.875rem' },
                         display: { xs: 'none', md: 'table-cell' },
                       }}>
-                        {patient.phone || '-'}
+                        {formatPhone(patient.phone)}
                       </TableCell>
                       <TableCell sx={{
                         fontSize: { xs: '0.75rem', sm: '0.875rem' },

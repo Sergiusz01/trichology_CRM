@@ -59,6 +59,7 @@ import { pl } from 'date-fns/locale';
 import { useNotification } from '../hooks/useNotification';
 import { AppCard, AppButton, AppTextField, PageHeader } from '../ui';
 import { ErrorState } from '../ui/ErrorState';
+import { formatPhone } from '../utils/formatPhone';
 
 interface DashboardStats {
     patientsCount: number;
@@ -681,7 +682,7 @@ export default function DashboardPage() {
                                 <ListItemText
                                     primary={`${patient.firstName} ${patient.lastName}`}
                                     primaryTypographyProps={{ fontWeight: 600, color: '#0F172A' }}
-                                    secondary={patient.email || patient.phone}
+                                    secondary={patient.email || formatPhone(patient.phone)}
                                 />
                                 <ArrowForward sx={{ color: 'text.secondary', opacity: 0.5 }} />
                             </ListItemButton>

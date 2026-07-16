@@ -110,6 +110,7 @@ interface Visit {
 }
 
 import { VISIT_STATUS_CONFIG } from '../constants/visitStatus';
+import { formatPhone } from '../utils/formatPhone';
 
 // Helper function to format date for datetime-local input
 // Backend stores dates as UTC but representing the exact hour/minute entered
@@ -1025,7 +1026,7 @@ export default function PatientDetailPage() {
                             Telefon
                           </Typography>
                           <Typography variant="body1" sx={{ fontWeight: 600, color: '#1d1d1f', fontSize: '1.1rem' }}>
-                            {patient.phone}
+                            {formatPhone(patient.phone)}
                           </Typography>
                         </Box>
                       </Box>

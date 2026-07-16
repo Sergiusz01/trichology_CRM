@@ -18,6 +18,7 @@ import { Edit, GetApp, ArrowBack, ContentCopy } from '@mui/icons-material';
 import { api } from '../services/api';
 import { useNotification } from '../hooks/useNotification';
 import { FIELD_LABELS } from '../shared/consultationFields';
+import { formatPhone } from '../utils/formatPhone';
 
 // Helper function to format JSON fields (arrays)
 const formatJsonField = (value: any): string => {
@@ -457,7 +458,7 @@ export default function ConsultationViewPage() {
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
               <Typography><strong>Adres zamieszkania:</strong> {consultation.patient.address || '-'}</Typography>
-              <Typography><strong>Numer telefonu:</strong> {consultation.patient.phone || '-'}</Typography>
+              <Typography><strong>Numer telefonu:</strong> {formatPhone(consultation.patient.phone)}</Typography>
               <Typography><strong>e-mail:</strong> {consultation.patient.email || '-'}</Typography>
               <Typography><strong>Lekarz:</strong> {consultation.doctor.name}</Typography>
             </Grid>
