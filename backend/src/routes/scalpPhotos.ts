@@ -82,10 +82,13 @@ const annotationSchema = z.object({
 router.get('/secure/:filename', async (req, res) => {
   const { filename } = req.params;
 
-  // Prefer Authorization header, fall back to query string
+  // [SEC-10] Prefer httpOnly cookie, fall back to Bearer header, then query string (legacy)
   let token: string | undefined;
+  const cookieToken: string | undefined = req.cookies?.accessToken;
   const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith('Bearer ')) {
+  if (cookieToken) {
+    token = cookieToken;
+  } else if (authHeader && authHeader.startsWith('Bearer ')) {
     token = authHeader.substring(7);
   } else {
     token = req.query.token as string | undefined;

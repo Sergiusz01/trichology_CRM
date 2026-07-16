@@ -80,8 +80,12 @@ if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 app.use('/uploads', async (req, res, next) => {
   try {
     let token: string | undefined;
+    // [SEC-10] Prefer httpOnly cookie, fall back to Bearer header, then query string (legacy)
+    const cookieToken: string | undefined = req.cookies?.accessToken;
     const authHeader = req.headers.authorization;
-    if (authHeader?.startsWith('Bearer ')) {
+    if (cookieToken) {
+      token = cookieToken;
+    } else if (authHeader?.startsWith('Bearer ')) {
       token = authHeader.substring(7);
     } else {
       token = req.query.token as string | undefined;
