@@ -74,8 +74,11 @@ export function useCreateVisit() {
 export function useUpdateVisit() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<CreateVisitData> }) =>
-      api.put(`/visits/${id}`, data),
+    mutationFn: ({ id, data }: { id: string; data: Partial<CreateVisitData> }) => {
+      // patientId is not accepted by PUT /visits/:id — keep it only for cache invalidation in onSuccess
+      const { patientId: _pid, ...updatePayload } = data;
+      return api.put(`/visits/${id}`, updatePayload);
+    },
     onSuccess: (_res, { data }) => {
       queryClient.invalidateQueries({ queryKey: visitKeys.lists() });
       if (data.patientId) {

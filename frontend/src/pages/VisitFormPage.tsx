@@ -222,7 +222,9 @@ export default function VisitFormPage() {
       }
 
       if (actualVisitId && !isNewVisit) {
-        await api.put(`/visits/${actualVisitId}`, visitData);
+        // patientId is not accepted by PUT /visits/:id — strip it from payload
+        const { patientId: _pid, ...updatePayload } = visitData;
+        await api.put(`/visits/${actualVisitId}`, updatePayload);
         showSuccess('Wizyta została zaktualizowana');
       } else {
         await api.post('/visits', visitData);
