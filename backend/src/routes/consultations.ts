@@ -112,34 +112,34 @@ const consultationSchema = z.object({
   scalpType: z.union([z.array(z.string()), z.string()]).optional(), // Json array
   scalpAppearance: z.union([z.array(z.string()), z.string()]).optional(), // Json array
   skinLesions: z.union([z.array(z.string()), z.string()]).optional(), // Json array
-  hyperhidrosis: z.string().optional(),
-  hyperkeratinization: z.string().optional(),
-  sebaceousSecretion: z.string().optional(),
+  hyperhidrosis: z.union([z.array(z.string()), z.string()]).optional(), // Json array
+  hyperkeratinization: z.union([z.array(z.string()), z.string()]).optional(), // Json array
+  sebaceousSecretion: z.union([z.array(z.string()), z.string()]).optional(), // Json array
   seborrheaType: z.union([z.array(z.string()), z.string()]).optional(), // Json array
   seborrheaTypeOther: z.string().optional(),
   dandruffType: z.union([z.array(z.string()), z.string()]).optional(), // Json array
   scalpPH: z.string().optional(),
   hairDamage: z.union([z.array(z.string()), z.string()]).optional(), // Json array
   hairDamageReason: z.union([z.array(z.string()), z.string()]).optional(), // Json array
-  hairQuality: z.string().optional(),
-  hairShape: z.string().optional(),
+  hairQuality: z.union([z.array(z.string()), z.string()]).optional(), // Json array
+  hairShape: z.union([z.array(z.string()), z.string()]).optional(), // Json array
   hairTypes: z.union([z.array(z.string()), z.string()]).optional(), // Json array
-  regrowingHairs: z.string().optional(),
+  regrowingHairs: z.union([z.array(z.string()), z.string()]).optional(), // Json array
   vellusMiniaturizedHairs: z.union([z.array(z.string()), z.string()]).optional(), // Json array
   // DIAGNOSTYKA
   vascularPatterns: z.union([z.array(z.string()), z.string()]).optional(), // Json array
   perifollicularFeatures: z.union([z.array(z.string()), z.string()]).optional(), // Json array
   recentProcedures: z.union([z.array(z.string()), z.string()]).optional(),
-  fieldNotes: z.record(z.string()).optional(), // { fieldKey: "doctor note" }
+  fieldNotes: z.record(z.any()).optional(), // { fieldKey: "doctor note" }
   scalpDiseases: z.union([z.array(z.string()), z.string()]).optional(), // Json array
   otherDiagnostics: z.union([z.array(z.string()), z.string()]).optional(), // Json array
   // DIAGNOSTYKA ŁYSIENIA
   alopeciaTypes: z.union([z.array(z.string()), z.string()]).optional(), // Json array
-  degreeOfThinning: z.string().optional(),
-  alopeciaType: z.string().optional(),
+  degreeOfThinning: z.union([z.array(z.string()), z.string()]).optional(), // Json array
+  alopeciaType: z.union([z.array(z.string()), z.string()]).optional(), // Json array
   alopeciaAffectedAreas: z.union([z.array(z.string()), z.string()]).optional(), // Json array
   miniaturization: z.string().optional(),
-  follicularUnits: z.string().optional(),
+  follicularUnits: z.union([z.array(z.string()), z.string()]).optional(), // Json array
   pullTest: z.string().optional(),
   alopeciaOther: z.string().optional(),
   // Diagnosis
@@ -655,6 +655,13 @@ router.put('/:id', authenticate, async (req: AuthRequest, res, next) => {
         updateData.dynamicData = null;
       }
     }
+
+    // Remove undefined values before passing to Prisma (matches POST handler behaviour)
+    Object.keys(updateData).forEach((key) => {
+      if (updateData[key] === undefined) {
+        delete updateData[key];
+      }
+    });
 
     const consultation = await prisma.consultation.update({
       where: { id },
