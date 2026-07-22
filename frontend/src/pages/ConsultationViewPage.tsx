@@ -796,7 +796,8 @@ export default function ConsultationViewPage() {
                 backgroundColor: '#f9f9f9',
                 border: '1px solid #ddd',
                 p: 2,
-                borderRadius: 1
+                borderRadius: 1,
+                overflow: 'hidden',
               }}>
                 <Box sx={{
                   fontWeight: 'bold',
@@ -807,23 +808,40 @@ export default function ConsultationViewPage() {
                   Zalecenia Domowe
                 </Box>
                 <Box sx={{ fontSize: '0.875rem' }}>
-                  <Box sx={{ mb: 1 }}>
-                    <Typography component="strong">Mycie:</Typography> {getFieldValue('careRecommendationsWashing') || <Typography component="span" sx={{ color: '#bbb', fontStyle: 'italic' }}>___________</Typography>}
-                  </Box>
-                  <Box sx={{ mb: 1 }}>
-                    <Typography component="strong">Wcierki:</Typography> {getFieldValue('careRecommendationsTopical') || <Typography component="span" sx={{ color: '#bbb', fontStyle: 'italic' }}>___________</Typography>}
-                  </Box>
-                  <Box sx={{ mb: 1 }}>
-                    <Typography component="strong">Suplementy:</Typography> {getFieldValue('careRecommendationsSupplement') || <Typography component="span" sx={{ color: '#bbb', fontStyle: 'italic' }}>___________</Typography>}
-                  </Box>
-                  <Box sx={{ mb: 1 }}>
-                    <Typography component="strong">Zachowanie:</Typography> {getFieldValue('careRecommendationsBehavior') || <Typography component="span" sx={{ color: '#bbb', fontStyle: 'italic' }}>___________</Typography>}
-                  </Box>
-                  <Box sx={{ mb: 1 }}>
-                    <Typography component="strong">Gabinet:</Typography> {getFieldValue('visitsProcedures') || <Typography component="span" sx={{ color: '#bbb', fontStyle: 'italic' }}>___________</Typography>}
-                  </Box>
+                  {([
+                    { label: 'Mycie', key: 'careRecommendationsWashing' },
+                    { label: 'Wcierki', key: 'careRecommendationsTopical' },
+                    { label: 'Suplementy', key: 'careRecommendationsSupplement' },
+                    { label: 'Zachowanie', key: 'careRecommendationsBehavior' },
+                    { label: 'Gabinet', key: 'visitsProcedures' },
+                  ] as { label: string; key: string }[]).map(({ label, key }) => (
+                    <Box key={key} sx={{ mb: 1.5 }}>
+                      <Typography component="strong" sx={{ fontWeight: 600, display: 'block' }}>
+                        {label}:
+                      </Typography>
+                      {getFieldValue(key)
+                        ? (
+                          <Typography component="span" sx={{
+                            display: 'block',
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-word',
+                            overflowWrap: 'anywhere',
+                            mt: 0.25,
+                          }}>
+                            {getFieldValue(key)}
+                          </Typography>
+                        )
+                        : (
+                          <Typography component="span" sx={{ color: '#bbb', fontStyle: 'italic' }}>
+                            ___________
+                          </Typography>
+                        )
+                      }
+                    </Box>
+                  ))}
                 </Box>
               </Box>
+
             </Grid>
           </Grid>
         )}
