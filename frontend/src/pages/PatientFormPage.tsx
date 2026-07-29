@@ -19,6 +19,7 @@ import {
 import { useSnackbar } from 'notistack';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import PhoneInput from '../components/PhoneInput';
 
 const patientSchema = z.object({
   firstName: z.string()
@@ -37,7 +38,10 @@ const patientSchema = z.object({
     .or(z.literal('')),
   gender: z.enum(['MALE', 'FEMALE', 'OTHER', '']).optional(),
   phone: z.string()
-    .regex(/^(?:\+48|48)?[\s-]*(?:\d[\s-]*){9}$/, 'Wpisz poprawny polski numer (np. +48 123 456 789)')
+    .regex(
+      /^(\+[1-9]\d{0,3}[\s\-]?)?[\d][\d\s\-]{5,18}[\d]$/,
+      'Wpisz poprawny numer telefonu (np. +48 123 456 789)'
+    )
     .optional()
     .or(z.literal('')),
   email: z.string()
@@ -251,13 +255,12 @@ export default function PatientFormPage() {
                 name="phone"
                 control={control}
                 render={({ field }) => (
-                  <TextField
-                    {...field}
-                    fullWidth
-                    label="Telefon"
+                  <PhoneInput
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
                     error={!!errors.phone}
                     helperText={errors.phone?.message}
-                    placeholder="np. +48 123 456 789"
+                    label="Numer telefonu"
                   />
                 )}
               />
