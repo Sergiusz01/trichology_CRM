@@ -7,12 +7,12 @@ import plLocale from '@fullcalendar/core/locales/pl';
 import listPlugin from '@fullcalendar/list';
 import {
   Box, Paper, CircularProgress, useTheme, useMediaQuery,
-  Typography, Chip, IconButton, Fab, Divider, Skeleton,
+  Typography, IconButton, Fab, Divider, Skeleton,
   Card, CardActionArea, CardContent, Stack, Tooltip, alpha,
 } from '@mui/material';
 import {
-  Add, Refresh, AccessTime, Person, CheckCircle, Cancel,
-  EventBusy, CalendarToday, ArrowForwardIos,
+  Add, Refresh, CalendarToday, ArrowForwardIos,
+
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
@@ -56,12 +56,6 @@ const STATUS_LABEL: Record<string, string> = {
   NIEOBECNOSC: 'Nieobecność',
 };
 
-const STATUS_ICON: Record<string, React.ReactNode> = {
-  ZAPLANOWANA: <AccessTime sx={{ fontSize: 14 }} />,
-  ODBYTA:      <CheckCircle sx={{ fontSize: 14 }} />,
-  ANULOWANA:   <Cancel sx={{ fontSize: 14 }} />,
-  NIEOBECNOSC: <EventBusy sx={{ fontSize: 14 }} />,
-};
 
 function formatHour(iso: string): string {
   return new Date(iso).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
@@ -77,12 +71,13 @@ function todayLabel(): string {
 function TodayVisitCard({ event, onClick }: { event: VisitEvent; onClick: () => void }) {
   const status = event.extendedProps.status;
   const color = STATUS_COLOR[status] || '#2196f3';
+  const label = STATUS_LABEL[status] || status;
 
   return (
     <Card
       elevation={0}
       sx={{
-        border: `1px solid`,
+        border: '1px solid',
         borderColor: alpha(color, 0.3),
         borderLeft: `4px solid ${color}`,
         borderRadius: 2,
@@ -92,38 +87,56 @@ function TodayVisitCard({ event, onClick }: { event: VisitEvent; onClick: () => 
       }}
     >
       <CardActionArea onClick={onClick} sx={{ p: 0 }}>
-        <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
-          <Stack direction="row" alignItems="center" justifyContent="space-between">
-            <Stack direction="row" alignItems="center" spacing={1}>
-              <Typography variant="h6" fontWeight={700} color={color} sx={{ minWidth: 48 }}>
-                {formatHour(event.start)}
+        <CardContent sx={{ py: 1.25, px: 1.5, '&:last-child': { pb: 1.25 } }}>
+          {/* Row 1: godzina + imię + strzałka */}
+          <Stack direction="row" alignItems="center" spacing={1}>
+            {/* Godzina */}
+            <Typography
+              fontWeight={800}
+              color={color}
+              sx={{ fontSize: '1rem', minWidth: 42, flexShrink: 0 }}
+            >
+              {formatHour(event.start)}
+            </Typography>
+
+            {/* Imię + zabieg */}
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography
+                variant="body2"
+                fontWeight={600}
+                sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+              >
+                {event.extendedProps.patientName}
               </Typography>
-              <Box>
-                <Typography variant="body2" fontWeight={600} noWrap sx={{ maxWidth: 180 }}>
-                  {event.extendedProps.patientName}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" noWrap>
-                  {event.extendedProps.visitType || 'Wizyta'}
-                </Typography>
-              </Box>
-            </Stack>
-            <Stack direction="row" alignItems="center" spacing={0.5}>
-              <Chip
-                size="small"
-                icon={STATUS_ICON[status] as any}
-                label={STATUS_LABEL[status] || status}
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}
+              >
+                {event.extendedProps.visitType || 'Wizyta'}
+              </Typography>
+            </Box>
+
+            {/* Status dot + strzałka */}
+            <Stack direction="row" alignItems="center" spacing={0.5} sx={{ flexShrink: 0 }}>
+              <Box
+                title={label}
                 sx={{
-                  bgcolor: alpha(color, 0.12),
-                  color,
-                  fontWeight: 600,
-                  fontSize: '0.7rem',
-                  height: 22,
-                  '& .MuiChip-icon': { color },
+                  width: 10, height: 10, borderRadius: '50%',
+                  bgcolor: color, flexShrink: 0,
                 }}
               />
-              <ArrowForwardIos sx={{ fontSize: 12, color: 'text.disabled' }} />
+              <ArrowForwardIos sx={{ fontSize: 11, color: 'text.disabled' }} />
             </Stack>
           </Stack>
+
+          {/* Row 2: status label pełny jako podpis — czytelny, nie obcięty */}
+          <Typography
+            variant="caption"
+            sx={{ color, fontWeight: 600, fontSize: '0.68rem', mt: 0.25, display: 'block' }}
+          >
+            {label}
+          </Typography>
         </CardContent>
       </CardActionArea>
     </Card>
@@ -133,31 +146,31 @@ function TodayVisitCard({ event, onClick }: { event: VisitEvent; onClick: () => 
 // ── Week Stats Bar ────────────────────────────────────────────────────────────
 function WeekStatsBar({ stats, loading }: { stats: WeekStats | null; loading: boolean }) {
   const items = [
-    { key: 'zaplanowana', label: 'Plan.', color: '#2196f3', icon: '🗓' },
-    { key: 'odbyta',      label: 'Odbyto', color: '#4caf50', icon: '✅' },
-    { key: 'anulowana',   label: 'Anulow.', color: '#f44336', icon: '❌' },
-    { key: 'nieobecnosc', label: 'Nieob.', color: '#ff9800', icon: '⚠️' },
+    { key: 'zaplanowana', label: 'Zaplanowane', color: '#2196f3', icon: '🗓' },
+    { key: 'odbyta',      label: 'Odbyte',       color: '#4caf50', icon: '✅' },
+    { key: 'anulowana',   label: 'Anulowane',    color: '#f44336', icon: '❌' },
+    { key: 'nieobecnosc', label: 'Nieobecność',  color: '#ff9800', icon: '⚠️' },
   ];
 
   return (
     <Box
       sx={{
-        display: 'flex', gap: 1, overflowX: 'auto', pb: 0.5,
-        scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' },
+        display: 'grid',
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gap: 1,
       }}
     >
       {items.map(item => (
         <Box
           key={item.key}
           sx={{
-            flex: '0 0 auto',
             bgcolor: alpha(item.color, 0.08),
             border: `1px solid ${alpha(item.color, 0.2)}`,
-            borderRadius: 2, px: 1.5, py: 0.75,
+            borderRadius: 2, px: 1.25, py: 0.75,
             display: 'flex', alignItems: 'center', gap: 0.75,
           }}
         >
-          <Typography sx={{ fontSize: '0.9rem' }}>{item.icon}</Typography>
+          <Typography sx={{ fontSize: '1rem', flexShrink: 0 }}>{item.icon}</Typography>
           {loading ? (
             <Skeleton width={20} height={16} />
           ) : (
