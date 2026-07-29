@@ -131,7 +131,8 @@ export default function CarePlansPage() {
                       p: 3,
                       cursor: 'pointer'
                     }}
-                    onClick={() => navigate(`/care-plans/${plan.id}`)}
+                    onClick={() => navigate(`/patients/${id}/care-plans/${plan.id}`)}
+
                   >
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
