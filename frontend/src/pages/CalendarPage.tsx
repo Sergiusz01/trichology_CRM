@@ -611,11 +611,10 @@ export default function CalendarPage() {
           <Paper
             elevation={0}
             sx={{
-              p: { xs: 1.5, sm: 2.5 },
+              p: { xs: 1, sm: 2.5 },
               borderRadius: 3,
               border: '1px solid',
               borderColor: 'divider',
-              minHeight: { xs: '55vh', md: '70vh' },
               position: 'relative',
               overflow: 'hidden',
             }}
@@ -639,7 +638,9 @@ export default function CalendarPage() {
               locale="pl"
               events={events}
               nowIndicator={true}
-              height={isMobile ? '55vh' : '70vh'}
+              height={isMobile ? 'auto' : 'auto'}
+              aspectRatio={isMobile ? '1 / 1.1' : undefined}
+              contentHeight={isMobile ? undefined : '75vh'}
               allDaySlot={false}
               slotMinTime="07:00:00"
               slotMaxTime="21:00:00"
@@ -656,21 +657,25 @@ export default function CalendarPage() {
                 listMonth:    { noEventsText: 'Brak wizyt w tym miesiącu' },
                 listWeek:     { noEventsText: 'Brak wizyt w tym tygodniu' },
               }}
-              eventContent={(arg) => (
-                <Box sx={{ px: 0.75, py: 0.25, overflow: 'hidden', lineHeight: 1.35 }}>
-                  <Typography sx={{ fontSize: '0.72rem', fontWeight: 800, color: '#fff' }} noWrap>
-                    {arg.timeText}
-                  </Typography>
-                  <Typography sx={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.95)', fontWeight: 600 }} noWrap>
-                    {arg.event.extendedProps.patientName}
-                  </Typography>
-                  {!isMobile && (
-                    <Typography sx={{ fontSize: '0.64rem', color: 'rgba(255,255,255,0.78)' }} noWrap>
-                      {arg.event.extendedProps.visitType}
+              eventContent={(arg) => {
+                // Let FullCalendar render month view natively (dots + title)
+                if (arg.view.type === 'dayGridMonth') return undefined as any;
+                return (
+                  <Box sx={{ px: 0.75, py: 0.25, overflow: 'hidden', lineHeight: 1.35 }}>
+                    <Typography sx={{ fontSize: '0.72rem', fontWeight: 800, color: '#fff' }} noWrap>
+                      {arg.timeText}
                     </Typography>
-                  )}
-                </Box>
-              )}
+                    <Typography sx={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.95)', fontWeight: 600 }} noWrap>
+                      {arg.event.extendedProps.patientName}
+                    </Typography>
+                    {!isMobile && (
+                      <Typography sx={{ fontSize: '0.64rem', color: 'rgba(255,255,255,0.78)' }} noWrap>
+                        {arg.event.extendedProps.visitType}
+                      </Typography>
+                    )}
+                  </Box>
+                );
+              }}
             />
           </Paper>
         </Box>
