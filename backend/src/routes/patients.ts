@@ -266,10 +266,19 @@ router.put('/:id', authenticate, requireWriteAccess(), authorizePatientAccess, a
     const { assignedDoctorId, ...rest } = data;
 
     // Only ADMIN may change assignedDoctorId
-    const updateData: any = { ...rest, email: rest.email || undefined };
+    // Preserve null for nullable fields so Prisma clears them when user removes the value.
+    // Convert empty strings '' to null (Zod allows z.literal('') for optional email).
+    const updateData: any = {
+      ...rest,
+      email:      (rest.email      === '' ? null : rest.email)      ?? null,
+      phone:      (rest.phone      === '' ? null : rest.phone)      ?? undefined,
+      occupation: (rest.occupation === '' ? null : rest.occupation) ?? undefined,
+      address:    (rest.address    === '' ? null : rest.address)    ?? undefined,
+    };
     if (user.role === 'ADMIN') {
       updateData.assignedDoctorId = assignedDoctorId ?? null;
     }
+
 
     const patient = await prisma.patient.update({
       where: { id },

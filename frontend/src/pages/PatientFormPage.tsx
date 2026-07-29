@@ -143,16 +143,28 @@ export default function PatientFormPage() {
         firstName: data.firstName,
         lastName: data.lastName,
         age: data.age ? Number(data.age) : undefined,
-        email: data.email || undefined,
-        phone: data.phone || undefined,
-        occupation: data.occupation || undefined,
-        address: data.address || undefined,
-        gender: data.gender || undefined,
       };
+
+      if (isEdit) {
+        // On edit: send null for cleared fields so backend removes them
+        payload.email    = data.email    || null;
+        payload.phone    = data.phone    || null;
+        payload.occupation = data.occupation || null;
+        payload.address  = data.address  || null;
+        payload.gender   = data.gender   || null;
+      } else {
+        // On create: omit empty optional fields
+        if (data.email)      payload.email      = data.email;
+        if (data.phone)      payload.phone      = data.phone;
+        if (data.occupation) payload.occupation = data.occupation;
+        if (data.address)    payload.address    = data.address;
+        if (data.gender)     payload.gender     = data.gender;
+      }
 
       if (isAdmin) {
         payload.assignedDoctorId = data.assignedDoctorId || null;
       }
+
 
       if (isEdit) {
         await api.put(`/patients/${id}`, payload);
