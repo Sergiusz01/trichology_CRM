@@ -104,9 +104,9 @@ function WeekStrip({
   const today = new Date();
   const stripRef = useRef<HTMLDivElement>(null);
 
-  // Build 14-day window centred on today
+  // Build 120-day window: 7 days back + 113 days forward
   const days: Date[] = [];
-  for (let i = -3; i <= 10; i++) {
+  for (let i = -7; i <= 113; i++) {
     const d = new Date(today);
     d.setDate(today.getDate() + i);
     days.push(d);
@@ -658,19 +658,41 @@ export default function CalendarPage() {
                 listWeek:     { noEventsText: 'Brak wizyt w tym tygodniu' },
               }}
               eventContent={(arg) => {
-                // Let FullCalendar render month view natively (dots + title)
-                if (arg.view.type === 'dayGridMonth') return undefined as any;
+                const viewType = arg.view.type;
+                const patientName = arg.event.extendedProps.patientName;
+                const visitType   = arg.event.extendedProps.visitType;
+                const bgColor     = arg.event.backgroundColor || '#3B82F6';
+
+                // Month view — compact pill
+                if (viewType === 'dayGridMonth') {
+                  return (
+                    <Box sx={{
+                      px: 0.75, py: 0.1,
+                      bgcolor: bgColor,
+                      borderRadius: '4px',
+                      overflow: 'hidden',
+                      width: '100%',
+                    }}>
+                      <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {arg.timeText && <span style={{ opacity: 0.85, marginRight: 3 }}>{arg.timeText}</span>}
+                        {patientName}
+                      </Typography>
+                    </Box>
+                  );
+                }
+
+                // Time grid / list view — full card
                 return (
                   <Box sx={{ px: 0.75, py: 0.25, overflow: 'hidden', lineHeight: 1.35 }}>
                     <Typography sx={{ fontSize: '0.72rem', fontWeight: 800, color: '#fff' }} noWrap>
                       {arg.timeText}
                     </Typography>
                     <Typography sx={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.95)', fontWeight: 600 }} noWrap>
-                      {arg.event.extendedProps.patientName}
+                      {patientName}
                     </Typography>
                     {!isMobile && (
                       <Typography sx={{ fontSize: '0.64rem', color: 'rgba(255,255,255,0.78)' }} noWrap>
-                        {arg.event.extendedProps.visitType}
+                        {visitType}
                       </Typography>
                     )}
                   </Box>
