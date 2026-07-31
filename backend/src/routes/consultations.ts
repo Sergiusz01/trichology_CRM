@@ -223,16 +223,15 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
 
     const where: Prisma.ConsultationWhereInput = {};
 
-    // [C-1] Defence-in-depth: scope list to accessible consultations
+    // [C-1] Defence-in-depth: scope by clinic if set
     const user = req.user!;
     if (user.role !== 'ADMIN') {
-      if (user.role === 'DOCTOR') {
-        where.doctorId = user.id;
-      }
+      // DOCTOR and ASSISTANT now see ALL consultations in the clinic
       if (user.clinicId) {
         where.patient = { clinicId: user.clinicId };
       }
     }
+
 
     if (search) {
       const s = (search as string).trim();

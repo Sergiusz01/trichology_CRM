@@ -41,20 +41,11 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
     const andConditions: Prisma.PatientWhereInput[] = [];
     const where: Prisma.PatientWhereInput = { isArchived };
 
-    // [C-1] Defence-in-depth: scope list query to accessible patients
+    // [C-1] Defence-in-depth: scope list query by clinic if set
     const user = req.user!;
     if (user.role !== 'ADMIN') {
       if (user.clinicId) where.clinicId = user.clinicId;
-      if (user.role === 'DOCTOR') {
-        // DOCTOR sees patients assigned to them OR with explicit DoctorPatientAccess
-        // Use AND to safely combine with search OR below
-        andConditions.push({
-          OR: [
-            { assignedDoctorId: user.id },
-            { doctorAccess: { some: { doctorId: user.id } } },
-          ],
-        });
-      }
+      // DOCTOR and ASSISTANT now see ALL patients in the clinic
     }
 
     if (search) {

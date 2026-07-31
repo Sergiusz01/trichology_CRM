@@ -46,19 +46,11 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
 
     const where: any = {};
 
-    // [C-1] Defence-in-depth: scope to accessible visits
+    // [C-1] Defence-in-depth: scope by clinic if set
     const user = req.user!;
     if (user.role !== 'ADMIN') {
       if (user.clinicId) where.patient = { clinicId: user.clinicId };
-      if (user.role === 'DOCTOR') {
-        where.patient = {
-          ...(where.patient || {}),
-          OR: [
-            { assignedDoctorId: user.id },
-            { doctorAccess: { some: { doctorId: user.id } } },
-          ],
-        };
-      }
+      // DOCTOR and ASSISTANT now see ALL visits in the clinic
     }
 
     if (start && end) {
@@ -142,17 +134,12 @@ router.get('/upcoming', authenticate, async (req: AuthRequest, res, next) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // [C-1] scope upcoming visits to user's accessible patients
+    // [C-1] scope upcoming visits by clinic if set
     const upcomingUser = req.user!;
     const upcomingPatientFilter: any = {};
     if (upcomingUser.role !== 'ADMIN') {
       if (upcomingUser.clinicId) upcomingPatientFilter.clinicId = upcomingUser.clinicId;
-      if (upcomingUser.role === 'DOCTOR') {
-        upcomingPatientFilter.OR = [
-          { assignedDoctorId: upcomingUser.id },
-          { doctorAccess: { some: { doctorId: upcomingUser.id } } },
-        ];
-      }
+      // DOCTOR and ASSISTANT now see ALL upcoming visits in the clinic
     }
 
     const visits = await prisma.visit.findMany({

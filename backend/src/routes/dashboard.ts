@@ -8,9 +8,8 @@ import { buildAllActivities } from '../services/dashboardService';
 const router = express.Router();
 
 /**
- * [SEC-4] Build a Prisma `where` filter that scopes patients to the current user.
- * ADMIN / ASSISTANT → all patients (optionally filtered by clinicId).
- * DOCTOR → only patients assigned to them OR with explicit DoctorPatientAccess.
+ * [SEC-4] Build a Prisma `where` filter scoped to clinic if set.
+ * ADMIN / DOCTOR / ASSISTANT → all patients (optionally filtered by clinicId).
  */
 function patientWhereForUser(user: AuthRequest['user']): Prisma.PatientWhereInput {
   if (!user) return {};
@@ -20,12 +19,7 @@ function patientWhereForUser(user: AuthRequest['user']): Prisma.PatientWhereInpu
     where.clinicId = user.clinicId;
   }
 
-  if (user.role === 'DOCTOR') {
-    where.OR = [
-      { assignedDoctorId: user.id },
-      { doctorAccess: { some: { doctorId: user.id } } },
-    ];
-  }
+  // All roles now see all patients in the clinic
 
   return where;
 }
