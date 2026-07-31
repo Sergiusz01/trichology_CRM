@@ -304,7 +304,8 @@ export default function UsersPage() {
                             <TableCell>Email</TableCell>
                             <TableCell>Rola</TableCell>
                             <TableCell>Status</TableCell>
-                            <TableCell>Pacjenci</TableCell>
+                            <TableCell>Dostęp do pacjentów</TableCell>
+
                             <TableCell>Utworzony</TableCell>
                             <TableCell align="right">Akcje</TableCell>
                         </TableRow>
@@ -330,15 +331,13 @@ export default function UsersPage() {
                                     />
                                 </TableCell>
                                 <TableCell>
-                                    {user.role === 'DOCTOR' && (
+                                    {(user.role === 'DOCTOR' || user.role === 'ASSISTANT') && (
                                         <Chip
                                             icon={<People sx={{ fontSize: 16 }} />}
-                                            label={user._count?.patientAccess ?? 0}
+                                            label="Wszyscy pacjenci"
                                             size="small"
                                             variant="outlined"
-                                            color="info"
-                                            sx={{ cursor: 'pointer' }}
-                                            onClick={() => handleOpenAccess(user)}
+                                            color="success"
                                         />
                                     )}
                                 </TableCell>
@@ -346,13 +345,6 @@ export default function UsersPage() {
                                     {format(new Date(user.createdAt), 'dd.MM.yyyy', { locale: pl })}
                                 </TableCell>
                                 <TableCell align="right">
-                                    {user.role === 'DOCTOR' && (
-                                        <Tooltip title="Uprawnienia do pacjentów">
-                                            <IconButton size="small" onClick={() => handleOpenAccess(user)} color="info">
-                                                <People fontSize="small" />
-                                            </IconButton>
-                                        </Tooltip>
-                                    )}
                                     <Tooltip title="Zresetuj hasło">
                                         <IconButton size="small" onClick={() => handleOpenPassword(user)}>
                                             <LockReset fontSize="small" />
