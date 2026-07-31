@@ -33,21 +33,11 @@ export async function canAccessPatient(
     return false;
   }
 
-  // DOCTOR may see patients assigned to them OR patients with explicit access grant
-  if (user.role === 'DOCTOR') {
-    if (patient.assignedDoctorId === user.id) return true;
-
-    // Check explicit DoctorPatientAccess table
-    const accessGrant = await prisma.doctorPatientAccess.findUnique({
-      where: { doctorId_patientId: { doctorId: user.id, patientId: patient.id } },
-    });
-    if (accessGrant) return true;
-
-    return false;
-  }
-
+  // DOCTOR and ASSISTANT now have access to ALL patients in the clinic
+  // (clinicId isolation already applied above)
   return true;
 }
+
 
 /**
  * Express middleware — reads patientId from params/body, fetches from DB,
