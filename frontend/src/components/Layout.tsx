@@ -42,13 +42,13 @@ import { useAuth } from '../contexts/AuthContext';
 
 const drawerWidth = 260; // Slightly narrower for a sleeker look
 
-const mainMenuItems = [
-  { text: 'Panel główny', icon: <DashboardIcon sx={{ fontSize: 20 }} />, path: '/' },
-  { text: 'Pacjenci', icon: <People sx={{ fontSize: 20 }} />, path: '/patients' },
-  { text: 'Kalendarz', icon: <CalendarMonth sx={{ fontSize: 20 }} />, path: '/calendar' },
-  { text: 'Konsultacje', icon: <EventNote sx={{ fontSize: 20 }} />, path: '/consultations' },
-  { text: 'Wizyty / Zabiegi', icon: <EventAvailable sx={{ fontSize: 20 }} />, path: '/visits' },
-  { text: 'Przychody', icon: <AttachMoney sx={{ fontSize: 20 }} />, path: '/revenue' },
+const allMainMenuItems = [
+  { text: 'Panel główny',    icon: <DashboardIcon sx={{ fontSize: 20 }} />, path: '/',             roles: ['ADMIN','DOCTOR','ASSISTANT'] },
+  { text: 'Pacjenci',        icon: <People sx={{ fontSize: 20 }} />,        path: '/patients',     roles: ['ADMIN','DOCTOR','ASSISTANT'] },
+  { text: 'Kalendarz',       icon: <CalendarMonth sx={{ fontSize: 20 }} />, path: '/calendar',     roles: ['ADMIN','DOCTOR','ASSISTANT'] },
+  { text: 'Konsultacje',     icon: <EventNote sx={{ fontSize: 20 }} />,     path: '/consultations',roles: ['ADMIN','DOCTOR','ASSISTANT'] },
+  { text: 'Wizyty / Zabiegi',icon: <EventAvailable sx={{ fontSize: 20 }} />,path: '/visits',      roles: ['ADMIN','DOCTOR','ASSISTANT'] },
+  { text: 'Przychody',       icon: <AttachMoney sx={{ fontSize: 20 }} />,  path: '/revenue',      roles: ['ADMIN','DOCTOR'] },  // ukryte dla ASSISTANT
 ];
 
 const templateItems = [
@@ -56,6 +56,12 @@ const templateItems = [
   { text: 'Wyniki badań', icon: <Science sx={{ fontSize: 18 }} />, path: '/lab-result-templates' },
   { text: 'Emaile', icon: <FolderSpecial sx={{ fontSize: 18 }} />, path: '/email/templates' },
 ];
+
+const ROLE_LABEL: Record<string, string> = {
+  ADMIN:     'Administrator',
+  DOCTOR:    'Lekarz specjalista',
+  ASSISTANT: 'Asystent',
+};
 
 export default function Layout() {
   const navigate = useNavigate();
@@ -66,6 +72,10 @@ export default function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(true);
 
+  // Filter menu items by current user role
+  const mainMenuItems = allMainMenuItems.filter(
+    item => item.roles.includes(user?.role ?? '')
+  );
 
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
 
@@ -235,7 +245,7 @@ export default function Layout() {
               {user?.name || 'Użytkownik'}
             </Typography>
             <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block', mt: -0.5 }}>
-              {user?.role === 'DOCTOR' ? 'Lekarz specjalista' : 'Administrator'}
+              {ROLE_LABEL[user?.role ?? ''] ?? 'Użytkownik'}
             </Typography>
           </Box>
         </Box>
