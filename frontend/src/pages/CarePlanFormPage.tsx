@@ -5,11 +5,12 @@ import {
   CircularProgress, IconButton, useMediaQuery, useTheme,
   Accordion, AccordionSummary, AccordionDetails,
   Chip, Tooltip, MenuItem, Select, FormControl,
-  InputLabel, Divider, Stack,
+  InputLabel, Divider, Stack, Avatar, alpha
 } from '@mui/material';
-import { Add, Delete, ExpandMore, LocalHospital, Shower, Science, Spa, AutoAwesome, ContentCopy, CheckCircle } from '@mui/icons-material';
+import { Add, Delete, ExpandMore, LocalHospital, Shower, Science, Spa, AutoAwesome, ContentCopy, CheckCircle, Person } from '@mui/icons-material';
 import { api } from '../services/api';
 import { useQueryClient } from '@tanstack/react-query';
+import { usePatientDetail } from '../hooks/queries/usePatientDetail';
 
 // ── Trichology templates ───────────────────────────────────────────────────────
 const TEMPLATES: Record<string, { title: string; totalDurationWeeks: number; notes: string; weeks: WeekData[] }> = {
@@ -84,6 +85,8 @@ export default function CarePlanFormPage() {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const queryClient = useQueryClient();
   const dataLoaded = useRef(false);
+  
+  const { data: patient } = usePatientDetail(id);
 
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
@@ -292,10 +295,48 @@ export default function CarePlanFormPage() {
 
   return (
     <Box sx={{ maxWidth: 900, mx: 'auto', pb: 6 }}>
+      {/* Patient Mini Header */}
+      {patient && (
+        <Paper
+          elevation={0}
+          sx={{
+            p: 2,
+            mb: 3,
+            borderRadius: 3,
+            bgcolor: 'white',
+            border: '1px solid',
+            borderColor: 'divider',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2,
+          }}
+        >
+          <Avatar
+            sx={{
+              bgcolor: alpha('#007AFF', 0.1),
+              color: '#007AFF',
+              width: 48,
+              height: 48,
+              fontWeight: 700,
+            }}
+          >
+            {patient.firstName?.charAt(0)}{patient.lastName?.charAt(0)}
+          </Avatar>
+          <Box>
+            <Typography variant="h6" fontWeight={700} color="#1d1d1f" sx={{ lineHeight: 1.2 }}>
+              {patient.firstName} {patient.lastName}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Nowy plan opieki trychologicznej
+            </Typography>
+          </Box>
+        </Paper>
+      )}
+
       {/* Header */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h4" fontWeight={800} sx={{ fontSize: { xs: '1.5rem', sm: '2rem' }, color: 'secondary.main' }}>
-          {carePlanId ? '✏️ Edytuj plan opieki' : '🌿 Nowy plan opieki trychologicznej'}
+          {carePlanId ? '✏️ Edytuj plan opieki' : '🌿 Stwórz plan opieki'}
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
           {carePlanId ? 'Modyfikuj plan i zapisz zmiany' : 'Utwórz spersonalizowany plan kuracji dla pacjenta'}
