@@ -4,6 +4,7 @@ import { Box, CircularProgress, Typography } from '@mui/material';
 import { useAuth } from './contexts/AuthContext';
 import Layout from './components/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
+import ScrollToTop from './components/ScrollToTop';
 
 // Lazy load pages for code splitting
 const LoginPage = lazy(() => import('./pages/LoginPage'));
@@ -84,6 +85,7 @@ function App() {
 
   return (
     <ErrorBoundary>
+      <ScrollToTop />
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route
