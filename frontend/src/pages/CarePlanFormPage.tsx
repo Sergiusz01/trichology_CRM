@@ -272,7 +272,7 @@ export default function CarePlanFormPage() {
       }
 
       setSuccess(true);
-      setTimeout(() => navigate(`/patients/${id}/care-plans`), 1500);
+      setTimeout(() => navigate(`/patients/${id}?tab=care-plans`, { state: { refresh: true } }), 1500);
     } catch (err: any) {
       console.error('Błąd zapisywania planu:', err);
       setError(err.response?.data?.error || err.message || 'Błąd zapisywania planu');

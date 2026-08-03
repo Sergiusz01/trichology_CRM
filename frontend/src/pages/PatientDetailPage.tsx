@@ -261,11 +261,14 @@ export default function PatientDetailPage() {
   const updateVisitStatus = useUpdateVisitStatus();
   const updatePatient = useUpdatePatient();
 
-  // Deep-link: switch to visits tab from URL params
+  // Deep-link: switch tabs from URL params
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
-    if (searchParams.get('tab') === 'visits') {
+    const tabParam = searchParams.get('tab');
+    if (tabParam === 'visits') {
       setTabValue(5);
+    } else if (tabParam === 'care-plans') {
+      setTabValue(4);
     }
   }, [location.search]);
 
