@@ -16,6 +16,14 @@ export const api = axios.create({
 
 // [SEC-10] Access token is now an httpOnly cookie — no localStorage, no Authorization header needed
 api.interceptors.request.use((config) => {
+  // [FIX] Force bypass of all browser/proxy caches for GET requests
+  if (config.method?.toLowerCase() === 'get') {
+    config.params = {
+      ...config.params,
+      _t: new Date().getTime(),
+    };
+  }
+
   // Don't set Content-Type for FormData (let browser set it with boundary)
   if (config.data instanceof FormData) {
     delete config.headers['Content-Type'];
