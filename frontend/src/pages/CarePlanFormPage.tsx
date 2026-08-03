@@ -7,11 +7,9 @@ import {
   Chip, Tooltip, MenuItem, Select, FormControl,
   InputLabel, Divider, Stack,
 } from '@mui/material';
-import {
-  Add, Delete, ExpandMore, LocalHospital, Shower,
-  Science, Spa, AutoAwesome, ContentCopy, CheckCircle,
-} from '@mui/icons-material';
+import { Add, Delete, ExpandMore, LocalHospital, Shower, Science, Spa, AutoAwesome, ContentCopy, CheckCircle } from '@mui/icons-material';
 import { api } from '../services/api';
+import { useQueryClient } from '@tanstack/react-query';
 
 // ── Trichology templates ───────────────────────────────────────────────────────
 const TEMPLATES: Record<string, { title: string; totalDurationWeeks: number; notes: string; weeks: WeekData[] }> = {
@@ -80,11 +78,12 @@ const WEEK_FIELDS: { key: keyof WeekData; label: string; icon: any; color: strin
 ];
 
 export default function CarePlanFormPage() {
-  const { id, carePlanId } = useParams<{ id?: string; carePlanId?: string }>();
+  const { id, carePlanId } = useParams<{ id: string; carePlanId?: string }>();
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const dataLoaded = useRef(false);   // ← FIX BUG 1: prevents useEffect race condition
+  const queryClient = useQueryClient();
+  const dataLoaded = useRef(false);
 
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
@@ -264,6 +263,12 @@ export default function CarePlanFormPage() {
         await api.put(`/care-plans/${carePlanId}`, dataToSend);
       } else {
         await api.post('/care-plans', dataToSend);
+      }
+
+      // Invalidate React Query caches for Care Plans globally and for this patient
+      queryClient.invalidateQueries({ queryKey: ['carePlans'] });
+      if (id) {
+        queryClient.invalidateQueries({ queryKey: ['carePlans', 'patient', id] });
       }
 
       setSuccess(true);

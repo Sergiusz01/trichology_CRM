@@ -19,6 +19,7 @@ import {
 import { AppCard, AppButton, AppTextField, PageHeader, Section } from '../ui';
 import { ExpandMore, Save, EventAvailable, Settings, Edit } from '@mui/icons-material';
 import { api } from '../services/api';
+import { useQueryClient } from '@tanstack/react-query';
 import { useNotification } from '../hooks/useNotification';
 import MultiSelectCheckboxes from '../components/MultiSelectCheckboxes';
 import DynamicConsultationForm from '../components/DynamicConsultationForm';
@@ -29,6 +30,8 @@ export default function ConsultationFormPage() {
   const { id, patientId } = useParams<{ id?: string; patientId?: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
+
   const [loading, setLoading] = useState(
     // Start as loading=true in edit mode to prevent premature render with wrong patientId
     Boolean(!location.pathname.includes('/consultations/new') && id && patientId === undefined)
@@ -345,9 +348,16 @@ export default function ConsultationFormPage() {
       } else {
         await api.post('/consultations', dataToSend);
       }
+
+      // Invalidate React Query caches for Consultations globally and for this patient
+      queryClient.invalidateQueries({ queryKey: ['consultations'] });
+      if (formData.patientId) {
+        queryClient.invalidateQueries({ queryKey: ['consultations', 'patient', formData.patientId] });
+      }
+
       setSuccess(true);
       setTimeout(() => {
-        navigate(`/patients/${formData.patientId}`);
+        navigate(`/patients/${formData.patientId}`, { state: { refresh: true } });
       }, 1500);
     } catch (err: any) {
       console.error('Błąd zapisywania konsultacji:', err);
