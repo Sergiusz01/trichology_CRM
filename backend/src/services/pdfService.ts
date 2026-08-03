@@ -1017,61 +1017,296 @@ export const generateConsultationPDF = async (consultation: any): Promise<Buffer
 };
 
 export const generateCarePlanPDF = async (carePlan: any): Promise<Buffer> => {
-  const html = `
-    <!DOCTYPE html>
-    <html lang="pl">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Plan Opieki Trychologicznej</title>
-      <style>
-        body { font-family: Arial, sans-serif; font-size: 11pt; line-height: 1.6; margin: 20px; color: #333; }
-        .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
-        .header h1 { margin: 0; font-size: 18pt; }
-        .patient-info { background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
-        .week-section { margin-bottom: 30px; page-break-inside: avoid; border: 1px solid #ddd; padding: 15px; border-radius: 5px; }
-        .week-title { font-size: 16pt; font-weight: bold; margin-bottom: 15px; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 8px; }
-        .week-content { margin-left: 10px; }
-        .week-item { margin-bottom: 12px; }
-        .week-item-label { font-weight: bold; color: #555; margin-bottom: 5px; }
-        .week-item-value { margin-left: 15px; }
-        .global-notes { background-color: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin-bottom: 20px; }
-      </style>
-    </head>
-    <body>
-      ${getLogoHTMLForPDF('small')}
-      <div class="header">
-        <h1>PLAN OPIEKI TRYCHOLOGICZNEJ</h1>
-        <p><strong>${carePlan.title}</strong></p>
-        <p>Czas trwania: ${carePlan.totalDurationWeeks} tygodni</p>
+  const patient = carePlan.patient || {};
+  const weeks = carePlan.weeks || [];
+  const totalWeeks = carePlan.totalDurationWeeks || weeks.length;
+
+  const SECTIONS = [
+    { key: 'description',        label: 'Cel tygodnia',          emoji: '🎯', color: '#6366f1', bg: '#f0f0ff' },
+    { key: 'washingRoutine',     label: 'Rutyna mycia głowy',    emoji: '🚿', color: '#0ea5e9', bg: '#f0f9ff' },
+    { key: 'topicalProducts',    label: 'Produkty miejscowe',    emoji: '💊', color: '#10b981', bg: '#f0fdf4' },
+    { key: 'supplements',        label: 'Suplementacja',         emoji: '🔬', color: '#f59e0b', bg: '#fffbeb' },
+    { key: 'inClinicProcedures', label: 'Zabiegi w klinice',    emoji: '🏥', color: '#ef4444', bg: '#fff1f2' },
+    { key: 'remarks',            label: 'Ważne wskazówki',       emoji: '📝', color: '#8b5cf6', bg: '#faf5ff' },
+  ];
+
+  const weeksHtml = weeks.map((week: any) => {
+    const filledSections = SECTIONS.filter(s => week[s.key] && week[s.key].trim());
+    if (filledSections.length === 0) return `
+      <div class="week-card">
+        <div class="week-header"><span class="week-number">${week.weekNumber}</span><span class="week-title">Tydzień ${week.weekNumber}</span></div>
+        <div class="week-empty">Brak szczegółowych zaleceń na ten tydzień</div>
+      </div>`;
+
+    const sectionsHtml = filledSections.map(s => `
+      <div class="section-card" style="border-left:4px solid ${s.color}; background:${s.bg};">
+        <div class="section-label" style="color:${s.color};">${s.emoji} ${s.label}</div>
+        <div class="section-value">${week[s.key].replace(/\n/g, '<br>')}</div>
       </div>
-      <div class="patient-info">
-        <h2>Dane pacjenta</h2>
-        <p><strong>${carePlan.patient.firstName} ${carePlan.patient.lastName}</strong></p>
-        ${carePlan.patient.phone ? `<p>Telefon: ${carePlan.patient.phone}</p>` : ''}
-        ${carePlan.patient.email ? `<p>Email: ${carePlan.patient.email}</p>` : ''}
-      </div>
-      ${carePlan.notes ? `<div class="global-notes"><h3>Uwagi ogólne</h3><p>${carePlan.notes}</p></div>` : ''}
-      ${carePlan.weeks.map((week: any) => `
-        <div class="week-section">
-          <div class="week-title">Tydzień ${week.weekNumber}</div>
-          <div class="week-content">
-            ${week.description ? `<div class="week-item"><div class="week-item-label">Opis:</div><div class="week-item-value">${week.description}</div></div>` : ''}
-            ${week.washingRoutine ? `<div class="week-item"><div class="week-item-label">Rutyna mycia:</div><div class="week-item-value">${week.washingRoutine}</div></div>` : ''}
-            ${week.topicalProducts ? `<div class="week-item"><div class="week-item-label">Produkty miejscowe:</div><div class="week-item-value">${week.topicalProducts}</div></div>` : ''}
-            ${week.supplements ? `<div class="week-item"><div class="week-item-label">Suplementacja:</div><div class="week-item-value">${week.supplements}</div></div>` : ''}
-            ${week.inClinicProcedures ? `<div class="week-item"><div class="week-item-label">Zabiegi w klinice:</div><div class="week-item-value">${week.inClinicProcedures}</div></div>` : ''}
-            ${week.remarks ? `<div class="week-item"><div class="week-item-label">Uwagi:</div><div class="week-item-value">${week.remarks}</div></div>` : ''}
-          </div>
+    `).join('');
+
+    return `
+      <div class="week-card">
+        <div class="week-header">
+          <span class="week-number">${week.weekNumber}</span>
+          <span class="week-title">Tydzień ${week.weekNumber}</span>
+          <span class="week-sections-count">${filledSections.length} zaleceń</span>
         </div>
-      `).join('')}
-      <div style="margin-top: 40px; text-align: right; font-size: 9pt; color: #666;">
-        <p>Wygenerowano: ${formatDateTime(new Date())}</p>
-        <p>Lekarz: ${carePlan.createdBy?.name || ''}</p>
+        <div class="sections-grid">${sectionsHtml}</div>
+      </div>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>Plan Opieki Trychologicznej — ${carePlan.title}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.65;
+      color: #1e293b;
+      background: #fff;
+    }
+
+    /* ── HERO HEADER ── */
+    .hero {
+      background: linear-gradient(135deg, #3b0764 0%, #7c3aed 60%, #a855f7 100%);
+      color: #fff;
+      padding: 32px 36px 28px;
+      border-radius: 0 0 20px 20px;
+      margin-bottom: 28px;
+    }
+    .hero-badge {
+      font-size: 7pt;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      opacity: 0.75;
+      margin-bottom: 6px;
+      display: block;
+    }
+    .hero-title {
+      font-size: 22pt;
+      font-weight: 800;
+      line-height: 1.15;
+      margin-bottom: 10px;
+    }
+    .hero-meta {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+    .hero-chip {
+      background: rgba(255,255,255,0.2);
+      border-radius: 20px;
+      padding: 3px 12px;
+      font-size: 8pt;
+      font-weight: 700;
+    }
+
+    /* ── PATIENT BLOCK ── */
+    .patient-block {
+      background: rgba(255,255,255,0.15);
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-top: 18px;
+    }
+    .patient-label {
+      font-size: 7pt;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      opacity: 0.7;
+      margin-bottom: 4px;
+    }
+    .patient-name {
+      font-size: 14pt;
+      font-weight: 800;
+    }
+    .patient-contact {
+      font-size: 8.5pt;
+      opacity: 0.85;
+      margin-top: 3px;
+    }
+
+    /* ── NOTES ── */
+    .notes-block {
+      background: #fffbeb;
+      border-left: 4px solid #f59e0b;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 0 36px 24px;
+    }
+    .notes-label {
+      font-size: 8pt;
+      font-weight: 700;
+      color: #b45309;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+    .notes-text { font-size: 10pt; line-height: 1.7; color: #451a03; }
+
+    /* ── WEEKS HEADING ── */
+    .weeks-heading {
+      font-size: 13pt;
+      font-weight: 700;
+      color: #3b0764;
+      margin: 0 36px 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #e9d5ff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ── WEEK CARD ── */
+    .week-card {
+      margin: 0 36px 20px;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      overflow: hidden;
+      page-break-inside: avoid;
+    }
+    .week-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 18px;
+      background: linear-gradient(90deg, #f5f3ff, #faf5ff);
+      border-bottom: 1px solid #e9d5ff;
+    }
+    .week-number {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #7c3aed;
+      color: #fff;
+      font-weight: 800;
+      font-size: 13pt;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .week-title {
+      font-size: 12pt;
+      font-weight: 700;
+      color: #3b0764;
+      flex: 1;
+    }
+    .week-sections-count {
+      font-size: 7.5pt;
+      color: #7c3aed;
+      background: #ede9fe;
+      border-radius: 10px;
+      padding: 2px 10px;
+      font-weight: 600;
+    }
+    .week-empty {
+      padding: 14px 18px;
+      color: #94a3b8;
+      font-style: italic;
+      font-size: 9.5pt;
+    }
+
+    /* ── SECTIONS GRID ── */
+    .sections-grid {
+      padding: 14px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .section-card {
+      border-radius: 8px;
+      padding: 11px 14px;
+    }
+    .section-card:nth-child(1),
+    .section-card:nth-child(6) {
+      grid-column: 1 / -1;
+    }
+    .section-label {
+      font-size: 7pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 5px;
+    }
+    .section-value {
+      font-size: 9.5pt;
+      line-height: 1.7;
+      color: #1e293b;
+    }
+
+    /* ── FOOTER ── */
+    .footer {
+      margin: 30px 36px 0;
+      padding-top: 16px;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      font-size: 8pt;
+      color: #94a3b8;
+    }
+    .footer-doctor {
+      text-align: right;
+    }
+    .footer-doctor strong {
+      display: block;
+      color: #475569;
+      font-size: 9.5pt;
+    }
+  </style>
+</head>
+<body>
+  <!-- HERO -->
+  ${getLogoHTMLForPDF('small')}
+  <div class="hero">
+    <span class="hero-badge">🌿 Plan Opieki Trychologicznej</span>
+    <div class="hero-title">${carePlan.title}</div>
+    <div class="patient-block">
+      <div class="patient-label">Pacjent</div>
+      <div class="patient-name">${patient.firstName || ''} ${patient.lastName || ''}</div>
+      <div class="patient-contact">
+        ${patient.phone ? `📞 ${patient.phone}` : ''}
+        ${patient.phone && patient.email ? ' &nbsp;•&nbsp; ' : ''}
+        ${patient.email ? `✉️ ${patient.email}` : ''}
       </div>
-    </body>
-    </html>
-  `;
+    </div>
+    <div class="hero-meta">
+      <span class="hero-chip">📅 ${totalWeeks} tygodni</span>
+      <span class="hero-chip">${carePlan.isActive ? '✅ Plan aktywny' : '⏸ Plan nieaktywny'}</span>
+      ${carePlan.createdAt ? `<span class="hero-chip">🗓 Wystawiono: ${new Date(carePlan.createdAt).toLocaleDateString('pl-PL')}</span>` : ''}
+    </div>
+  </div>
+
+  ${carePlan.notes ? `
+  <div class="notes-block">
+    <div class="notes-label">📋 Informacje ogólne o planie</div>
+    <div class="notes-text">${carePlan.notes.replace(/\n/g, '<br>')}</div>
+  </div>` : ''}
+
+  <div class="weeks-heading">📅 Program tygodniowy</div>
+  ${weeksHtml}
+
+  <div class="footer">
+    <div>
+      <div>Wygenerowano: ${new Date().toLocaleDateString('pl-PL', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
+      <div style="margin-top:2px;">Dokument przeznaczony dla pacjenta — zachowaj do wglądu.</div>
+    </div>
+    ${carePlan.createdBy ? `
+    <div class="footer-doctor">
+      <span>Lekarz prowadzący</span>
+      <strong>dr ${carePlan.createdBy.name}</strong>
+    </div>` : ''}
+  </div>
+</body>
+</html>`;
+
+
 
   let browser;
   try {
