@@ -60,7 +60,15 @@ export default function CarePlanDetailPage() {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `plan-opieki-${carePlanId}.pdf`);
+      
+      const patientName = carePlan?.patient?.firstName && carePlan?.patient?.lastName 
+        ? `${carePlan.patient.firstName}_${carePlan.patient.lastName}` 
+        : 'pacjent';
+      const dateStr = carePlan?.createdAt 
+        ? new Date(carePlan.createdAt).toISOString().split('T')[0] 
+        : new Date().toISOString().split('T')[0];
+      
+      link.setAttribute('download', `plan_opieki_${patientName}_${dateStr}.pdf`);
       document.body.appendChild(link);
       link.click();
       link.remove();
