@@ -51,6 +51,7 @@ async function main() {
     orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
     include: {
       consultations: {
+        where: { isArchived: false },
         include: {
           doctor: { select: { id: true, name: true, email: true } },
           patient: { select: { id: true, firstName: true, lastName: true, age: true, gender: true, phone: true, email: true } },
@@ -58,11 +59,13 @@ async function main() {
         orderBy: { consultationDate: 'desc' },
       },
       labResults: { orderBy: { date: 'desc' } },
+      visits: { orderBy: { data: 'desc' } },
       scalpPhotos: {
         include: { annotations: true },
         orderBy: { createdAt: 'desc' },
       },
       carePlans: {
+        where: { isArchived: false },
         include: {
           createdBy: { select: { id: true, name: true, email: true } },
           patient: { select: { id: true, firstName: true, lastName: true, phone: true, email: true } },
@@ -82,7 +85,7 @@ async function main() {
 
   for (const patient of patients) {
     const patientFolderName = `${patient.lastName}_${patient.firstName}_${patient.id.slice(0, 8)}`
-      .replace(/[^a-zA-Z0-9_\-]/g, '_')
+      .replace(/[^a-zA-Z0-9_\-ąćęłńóśźżĄĆĘŁŃÓŚŹŻ\s]/g, '_')
       .replace(/\s+/g, '_');
     const basePath = `Pacjenci/${patientFolderName}`;
 
@@ -153,7 +156,7 @@ async function main() {
       for (const plan of patient.carePlans) {
         try {
           const pdf = await generateCarePlanPDF(plan);
-          const planName = plan.title.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 40);
+          const planName = plan.title.replace(/[^a-zA-Z0-9ąćęłńóśźżĄĆĘŁŃÓŚŹŻ\s]/g, '_').slice(0, 40);
           archive.append(pdf, { name: `${basePath}/04_Plany_Opieki/Plan_${planName}_${plan.id.slice(0, 8)}.pdf` });
           totalCarePlans++;
         } catch (err) {

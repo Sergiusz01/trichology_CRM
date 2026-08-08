@@ -434,6 +434,32 @@ export const generatePatientInfoPDF = async (patient: any): Promise<Buffer> => {
         </tr>
       </table>
 
+      ${patient.visits && patient.visits.length > 0 ? `
+      <div style="margin-top: 30px;">
+        <h2 style="font-size: 14pt; border-bottom: 2px solid #333; padding-bottom: 5px;">Historia i planowane wizyty</h2>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 10pt;">
+          <thead>
+            <tr>
+              <th style="padding: 8px; border: 1px solid #ddd; background-color: #f5f5f5; text-align: left;">Data</th>
+              <th style="padding: 8px; border: 1px solid #ddd; background-color: #f5f5f5; text-align: left;">Rodzaj zabiegu</th>
+              <th style="padding: 8px; border: 1px solid #ddd; background-color: #f5f5f5; text-align: left;">Status</th>
+              <th style="padding: 8px; border: 1px solid #ddd; background-color: #f5f5f5; text-align: left;">Notatki</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${patient.visits.map((v: any) => `
+              <tr>
+                <td style="padding: 8px; border: 1px solid #ddd;">${formatDateTimeHelper(v.data)}</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${v.rodzajZabiegu}</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${v.status}</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${v.notatki || '-'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+      ` : ''}
+
       <div class="footer">
         <p>Wygenerowano: ${formatDateTimeHelper(new Date())}</p>
       </div>

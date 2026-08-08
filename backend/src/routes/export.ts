@@ -50,6 +50,7 @@ router.get('/patients/zip', authenticate, requireRole('ADMIN', 'DOCTOR'), async 
       ],
       include: {
         consultations: {
+          where: { isArchived: false },
           include: {
             doctor: {
               select: { id: true, name: true, email: true },
@@ -63,6 +64,9 @@ router.get('/patients/zip', authenticate, requireRole('ADMIN', 'DOCTOR'), async 
         labResults: {
           orderBy: { date: 'desc' },
         },
+        visits: {
+          orderBy: { data: 'desc' },
+        },
         scalpPhotos: {
           include: {
             annotations: true,
@@ -70,6 +74,7 @@ router.get('/patients/zip', authenticate, requireRole('ADMIN', 'DOCTOR'), async 
           orderBy: { createdAt: 'desc' },
         },
         carePlans: {
+          where: { isArchived: false },
           include: {
             createdBy: {
               select: { id: true, name: true, email: true },
@@ -90,7 +95,7 @@ router.get('/patients/zip', authenticate, requireRole('ADMIN', 'DOCTOR'), async 
     for (const patient of patients) {
       // Sanitize patient name for folder name
       const patientFolderName = `${patient.lastName}_${patient.firstName}_${patient.id.slice(0, 8)}`
-        .replace(/[^a-zA-Z0-9_\-]/g, '_')
+        .replace(/[^a-zA-Z0-9_\-ąćęłńóśźżĄĆĘŁŃÓŚŹŻ\s]/g, '_')
         .replace(/\s+/g, '_');
 
       const basePath = `Pacjenci/${patientFolderName}`;
@@ -203,7 +208,7 @@ router.get('/patients/zip', authenticate, requireRole('ADMIN', 'DOCTOR'), async 
         for (const carePlan of patient.carePlans) {
           try {
             const pdfBuffer = await generateCarePlanPDF(carePlan);
-            const planFileName = `Plan_${carePlan.title.replace(/[^a-zA-Z0-9]/g, '_')}_${carePlan.id.slice(0, 8)}.pdf`;
+            const planFileName = `Plan_${carePlan.title.replace(/[^a-zA-Z0-9ąćęłńóśźżĄĆĘŁŃÓŚŹŻ\s]/g, '_')}_${carePlan.id.slice(0, 8)}.pdf`;
             archive.append(pdfBuffer, {
               name: `${basePath}/04_Plany_Opieki/${planFileName}`,
             });
