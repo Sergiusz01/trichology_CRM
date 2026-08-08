@@ -52,7 +52,7 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
         orderBy: { createdAt: 'desc' },
       }),
       prisma.consultation.findMany({
-        where: { patientId: { in: accessiblePatientIds } },
+        where: { patientId: { in: accessiblePatientIds }, isArchived: false },
         select: {
           id: true,
           patientId: true,
@@ -103,7 +103,7 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
         take: 50,
       }),
       prisma.labResult.findMany({
-        where: { patientId: { in: accessiblePatientIds } },
+        where: { patientId: { in: accessiblePatientIds }, isArchived: false },
         select: {
           id: true,
           patientId: true,
@@ -140,7 +140,7 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
         take: 50,
       }),
       prisma.carePlan.findMany({
-        where: { patientId: { in: accessiblePatientIds } },
+        where: { patientId: { in: accessiblePatientIds }, isArchived: false },
         select: {
           id: true,
           patientId: true,
