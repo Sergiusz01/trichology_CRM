@@ -717,11 +717,15 @@ export default function CalendarPage() {
                 }
 
                 // Time grid / list view
+                const nameParts = patientName.trim().split(' ');
+                const firstName = nameParts[0] || '';
+                const lastName = nameParts.slice(1).join(' ');
+
                 return (
                   <Box sx={{ 
-                    px: 0.75, py: 0.5, 
+                    px: 0.5, py: 0.25, 
                     overflow: 'hidden', 
-                    lineHeight: 1.2,
+                    lineHeight: 1.1,
                     borderLeft: `2px solid ${bgColor}`,
                     bgcolor: alpha(bgColor, 0.1),
                     color: theme.palette.mode === 'dark' ? '#fff' : darken(bgColor, 0.35),
@@ -734,13 +738,12 @@ export default function CalendarPage() {
                       filter: 'brightness(0.97)'
                     }
                   }}>
-                    <Typography sx={{ fontSize: '11.5px', fontWeight: 600, mb: 0.25 }} noWrap>
-                      {patientName}
+                    <Typography sx={{ fontSize: '10.5px', fontWeight: 500, mb: 0 }} noWrap>
+                      {firstName}
                     </Typography>
-                    {/* Render visit type only if height allows (e.g. at least 40px height, ~40 mins) */}
-                    {(arg.event.end!.getTime() - arg.event.start!.getTime()) >= 40 * 60000 && (
-                      <Typography sx={{ fontSize: '11px', fontWeight: 400, opacity: 0.85 }} noWrap>
-                        {visitType}
+                    {lastName && (
+                      <Typography sx={{ fontSize: '11.5px', fontWeight: 700 }} noWrap>
+                        {lastName}
                       </Typography>
                     )}
                   </Box>
