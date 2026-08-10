@@ -70,7 +70,7 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
 
     const visits = await prisma.visit.findMany({
       where,
-      orderBy: { data: 'asc' },
+      orderBy: { data: 'desc' },
       include: {
         patient: {
           select: {
