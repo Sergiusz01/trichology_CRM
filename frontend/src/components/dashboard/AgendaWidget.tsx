@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Avatar, IconButton, Button, alpha, Chip } from '@mui/material';
+import { Box, Typography, Avatar, IconButton, Button, alpha, Chip, Tooltip } from '@mui/material';
 import { EventAvailable, PlayArrow, Close, EventNote } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
