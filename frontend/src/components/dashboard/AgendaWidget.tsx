@@ -66,19 +66,20 @@ export const AgendaWidget: React.FC<AgendaWidgetProps> = ({ visits, loading }) =
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
     const now = useMemo(() => new Date(), []);
-    const today = useMemo(() => new Date(now.getFullYear(), now.getMonth(), now.getDate()), [now]);
+    const today = useMemo(() => new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())), [now]);
     const tomorrow = useMemo(() => {
         const t = new Date(today);
-        t.setDate(t.getDate() + 1);
+        t.setUTCDate(t.getUTCDate() + 1);
         return t;
     }, [today]);
 
     const todayVisits = useMemo(() =>
         visits.filter(v => {
             const d = new Date(v.data);
-            return d >= today && d < tomorrow;
+            const dDate = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+            return dDate.getTime() === today.getTime();
         }),
-        [visits, today, tomorrow]
+        [visits, today]
     );
 
     const hasToday = todayVisits.length > 0;
