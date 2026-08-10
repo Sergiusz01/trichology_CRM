@@ -582,27 +582,28 @@ export default function CalendarPage() {
             )}
 
             {/* Add visit button */}
-            <Box
+            <Button
+              fullWidth
+              variant="contained"
+              startIcon={<Add />}
               onClick={() => navigate('/visits/new')}
               sx={{
                 mt: 2,
-                p: 1.5,
+                bgcolor: '#007AFF',
+                color: 'white',
+                textTransform: 'none',
+                fontWeight: 700,
+                py: 1.5,
                 borderRadius: 2.5,
-                border: `2px dashed ${alpha(theme.palette.primary.main, 0.3)}`,
-                textAlign: 'center',
-                cursor: 'pointer',
-                transition: 'all 0.18s',
+                boxShadow: `0 4px 14px ${alpha('#007AFF', 0.4)}`,
                 '&:hover': {
-                  bgcolor: alpha(theme.palette.primary.main, 0.05),
-                  borderColor: theme.palette.primary.main,
+                  bgcolor: '#0051D5',
+                  boxShadow: `0 6px 20px ${alpha('#007AFF', 0.5)}`,
                 },
-                '&:active': { transform: 'scale(0.98)' },
               }}
             >
-              <Typography variant="body2" color="primary.main" fontWeight={700} sx={{ fontSize: '0.82rem' }}>
-                + Zaplanuj wizytę
-              </Typography>
-            </Box>
+              Zaplanuj wizytę
+            </Button>
           </Paper>
         </Box>
 
@@ -720,14 +721,43 @@ export default function CalendarPage() {
 
       <style>{`
         @keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
-        .fc .fc-button { border-radius:8px !important; font-weight:600 !important; text-transform:none !important; }
-        .fc .fc-button-primary { background:var(--fc-button-bg-color,#3B82F6) !important; }
-        .fc .fc-today-button { font-weight:700 !important; }
+        .fc .fc-button {
+          border-radius: 10px !important;
+          font-weight: 600 !important;
+          text-transform: none !important;
+          border: 1px solid rgba(0,0,0,0.08) !important;
+          padding: 8px 14px !important;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.04) !important;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+        .fc .fc-button-primary {
+          background-color: #ffffff !important;
+          color: #1d1d1f !important;
+        }
+        .fc .fc-button-primary:hover {
+          background-color: #f5f5f7 !important;
+          border-color: rgba(0,0,0,0.15) !important;
+        }
+        .fc .fc-button-primary:not(:disabled).fc-button-active,
+        .fc .fc-button-primary:not(:disabled):active {
+          background-color: #007AFF !important;
+          color: #ffffff !important;
+          border-color: #007AFF !important;
+          box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3) !important;
+        }
+        .fc .fc-today-button {
+          background-color: #f5f5f7 !important;
+          color: #1d1d1f !important;
+          font-weight: 700 !important;
+        }
         .fc .fc-event { border-radius:6px !important; border:none !important; }
-        .fc .fc-timegrid-event { border-radius:6px !important; }
-        .fc .fc-col-header-cell-cushion { font-weight:700; }
-        .fc .fc-daygrid-day-number { font-weight:600; }
-        .fc .fc-list-event:hover td { background:rgba(59,130,246,0.06) !important; }
+        .fc .fc-timegrid-event { border-radius:6px !important; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .fc .fc-col-header-cell-cushion { font-weight:700; color: #1d1d1f; }
+        .fc .fc-daygrid-day-number { font-weight:600; color: #1d1d1f; }
+        .fc .fc-list-event:hover td { background:rgba(0,122,255,0.06) !important; }
+        .fc .fc-theme-standard td, .fc .fc-theme-standard th, .fc .fc-theme-standard .fc-scrollgrid {
+          border-color: rgba(0,0,0,0.06) !important;
+        }
       `}</style>
     </Box>
   );
