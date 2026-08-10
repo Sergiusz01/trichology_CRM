@@ -49,7 +49,12 @@ export const TodoWidget: React.FC<{ userId: string }> = ({ userId }) => {
 
     return (
         <AppCard sx={{ height: '100%', display: 'flex', flexDirection: 'column', p: 3, borderRadius: 4, backdropFilter: 'blur(10px)', backgroundColor: 'rgba(255, 255, 255, 0.8)' }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, color: 'text.primary' }}>Zadania na dziś</Typography>
+            <Box sx={{ mb: 2 }}>
+                <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary' }}>Zadania na dziś</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                    Prywatna lista szybkiego dostępu – zapisuj ważne rzeczy do zrobienia podczas swojej zmiany. Tylko Ty masz do niej wgląd.
+                </Typography>
+            </Box>
             <Box component="form" onSubmit={handleAdd} sx={{ display: 'flex', mb: 2 }}>
                 <TextField
                     fullWidth

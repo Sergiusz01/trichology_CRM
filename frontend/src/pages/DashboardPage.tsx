@@ -378,8 +378,7 @@ export default function DashboardPage() {
         consultationsThisWeek: 0,
         patientsWithoutConsultation: 0,
     };
-    const patientsNeedingAttention = dashboardData?.patientsNeedingAttention || [];
-    const inactivePatientsList = dashboardData?.inactivePatients || [];
+
     const upcomingVisits = dashboardData?.upcomingVisits || [];
     const weeklyRevenue = dashboardData?.weeklyRevenue || {
         plannedRevenue: 0,
@@ -526,41 +525,32 @@ export default function DashboardPage() {
 
     const statCards = [
         {
-            title: 'Pacjentów',
+            title: 'Pacjenci w bazie',
             value: stats.patientsCount,
-            subtitle: `+${stats.patientsThisWeek} w tym tygodniu`,
+            subtitle: `+${stats.patientsThisWeek} w tym tyg.`,
             icon: PersonAdd,
-            color: '#1976d2',
+            color: '#007AFF', // iOS Blue
             progress: stats.patientsThisWeek > 0 && stats.patientsCount > 0 ? (stats.patientsThisWeek / stats.patientsCount) * 100 : 0,
             link: '/patients',
         },
         {
-            title: 'Konsultacji',
+            title: 'Konsultacje',
             value: stats.consultationsCount,
-            subtitle: `+${stats.consultationsThisWeek} w tym tygodniu`,
+            subtitle: `+${stats.consultationsThisWeek} w tym tyg.`,
             icon: EventNote,
-            color: '#1976d2',
+            color: '#5856D6', // Purple
             progress: stats.consultationsThisWeek > 0 && stats.consultationsCount > 0 ? (stats.consultationsThisWeek / stats.consultationsCount) * 100 : 0,
             link: '/consultations',
         },
         {
-            title: 'Wizyt dzisiaj',
+            title: 'Dzisiejsze Wizyty',
             value: todayVisits.length,
             subtitle: `${tomorrowVisits.length} jutro`,
             icon: CalendarToday,
-            color: '#1976d2',
+            color: '#34C759', // Green
             progress: 0,
             link: '#visits',
-        },
-        {
-            title: 'Bez konsultacji',
-            value: stats.patientsWithoutConsultation,
-            subtitle: 'Wymaga uwagi',
-            icon: Warning,
-            color: '#d32f2f',
-            progress: stats.patientsWithoutConsultation > 0 && stats.patientsCount > 0 ? (stats.patientsWithoutConsultation / stats.patientsCount) * 100 : 0,
-            link: '#attention',
-        },
+        }
     ];
 
     const isEmptyDb = stats.patientsCount === 0 && !searchQuery;
@@ -698,73 +688,48 @@ export default function DashboardPage() {
             </AppCard>
 
             {/* Stats Cards */}
-            <Grid container spacing={{ xs: 1.5, sm: 3 }} sx={{ mb: 4, px: { xs: 1, sm: 0 }, order: { xs: 5, md: 3 } }}>
+            <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: 4, px: { xs: 1, sm: 0 }, order: { xs: 5, md: 3 } }}>
                 {statCards.map((stat, index) => (
-                    <Grid key={index} size={{ xs: 6, sm: 6, md: 3 }}>
-                        <AppCard
-                            noPadding
+                    <Grid key={index} size={{ xs: 12, sm: 4, md: 4 }}>
+                        <ButtonBase
                             onClick={() => stat.link.startsWith('#') ? null : navigate(stat.link)}
                             sx={{
-                                height: '100%',
-                                cursor: stat.link.startsWith('#') ? 'default' : 'pointer',
-                                transition: 'transform 0.2s',
+                                width: '100%',
+                                display: 'flex',
+                                textAlign: 'left',
+                                borderRadius: 4,
+                                bgcolor: 'rgba(255, 255, 255, 0.7)',
+                                backdropFilter: 'blur(10px)',
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                transition: 'all 0.2s',
                                 '&:hover': stat.link.startsWith('#') ? {} : {
-                                    transform: 'translateY(-4px)',
+                                    bgcolor: 'white',
+                                    transform: 'translateY(-2px)',
+                                    boxShadow: `0 8px 24px ${alpha(stat.color, 0.15)}`,
+                                    borderColor: alpha(stat.color, 0.3),
                                 },
                             }}
                         >
-                            <Box sx={{ p: { xs: 1.5, sm: 3 }, overflow: 'hidden' }}>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                                    <Box
-                                        sx={{
-                                            width: { xs: 36, sm: 48 },
-                                            height: { xs: 36, sm: 48 },
-                                            borderRadius: '12px',
-                                            background: alpha(stat.color, 0.1),
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                        }}
-                                    >
-                                        <stat.icon sx={{ color: stat.color, fontSize: { xs: 18, sm: 24 } }} />
-                                    </Box>
+                            <Box sx={{ p: 3, width: '100%', display: 'flex', flexDirection: 'column' }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                    <Avatar sx={{ bgcolor: alpha(stat.color, 0.1), color: stat.color, width: 48, height: 48, borderRadius: 3 }}>
+                                        <stat.icon />
+                                    </Avatar>
                                 </Box>
-                                <Typography
-                                    variant="h3"
-                                    sx={{
-                                        fontWeight: 700,
-                                        mb: 0.5,
-                                        fontSize: { xs: '1.6rem', sm: '2.25rem' },
-                                        color: '#0F172A',
-                                    }}
-                                >
+                                <Typography variant="h3" sx={{ fontWeight: 800, mb: 0.5, color: '#0F172A', fontSize: '2rem' }}>
                                     {stat.value}
                                 </Typography>
-                                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, mb: 1 }}>
+                                <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.secondary', mb: 1 }}>
                                     {stat.title}
                                 </Typography>
-                                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500, mb: stat.progress > 0 ? 2 : 0, display: 'block' }}>
-                                    {stat.subtitle}
-                                </Typography>
-                                {stat.progress > 0 && (
-                                    <Box sx={{ mt: 2, width: '100%', overflow: 'hidden', borderRadius: 1 }}>
-                                        <LinearProgress
-                                            variant="determinate"
-                                            value={Math.min(stat.progress, 100)}
-                                            sx={{
-                                                height: 6,
-                                                borderRadius: 3,
-                                                bgcolor: alpha(stat.color, 0.1),
-                                                '& .MuiLinearProgress-bar': {
-                                                    background: stat.color,
-                                                    borderRadius: 3,
-                                                },
-                                            }}
-                                        />
-                                    </Box>
-                                )}
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                    <Typography variant="caption" sx={{ color: stat.color, fontWeight: 700, bgcolor: alpha(stat.color, 0.1), px: 1, py: 0.5, borderRadius: 1 }}>
+                                        {stat.subtitle}
+                                    </Typography>
+                                </Box>
                             </Box>
-                        </AppCard>
+                        </ButtonBase>
                     </Grid>
                 ))}
             </Grid>
@@ -794,149 +759,7 @@ export default function DashboardPage() {
             {/* Patient Activity — actions from email links */}
             <PatientActivityCard />
 
-            {/* Patients Needing Attention */}
-            {(patientsNeedingAttention.length > 0 || inactivePatientsList.length > 0) && (
-                <Box id="attention" sx={{ mb: 4, px: { xs: 1, sm: 0 }, order: { xs: 6, md: 6 } }}>
-                    <Grid container spacing={3}>
-                        {patientsNeedingAttention.length > 0 && (
-                            <Grid size={{ xs: 12, md: 6 }}>
-                                <AppCard
-                                    sx={{
-                                        border: '1px solid',
-                                        borderColor: '#FECACA',
-                                        boxShadow: 'none',
-                                    }}
-                                >
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                                        <Warning sx={{ color: '#d32f2f', fontSize: { xs: 24, sm: 32 } }} />
-                                        <Box>
-                                            <Typography variant="h6" sx={{ fontWeight: 700, color: '#d32f2f', fontSize: { xs: '1rem', sm: '1.25rem' } }}>
-                                                Pacjenci bez konsultacji
-                                            </Typography>
-                                            <Typography variant="body2" color="text.secondary">
-                                                {stats.patientsWithoutConsultation} pacjentów wymaga uwagi
-                                            </Typography>
-                                        </Box>
-                                    </Box>
-                                    <List sx={{ p: 0 }}>
-                                        {patientsNeedingAttention.map((patient) => (
-                                            <React.Fragment key={patient.id}>
-                                                <ListItemButton
-                                                    onClick={() => navigate(`/patients/${patient.id}`)}
-                                                    sx={{
-                                                        borderRadius: 2,
-                                                        mb: 0.5,
-                                                        '&:hover': {
-                                                            bgcolor: alpha('#d32f2f', 0.05),
-                                                        },
-                                                    }}
-                                                >
-                                                    <ListItemAvatar>
-                                                        <Avatar sx={{ bgcolor: alpha('#d32f2f', 0.1), color: '#d32f2f', fontWeight: 600 }}>
-                                                            {patient.firstName[0]}{patient.lastName[0]}
-                                                        </Avatar>
-                                                    </ListItemAvatar>
-                                                    <ListItemText
-                                                        primary={
-                                                            <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                                                                {patient.firstName} {patient.lastName}
-                                                            </Typography>
-                                                        }
-                                                        secondary={
-                                                            <Typography variant="caption" color="text.secondary">
-                                                                Dodany: {format(new Date(patient.createdAt), 'dd MMM yyyy', { locale: pl })}
-                                                            </Typography>
-                                                        }
-                                                    />
-                                                    <ArrowForward sx={{ color: '#d32f2f', opacity: 0.5 }} />
-                                                </ListItemButton>
-                                            </React.Fragment>
-                                        ))}
-                                    </List>
-                                    <Button
-                                        fullWidth
-                                        variant="outlined"
-                                        onClick={() => navigate('/patients')}
-                                        sx={{
-                                            mt: 2,
-                                            borderRadius: 2,
-                                            textTransform: 'none',
-                                            fontWeight: 600,
-                                            borderColor: '#d32f2f',
-                                            color: '#d32f2f',
-                                            '&:hover': {
-                                                borderColor: '#d32f2f',
-                                                bgcolor: alpha('#d32f2f', 0.05),
-                                            },
-                                        }}
-                                    >
-                                        Zobacz wszystkich
-                                    </Button>
-                                </AppCard>
-                            </Grid>
-                        )}
 
-                        {inactivePatientsList.length > 0 && (
-                            <Grid size={{ xs: 12, md: 6 }}>
-                                <AppCard
-                                    sx={{
-                                        border: '1px solid',
-                                        borderColor: 'divider',
-                                        boxShadow: 'none',
-                                    }}
-                                >
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
-                                        <Assessment sx={{ color: '#1976d2', fontSize: { xs: 24, sm: 32 } }} />
-                                        <Box>
-                                            <Typography variant="h6" sx={{ fontWeight: 700, color: '#1976d2', fontSize: { xs: '1rem', sm: '1.25rem' } }}>
-                                                Pacjenci nieaktywni
-                                            </Typography>
-                                            <Typography variant="body2" color="text.secondary">
-                                                Brak konsultacji przez 30+ dni
-                                            </Typography>
-                                        </Box>
-                                    </Box>
-                                    <List sx={{ p: 0 }}>
-                                        {inactivePatientsList.map((patient) => (
-                                            <React.Fragment key={patient.id}>
-                                                <ListItemButton
-                                                    onClick={() => navigate(`/patients/${patient.id}`)}
-                                                    sx={{
-                                                        borderRadius: 2,
-                                                        mb: 0.5,
-                                                        '&:hover': {
-                                                            bgcolor: alpha('#1976d2', 0.05),
-                                                        },
-                                                    }}
-                                                >
-                                                    <ListItemAvatar>
-                                                        <Avatar sx={{ bgcolor: alpha('#1976d2', 0.1), color: '#1976d2', fontWeight: 600 }}>
-                                                            {patient.firstName[0]}{patient.lastName[0]}
-                                                        </Avatar>
-                                                    </ListItemAvatar>
-                                                    <ListItemText
-                                                        primary={
-                                                            <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                                                                {patient.firstName} {patient.lastName}
-                                                            </Typography>
-                                                        }
-                                                        secondary={
-                                                            <Typography variant="caption" color="text.secondary">
-                                                                Dodany: {format(new Date(patient.createdAt), 'dd MMM yyyy', { locale: pl })}
-                                                            </Typography>
-                                                        }
-                                                    />
-                                                    <ArrowForward sx={{ color: '#1976d2', opacity: 0.5 }} />
-                                                </ListItemButton>
-                                            </React.Fragment>
-                                        ))}
-                                    </List>
-                                </AppCard>
-                            </Grid>
-                        )}
-                    </Grid>
-                </Box>
-            )}
 
             {/* Reminder Dialog */}
             <Dialog

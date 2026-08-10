@@ -1,15 +1,19 @@
 import React from 'react';
 import { Grid, Box, Typography, ButtonBase, Avatar, alpha } from '@mui/material';
-import { PersonAdd, CalendarToday, Description } from '@mui/icons-material';
+import { PersonAdd, CalendarToday, Description, Person } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 
 export const QuickActionsWidget: React.FC = () => {
     const navigate = useNavigate();
+    const { user } = useAuth();
 
     const actions = [
         { label: 'Nowy pacjent', icon: PersonAdd, path: '/patients/new', color: '#1976d2' },
         { label: 'Nowa wizyta', icon: CalendarToday, path: '/visits/new', color: '#FF9500' },
-        { label: 'Ustawienia', icon: Description, path: '/settings', color: '#34C759' },
+        user?.role === 'ADMIN'
+            ? { label: 'Ustawienia', icon: Description, path: '/settings', color: '#34C759' }
+            : { label: 'Mój profil', icon: Person, path: '/profile', color: '#8E8E93' },
     ];
 
     return (
