@@ -178,9 +178,9 @@ function VisitCard({ event, onClick }: { event: VisitEvent; onClick: () => void 
     <Card
       elevation={0}
       sx={{
-        borderRadius: 2,
+        borderRadius: 6, // matching the very rounded look in the image (like 24px)
         overflow: 'hidden',
-        mb: 1,
+        mb: 1.5,
         border: '1px solid',
         borderColor: 'divider',
         transition: 'transform 0.1s, box-shadow 0.1s, background-color 0.1s',
@@ -189,36 +189,41 @@ function VisitCard({ event, onClick }: { event: VisitEvent; onClick: () => void 
       }}
     >
       <CardActionArea onClick={onClick}>
-        <Stack direction="row" sx={{ p: 1.5, minHeight: 64 }}>
+        <Stack direction="row" sx={{ p: 2, minHeight: 72 }}>
           {/* Status color rail */}
-          <Box sx={{ width: 3, borderRadius: 2, bgcolor: color, mr: 1.5, flexShrink: 0 }} />
+          <Box sx={{ width: 3, borderRadius: 2, bgcolor: color, mr: 2, my: 0.5, flexShrink: 0 }} />
           
-          <Stack direction="row" sx={{ flex: 1, gap: 1.5 }}>
-            {/* Time */}
-            <Box sx={{ minWidth: 40, pt: 0.25 }}>
-              <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, lineHeight: 1 }}>{formatHour(event.start)}</Typography>
-            </Box>
-            
-            {/* Details */}
-            <Box sx={{ flex: 1, minWidth: 0, pt: 0.25 }}>
-              <Typography sx={{ fontSize: '12.5px', fontWeight: 500, lineHeight: 1.2, mb: 0.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <Stack direction="column" sx={{ flex: 1, minWidth: 0, justifyContent: 'center' }}>
+            <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 0.5 }}>
+              {/* Time */}
+              <Typography sx={{ fontSize: '14px', fontWeight: 700, minWidth: 42 }}>
+                {formatHour(event.start)}
+              </Typography>
+              
+              {/* Name */}
+              <Typography sx={{ fontSize: '14px', fontWeight: 500, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {event.extendedProps.patientName}
               </Typography>
-              <Stack direction="row" alignItems="center" spacing={0.75}>
-                <Typography sx={{ fontSize: '11px', color: 'text.secondary', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            </Stack>
+            
+            <Stack direction="row" alignItems="center" spacing={2}>
+              <Box sx={{ minWidth: 42, flexShrink: 0 }} />
+              {/* Details */}
+              <Stack direction="row" alignItems="center" spacing={0.75} sx={{ overflow: 'hidden' }}>
+                <Typography sx={{ fontSize: '12px', color: 'text.secondary', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {event.extendedProps.visitType}
                 </Typography>
                 <Typography sx={{ fontSize: '10px', color: 'text.disabled' }}>•</Typography>
-                <Typography sx={{ fontSize: '11px', color: color, fontWeight: 500 }}>
+                <Typography sx={{ fontSize: '12px', color: color, fontWeight: 500 }}>
                   {label.toLowerCase()}
                 </Typography>
               </Stack>
-            </Box>
-            
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <ArrowForwardIos sx={{ fontSize: 12, color: 'text.disabled' }} />
-            </Box>
+            </Stack>
           </Stack>
+          
+          <Box sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
+            <ArrowForwardIos sx={{ fontSize: 14, color: 'text.disabled' }} />
+          </Box>
         </Stack>
       </CardActionArea>
     </Card>
@@ -525,10 +530,10 @@ export default function CalendarPage() {
       {/* ── STATS ──────────────────────────────────────────────────── */}
       <StatsRow stats={weekStats} loading={statsLoading} activeFilter={activeFilter} onFilterChange={setActiveFilter} />
 
-      <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexDirection: { xs: 'column', lg: 'row' }, flex: 1, minHeight: 0 }}>
+      <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexDirection: { xs: 'column', md: 'row' }, flex: 1, minHeight: 0 }}>
 
         {/* ── LEFT: Day Panel ───────────────────────────────────────── */}
-        <Box sx={{ width: { xs: '100%', lg: 300 }, flexShrink: 0 }}>
+        <Box sx={{ width: { xs: '100%', md: 320, lg: 360 }, flexShrink: 0 }}>
           <Paper elevation={0} sx={{ p: 2, borderRadius: 3, border: '1px solid', borderColor: 'divider', mb: 2, background: theme.palette.mode === 'dark' ? alpha('#1E293B', 0.8) : '#fff' }}>
             <MiniCalendar selectedDate={selectedDate} onSelect={setSelectedDate} events={filteredEvents} />
           </Paper>
