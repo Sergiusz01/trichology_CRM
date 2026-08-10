@@ -92,7 +92,10 @@ export default function Layout() {
   const drawerContent = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: '#FFFFFF' }}>
       {/* Brand Header */}
-      <Box sx={{ p: 3, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <Box 
+        onClick={() => handleNavigate('/')} 
+        sx={{ p: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+      >
         <img src="/logo.png" alt="Logo" style={{ maxHeight: 60, maxWidth: '100%' }} />
       </Box>
 
