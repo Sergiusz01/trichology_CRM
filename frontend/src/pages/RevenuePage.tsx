@@ -13,6 +13,12 @@ import {
     Stack,
     TextField,
     Chip,
+    Button,
+    ToggleButton,
+    ToggleButtonGroup,
+    Skeleton,
+    useMediaQuery,
+    useTheme,
 } from '@mui/material';
 import {
     AttachMoney,
@@ -23,7 +29,17 @@ import {
     CheckCircle,
     Cancel,
     PictureAsPdf,
+    BarChart as BarChartIcon,
 } from '@mui/icons-material';
+import {
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip as RechartsTooltip,
+    ResponsiveContainer,
+} from 'recharts';
 import { api } from '../services/api';
 import { format, subDays, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
 import { pl } from 'date-fns/locale';
@@ -146,245 +162,329 @@ export default function RevenuePage() {
     const timeline = data?.timeline ?? [];
     const maxVal = Math.max(...timeline.map(b => b.total), 1);
 
+    const isMobile = useMediaQuery(useTheme().breakpoints.down('sm'));
+
     if (loading) {
         return (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-                <CircularProgress size={60} thickness={4} />
+            <Box sx={{ pb: 4, pt: { xs: 2, md: 3 } }}>
+                <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between' }}>
+                    <Box>
+                        <Skeleton width={120} height={32} />
+                        <Skeleton width={200} height={20} />
+                    </Box>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Skeleton variant="rounded" width={isMobile ? 32 : 120} height={32} />
+                        <Skeleton variant="rounded" width={32} height={32} />
+                    </Box>
+                </Box>
+                <Skeleton variant="rounded" width={400} height={40} sx={{ mb: 3 }} />
+                <Skeleton variant="rounded" width="100%" height={100} sx={{ mb: 3 }} />
+                <Skeleton variant="rounded" width="100%" height={300} />
             </Box>
         );
     }
 
     return (
-        <Box sx={{ pb: 4 }}>
+        <Box sx={{ pb: 4, pt: { xs: 2, md: 3 } }}>
             {/* Header */}
             <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2 }}>
                 <Box>
-                    <Typography variant="h4" sx={{ fontWeight: 700, color: '#1d1d1f', mb: 0.5, fontSize: { xs: '1.5rem', md: '2rem' } }}>
+                    <Typography sx={{ fontWeight: 500, color: 'text.primary', mb: 0.5, fontSize: { xs: '20px', md: '22px' } }}>
                         Przychody
                     </Typography>
                     {data && (
-                        <Typography variant="body2" color="text.secondary">
-                            {format(new Date(data.range.from), 'dd MMMM yyyy', { locale: pl })} –{' '}
-                            {format(new Date(data.range.to), 'dd MMMM yyyy', { locale: pl })}
+                        <Typography sx={{ fontSize: '13px', color: 'text.secondary' }}>
+                            {format(new Date(data.range.from), 'd MMMM', { locale: pl })} –{' '}
+                            {format(new Date(data.range.to), 'd MMMM yyyy', { locale: pl })}
                         </Typography>
                     )}
                 </Box>
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Tooltip title="Pobierz Raport PDF (dla wybranego miesiąca)">
-                        <IconButton
-                            onClick={handleDownloadReport}
-                            disabled={loading}
-                            sx={{ bgcolor: alpha('#AF52DE', 0.08), '&:hover': { bgcolor: alpha('#AF52DE', 0.14) } }}
-                        >
-                            <PictureAsPdf sx={{ color: '#AF52DE' }} />
-                        </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Odśwież">
-                        <IconButton
-                            onClick={() => fetchRevenue(fromDate, toDate, true)}
-                            disabled={refreshing}
-                            sx={{ bgcolor: alpha('#007AFF', 0.08), '&:hover': { bgcolor: alpha('#007AFF', 0.14) } }}
-                        >
-                            <Refresh sx={{
-                                color: '#007AFF',
-                                animation: refreshing ? 'spin 1s linear infinite' : 'none',
-                                '@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } },
-                            }} />
-                        </IconButton>
-                    </Tooltip>
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                    <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={handleDownloadReport}
+                        disabled={loading}
+                        startIcon={loading ? <CircularProgress size={16} /> : <PictureAsPdf sx={{ fontSize: 16 }} />}
+                        sx={{
+                            color: 'text.secondary',
+                            borderColor: 'divider',
+                            textTransform: 'none',
+                            fontWeight: 500,
+                            height: 32,
+                            px: 2,
+                            ...(isMobile && { minWidth: 32, px: 0, '& .MuiButton-startIcon': { margin: 0 }, '& .MuiButton-startIcon > *:first-of-type': { fontSize: 16 } })
+                        }}
+                    >
+                        {!isMobile && (loading ? 'Generowanie...' : 'Eksportuj PDF')}
+                    </Button>
+                    <IconButton
+                        size="small"
+                        onClick={() => fetchRevenue(fromDate, toDate, true)}
+                        disabled={refreshing}
+                        sx={{
+                            width: 32,
+                            height: 32,
+                            color: 'text.secondary',
+                            border: '1px solid',
+                            borderColor: 'divider',
+                            borderRadius: 1,
+                        }}
+                    >
+                        <Refresh sx={{
+                            fontSize: 18,
+                            animation: refreshing ? 'spin 1s linear infinite' : 'none',
+                            '@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } },
+                        }} />
+                    </IconButton>
                 </Box>
             </Box>
 
-            {error && <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>{error}</Alert>}
+            {error && <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>Nie udało się wczytać danych. Spróbuj ponownie.</Alert>}
 
             {/* Period Selector */}
-            <Paper elevation={0} sx={{ p: 2, mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }} flexWrap="wrap">
-                    <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
-                        {PRESETS.map((p, idx) => (
-                            <Chip
-                                key={idx}
-                                label={p.label}
-                                onClick={() => handlePreset(idx)}
-                                variant={activePreset === idx ? 'filled' : 'outlined'}
-                                sx={{
-                                    fontWeight: 600,
-                                    cursor: 'pointer',
-                                    bgcolor: activePreset === idx ? '#007AFF' : 'transparent',
-                                    color: activePreset === idx ? 'white' : 'inherit',
-                                    borderColor: activePreset === idx ? '#007AFF' : 'divider',
-                                    '&:hover': { bgcolor: activePreset === idx ? '#0056D6' : alpha('#007AFF', 0.08) },
-                                }}
-                            />
-                        ))}
-                    </Stack>
+            <Box sx={{ mb: 3, display: 'flex', overflowX: 'auto', scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }} role="group" aria-label="Zakres dat">
+                <ToggleButtonGroup
+                    size="small"
+                    value={activePreset}
+                    exclusive
+                    onChange={(_, val) => val !== null && handlePreset(val)}
+                    sx={{
+                        bgcolor: 'transparent',
+                        '& .MuiToggleButton-root': {
+                            border: '1px solid',
+                            borderColor: 'divider',
+                            textTransform: 'none',
+                            fontWeight: 400,
+                            color: 'text.secondary',
+                            px: 2,
+                            height: 32,
+                            whiteSpace: 'nowrap',
+                            '&.Mui-selected': {
+                                bgcolor: 'action.selected',
+                                color: 'text.primary',
+                                fontWeight: 500,
+                            },
+                        },
+                        '& .MuiToggleButtonGroup-grouped:first-of-type': {
+                            borderTopLeftRadius: 8,
+                            borderBottomLeftRadius: 8,
+                        },
+                        '& .MuiToggleButtonGroup-grouped:last-of-type': {
+                            borderTopRightRadius: 8,
+                            borderBottomRightRadius: 8,
+                        }
+                    }}
+                >
+                    {PRESETS.map((p, idx) => (
+                        <ToggleButton key={idx} value={idx} aria-pressed={activePreset === idx}>
+                            {p.label}
+                        </ToggleButton>
+                    ))}
+                </ToggleButtonGroup>
 
-                    {activePreset === 4 && (
-                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems="center">
-                            <TextField
-                                type="date"
-                                size="small"
-                                label="Od"
-                                value={fromDate}
-                                onChange={e => setFromDate(e.target.value)}
-                                InputLabelProps={{ shrink: true }}
-                                sx={{ minWidth: 150 }}
-                            />
-                            <TextField
-                                type="date"
-                                size="small"
-                                label="Do"
-                                value={toDate}
-                                onChange={e => setToDate(e.target.value)}
-                                InputLabelProps={{ shrink: true }}
-                                sx={{ minWidth: 150 }}
-                            />
-                            <Chip
-                                label="Zastosuj"
-                                onClick={handleApplyCustom}
-                                sx={{
-                                    fontWeight: 700, cursor: 'pointer',
-                                    bgcolor: '#34C759', color: 'white',
-                                    '&:hover': { bgcolor: '#2DA047' },
-                                }}
-                            />
-                        </Stack>
-                    )}
-                </Stack>
-            </Paper>
+                {activePreset === 4 && (
+                    <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 2 }}>
+                        <TextField
+                            type="date"
+                            size="small"
+                            label="Od"
+                            value={fromDate}
+                            onChange={e => setFromDate(e.target.value)}
+                            InputLabelProps={{ shrink: true }}
+                            sx={{ minWidth: 130, '& .MuiInputBase-root': { height: 32, fontSize: '13px' }, '& .MuiInputLabel-root': { top: -4 } }}
+                        />
+                        <TextField
+                            type="date"
+                            size="small"
+                            label="Do"
+                            value={toDate}
+                            onChange={e => setToDate(e.target.value)}
+                            InputLabelProps={{ shrink: true }}
+                            sx={{ minWidth: 130, '& .MuiInputBase-root': { height: 32, fontSize: '13px' }, '& .MuiInputLabel-root': { top: -4 } }}
+                        />
+                        <Button
+                            variant="contained"
+                            disableElevation
+                            size="small"
+                            onClick={handleApplyCustom}
+                            sx={{ height: 32, textTransform: 'none', fontWeight: 500 }}
+                        >
+                            Zastosuj
+                        </Button>
+                    </Stack>
+                )}
+            </Box>
 
             {/* KPI Cards */}
-            <Grid container spacing={{ xs: 1.5, md: 2.5 }} sx={{ mb: 3 }}>
-                {[
-                    { label: 'Łączny przychód', value: `${fmt(summary?.totalRevenue ?? 0)} zł`, color: '#007AFF', icon: AttachMoney },
-                    { label: 'Zrealizowany', value: `${fmt(summary?.completedRevenue ?? 0)} zł`, color: '#34C759', icon: CheckCircle },
-                    { label: 'Zaplanowany', value: `${fmt(summary?.plannedRevenue ?? 0)} zł`, color: '#FF9500', icon: TrendingUp },
-                    { label: 'Nowi pacjenci', value: summary?.newPatients ?? 0, color: '#AF52DE', icon: PersonAdd },
-                    { label: 'Wizyty odbyte', value: summary?.statusSummary?.['ODBYTA']?.count ?? 0, color: '#34C759', icon: EventNote },
-                    { label: 'Anulowane', value: summary?.statusSummary?.['ANULOWANA']?.count ?? 0, color: '#FF3B30', icon: Cancel },
-                ].map((kpi, i) => (
-                    <Grid key={i} size={{ xs: 6, sm: 4, md: 2 }}>
-                        <Paper elevation={0} sx={{ p: { xs: 1.5, md: 2.5 }, border: '1px solid', borderColor: 'divider', borderRadius: 3, height: '100%' }}>
-                            <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: alpha(kpi.color, 0.1), display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1.5 }}>
-                                <kpi.icon sx={{ color: kpi.color, fontSize: 20 }} />
+            <Paper variant="outlined" sx={{ borderRadius: 3, mb: 3, overflow: 'hidden' }}>
+                <Box
+                    sx={{
+                        display: 'grid',
+                        gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: '1.4fr repeat(5, 1fr)' },
+                        '& > div': {
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'center',
+                            height: 80,
+                            p: 2,
+                            borderRight: { xs: 'none', md: '1px solid divider' },
+                            borderBottom: { xs: '1px solid divider', md: 'none' },
+                            borderColor: 'divider',
+                            '&:last-child': { borderRight: 'none', borderBottom: 'none' },
+                            ...(isMobile && {
+                                '&:nth-of-type(1)': { gridColumn: 'span 2' },
+                                '&:nth-of-type(2n+1)': { borderRight: '1px solid divider' },
+                                '&:nth-of-type(2n)': { borderRight: 'none' },
+                                '&:nth-of-type(5)': { borderBottom: 'none' },
+                                '&:nth-of-type(6)': { borderBottom: 'none' },
+                            })
+                        },
+                    }}
+                >
+                    {[
+                        { label: 'Łączny przychód', value: `${fmt(summary?.totalRevenue ?? 0)} zł`, icon: AttachMoney, isPrimary: true },
+                        { label: 'Zrealizowany', value: `${fmt(summary?.completedRevenue ?? 0)} zł`, icon: CheckCircle },
+                        { label: 'Zaplanowany', value: `${fmt(summary?.plannedRevenue ?? 0)} zł`, icon: TrendingUp },
+                        { label: 'Nowi pacjenci', value: summary?.newPatients ?? 0, icon: PersonAdd },
+                        { label: 'Wizyty odbyte', value: summary?.statusSummary?.['ODBYTA']?.count ?? 0, icon: EventNote },
+                        { label: 'Anulowane', value: summary?.statusSummary?.['ANULOWANA']?.count ?? 0, icon: Cancel, isCancel: true },
+                    ].map((kpi, i) => {
+                        const isZero = kpi.value === '0 zł' || kpi.value === 0;
+                        const isCancelHighlight = kpi.isCancel && !isZero;
+                        return (
+                            <Box
+                                key={i}
+                                aria-label={`${kpi.label}: ${kpi.value}`}
+                                sx={{
+                                    alignItems: kpi.isPrimary && !isMobile ? 'flex-start' : 'center',
+                                    position: 'relative',
+                                    ...(isCancelHighlight && {
+                                        '&::before': {
+                                            content: '""',
+                                            position: 'absolute',
+                                            left: 0,
+                                            top: 0,
+                                            bottom: 0,
+                                            width: 2,
+                                            bgcolor: 'error.main'
+                                        }
+                                    })
+                                }}
+                            >
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                                    <kpi.icon sx={{ fontSize: kpi.isPrimary ? 18 : 16, color: isCancelHighlight ? 'error.main' : isZero ? 'text.disabled' : 'text.secondary' }} />
+                                    <Typography
+                                        sx={{
+                                            fontWeight: 500,
+                                            fontSize: kpi.isPrimary ? '24px' : '18px',
+                                            color: isCancelHighlight ? 'error.main' : isZero ? 'text.disabled' : 'text.primary',
+                                            lineHeight: 1
+                                        }}
+                                    >
+                                        {kpi.value}
+                                    </Typography>
+                                </Box>
+                                <Typography
+                                    sx={{
+                                        color: isZero && !kpi.isPrimary ? 'text.disabled' : 'text.secondary',
+                                        fontSize: kpi.isPrimary ? '12px' : '11px',
+                                        fontWeight: 400
+                                    }}
+                                >
+                                    {kpi.label}
+                                </Typography>
                             </Box>
-                            <Typography sx={{ fontWeight: 800, fontSize: { xs: '1.1rem', md: '1.5rem' }, color: '#1d1d1f', lineHeight: 1.1 }}>
-                                {kpi.value}
-                            </Typography>
-                            <Typography variant="caption" sx={{ color: '#86868b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em', mt: 0.5, display: 'block', fontSize: { xs: '0.62rem', md: '0.7rem' } }}>
-                                {kpi.label}
-                            </Typography>
-                        </Paper>
-                    </Grid>
-                ))}
-            </Grid>
+                        );
+                    })}
+                </Box>
+            </Paper>
 
             {/* Bar Chart */}
-            <Paper elevation={0} sx={{ p: { xs: 2, md: 3 }, border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
-                <Typography variant="h6" sx={{ fontWeight: 700, color: '#1d1d1f', mb: 0.5, fontSize: { xs: '1rem', md: '1.1rem' } }}>
-                    Przychody w czasie
-                </Typography>
-                <Typography variant="body2" sx={{ color: '#86868b', mb: 3 }}>
-                    {summary?.granularity === 'weekly' ? 'Tygodniowo' : 'Dziennie'} •{' '}
-                    <Box component="span" sx={{ display: 'inline-flex', gap: 2, alignItems: 'center' }}>
-                        <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
-                            <Box component="span" sx={{ width: 10, height: 10, borderRadius: '2px', bgcolor: '#34C759', display: 'inline-block' }} />
-                            Zrealizowane
+            <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 }, borderRadius: 3 }}>
+                <Box sx={{ mb: 3, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Typography sx={{ fontWeight: 500, color: 'text.primary', fontSize: '13px' }}>
+                        Przychody w czasie
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                            <Box sx={{ width: 8, height: 8, bgcolor: 'success.main', opacity: 0.8 }} />
+                            <Typography sx={{ fontSize: '11px', color: 'text.secondary' }}>Zrealizowane</Typography>
                         </Box>
-                        <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
-                            <Box component="span" sx={{ width: 10, height: 10, borderRadius: '2px', bgcolor: alpha('#007AFF', 0.5), display: 'inline-block' }} />
-                            Zaplanowane
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                            <Box sx={{ width: 8, height: 8, bgcolor: 'info.main', opacity: 0.8 }} />
+                            <Typography sx={{ fontSize: '11px', color: 'text.secondary' }}>Zaplanowane</Typography>
                         </Box>
                     </Box>
-                </Typography>
+                </Box>
 
                 {timeline.length === 0 ? (
-                    <Box sx={{ textAlign: 'center', py: 6, color: '#86868b' }}>
-                        <EventNote sx={{ fontSize: 48, mb: 2, opacity: 0.3 }} />
-                        <Typography>Brak danych w wybranym okresie</Typography>
+                    <Box sx={{ textAlign: 'center', py: 6, color: 'text.muted' }}>
+                        <BarChartIcon sx={{ fontSize: 24, mb: 1, opacity: 0.5 }} />
+                        <Typography sx={{ fontSize: '13px' }}>Brak danych w wybranym okresie</Typography>
                     </Box>
                 ) : (
                     <>
-                        {/* Y-axis labels + bars */}
-                        <Box sx={{ display: 'flex', gap: { xs: 0.5, sm: 1 }, alignItems: 'flex-end', height: { xs: 180, md: 240 }, overflow: 'visible' }}>
-                            {/* Y-axis */}
-                            <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%', pr: 0.5, minWidth: { xs: 36, md: 52 } }}>
-                                {[maxVal, maxVal * 0.75, maxVal * 0.5, maxVal * 0.25, 0].map((v, i) => (
-                                    <Typography key={i} variant="caption" sx={{ color: '#86868b', fontSize: { xs: '0.55rem', md: '0.7rem' }, textAlign: 'right', lineHeight: 1 }}>
-                                        {v > 0 ? `${Math.round(v / 100) * 100}` : '0'}
-                                    </Typography>
-                                ))}
-                            </Box>
-
-                            {/* Bars */}
-                            <Box sx={{ flex: 1, display: 'flex', gap: { xs: 0.5, sm: 1 }, alignItems: 'flex-end', height: '100%', overflowX: 'auto', pb: 0.5 }}>
-                                {timeline.map((bucket, idx) => (
-                                    <Tooltip
-                                        key={idx}
-                                        title={
-                                            <Box>
-                                                <Typography variant="caption" sx={{ fontWeight: 700, display: 'block' }}>{fmtDate(bucket.date)}</Typography>
-                                                <Typography variant="caption" sx={{ display: 'block', color: '#34C759' }}>Zrealizowane: {fmt(bucket.completed)} zł</Typography>
-                                                <Typography variant="caption" sx={{ display: 'block', color: '#007AFF' }}>Zaplanowane: {fmt(bucket.planned)} zł</Typography>
-                                                <Typography variant="caption" sx={{ display: 'block', fontWeight: 700 }}>Razem: {fmt(bucket.total)} zł</Typography>
-                                            </Box>
-                                        }
-                                        arrow
-                                    >
-                                        <Box sx={{ flex: 1, minWidth: { xs: 8, sm: 12 }, maxWidth: 40, display: 'flex', flexDirection: 'column', alignItems: 'stretch', height: '100%', justifyContent: 'flex-end', cursor: 'pointer' }}>
-                                            {/* Planned on top */}
-                                            {bucket.planned > 0 && (
-                                                <Box sx={{
-                                                    height: `${(bucket.planned / maxVal) * 100}%`,
-                                                    bgcolor: alpha('#007AFF', 0.45),
-                                                    borderRadius: '4px 4px 0 0',
-                                                    transition: 'all 0.3s ease',
-                                                    '&:hover': { bgcolor: alpha('#007AFF', 0.65) },
-                                                }} />
-                                            )}
-                                            {/* Completed */}
-                                            <Box sx={{
-                                                height: `${(bucket.completed / maxVal) * 100}%`,
-                                                bgcolor: '#34C759',
-                                                borderRadius: bucket.planned > 0 ? '0' : '4px 4px 0 0',
-                                                minHeight: bucket.completed > 0 ? 2 : 0,
-                                                transition: 'all 0.3s ease',
-                                                '&:hover': { bgcolor: '#2DA047' },
-                                            }} />
-                                        </Box>
-                                    </Tooltip>
-                                ))}
-                            </Box>
+                        <Box sx={{ height: { xs: 200, md: 240 }, width: '100%', mt: 2 }} role="img" aria-label={`Wykres przychodów ${summary?.granularity === 'weekly' ? 'tygodniowo' : 'dziennie'}`}>
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={timeline} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border, #e0e0e0)" />
+                                    <XAxis 
+                                        dataKey="date" 
+                                        tickFormatter={fmtDate} 
+                                        tick={{ fill: '#86868b', fontSize: 11 }}
+                                        tickLine={false}
+                                        axisLine={false}
+                                        minTickGap={20}
+                                    />
+                                    <YAxis 
+                                        tickFormatter={(val) => val === 0 ? '0' : `${fmt(val)} zł`} 
+                                        tick={{ fill: '#86868b', fontSize: 11, fontVariantNumeric: 'tabular-nums' }}
+                                        tickLine={false}
+                                        axisLine={false}
+                                        width={60}
+                                    />
+                                    <RechartsTooltip 
+                                        cursor={{ fill: 'transparent' }}
+                                        content={({ active, payload, label }) => {
+                                            if (active && payload && payload.length) {
+                                                const pl = payload.find(p => p.dataKey === 'planned')?.value as number || 0;
+                                                const cm = payload.find(p => p.dataKey === 'completed')?.value as number || 0;
+                                                return (
+                                                    <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2, boxShadow: '0 1px 3px rgba(0,0,0,.06)' }}>
+                                                        <Typography sx={{ fontSize: '12px', fontWeight: 600, mb: 1 }}>{fmtDate(label)}</Typography>
+                                                        <Typography sx={{ fontSize: '12px', color: 'success.main', mb: 0.5 }}>Zrealizowane: {fmt(cm)} zł</Typography>
+                                                        <Typography sx={{ fontSize: '12px', color: 'info.main', mb: 1 }}>Zaplanowane: {fmt(pl)} zł</Typography>
+                                                        <Divider sx={{ my: 0.5 }} />
+                                                        <Typography sx={{ fontSize: '12px', fontWeight: 600 }}>Razem: {fmt(cm + pl)} zł</Typography>
+                                                    </Paper>
+                                                );
+                                            }
+                                            return null;
+                                        }}
+                                    />
+                                    <Bar dataKey="completed" stackId="a" fill="currentColor" className="recharts-bar-completed" radius={[0, 0, 0, 0]} isAnimationActive={false} />
+                                    <Bar dataKey="planned" stackId="a" fill="currentColor" className="recharts-bar-planned" radius={[3, 3, 0, 0]} isAnimationActive={false} />
+                                </BarChart>
+                            </ResponsiveContainer>
                         </Box>
+                        {/* We use CSS to target the bars since Recharts sometimes has issues passing theme colors directly to fill if they are string refs */}
+                        <style>{`
+                            .recharts-bar-completed path { fill: var(--mui-palette-success-main, #34C759); opacity: 0.8; }
+                            .recharts-bar-planned path { fill: var(--mui-palette-info-main, #007AFF); opacity: 0.8; }
+                        `}</style>
 
-                        {/* X-axis labels */}
-                        <Box sx={{ display: 'flex', gap: { xs: 0.5, sm: 1 }, ml: { xs: '44px', md: '60px' }, mt: 1, overflowX: 'auto' }}>
-                            {timeline.map((bucket, idx) => {
-                                const showEvery = Math.ceil(timeline.length / 10);
-                                if (idx % showEvery !== 0 && idx !== timeline.length - 1) return <Box key={idx} sx={{ flex: 1, minWidth: { xs: 8, sm: 12 }, maxWidth: 40 }} />;
-                                return (
-                                    <Typography key={idx} variant="caption" sx={{ flex: 1, minWidth: { xs: 8, sm: 12 }, maxWidth: 40, textAlign: 'center', color: '#86868b', fontSize: { xs: '0.55rem', md: '0.65rem' }, whiteSpace: 'nowrap', overflow: 'hidden' }}>
-                                        {fmtDate(bucket.date)}
-                                    </Typography>
-                                );
-                            })}
-                        </Box>
-                    </>
-                )}
-
-                {timeline.length > 0 && (
-                    <>
                         <Divider sx={{ my: 2.5 }} />
                         <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                             <Box>
-                                <Typography variant="caption" sx={{ color: '#86868b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Najlepszy dzień</Typography>
-                                <Typography sx={{ fontWeight: 700, color: '#1d1d1f', mt: 0.5 }}>
+                                <Typography sx={{ color: 'text.secondary', fontSize: '11px', fontWeight: 400 }}>Najlepszy dzień</Typography>
+                                <Typography sx={{ fontWeight: 500, color: 'text.primary', mt: 0.5, fontSize: '14px' }}>
                                     {(() => { const best = [...timeline].sort((a, b) => b.total - a.total)[0]; return best ? `${fmtDate(best.date)} — ${fmt(best.total)} zł` : '—'; })()}
                                 </Typography>
                             </Box>
                             <Box>
-                                <Typography variant="caption" sx={{ color: '#86868b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Średnio na dzień</Typography>
-                                <Typography sx={{ fontWeight: 700, color: '#1d1d1f', mt: 0.5 }}>
+                                <Typography sx={{ color: 'text.secondary', fontSize: '11px', fontWeight: 400 }}>Średnio na dzień</Typography>
+                                <Typography sx={{ fontWeight: 500, color: 'text.primary', mt: 0.5, fontSize: '14px' }}>
                                     {fmt((summary?.totalRevenue ?? 0) / Math.max(timeline.length, 1))} zł
                                 </Typography>
                             </Box>
