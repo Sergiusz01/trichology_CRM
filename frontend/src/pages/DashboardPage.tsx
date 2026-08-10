@@ -523,7 +523,30 @@ export default function DashboardPage() {
         );
     }
 
-    const statCards = [
+    const visitsThisWeekTotal = Object.values(weeklyRevenue.visitsThisWeek).reduce((a, b) => (a as number) + (b as number), 0);
+
+    const topStatCards = [
+        {
+            title: 'Dzisiejsze wizyty',
+            value: todayVisits.length,
+            subtitle: `${tomorrowVisits.length} zaplanowano na jutro`,
+            icon: CalendarToday,
+            color: '#34C759', // Green
+            progress: 0,
+            link: '#visits',
+        },
+        {
+            title: 'Wizyty w tym tygodniu',
+            value: visitsThisWeekTotal,
+            subtitle: `Z ${stats.patientsCount} pacjentów łącznie`,
+            icon: EventAvailable,
+            color: '#AF52DE', // Purple
+            progress: 0,
+            link: '/visits',
+        }
+    ];
+
+    const bottomStatCards = [
         {
             title: 'Pacjenci w bazie',
             value: stats.patientsCount,
@@ -541,15 +564,6 @@ export default function DashboardPage() {
             color: '#5856D6', // Purple
             progress: stats.consultationsThisWeek > 0 && stats.consultationsCount > 0 ? (stats.consultationsThisWeek / stats.consultationsCount) * 100 : 0,
             link: '/consultations',
-        },
-        {
-            title: 'Dzisiejsze Wizyty',
-            value: todayVisits.length,
-            subtitle: `${tomorrowVisits.length} jutro`,
-            icon: CalendarToday,
-            color: '#34C759', // Green
-            progress: 0,
-            link: '#visits',
         }
     ];
 
@@ -687,10 +701,10 @@ export default function DashboardPage() {
                 )}
             </AppCard>
 
-            {/* Stats Cards */}
+            {/* Top Stat Cards (Visits) */}
             <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: 4, px: { xs: 1, sm: 0 }, order: { xs: 5, md: 3 } }}>
-                {statCards.map((stat, index) => (
-                    <Grid key={index} size={{ xs: 12, sm: 4, md: 4 }}>
+                {topStatCards.map((stat, index) => (
+                    <Grid key={index} size={{ xs: 12, sm: 6, md: 6 }}>
                         <ButtonBase
                             onClick={() => stat.link.startsWith('#') ? null : navigate(stat.link)}
                             sx={{
@@ -717,7 +731,7 @@ export default function DashboardPage() {
                                         <stat.icon />
                                     </Avatar>
                                 </Box>
-                                <Typography variant="h3" sx={{ fontWeight: 800, mb: 0.5, color: '#0F172A', fontSize: '2rem' }}>
+                                <Typography variant="h3" sx={{ fontWeight: 800, mb: 0.5, color: '#0F172A', fontSize: '2.25rem' }}>
                                     {stat.value}
                                 </Typography>
                                 <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.secondary', mb: 1 }}>
@@ -754,6 +768,50 @@ export default function DashboardPage() {
                         )}
                     </Grid>
                 </Grid>
+            </Grid>
+
+            {/* Bottom Stat Cards (Patients & Consultations) */}
+            <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, px: { xs: 1, sm: 0 }, fontWeight: 600, color: 'text.secondary', order: { xs: 6, md: 6 } }}>
+                Statystyki ogólne
+            </Typography>
+            <Grid container spacing={2} sx={{ mb: 4, px: { xs: 1, sm: 0 }, order: { xs: 7, md: 7 } }}>
+                {bottomStatCards.map((stat, index) => (
+                    <Grid key={index} size={{ xs: 12, sm: 6, md: 3 }}>
+                        <ButtonBase
+                            onClick={() => navigate(stat.link)}
+                            sx={{
+                                width: '100%',
+                                display: 'flex',
+                                textAlign: 'left',
+                                borderRadius: 3,
+                                bgcolor: 'rgba(255, 255, 255, 0.5)',
+                                backdropFilter: 'blur(5px)',
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                transition: 'all 0.2s',
+                                '&:hover': {
+                                    bgcolor: 'white',
+                                    transform: 'translateY(-1px)',
+                                    borderColor: alpha(stat.color, 0.3),
+                                },
+                            }}
+                        >
+                            <Box sx={{ p: 2, width: '100%', display: 'flex', alignItems: 'center', gap: 2 }}>
+                                <Avatar sx={{ bgcolor: alpha(stat.color, 0.1), color: stat.color, width: 36, height: 36, borderRadius: 2 }}>
+                                    <stat.icon fontSize="small" />
+                                </Avatar>
+                                <Box>
+                                    <Typography variant="h5" sx={{ fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>
+                                        {stat.value}
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
+                                        {stat.title}
+                                    </Typography>
+                                </Box>
+                            </Box>
+                        </ButtonBase>
+                    </Grid>
+                ))}
             </Grid>
 
             {/* Patient Activity — actions from email links */}
