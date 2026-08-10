@@ -596,7 +596,7 @@ export default function DashboardPage() {
         <Box sx={{ pb: 4, display: 'flex', flexDirection: 'column' }}>
             {/* Header Section */}
             <PageHeader
-                title="Panel Główny"
+                title={user?.name ? `Witaj, ${user.name}!` : "Panel Główny"}
                 subtitle={format(new Date(), "EEEE, d MMMM yyyy", { locale: pl })}
                 action={
                     <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
