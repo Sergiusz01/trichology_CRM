@@ -27,25 +27,44 @@ import {
     InputLabel,
     Select,
     MenuItem,
+    Accordion,
+    AccordionSummary,
+    AccordionDetails,
+    Skeleton,
 } from '@mui/material';
 import {
     Add,
     EventAvailable,
     ChevronRight,
     Search,
+    ExpandMore,
+    EventBusy,
 } from '@mui/icons-material';
 import { ErrorState } from '../ui/ErrorState';
 import { useVisits } from '../hooks/queries/useVisits';
+import { format } from 'date-fns';
+import { pl } from 'date-fns/locale';
 
-
-const VISIT_STATUS_CONFIG = {
-    ZAPLANOWANA: { color: '#007AFF', bgColor: alpha('#007AFF', 0.1), label: 'Zaplanowana' },
-    POTWIERDZONA: { color: '#1976d2', bgColor: alpha('#1976d2', 0.1), label: 'Potwierdzona' },
-    ODBYTA: { color: '#34C759', bgColor: alpha('#34C759', 0.1), label: 'Odbyta' },
-    NIEOBECNOSC: { color: '#FF9500', bgColor: alpha('#FF9500', 0.1), label: 'Nieobecność' },
-    ANULOWANA: { color: '#FF3B30', bgColor: alpha('#FF3B30', 0.1), label: 'Anulowana' },
-    ZMIANA_TERMINU: { color: '#FF6B00', bgColor: alpha('#FF6B00', 0.1), label: 'Zmiana terminu' },
+const VISIT_STATUS_CONFIG: Record<string, { color: string; bgColor: string; label: string; themeColor: 'info' | 'success' | 'error' | 'warning' | 'default' }> = {
+    ZAPLANOWANA: { color: '#0288d1', bgColor: alpha('#0288d1', 0.12), label: 'Zaplanowana', themeColor: 'info' },
+    POTWIERDZONA: { color: '#0288d1', bgColor: alpha('#0288d1', 0.12), label: 'Potwierdzona', themeColor: 'info' },
+    ODBYTA: { color: '#2e7d32', bgColor: alpha('#2e7d32', 0.12), label: 'Odbyta', themeColor: 'success' },
+    NIEOBECNOSC: { color: '#ed6c02', bgColor: alpha('#ed6c02', 0.12), label: 'Nieobecność', themeColor: 'warning' },
+    ANULOWANA: { color: '#d32f2f', bgColor: alpha('#d32f2f', 0.12), label: 'Anulowana', themeColor: 'error' },
+    ZMIANA_TERMINU: { color: '#ed6c02', bgColor: alpha('#ed6c02', 0.12), label: 'Zmiana terminu', themeColor: 'warning' },
 };
+
+function getDeterministicColor(id: string) {
+    const colors = [
+        '#007AFF', '#34C759', '#FF9500', '#AF52DE', '#FF2D55',
+        '#5856D6', '#5AC8FA', '#FFCC00', '#FF3B30', '#A2845E'
+    ];
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) {
+        hash = id.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return colors[Math.abs(hash) % colors.length];
+}
 
 export default function VisitsPage() {
     // Filtering and pagination
@@ -90,6 +109,7 @@ export default function VisitsPage() {
 
     return (
         <Box sx={{ p: { xs: 1, sm: 2 } }}>
+            {/* Header */}
             <Box
                 sx={{
                     display: 'flex',
@@ -97,283 +117,332 @@ export default function VisitsPage() {
                     justifyContent: 'space-between',
                     alignItems: { xs: 'flex-start', sm: 'center' },
                     gap: 2,
-                    mb: 4,
+                    mb: 3,
                 }}
             >
                 <Box>
-                    <Typography
-                        variant="h4"
-                        sx={{
-                            fontWeight: 700,
-                            color: 'text.primary',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1.5,
-                            fontSize: { xs: '1.5rem', sm: '1.75rem' },
-                        }}
-                    >
-                        <EventAvailable fontSize="large" sx={{ color: '#AF52DE' }} />
+                    <Typography sx={{ fontWeight: 500, fontSize: { xs: 20, sm: 22 }, color: 'text.primary', lineHeight: 1.2 }}>
                         Wizyty i zabiegi
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                    <Typography sx={{ fontSize: 13, color: 'text.secondary', mt: 0.5 }}>
                         Lista wszystkich wizyt pacjentów z możliwością wyszukiwania i filtrowania.
                     </Typography>
                 </Box>
                 <Button
                     variant="contained"
+                    disableElevation
+                    size="small"
                     startIcon={<Add />}
                     onClick={() => navigate('/visits/new')}
-                    sx={{
-                        borderRadius: 2,
-                        textTransform: 'none',
-                        fontWeight: 600,
-                        bgcolor: '#AF52DE',
-                        '&:hover': { bgcolor: '#9B30D9' },
-                    }}
+                    sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 500, height: 32, width: { xs: '100%', sm: 'auto' } }}
                 >
                     Nowa wizyta
                 </Button>
             </Box>
 
             {/* Filters */}
-            <Paper elevation={0} sx={{ p: 2, mb: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
-                <Grid container spacing={2} alignItems="center">
-                    <Grid size={{ xs: 12, sm: 3 }}>
+            <Card variant="outlined" sx={{ mb: 3, borderRadius: 2, p: 1.25 }}>
+                {isMobile ? (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                         <TextField
                             fullWidth
                             size="small"
                             placeholder="Szukaj po pacjencie lub zabiegu..."
                             value={search}
-                            onChange={(e) => {
-                                setSearch(e.target.value);
-                                setPage(0);
-                            }}
+                            onChange={(e) => { setSearch(e.target.value); setPage(0); }}
                             InputProps={{
-                                startAdornment: (
-                                    <InputAdornment position="start">
-                                        <Search sx={{ color: 'text.secondary', fontSize: 20 }} />
-                                    </InputAdornment>
-                                ),
+                                startAdornment: <InputAdornment position="start"><Search sx={{ color: 'text.secondary', fontSize: 20 }} /></InputAdornment>,
+                                sx: { height: 36, borderRadius: 2, fontSize: 14 }
                             }}
                         />
-                    </Grid>
-                    <Grid size={{ xs: 12, sm: 3 }}>
-                        <FormControl fullWidth size="small">
-                            <InputLabel>Status</InputLabel>
+                        <Accordion elevation={0} disableGutters sx={{ '&:before': { display: 'none' }, bgcolor: 'transparent' }}>
+                            <AccordionSummary expandIcon={<ExpandMore />} sx={{ px: 0.5, minHeight: 36, '& .MuiAccordionSummary-content': { my: 0 } }}>
+                                <Typography sx={{ fontSize: 13, fontWeight: 500, color: 'text.secondary' }}>Filtry</Typography>
+                            </AccordionSummary>
+                            <AccordionDetails sx={{ p: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                <FormControl fullWidth size="small">
+                                    <Select
+                                        displayEmpty
+                                        value={statusFilter}
+                                        onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
+                                        sx={{ height: 36, borderRadius: 2, fontSize: 14, color: statusFilter ? 'text.primary' : 'text.secondary' }}
+                                    >
+                                        <MenuItem value="">Wszystkie statusy</MenuItem>
+                                        {Object.entries(VISIT_STATUS_CONFIG).map(([key, config]) => (
+                                            <MenuItem key={key} value={key}>{config.label}</MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                                <Box sx={{ display: 'flex', gap: 1 }}>
+                                    <TextField
+                                        fullWidth
+                                        size="small"
+                                        type="date"
+                                        value={startDate}
+                                        onChange={(e) => { setStartDate(e.target.value); setPage(0); }}
+                                        InputProps={{ sx: { height: 36, borderRadius: 2, fontSize: 14 } }}
+                                        error={!!(startDate && endDate && new Date(startDate) > new Date(endDate))}
+                                    />
+                                    <TextField
+                                        fullWidth
+                                        size="small"
+                                        type="date"
+                                        value={endDate}
+                                        onChange={(e) => { setEndDate(e.target.value); setPage(0); }}
+                                        InputProps={{ sx: { height: 36, borderRadius: 2, fontSize: 14 } }}
+                                        error={!!(startDate && endDate && new Date(startDate) > new Date(endDate))}
+                                    />
+                                </Box>
+                                {(startDate && endDate && new Date(startDate) > new Date(endDate)) && (
+                                    <Typography color="error" variant="caption">Data końcowa musi być późniejsza</Typography>
+                                )}
+                            </AccordionDetails>
+                        </Accordion>
+                    </Box>
+                ) : (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                        <TextField
+                            size="small"
+                            placeholder="Szukaj po pacjencie lub zabiegu..."
+                            value={search}
+                            onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+                            sx={{ flex: 1, minWidth: 220 }}
+                            InputProps={{
+                                startAdornment: <InputAdornment position="start"><Search sx={{ color: 'text.secondary', fontSize: 20 }} /></InputAdornment>,
+                                sx: { height: 36, borderRadius: 2, fontSize: 14 }
+                            }}
+                        />
+                        <FormControl size="small" sx={{ minWidth: 140 }}>
                             <Select
+                                displayEmpty
                                 value={statusFilter}
-                                label="Status"
-                                onChange={(e) => {
-                                    setStatusFilter(e.target.value);
-                                    setPage(0);
-                                }}
+                                onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
+                                sx={{ height: 36, borderRadius: 2, fontSize: 14, color: statusFilter ? 'text.primary' : 'text.secondary' }}
                             >
-                                <MenuItem value="">Wszystkie</MenuItem>
-                                <MenuItem value="ZAPLANOWANA">Zaplanowana</MenuItem>
-                                <MenuItem value="POTWIERDZONA">Potwierdzona</MenuItem>
-                                <MenuItem value="ODBYTA">Odbyta</MenuItem>
-                                <MenuItem value="NIEOBECNOSC">Nieobecność</MenuItem>
-                                <MenuItem value="ANULOWANA">Anulowana</MenuItem>
-                                <MenuItem value="ZMIANA_TERMINU">Zmiana terminu</MenuItem>
+                                <MenuItem value="">Wszystkie statusy</MenuItem>
+                                {Object.entries(VISIT_STATUS_CONFIG).map(([key, config]) => (
+                                    <MenuItem key={key} value={key}>{config.label}</MenuItem>
+                                ))}
                             </Select>
                         </FormControl>
-                    </Grid>
-                    <Grid size={{ xs: 12, sm: 3 }}>
                         <TextField
-                            fullWidth
                             size="small"
                             type="date"
-                            label="Od"
-                            InputLabelProps={{ shrink: true }}
                             value={startDate}
-                            onChange={(e) => {
-                                setStartDate(e.target.value);
-                                setPage(0);
-                            }}
+                            onChange={(e) => { setStartDate(e.target.value); setPage(0); }}
+                            sx={{ minWidth: 150 }}
+                            InputProps={{ sx: { height: 36, borderRadius: 2, fontSize: 14 } }}
+                            error={!!(startDate && endDate && new Date(startDate) > new Date(endDate))}
                         />
-                    </Grid>
-                    <Grid size={{ xs: 12, sm: 3 }}>
                         <TextField
-                            fullWidth
                             size="small"
                             type="date"
-                            label="Do"
-                            InputLabelProps={{ shrink: true }}
                             value={endDate}
-                            onChange={(e) => {
-                                setEndDate(e.target.value);
-                                setPage(0);
-                            }}
+                            onChange={(e) => { setEndDate(e.target.value); setPage(0); }}
+                            sx={{ minWidth: 150 }}
+                            InputProps={{ sx: { height: 36, borderRadius: 2, fontSize: 14 } }}
+                            error={!!(startDate && endDate && new Date(startDate) > new Date(endDate))}
                         />
-                    </Grid>
-                </Grid>
-            </Paper>
+                    </Box>
+                )}
+                {(!isMobile && startDate && endDate && new Date(startDate) > new Date(endDate)) && (
+                    <Typography color="error" variant="caption" sx={{ display: 'block', mt: 0.5, ml: 1 }}>Data końcowa musi być późniejsza</Typography>
+                )}
+            </Card>
 
             {loading ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 280 }}>
-                    <CircularProgress />
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 2 : 0 }}>
+                    {isMobile ? (
+                        Array.from({ length: 6 }).map((_, i) => (
+                            <Card variant="outlined" key={i} sx={{ borderRadius: 3, p: 2 }}>
+                                <Skeleton variant="text" width="60%" height={24} sx={{ mb: 1 }} />
+                                <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', mb: 1 }}>
+                                    <Skeleton variant="circular" width={28} height={28} />
+                                    <Skeleton variant="text" width="80%" height={24} />
+                                </Box>
+                                <Skeleton variant="text" width="40%" height={20} sx={{ mb: 1 }} />
+                                <Skeleton variant="rectangular" width={80} height={24} sx={{ borderRadius: 1.5 }} />
+                            </Card>
+                        ))
+                    ) : (
+                        <Card variant="outlined" sx={{ borderRadius: 3 }}>
+                            {Array.from({ length: 10 }).map((_, i) => (
+                                <Box key={i} sx={{ display: 'flex', p: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
+                                    <Box sx={{ width: '20%' }}>
+                                        <Skeleton variant="text" width="80%" height={20} />
+                                        <Skeleton variant="text" width="60%" height={20} />
+                                    </Box>
+                                    <Box sx={{ width: '30%', display: 'flex', gap: 1, alignItems: 'center' }}>
+                                        <Skeleton variant="circular" width={28} height={28} />
+                                        <Skeleton variant="text" width="70%" height={20} />
+                                    </Box>
+                                    <Box sx={{ width: '30%' }}><Skeleton variant="text" width="90%" height={20} /></Box>
+                                    <Box sx={{ width: '15%' }}><Skeleton variant="rectangular" width={80} height={24} sx={{ borderRadius: 1.5 }} /></Box>
+                                </Box>
+                            ))}
+                        </Card>
+                    )}
                 </Box>
             ) : error ? (
                 <ErrorState message={error} onRetry={() => refetch()} />
             ) : filteredVisits.length === 0 ? (
-                <Paper
-                    sx={{
-                        p: 6,
-                        textAlign: 'center',
-                        borderRadius: 3,
-                        border: '1px solid',
-                        borderColor: 'divider',
-                    }}
-                >
-                    <EventAvailable sx={{ fontSize: 56, color: 'text.disabled', mb: 2 }} />
-                    <Typography variant="h6" color="text.secondary" gutterBottom>
+                <Box sx={{ textAlign: 'center', py: 8 }}>
+                    <EventBusy sx={{ fontSize: 48, color: 'text.disabled', mb: 2, opacity: 0.5 }} />
+                    <Typography sx={{ color: 'text.secondary', fontWeight: 500, fontSize: 15, mb: 1 }}>
                         Brak wizyt
                     </Typography>
-                    <Typography variant="body2" color="text.disabled" sx={{ mb: 3 }}>
-                        Nie znaleziono wizyt spełniających kryteria.
+                    <Typography sx={{ color: 'text.disabled', fontSize: 13, mb: 3 }}>
+                        Brak wizyt spełniających kryteria wyszukiwania.
                     </Typography>
-                </Paper>
+                    {search || statusFilter || startDate || endDate ? (
+                        <Button 
+                            variant="text" 
+                            color="inherit" 
+                            onClick={() => { setSearch(''); setStatusFilter(''); setStartDate(''); setEndDate(''); }}
+                            sx={{ textTransform: 'none' }}
+                        >
+                            Wyczyść filtry
+                        </Button>
+                    ) : (
+                        <Button 
+                            variant="outlined" 
+                            onClick={() => navigate('/visits/new')}
+                            sx={{ textTransform: 'none', borderRadius: 2 }}
+                        >
+                            Zaplanuj pierwszą wizytę
+                        </Button>
+                    )}
+                </Box>
             ) : isMobile ? (
-                <Grid container spacing={2}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                     {paginatedVisits.map((v) => {
-                        const statusConfig = VISIT_STATUS_CONFIG[v.status] || VISIT_STATUS_CONFIG.ZAPLANOWANA;
+                        const statusConfig = VISIT_STATUS_CONFIG[v.status] || { color: '#888', bgColor: '#eee', label: v.status, themeColor: 'default' };
+                        const vDate = new Date(v.data);
                         return (
-                            <Grid key={v.id} size={{ xs: 12 }}>
-                                <Card
-                                    onClick={() => navigate(`/patients/${v.patient.id}?tab=visits&visitId=${v.id}`)}
-                                    sx={{
-                                        borderRadius: 3,
-                                        border: '1px solid',
-                                        borderColor: 'divider',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s',
-                                        '&:hover': {
-                                            boxShadow: 2,
-                                            borderColor: '#AF52DE',
-                                            bgcolor: alpha('#AF52DE', 0.02),
-                                        },
-                                    }}
-                                >
-                                    <CardContent sx={{ py: 2, '&:last-child': { pb: 2 } }}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
-                                            <Avatar sx={{ bgcolor: alpha('#AF52DE', 0.1), color: '#AF52DE' }}>
-                                                {v.patient.firstName[0]}
-                                                {v.patient.lastName[0]}
-                                            </Avatar>
-                                            <Box sx={{ flex: 1, minWidth: 0 }}>
-                                                <Typography variant="body1" fontWeight={600}>
-                                                    {v.patient.firstName} {v.patient.lastName}
-                                                </Typography>
-                                                <Typography variant="caption" color="text.secondary">
-                                                    {new Date(v.data).toLocaleString('pl-PL', {
-                                                        year: 'numeric',
-                                                        month: 'long',
-                                                        day: 'numeric',
-                                                        hour: '2-digit',
-                                                        minute: '2-digit',
-                                                    })}
-                                                </Typography>
-                                            </Box>
-                                            <ChevronRight sx={{ color: 'text.secondary' }} />
-                                        </Box>
-                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                                                {v.rodzajZabiegu}
-                                            </Typography>
-                                            <Chip
-                                                label={statusConfig.label}
-                                                size="small"
-                                                sx={{ bgcolor: statusConfig.bgColor, color: statusConfig.color, fontWeight: 600 }}
-                                            />
-                                        </Box>
-                                    </CardContent>
-                                </Card>
-                            </Grid>
+                            <Card
+                                key={v.id}
+                                variant="outlined"
+                                onClick={() => navigate(`/patients/${v.patient.id}?tab=visits&visitId=${v.id}`)}
+                                sx={{
+                                    borderRadius: 3,
+                                    cursor: 'pointer',
+                                    p: 1.5,
+                                    '&:hover': { bgcolor: 'action.hover' },
+                                }}
+                            >
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                    <Typography sx={{ fontSize: 11, color: 'text.secondary', fontWeight: 400 }}>
+                                        {format(vDate, 'EEE, d MMM', { locale: pl })} · {format(vDate, 'HH:mm')}
+                                    </Typography>
+                                    <ChevronRight sx={{ fontSize: 16, color: 'text.disabled' }} />
+                                </Box>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+                                    <Avatar sx={{ width: 28, height: 28, fontSize: 12, fontWeight: 600, bgcolor: getDeterministicColor(v.patient.id), color: '#fff' }}>
+                                        {v.patient.firstName[0]}{v.patient.lastName[0]}
+                                    </Avatar>
+                                    <Typography sx={{ fontSize: 13.5, fontWeight: 500, textTransform: 'none' }}>
+                                        {v.patient.firstName} {v.patient.lastName}
+                                    </Typography>
+                                </Box>
+                                <Typography sx={{ fontSize: 12, color: 'text.secondary', textTransform: 'none', mb: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                    {v.rodzajZabiegu}
+                                </Typography>
+                                <Chip
+                                    label={statusConfig.label}
+                                    size="small"
+                                    color={statusConfig.themeColor as any}
+                                    sx={{ height: 22, fontSize: 11, fontWeight: 600, borderRadius: 1.5 }}
+                                />
+                            </Card>
                         )
                     })}
-                </Grid>
-            ) : (
-                <TableContainer component={Paper} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
-                    <Table>
-                        <TableHead>
-                            <TableRow sx={{ bgcolor: alpha('#AF52DE', 0.04) }}>
-                                <TableCell sx={{ fontWeight: 600 }}>Data i godzina</TableCell>
-                                <TableCell sx={{ fontWeight: 600 }}>Pacjent</TableCell>
-                                <TableCell sx={{ fontWeight: 600 }}>Rodzaj zabiegu</TableCell>
-                                <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                                <TableCell align="right" sx={{ fontWeight: 600 }} />
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {paginatedVisits.map((v) => {
-                                const statusConfig = VISIT_STATUS_CONFIG[v.status] || VISIT_STATUS_CONFIG.ZAPLANOWANA;
-                                return (
-                                    <TableRow
-                                        key={v.id}
-                                        onClick={() => navigate(`/patients/${v.patient.id}?tab=visits&visitId=${v.id}`)}
-                                        sx={{
-                                            cursor: 'pointer',
-                                            '&:hover': { bgcolor: alpha('#AF52DE', 0.04) },
-                                        }}
-                                    >
-                                        <TableCell>
-                                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                                {new Date(v.data).toLocaleDateString('pl-PL', {
-                                                    year: 'numeric',
-                                                    month: 'long',
-                                                    day: 'numeric',
-                                                })}
-                                            </Typography>
-                                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                                {(() => {
-                                                    const date = new Date(v.data);
-                                                    return `${String(date.getUTCHours()).padStart(2, '0')}:${String(date.getUTCMinutes()).padStart(2, '0')}`;
-                                                })()}
-                                            </Typography>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                                <Avatar sx={{ width: 32, height: 32, bgcolor: alpha('#AF52DE', 0.1), color: '#AF52DE', fontSize: '0.875rem' }}>
-                                                    {v.patient.firstName[0]}
-                                                    {v.patient.lastName[0]}
-                                                </Avatar>
-                                                <Typography variant="body2" fontWeight={600}>
-                                                    {v.patient.firstName} {v.patient.lastName}
-                                                </Typography>
-                                            </Box>
-                                        </TableCell>
-                                        <TableCell>
-                                            {v.rodzajZabiegu}
-                                        </TableCell>
-                                        <TableCell>
-                                            <Chip
-                                                label={statusConfig.label}
-                                                size="small"
-                                                sx={{ bgcolor: statusConfig.bgColor, color: statusConfig.color, fontWeight: 600 }}
-                                            />
-                                        </TableCell>
-                                        <TableCell align="right">
-                                            <ChevronRight sx={{ color: 'text.secondary' }} />
-                                        </TableCell>
-                                    </TableRow>
-                                )
-                            })}
-                        </TableBody>
-                    </Table>
                     <TablePagination
                         component="div"
                         count={filteredVisits.length}
                         page={page}
                         onPageChange={(_, p) => setPage(p)}
                         rowsPerPage={rowsPerPage}
-                        onRowsPerPageChange={(e) => {
-                            setRowsPerPage(parseInt(e.target.value, 10));
-                            setPage(0);
-                        }}
-                        rowsPerPageOptions={[10, 25, 50, 100]}
+                        onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+                        rowsPerPageOptions={[10, 25, 50, { label: 'Wszystkie', value: -1 }]}
+                        labelRowsPerPage=""
+                        sx={{ borderBottom: 'none', '& .MuiTablePagination-toolbar': { pl: 0 } }}
+                    />
+                </Box>
+            ) : (
+                <Card variant="outlined" sx={{ borderRadius: 3 }}>
+                    <TableContainer>
+                        <Table size="small">
+                            <TableHead>
+                                <TableRow sx={{ bgcolor: 'background.paper', '& th': { borderBottom: '1px solid', borderColor: 'divider' } }}>
+                                    <TableCell sx={{ fontSize: 12, fontWeight: 500, color: 'text.secondary', py: 1.25 }}>Data i godzina</TableCell>
+                                    <TableCell sx={{ fontSize: 12, fontWeight: 500, color: 'text.secondary', py: 1.25 }}>Pacjent</TableCell>
+                                    <TableCell sx={{ fontSize: 12, fontWeight: 500, color: 'text.secondary', py: 1.25 }}>Rodzaj zabiegu</TableCell>
+                                    <TableCell sx={{ fontSize: 12, fontWeight: 500, color: 'text.secondary', py: 1.25 }}>Status</TableCell>
+                                    <TableCell sx={{ py: 1.25, width: 40 }} />
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {paginatedVisits.map((v) => {
+                                    const statusConfig = VISIT_STATUS_CONFIG[v.status] || { color: '#888', bgColor: '#eee', label: v.status, themeColor: 'default' };
+                                    const vDate = new Date(v.data);
+                                    return (
+                                        <TableRow
+                                            key={v.id}
+                                            hover
+                                            onClick={() => navigate(`/patients/${v.patient.id}?tab=visits&visitId=${v.id}`)}
+                                            sx={{ cursor: 'pointer', '& td': { py: 1.25, borderBottom: '1px solid', borderColor: 'divider' }, '&:last-child td': { borderBottom: 0 } }}
+                                        >
+                                            <TableCell>
+                                                <Typography sx={{ fontSize: 12.5, fontWeight: 500, color: 'text.primary' }}>
+                                                    {format(vDate, 'EEE, d MMM yyyy', { locale: pl })}
+                                                </Typography>
+                                                <Typography sx={{ fontSize: 12, color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>
+                                                    {format(vDate, 'HH:mm')}
+                                                </Typography>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                                    <Avatar sx={{ width: 28, height: 28, fontSize: 12, fontWeight: 600, bgcolor: getDeterministicColor(v.patient.id), color: '#fff' }}>
+                                                        {v.patient.firstName[0]}{v.patient.lastName[0]}
+                                                    </Avatar>
+                                                    <Typography sx={{ fontSize: 13.5, fontWeight: 500, textTransform: 'none' }}>
+                                                        {v.patient.firstName} {v.patient.lastName}
+                                                    </Typography>
+                                                </Box>
+                                            </TableCell>
+                                            <TableCell sx={{ maxWidth: 200 }}>
+                                                <Typography sx={{ fontSize: 13, color: 'text.secondary', textTransform: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                    {v.rodzajZabiegu}
+                                                </Typography>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Chip
+                                                    label={statusConfig.label}
+                                                    size="small"
+                                                    color={statusConfig.themeColor as any}
+                                                    sx={{ height: 22, fontSize: 11, fontWeight: 600, borderRadius: 1.5 }}
+                                                />
+                                            </TableCell>
+                                            <TableCell align="right">
+                                                <ChevronRight sx={{ fontSize: 16, color: 'text.disabled' }} />
+                                            </TableCell>
+                                        </TableRow>
+                                    )
+                                })}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                    <TablePagination
+                        component="div"
+                        count={filteredVisits.length}
+                        page={page}
+                        onPageChange={(_, p) => setPage(p)}
+                        rowsPerPage={rowsPerPage}
+                        onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+                        rowsPerPageOptions={[10, 25, 50, { label: 'Wszystkie', value: -1 }]}
                         labelRowsPerPage="Wierszy na stronę:"
                     />
-                </TableContainer>
+                </Card>
             )}
         </Box>
     );
