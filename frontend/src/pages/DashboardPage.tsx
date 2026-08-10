@@ -415,10 +415,6 @@ export default function DashboardPage() {
         }
     };
 
-    // Normalizacja polskich znaków diakrytycznych
-    const normalize = (str: string): string =>
-        str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\u0142/g, 'l').replace(/\u0141/g, 'L').toLowerCase();
-
     // Wyszukiwanie z debounce
     useEffect(() => {
         if (searchQuery.length < 2) {
@@ -429,18 +425,8 @@ export default function DashboardPage() {
         const timeoutId = setTimeout(async () => {
             setSearchLoading(true);
             try {
-                const response = await api.get('/patients');
-                const patients = response.data.patients || [];
-                const q = normalize(searchQuery);
-                const filtered = patients.filter((p: Patient) => {
-                    const fullName = normalize(`${p.firstName} ${p.lastName}`);
-                    const reverseName = normalize(`${p.lastName} ${p.firstName}`);
-                    return fullName.includes(q) ||
-                        reverseName.includes(q) ||
-                        (p.email && normalize(p.email).includes(q)) ||
-                        (p.phone && p.phone.includes(searchQuery));
-                }).slice(0, 8);
-                setSearchResults(filtered);
+                const response = await api.get('/patients/search', { params: { q: searchQuery } });
+                setSearchResults(response.data.patients || []);
             } catch (error) {
                 console.error('Search failed', error);
                 setSearchResults([]);

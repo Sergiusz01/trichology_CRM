@@ -161,6 +161,50 @@ router.get('/doctors', authenticate, async (_req, res, next) => {
   }
 });
 
+// Search patients (diacritic-agnostic)
+router.get('/search', authenticate, async (req: AuthRequest, res, next) => {
+  try {
+    const { q } = req.query;
+    if (!q || typeof q !== 'string' || q.length < 2) {
+      return res.json({ patients: [] });
+    }
+
+    const where: Prisma.PatientWhereInput = { isArchived: false };
+    if (req.user!.role !== 'ADMIN' && req.user!.clinicId) {
+      where.clinicId = req.user!.clinicId;
+    }
+
+    const allPatients = await prisma.patient.findMany({
+      where,
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+      }
+    });
+
+    const normalize = (str: string) => 
+      str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\u0142/g, 'l').replace(/\u0141/g, 'L').toLowerCase();
+
+    const searchStr = normalize(q);
+
+    const filtered = allPatients.filter((p: any) => {
+      const full = normalize(`${p.firstName} ${p.lastName}`);
+      const reverse = normalize(`${p.lastName} ${p.firstName}`);
+      return full.includes(searchStr) || 
+             reverse.includes(searchStr) || 
+             (p.email && normalize(p.email).includes(searchStr)) || 
+             (p.phone && p.phone.includes(q));
+    }).slice(0, 8);
+
+    res.json({ patients: filtered });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Get patient by ID
 router.get('/:id', authenticate, authorizePatientAccess, async (req: AuthRequest, res, next) => {
   try {
