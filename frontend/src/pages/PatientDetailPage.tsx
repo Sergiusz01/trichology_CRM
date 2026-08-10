@@ -21,6 +21,7 @@ import {
   Container,
   CircularProgress,
   Stack,
+  Skeleton,
   alpha,
   TextField,
   Table,
@@ -147,6 +148,22 @@ function TabPanel(props: TabPanelProps) {
     </div>
   );
 }
+
+const getDeterministicColor = (id: string) => {
+  const colors = [
+    { bg: alpha('#007AFF', 0.1), color: '#007AFF' },
+    { bg: alpha('#34C759', 0.1), color: '#34C759' },
+    { bg: alpha('#FF9500', 0.1), color: '#FF9500' },
+    { bg: alpha('#AF52DE', 0.1), color: '#AF52DE' },
+    { bg: alpha('#FF2D55', 0.1), color: '#FF2D55' },
+    { bg: alpha('#5856D6', 0.1), color: '#5856D6' },
+  ];
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = id.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+};
 
 export default function PatientDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -638,13 +655,59 @@ const HOUR_OPTIONS = Array.from({ length: 15 }, (_, i) => String(8 + i).padStart
 
   if (loading) {
     return (
-      <Box sx={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '60vh'
-      }}>
-        <CircularProgress size={48} thickness={3} sx={{ color: '#1d1d1f' }} />
+      <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', pb: 6 }}>
+        <Container maxWidth="lg" sx={{ pt: 3 }}>
+          <Button variant="text" size="small" startIcon={<ArrowBack sx={{ fontSize: 16 }} />} disabled sx={{ mb: 2, height: 28, textTransform: 'none' }}>Pacjenci</Button>
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid size={{ xs: 12, md: 8 }}>
+              <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3, mb: 3 }}>
+                <Box sx={{ display: 'flex', gap: 2.5, alignItems: 'center', mb: 3 }}>
+                  <Skeleton variant="circular" width={64} height={64} />
+                  <Box sx={{ flex: 1 }}>
+                    <Skeleton width="40%" height={32} />
+                    <Skeleton width="20%" height={24} />
+                  </Box>
+                </Box>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                  <Skeleton variant="rounded" height={36} sx={{ flex: 1 }} />
+                  <Skeleton variant="rounded" height={36} sx={{ flex: 1 }} />
+                </Stack>
+              </Paper>
+              <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3, mb: 3 }}>
+                <Skeleton width="30%" height={24} sx={{ mb: 1 }} />
+                <Skeleton width="15%" height={16} sx={{ mb: 2 }} />
+                <Skeleton width="100%" height={20} />
+              </Paper>
+              <Paper variant="outlined" sx={{ borderRadius: 3 }}>
+                <Box sx={{ display: 'flex', height: 64, alignItems: 'center', px: 2, justifyContent: 'space-between' }}>
+                  {Array.from(new Array(5)).map((_, i) => (
+                    <Box key={i} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
+                      <Skeleton width={32} height={24} />
+                      <Skeleton width={48} height={16} />
+                    </Box>
+                  ))}
+                </Box>
+              </Paper>
+            </Grid>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3, mb: 3 }}>
+                <Skeleton width="50%" height={24} sx={{ mb: 2 }} />
+                <Skeleton width="70%" height={20} sx={{ mb: 1 }} />
+                <Skeleton width="80%" height={20} />
+              </Paper>
+            </Grid>
+          </Grid>
+          <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
+            <Box sx={{ display: 'flex', borderBottom: '1px solid divider', px: 1 }}>
+              {Array.from(new Array(6)).map((_, i) => (
+                <Skeleton key={i} width={100} height={40} sx={{ mx: 1, my: 0.5 }} />
+              ))}
+            </Box>
+            <Box sx={{ p: 3 }}>
+              <Skeleton width="100%" height={100} />
+            </Box>
+          </Paper>
+        </Container>
       </Box>
     );
   }
@@ -681,18 +744,24 @@ const HOUR_OPTIONS = Array.from({ length: 15 }, (_, i) => String(8 + i).padStart
     }}>
       <Container maxWidth="lg" sx={{ pt: 3 }}>
         {/* Back Button */}
+        {/* Back Button */}
         <Button
-          startIcon={<ArrowBack />}
+          variant="text"
+          size="small"
+          startIcon={<ArrowBack sx={{ fontSize: 16 }} />}
           onClick={() => navigate('/patients')}
           sx={{
-            mb: 3,
-            color: '#1d1d1f',
+            mb: 2,
+            height: 28,
+            color: 'text.secondary',
+            textTransform: 'none',
             '&:hover': {
-              bgcolor: alpha('#000', 0.05),
+              color: 'text.primary',
+              bgcolor: 'transparent',
             },
           }}
         >
-          Powrót do listy pacjentów
+          Pacjenci
         </Button>
 
         {/* Loading Error with Retry */}
@@ -700,287 +769,241 @@ const HOUR_OPTIONS = Array.from({ length: 15 }, (_, i) => String(8 + i).padStart
           <ErrorRetry message={loadError} onRetry={() => refetchPatient()} />
         )}
 
-        {/* Header Card */}
-        <Paper
-          elevation={0}
-          sx={{
-            p: { xs: 2, sm: 4 },
-            mb: 3,
-            borderRadius: 3,
-            bgcolor: 'white',
-            border: '1px solid',
-            borderColor: 'divider',
-          }}
-        >
-          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: { xs: 'center', md: 'flex-start' }, gap: { xs: 2.5, md: 4 }, mb: 4, textAlign: { xs: 'center', md: 'left' } }}>
-            <Avatar
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          {/* Main Column */}
+          <Grid size={{ xs: 12, md: 8 }}>
+            {/* Identity Card */}
+            <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3, mb: 3 }}>
+              <Box sx={{ display: 'flex', gap: 2.5, alignItems: 'center', mb: 3 }}>
+                <Avatar
+                  sx={{
+                    width: { xs: 56, md: 64 },
+                    height: { xs: 56, md: 64 },
+                    fontSize: { xs: '20px', md: '20px' },
+                    fontWeight: 500,
+                    bgcolor: getDeterministicColor(patient.id).bg,
+                    color: getDeterministicColor(patient.id).color,
+                  }}
+                >
+                  {getInitials(patient.firstName, patient.lastName)}
+                </Avatar>
+                <Box>
+                  <Typography sx={{ fontWeight: 500, fontSize: '24px', color: 'text.primary', textTransform: 'none', overflowWrap: 'anywhere' }}>
+                    {patient.firstName} {patient.lastName}
+                  </Typography>
+                  <Typography sx={{ fontSize: '13px', color: 'text.secondary', mt: 0.5 }}>
+                    {patient.age ? `${patient.age} lat` : 'Wiek nieznany'} · {patient.gender === 'MALE' ? 'Mężczyzna' : patient.gender === 'FEMALE' ? 'Kobieta' : 'Inna'}
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                <Button
+                  variant="contained"
+                  disableElevation
+                  startIcon={<Add fontSize="small" />}
+                  onClick={() => navigate(`/patients/${id}/consultations/new`)}
+                  sx={{
+                    bgcolor: 'primary.main',
+                    color: 'white',
+                    textTransform: 'none',
+                    fontWeight: 500,
+                    height: 36,
+                    borderRadius: 2,
+                    flex: { sm: 1 },
+                  }}
+                >
+                  Nowa konsultacja
+                </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<Edit fontSize="small" />}
+                  onClick={() => navigate(`/patients/${id}/edit`)}
+                  sx={{
+                    color: 'text.primary',
+                    borderColor: 'divider',
+                    textTransform: 'none',
+                    fontWeight: 500,
+                    height: 36,
+                    borderRadius: 2,
+                    flex: { sm: 1 },
+                  }}
+                >
+                  Edytuj dane
+                </Button>
+              </Stack>
+            </Paper>
+
+            {/* Quick Notes Card */}
+            <Paper
+              variant="outlined"
               sx={{
-                bgcolor: alpha('#007AFF', 0.1),
-                color: '#007AFF',
-                width: { xs: 80, md: 100 },
-                height: { xs: 80, md: 100 },
-                fontSize: { xs: '1.75rem', md: '2.5rem' },
-                fontWeight: 700,
-                border: '2px solid',
-                borderColor: alpha('#007AFF', 0.2),
+                p: 2.5,
+                borderRadius: 3,
+                mb: 3,
+                ...(patient.notes && patient.notes.trim() !== '' && {
+                  bgcolor: alpha(theme.palette.warning.main, 0.05),
+                  borderLeft: `1px solid ${theme.palette.warning.main}`,
+                  borderColor: alpha(theme.palette.warning.main, 0.2),
+                })
               }}
             >
-              {getInitials(patient.firstName, patient.lastName)}
-            </Avatar>
-            <Box sx={{ flex: 1, width: '100%' }}>
-              <Typography
-                variant="h3"
-                sx={{
-                  fontWeight: 800,
-                  color: '#1d1d1f',
-                  mb: 2,
-                  fontSize: { xs: '1.75rem', md: '2.75rem' },
-                  lineHeight: 1.2,
-                }}
-              >
-                {patient.firstName} {patient.lastName}
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', justifyContent: { xs: 'center', md: 'flex-start' }, alignItems: 'center' }}>
-                {patient.age && (
-                  <Chip
-                    icon={<CalendarToday sx={{ fontSize: '14px !important' }} />}
-                    label={`${patient.age} lat`}
-                    size="small"
-                    sx={{
-                      bgcolor: alpha('#007AFF', 0.08),
-                      color: '#007AFF',
-                      border: 'none',
-                      fontWeight: 600,
-                      px: 0.5,
-                    }}
-                  />
-                )}
-                {patient.gender && (
-                  <Chip
-                    label={patient.gender === 'MALE' ? 'Mężczyzna' : patient.gender === 'FEMALE' ? 'Kobieta' : 'Inna'}
-                    size="small"
-                    sx={{
-                      bgcolor: patient.gender === 'MALE' ? alpha('#007AFF', 0.08) : alpha('#FF2D55', 0.08),
-                      color: patient.gender === 'MALE' ? '#007AFF' : '#FF2D55',
-                      border: 'none',
-                      fontWeight: 600,
-                      px: 0.5,
-                    }}
-                  />
-                )}
-              </Box>
-
-              {/* Quick Notes Section */}
-              <Box sx={{ mt: 3, p: 2, bgcolor: alpha('#F5A623', 0.05), borderLeft: '3px solid', borderColor: '#F5A623', borderRadius: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#d48a1b', textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.5px' }}>
-                    Szybkie notatki (widoczne tylko tutaj)
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5 }}>
+                <Box>
+                  <Typography sx={{ fontWeight: 500, fontSize: '13px', color: 'text.primary' }}>
+                    Szybkie notatki
                   </Typography>
-                  {!isEditingNotes && (
-                    <IconButton size="small" onClick={() => { setTempNotes(patient.notes || ''); setIsEditingNotes(true); }} sx={{ color: '#d48a1b' }}>
-                      <Edit fontSize="small" />
-                    </IconButton>
-                  )}
+                  <Typography sx={{ fontSize: '11px', color: 'text.disabled' }}>
+                    Widoczne tylko dla Ciebie
+                  </Typography>
                 </Box>
-                {isEditingNotes ? (
-                  <Box>
-                    <TextField
-                      fullWidth
-                      multiline
-                      minRows={2}
-                      value={tempNotes}
-                      onChange={(e) => setTempNotes(e.target.value)}
-                      variant="outlined"
-                      size="small"
-                      placeholder="Wpisz ważne uwagi o pacjencie..."
-                      sx={{ bgcolor: 'white', mb: 1 }}
-                    />
-                    <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-                      <Button size="small" variant="text" color="inherit" onClick={() => setIsEditingNotes(false)}>Anuluj</Button>
-                      <Button size="small" variant="contained" color="warning" onClick={handleSaveNotes} disableElevation>Zapisz</Button>
-                    </Box>
-                  </Box>
-                ) : (
-                  <Typography variant="body2" sx={{ color: '#555', whiteSpace: 'pre-wrap' }}>
-                    {patient.notes || 'Brak wpisanych uwag. Dodaj, klikając na ikonę edycji.'}
-                  </Typography>
+                {!isEditingNotes && (
+                  <IconButton size="small" onClick={() => { setTempNotes(patient.notes || ''); setIsEditingNotes(true); }} sx={{ width: 28, height: 28 }}>
+                    <Edit fontSize="small" sx={{ fontSize: 16 }} />
+                  </IconButton>
                 )}
               </Box>
-            </Box>
-          </Box>
+              
+              {isEditingNotes ? (
+                <Box>
+                  <TextField
+                    fullWidth
+                    multiline
+                    minRows={2}
+                    value={tempNotes}
+                    onChange={(e) => setTempNotes(e.target.value)}
+                    variant="outlined"
+                    size="small"
+                    placeholder="Wpisz ważne uwagi o pacjencie..."
+                    sx={{ bgcolor: 'background.paper', mb: 1, '& .MuiInputBase-root': { fontSize: '13px' } }}
+                  />
+                  <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                    <Button size="small" variant="text" color="inherit" onClick={() => setIsEditingNotes(false)} sx={{ textTransform: 'none' }}>Anuluj</Button>
+                    <Button size="small" variant="contained" color="primary" disableElevation onClick={handleSaveNotes} sx={{ textTransform: 'none' }}>Zapisz</Button>
+                  </Box>
+                </Box>
+              ) : (
+                <Typography sx={{ fontSize: '13px', color: (patient.notes && patient.notes.trim() !== '') ? 'text.primary' : 'text.secondary', whiteSpace: 'pre-wrap' }}>
+                  {patient.notes || 'Brak wpisanych uwag. Dodaj, klikając ikonę edycji.'}
+                </Typography>
+              )}
+            </Paper>
 
-          {/* Action Buttons */}
-          <Grid container spacing={2}>
-            <Grid size={{ xs: 12, sm: 4 }}>
-              <Button
-                fullWidth
-                variant="contained"
-                startIcon={<Add />}
-                onClick={() => navigate(`/patients/${id}/consultations/new`)}
+            {/* Stats Bar */}
+            <Paper variant="outlined" sx={{ borderRadius: 3 }}>
+              <Box
                 sx={{
-                  bgcolor: '#007AFF',
-                  color: 'white',
-                  textTransform: 'none',
-                  fontWeight: 700,
-                  py: { xs: 1.2, sm: 1.5 },
-                  borderRadius: 2.5,
-                  boxShadow: `0 4px 14px ${alpha('#007AFF', 0.4)}`,
-                  '&:hover': {
-                    bgcolor: '#0051D5',
-                    boxShadow: `0 6px 20px ${alpha('#007AFF', 0.5)}`,
-                  },
-                }}
-              >
-                Nowa konsultacja
-              </Button>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 4 }}>
-              <Button
-                fullWidth
-                variant="outlined"
-                startIcon={<Edit />}
-                onClick={() => navigate(`/patients/${id}/edit`)}
-                sx={{
-                  borderColor: alpha('#1d1d1f', 0.15),
-                  color: '#1d1d1f',
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  py: { xs: 1.2, sm: 1.5 },
-                  borderRadius: 2.5,
-                  '&:hover': {
-                    borderColor: '#1d1d1f',
-                    bgcolor: alpha('#000', 0.02),
-                  },
-                }}
-              >
-                Edytuj dane
-              </Button>
-            </Grid>
-            {patient.email && (
-              <Grid size={{ xs: 12, sm: 4 }}>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  startIcon={<Email />}
-                  onClick={() => navigate(`/patients/${id}/email`)}
-                  sx={{
-                    borderColor: alpha('#1d1d1f', 0.15),
-                    color: '#1d1d1f',
-                    textTransform: 'none',
-                    fontWeight: 600,
-                    py: { xs: 1.2, sm: 1.5 },
-                    borderRadius: 2.5,
-                    '&:hover': {
-                      borderColor: '#1d1d1f',
-                      bgcolor: alpha('#000', 0.02),
-                    },
-                  }}
-                >
-                  Email
-                </Button>
-              </Grid>
-            )}
-          </Grid>
-        </Paper>
-
-        {/* Stats Grid */}
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 4 }}>
-          {stats.map((stat, index) => {
-            const isActive = tabValue === (index + 1); // Stats correspond to tabs 1-4
-            return (
-              <Paper
-                key={index}
-                elevation={0}
-                onClick={() => {
-                  setTabValue(index + 1);
-                  setTimeout(() => {
-                    document.getElementById(stat.sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }, 50);
-                }}
-                sx={{
-                  flex: '1 1 0',
-                  minWidth: { xs: 'calc(50% - 8px)', sm: '140px' },
-                  p: 1.5,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1.5,
-                  borderRadius: 3,
-                  bgcolor: 'white',
-                  border: '1px solid',
-                  borderColor: isActive ? stat.color : 'divider',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease-in-out',
-                  boxShadow: isActive ? `0 4px 12px ${alpha(stat.color, 0.15)}` : 'none',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  '&:hover': {
-                    borderColor: stat.color,
-                    transform: 'translateY(-2px)',
-                    boxShadow: `0 6px 16px ${alpha(stat.color, 0.12)}`,
-                  },
-                  '&::before': isActive ? {
-                    content: '""',
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: 3,
-                    height: '100%',
-                    bgcolor: stat.color
-                  } : {}
-                }}
-              >
-                <Box
-                  sx={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: 2,
-                    bgcolor: alpha(stat.color, 0.1),
+                  display: 'grid',
+                  gridTemplateColumns: { xs: 'repeat(3, 1fr)', sm: 'repeat(5, 1fr)' },
+                  '& > div': {
                     display: 'flex',
+                    flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    flexShrink: 0,
-                  }}
-                >
-                  <stat.icon sx={{ color: stat.color, fontSize: 20 }} />
-                </Box>
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography
-                    sx={{
-                      fontWeight: 800,
-                      color: '#1d1d1f',
-                      fontSize: '1.25rem',
-                      lineHeight: 1.1,
-                      mb: 0.25,
-                    }}
-                  >
-                    {stat.value}
+                    height: 64,
+                    borderRight: { xs: 'none', sm: '1px solid', borderColor: 'divider' },
+                    borderBottom: { xs: '1px solid', sm: 'none', borderColor: 'divider' },
+                    '&:last-child': { borderRight: 'none', borderBottom: 'none' },
+                    ...(isMobile && {
+                      '&:nth-of-type(3n)': { borderRight: 'none' },
+                      '&:nth-of-type(4)': { borderBottom: 'none' },
+                      '&:nth-of-type(5)': { borderBottom: 'none', borderRight: '1px solid', borderColor: 'divider' },
+                    })
+                  },
+                }}
+              >
+                {stats.map((stat, index) => {
+                  const isZero = stat.value === 0;
+                  return (
+                    <Box
+                      key={index}
+                      onClick={() => {
+                        setTabValue(index + 1);
+                        setTimeout(() => {
+                          document.getElementById(stat.sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }, 50);
+                      }}
+                      sx={{
+                        cursor: 'pointer',
+                        '&:hover': { bgcolor: 'action.hover' },
+                        ...(isMobile && index === 4 && {
+                          borderRight: 'none !important'
+                        })
+                      }}
+                      aria-label={`${stat.label}: ${stat.value}`}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <stat.icon sx={{ fontSize: 16, color: isZero ? 'text.disabled' : 'text.secondary' }} />
+                        <Typography sx={{ fontSize: '18px', fontWeight: 500, color: isZero ? 'text.disabled' : 'text.primary' }}>
+                          {stat.value}
+                        </Typography>
+                      </Box>
+                      <Typography sx={{ fontSize: '11px', color: isZero ? 'text.disabled' : 'text.secondary' }}>
+                        {stat.label}
+                      </Typography>
+                    </Box>
+                  );
+                })}
+              </Box>
+            </Paper>
+          </Grid>
+
+          {/* Right Column */}
+          <Grid size={{ xs: 12, md: 4 }}>
+            <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3, mb: 3 }}>
+              <Typography sx={{ fontWeight: 500, fontSize: '14px', color: 'text.primary', mb: 2 }}>
+                Informacje kontaktowe
+              </Typography>
+              <Stack spacing={2}>
+                <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+                  <Phone sx={{ fontSize: 16, color: 'text.secondary' }} />
+                  <Typography sx={{ fontSize: '13px', color: 'text.primary', fontVariantNumeric: 'tabular-nums' }}>
+                    {patient.phone ? formatPhone(patient.phone) : '—'}
                   </Typography>
-                  <Typography
-                    sx={{
-                      color: '#86868b',
-                      fontSize: '0.7rem',
-                      fontWeight: 600,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.02em',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}
-                  >
-                    {stat.label}
+                </Box>
+                <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+                  <Email sx={{ fontSize: 16, color: 'text.secondary' }} />
+                  <Typography sx={{ fontSize: '13px', color: 'text.primary', wordBreak: 'break-all' }}>
+                    {patient.email || '—'}
                   </Typography>
                 </Box>
+              </Stack>
+            </Paper>
+
+            {(patient.address || patient.occupation) && (
+              <Paper variant="outlined" sx={{ p: 2.5, borderRadius: 3 }}>
+                <Typography sx={{ fontWeight: 500, fontSize: '14px', color: 'text.primary', mb: 2 }}>
+                  Dodatkowe informacje
+                </Typography>
+                <Stack spacing={2}>
+                  {patient.address && (
+                    <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start' }}>
+                      <LocationOn sx={{ fontSize: 16, color: 'text.secondary', mt: 0.25 }} />
+                      <Typography sx={{ fontSize: '13px', color: 'text.primary' }}>
+                        {patient.address}
+                      </Typography>
+                    </Box>
+                  )}
+                  {patient.occupation && (
+                    <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start' }}>
+                      <Work sx={{ fontSize: 16, color: 'text.secondary', mt: 0.25 }} />
+                      <Typography sx={{ fontSize: '13px', color: 'text.primary' }}>
+                        {patient.occupation}
+                      </Typography>
+                    </Box>
+                  )}
+                </Stack>
               </Paper>
-            );
-          })}
-        </Box>
+            )}
+          </Grid>
+        </Grid>
 
         {/* Tabs */}
         <Paper
           elevation={0}
           sx={{
             borderRadius: 3,
-            bgcolor: 'white',
+            bgcolor: 'background.paper',
             border: '1px solid',
             borderColor: 'divider',
             overflow: 'hidden',
@@ -995,22 +1018,25 @@ const HOUR_OPTIONS = Array.from({ length: 15 }, (_, i) => String(8 + i).padStart
             sx={{
               borderBottom: '1px solid',
               borderColor: 'divider',
-              px: { xs: 1, sm: 2 },
+              px: 1,
+              minHeight: 40,
               '& .MuiTab-root': {
                 textTransform: 'none',
-                fontWeight: 700,
-                fontSize: { xs: '0.9rem', sm: '1rem' },
-                color: '#86868b',
-                minHeight: { xs: 56, sm: 64 },
-                minWidth: { xs: 100, sm: 120 },
+                fontWeight: 400,
+                fontSize: '14px',
+                color: 'text.secondary',
+                minHeight: 40,
+                py: 1,
+                px: 2,
                 '&.Mui-selected': {
-                  color: '#007AFF',
+                  color: 'primary.main',
+                  fontWeight: 500,
                 },
               },
               '& .MuiTabs-indicator': {
-                height: 3,
-                borderRadius: '3px 3px 0 0',
-                bgcolor: '#007AFF',
+                height: 2,
+                borderRadius: '2px 2px 0 0',
+                bgcolor: 'primary.main',
               },
             }}
           >
@@ -1024,163 +1050,9 @@ const HOUR_OPTIONS = Array.from({ length: 15 }, (_, i) => String(8 + i).padStart
 
           {/* Tab Panel 0: Overview */}
           <TabPanel value={tabValue} index={0}>
-            <Grid container spacing={3}>
-              {/* Contact Information */}
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Box sx={{ mb: 3 }}>
-                  <Typography
-                    variant="h6"
-                    sx={{
-                      fontWeight: 700,
-                      color: '#1d1d1f',
-                      mb: 3,
-                    }}
-                  >
-                    Informacje kontaktowe
-                  </Typography>
-                  <Stack spacing={{ xs: 2.5, sm: 4 }}>
-                    {patient.phone && (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Box
-                          sx={{
-                            width: 48,
-                            height: 48,
-                            borderRadius: 2,
-                            bgcolor: alpha('#007AFF', 0.1),
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0,
-                          }}
-                        >
-                          <Phone sx={{ color: '#007AFF', fontSize: 24 }} />
-                        </Box>
-                        <Box>
-                          <Typography variant="caption" sx={{ color: '#86868b', fontWeight: 500, fontSize: '0.8rem', mb: 0.5, display: 'block' }}>
-                            Telefon
-                          </Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 600, color: '#1d1d1f', fontSize: '1.1rem' }}>
-                            {formatPhone(patient.phone)}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    )}
-                    {patient.email && (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Box
-                          sx={{
-                            width: 48,
-                            height: 48,
-                            borderRadius: 2,
-                            bgcolor: alpha('#34C759', 0.1),
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0,
-                          }}
-                        >
-                          <Email sx={{ color: '#34C759', fontSize: 24 }} />
-                        </Box>
-                        <Box sx={{ minWidth: 0, flex: 1 }}>
-                          <Typography variant="caption" sx={{ color: '#86868b', fontWeight: 500, fontSize: '0.8rem', mb: 0.5, display: 'block' }}>
-                            Email
-                          </Typography>
-                          <Typography
-                            variant="body1"
-                            sx={{
-                              fontWeight: 600,
-                              color: '#1d1d1f',
-                              fontSize: '1.1rem',
-                              wordBreak: 'break-word',
-                            }}
-                          >
-                            {patient.email}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    )}
-                    {patient.address && (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Box
-                          sx={{
-                            width: 48,
-                            height: 48,
-                            borderRadius: 2,
-                            bgcolor: alpha('#FF9500', 0.1),
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0,
-                          }}
-                        >
-                          <LocationOn sx={{ color: '#FF9500', fontSize: 24 }} />
-                        </Box>
-                        <Box sx={{ minWidth: 0, flex: 1 }}>
-                          <Typography variant="caption" sx={{ color: '#86868b', fontWeight: 500, fontSize: '0.8rem', mb: 0.5, display: 'block' }}>
-                            Adres
-                          </Typography>
-                          <Typography
-                            variant="body1"
-                            sx={{
-                              fontWeight: 600,
-                              color: '#1d1d1f',
-                              fontSize: '1.1rem',
-                              wordBreak: 'break-word',
-                            }}
-                          >
-                            {patient.address}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    )}
-                  </Stack>
-                </Box>
-              </Grid>
-
-              {/* Additional Information */}
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Box sx={{ mb: 3 }}>
-                  <Typography
-                    variant="h6"
-                    sx={{
-                      fontWeight: 700,
-                      color: '#1d1d1f',
-                      mb: 3,
-                    }}
-                  >
-                    Dodatkowe informacje
-                  </Typography>
-                  <Stack spacing={{ xs: 2.5, sm: 4 }}>
-                    {patient.occupation && (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Box
-                          sx={{
-                            width: 48,
-                            height: 48,
-                            borderRadius: 2,
-                            bgcolor: alpha('#FF3B30', 0.1),
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0,
-                          }}
-                        >
-                          <Work sx={{ color: '#FF3B30', fontSize: 24 }} />
-                        </Box>
-                        <Box>
-                          <Typography variant="caption" sx={{ color: '#86868b', fontWeight: 500, fontSize: '0.8rem', mb: 0.5, display: 'block' }}>
-                            Zawód
-                          </Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 600, color: '#1d1d1f', fontSize: '1.1rem' }}>
-                            {patient.occupation}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    )}
-                  </Stack>
-                </Box>
-              </Grid>
-            </Grid>
+            <Typography sx={{ color: 'text.secondary', fontSize: '13px', textAlign: 'center', py: 4 }}>
+              Szczegółowe dane pacjenta znajdują się w głównym panelu powyżej.
+            </Typography>
           </TabPanel>
 
           {/* Tab Panel 1: Consultations */}
