@@ -884,89 +884,96 @@ const HOUR_OPTIONS = Array.from({ length: 15 }, (_, i) => String(8 + i).padStart
         </Paper>
 
         {/* Stats Grid */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 4 }}>
           {stats.map((stat, index) => {
             const isActive = tabValue === (index + 1); // Stats correspond to tabs 1-4
             return (
-              <Grid key={index} size={{ xs: 6, md: 3 }}>
-                <Paper
-                  elevation={0}
-                  onClick={() => {
-                    setTabValue(index + 1);
-                    setTimeout(() => {
-                      document.getElementById(stat.sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }, 50);
-                  }}
+              <Paper
+                key={index}
+                elevation={0}
+                onClick={() => {
+                  setTabValue(index + 1);
+                  setTimeout(() => {
+                    document.getElementById(stat.sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }, 50);
+                }}
+                sx={{
+                  flex: '1 1 0',
+                  minWidth: { xs: 'calc(50% - 8px)', sm: '140px' },
+                  p: 1.5,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                  borderRadius: 3,
+                  bgcolor: 'white',
+                  border: '1px solid',
+                  borderColor: isActive ? stat.color : 'divider',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease-in-out',
+                  boxShadow: isActive ? `0 4px 12px ${alpha(stat.color, 0.15)}` : 'none',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  '&:hover': {
+                    borderColor: stat.color,
+                    transform: 'translateY(-2px)',
+                    boxShadow: `0 6px 16px ${alpha(stat.color, 0.12)}`,
+                  },
+                  '&::before': isActive ? {
+                    content: '""',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: 3,
+                    height: '100%',
+                    bgcolor: stat.color
+                  } : {}
+                }}
+              >
+                <Box
                   sx={{
-                    p: { xs: 2, sm: 3 },
-                    borderRadius: 4,
-                    bgcolor: 'white',
-                    border: '1px solid',
-                    borderColor: isActive ? stat.color : 'divider',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    boxShadow: isActive ? `0 8px 24px ${alpha(stat.color, 0.15)}` : 'none',
-                    position: 'relative',
-                    overflow: 'hidden',
-                    '&:hover': {
-                      borderColor: stat.color,
-                      transform: 'translateY(-4px)',
-                      boxShadow: `0 12px 30px ${alpha(stat.color, 0.12)}`,
-                    },
-                    '&::before': isActive ? {
-                      content: '""',
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: 4,
-                      height: '100%',
-                      bgcolor: stat.color
-                    } : {}
+                    width: 38,
+                    height: 38,
+                    borderRadius: 2,
+                    bgcolor: alpha(stat.color, 0.1),
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
                   }}
                 >
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                    <Box
-                      sx={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: 2.5,
-                        bgcolor: alpha(stat.color, 0.1),
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <stat.icon sx={{ color: stat.color, fontSize: 24 }} />
-                    </Box>
-                  </Box>
+                  <stat.icon sx={{ color: stat.color, fontSize: 20 }} />
+                </Box>
+                <Box sx={{ minWidth: 0 }}>
                   <Typography
-                    variant="h3"
                     sx={{
                       fontWeight: 800,
                       color: '#1d1d1f',
-                      mb: 0.5,
-                      fontSize: { xs: '1.75rem', md: '2.25rem' },
+                      fontSize: '1.25rem',
+                      lineHeight: 1.1,
+                      mb: 0.25,
                     }}
                   >
                     {stat.value}
                   </Typography>
                   <Typography
-                    variant="body2"
                     sx={{
                       color: '#86868b',
-                      fontSize: '0.875rem',
+                      fontSize: '0.7rem',
                       fontWeight: 600,
                       textTransform: 'uppercase',
-                      letterSpacing: '0.02em'
+                      letterSpacing: '0.02em',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
                     }}
                   >
                     {stat.label}
                   </Typography>
-                </Paper>
-              </Grid>
+                </Box>
+              </Paper>
             );
           })}
-        </Grid>
+        </Box>
 
         {/* Tabs */}
         <Paper
