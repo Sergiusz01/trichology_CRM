@@ -9,13 +9,16 @@ import {
   Box, Paper, CircularProgress, useTheme, useMediaQuery,
   Typography, IconButton, Fab, Divider, Skeleton,
   Card, CardActionArea, CardContent, Stack, Tooltip, alpha, Chip,
-  Badge, Button
+  Badge, Button, ButtonGroup, ToggleButtonGroup, ToggleButton,
+  Select, MenuItem, ButtonBase, darken
 } from '@mui/material';
 import {
   Add, Refresh, CalendarToday, ArrowForwardIos,
   ChevronLeft, ChevronRight, AccessTime, TodayRounded,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
+import { pl } from 'date-fns/locale';
 import { api } from '../services/api';
 import { PageHeader } from '../ui/PageHeader';
 
@@ -92,129 +95,75 @@ function formatDayHeader(date: Date): string {
   return `${DAY_NAMES_LONG[date.getDay()]}, ${date.getDate()} ${MONTH_NAMES[date.getMonth()]}`;
 }
 
-// ── Week Strip ─────────────────────────────────────────────────────────────────
-function WeekStrip({
-  selectedDate, onSelect, events
-}: {
-  selectedDate: Date;
-  onSelect: (d: Date) => void;
-  events: VisitEvent[];
-}) {
+// ── Mini Calendar ──────────────────────────────────────────────────────────────
+function MiniCalendar({ selectedDate, onSelect, events }: { selectedDate: Date; onSelect: (d: Date) => void; events: VisitEvent[] }) {
   const theme = useTheme();
-  const today = new Date();
-  const stripRef = useRef<HTMLDivElement>(null);
-
-  // Build 120-day window: 7 days back + 113 days forward
+  
+  const year = selectedDate.getFullYear();
+  const month = selectedDate.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const startingDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1; // Mon=0, Sun=6
+  
   const days: Date[] = [];
-  for (let i = -7; i <= 113; i++) {
-    const d = new Date(today);
-    d.setDate(today.getDate() + i);
-    days.push(d);
+  for (let i = 0; i < startingDay; i++) {
+    days.push(new Date(year, month, -startingDay + i + 1));
   }
-
-  // Count visits per day
-  const visitCount = (d: Date) =>
-    events.filter(e => sameDay(new Date(e.start), d)).length;
-
-  // Scroll selected day into view
-  useEffect(() => {
-    const el = stripRef.current?.querySelector('[data-selected="true"]') as HTMLElement;
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-  }, [selectedDate]);
-
+  while (days.length < 42) {
+    days.push(new Date(year, month, days.length - startingDay + 1));
+  }
+  
+  const today = new Date();
+  
   return (
-    <Box
-      ref={stripRef}
-      sx={{
-        display: 'flex',
-        gap: 0.75,
-        overflowX: 'auto',
-        pb: 1,
-        scrollbarWidth: 'none',
-        '&::-webkit-scrollbar': { display: 'none' },
-        scrollSnapType: 'x mandatory',
-      }}
-    >
-      {days.map((d, i) => {
-        const isToday    = sameDay(d, today);
-        const isSelected = sameDay(d, selectedDate);
-        const count      = visitCount(d);
-        const color      = isSelected ? theme.palette.primary.main : 'transparent';
-
-        return (
-          <Box
-            key={i}
-            data-selected={isSelected ? 'true' : 'false'}
-            onClick={() => onSelect(d)}
-            sx={{
-              flex: '0 0 auto',
-              scrollSnapAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 0.5,
-              px: 1.25,
-              py: 1,
-              borderRadius: 2.5,
-              cursor: 'pointer',
-              minWidth: 48,
-              bgcolor: isSelected ? alpha(theme.palette.primary.main, 0.12) : 'transparent',
-              border: isSelected ? `2px solid ${theme.palette.primary.main}` : '2px solid transparent',
-              transition: 'all 0.18s ease',
-              '&:active': { transform: 'scale(0.94)' },
-            }}
-          >
-            <Typography
+    <Box>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
+        <Typography variant="subtitle2" fontWeight={500} sx={{ fontSize: '0.75rem', textTransform: 'capitalize' }}>
+          {format(selectedDate, 'LLLL yyyy', { locale: pl })}
+        </Typography>
+        <Stack direction="row" spacing={0.5}>
+          <IconButton size="small" onClick={() => onSelect(new Date(year, month - 1, 1))} sx={{ width: 24, height: 24 }}>
+            <ChevronLeft sx={{ fontSize: 16 }} />
+          </IconButton>
+          <IconButton size="small" onClick={() => onSelect(new Date(year, month + 1, 1))} sx={{ width: 24, height: 24 }}>
+            <ChevronRight sx={{ fontSize: 16 }} />
+          </IconButton>
+        </Stack>
+      </Stack>
+      
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', textAlign: 'center' }}>
+        {['pn', 'wt', 'śr', 'cz', 'pt', 'sb', 'nd'].map(d => (
+          <Typography key={d} sx={{ fontSize: '11px', color: 'text.disabled', mb: 0.5 }}>{d}</Typography>
+        ))}
+        
+        {days.map((d, i) => {
+          const isSelected = sameDay(d, selectedDate);
+          const isToday = sameDay(d, today);
+          const isCurrentMonth = d.getMonth() === month;
+          const hasVisits = events.some(e => sameDay(new Date(e.start), d));
+          
+          return (
+            <ButtonBase
+              key={i}
+              onClick={() => onSelect(d)}
               sx={{
-                fontSize: '0.65rem',
-                fontWeight: 700,
-                color: isSelected ? 'primary.main' : 'text.secondary',
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
+                width: 28, height: 28,
+                borderRadius: 1.5,
+                fontSize: '0.75rem',
+                fontFamily: 'monospace',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                bgcolor: isSelected ? 'primary.main' : 'transparent',
+                color: isSelected ? '#fff' : (isCurrentMonth ? (isToday ? 'primary.main' : 'text.primary') : 'text.disabled'),
+                fontWeight: isSelected || isToday ? 500 : 400,
+                lineHeight: 1,
+                '&:hover': { bgcolor: isSelected ? 'primary.main' : alpha(theme.palette.primary.main, 0.1) }
               }}
             >
-              {DAY_NAMES_SHORT[d.getDay()]}
-            </Typography>
-
-            <Box
-              sx={{
-                width: 34, height: 34,
-                borderRadius: '50%',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                bgcolor: isToday
-                  ? (isSelected ? theme.palette.primary.main : alpha(theme.palette.primary.main, 0.15))
-                  : 'transparent',
-              }}
-            >
-              <Typography
-                sx={{
-                  fontSize: '0.95rem',
-                  fontWeight: isToday || isSelected ? 800 : 500,
-                  color: isToday && isSelected ? '#fff'
-                    : isToday ? 'primary.main'
-                    : isSelected ? 'primary.main'
-                    : 'text.primary',
-                }}
-              >
-                {d.getDate()}
-              </Typography>
-            </Box>
-
-            {/* Visit dots */}
-            <Box sx={{ height: 8, display: 'flex', gap: 0.35, alignItems: 'center' }}>
-              {count > 0 && Array.from({ length: Math.min(count, 3) }).map((_, idx) => (
-                <Box
-                  key={idx}
-                  sx={{
-                    width: 5, height: 5, borderRadius: '50%',
-                    bgcolor: isSelected ? theme.palette.primary.main : alpha(theme.palette.primary.main, 0.5),
-                  }}
-                />
-              ))}
-            </Box>
-          </Box>
-        );
-      })}
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>{d.getDate()}</Box>
+              {hasVisits && <Box sx={{ width: 3, height: 3, borderRadius: '50%', bgcolor: isSelected ? '#fff' : 'text.secondary', mb: '3px' }} />}
+            </ButtonBase>
+          );
+        })}
+      </Box>
     </Box>
   );
 }
@@ -223,126 +172,144 @@ function WeekStrip({
 function VisitCard({ event, onClick }: { event: VisitEvent; onClick: () => void }) {
   const status = event.extendedProps.status;
   const color  = STATUS_COLOR[status] || '#3B82F6';
-  const bg     = STATUS_BG[status] || STATUS_BG.ZAPLANOWANA;
   const label  = STATUS_LABEL[status] || status;
 
   return (
     <Card
       elevation={0}
       sx={{
-        borderRadius: 3,
+        borderRadius: 2,
         overflow: 'hidden',
-        mb: 1.5,
+        mb: 1,
         border: '1px solid',
-        borderColor: alpha(color, 0.2),
-        transition: 'transform 0.15s, box-shadow 0.15s',
-        '&:active': { transform: 'scale(0.985)' },
-        '&:hover': {
-          boxShadow: `0 8px 24px ${alpha(color, 0.18)}`,
-          transform: 'translateY(-1px)',
-        },
+        borderColor: 'divider',
+        transition: 'transform 0.1s, box-shadow 0.1s, background-color 0.1s',
+        '&:active': { transform: 'scale(0.99)' },
+        '&:hover': { bgcolor: 'action.hover' },
       }}
     >
       <CardActionArea onClick={onClick}>
-        <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
-          <Stack direction="row">
-            {/* Colored left bar with time */}
-            <Box
-              sx={{
-                background: bg,
-                minWidth: 72, px: 1.5, py: 2,
-                display: 'flex', flexDirection: 'column',
-                alignItems: 'center', justifyContent: 'center', gap: 0.5,
-              }}
-            >
-              <AccessTime sx={{ color: 'rgba(255,255,255,0.85)', fontSize: 16 }} />
-              <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: '0.9rem', lineHeight: 1 }}>
-                {formatHour(event.start)}
-              </Typography>
-              <Typography sx={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.65rem' }}>
-                {formatHour(event.end)}
-              </Typography>
+        <Stack direction="row" sx={{ p: 1.5, minHeight: 64 }}>
+          {/* Status color rail */}
+          <Box sx={{ width: 3, borderRadius: 2, bgcolor: color, mr: 1.5, flexShrink: 0 }} />
+          
+          <Stack direction="row" sx={{ flex: 1, gap: 1.5 }}>
+            {/* Time */}
+            <Box sx={{ minWidth: 40, pt: 0.25 }}>
+              <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, lineHeight: 1 }}>{formatHour(event.start)}</Typography>
             </Box>
-
-            {/* Content */}
-            <Box sx={{ flex: 1, px: 2, py: 1.75, minWidth: 0 }}>
-              <Typography
-                variant="subtitle2"
-                fontWeight={700}
-                sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', mb: 0.25 }}
-              >
+            
+            {/* Details */}
+            <Box sx={{ flex: 1, minWidth: 0, pt: 0.25 }}>
+              <Typography sx={{ fontSize: '12.5px', fontWeight: 500, lineHeight: 1.2, mb: 0.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {event.extendedProps.patientName}
               </Typography>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', mb: 1 }}
-              >
-                {event.extendedProps.visitType || 'Wizyta'}
-              </Typography>
-              <Chip
-                label={label}
-                size="small"
-                sx={{
-                  bgcolor: alpha(color, 0.1),
-                  color,
-                  fontWeight: 700,
-                  fontSize: '0.68rem',
-                  height: 20,
-                  border: `1px solid ${alpha(color, 0.25)}`,
-                }}
-              />
+              <Stack direction="row" alignItems="center" spacing={0.75}>
+                <Typography sx={{ fontSize: '11px', color: 'text.secondary', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {event.extendedProps.visitType}
+                </Typography>
+                <Typography sx={{ fontSize: '10px', color: 'text.disabled' }}>•</Typography>
+                <Typography sx={{ fontSize: '11px', color: color, fontWeight: 500 }}>
+                  {label.toLowerCase()}
+                </Typography>
+              </Stack>
             </Box>
-
-            <Box sx={{ display: 'flex', alignItems: 'center', pr: 1.5 }}>
-              <ArrowForwardIos sx={{ fontSize: 13, color: 'text.disabled' }} />
+            
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <ArrowForwardIos sx={{ fontSize: 12, color: 'text.disabled' }} />
             </Box>
           </Stack>
-        </CardContent>
+        </Stack>
       </CardActionArea>
     </Card>
   );
 }
 
+function plural(n: number, forms: [string, string, string]) {
+  if (n === 1) return forms[0];
+  if (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) return forms[1];
+  return forms[2];
+}
+
 // ── Stats Row ──────────────────────────────────────────────────────────────────
-function StatsRow({ stats, loading }: { stats: WeekStats | null; loading: boolean }) {
+function StatsRow({ stats, loading, activeFilter, onFilterChange }: { stats: WeekStats | null; loading: boolean, activeFilter: string | null, onFilterChange: (f: string | null) => void }) {
+  const theme = useTheme();
+  
   const items = [
-    { key: 'zaplanowana', label: 'Plan.',  color: '#3B82F6', emoji: '📅' },
-    { key: 'odbyta',      label: 'Odbyto', color: '#10B981', emoji: '✅' },
-    { key: 'anulowana',   label: 'Anulow.',color: '#EF4444', emoji: '❌' },
-    { key: 'nieobecnosc', label: 'Nieob.', color: '#F59E0B', emoji: '⚠️' },
+    { key: 'zaplanowana', label: (n: number) => plural(n, ['zaplanowana', 'zaplanowane', 'zaplanowanych']), color: theme.palette.info.main },
+    { key: 'odbyta',      label: (n: number) => plural(n, ['odbyta', 'odbyte', 'odbytych']), color: theme.palette.success.main },
+    { key: 'anulowana',   label: (n: number) => plural(n, ['odwołana', 'odwołane', 'odwołanych']), color: theme.palette.error.main },
+    { key: 'nieobecnosc', label: (n: number) => plural(n, ['nieobecność', 'nieobecności', 'nieobecności']), color: theme.palette.warning.main },
   ];
 
   return (
-    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 1, mb: 2 }}>
-      {items.map(item => (
-        <Box
-          key={item.key}
-          sx={{
-            bgcolor: alpha(item.color, 0.07),
-            border: `1px solid ${alpha(item.color, 0.18)}`,
-            borderRadius: 2.5,
-            py: 1, px: 0.75,
-            textAlign: 'center',
-          }}
-        >
-          <Typography sx={{ fontSize: '1rem', lineHeight: 1.2 }}>{item.emoji}</Typography>
-          {loading
-            ? <Skeleton width="60%" sx={{ mx: 'auto', mt: 0.5 }} />
-            : <Typography sx={{ fontWeight: 800, color: item.color, fontSize: '1.1rem', lineHeight: 1 }}>
-                {stats?.[item.key as keyof WeekStats] ?? 0}
-              </Typography>
-          }
-          <Typography sx={{ fontSize: '0.6rem', color: 'text.secondary', fontWeight: 600, mt: 0.25 }}>
-            {item.label}
-          </Typography>
-        </Box>
-      ))}
+    <Box sx={{ 
+      display: 'flex', 
+      alignItems: 'center', 
+      gap: { xs: 1, sm: 2 },
+      mb: 2, 
+      height: 36, 
+      borderBottom: '1px solid', 
+      borderColor: 'divider',
+      overflowX: 'auto',
+      scrollbarWidth: 'none',
+      '&::-webkit-scrollbar': { display: 'none' },
+    }}>
+      {items.map(item => {
+        const val = stats?.[item.key as keyof WeekStats] ?? 0;
+        const isZero = val === 0;
+        const isActive = activeFilter === item.key;
+        
+        return (
+          <ButtonBase
+            key={item.key}
+            onClick={() => onFilterChange(isActive ? null : item.key)}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              height: 28,
+              px: 1,
+              borderRadius: 2,
+              whiteSpace: 'nowrap',
+              bgcolor: isActive ? alpha(theme.palette.action.selected, 0.5) : 'transparent',
+              transition: 'background-color 0.15s',
+              '&:hover': {
+                bgcolor: alpha(theme.palette.action.selected, 0.3),
+              }
+            }}
+          >
+            {loading ? (
+              <Skeleton width={80} />
+            ) : (
+              <>
+                <Box sx={{ 
+                  width: 8, height: 8, borderRadius: '50%', 
+                  bgcolor: isZero ? 'text.disabled' : item.color 
+                }} />
+                <Typography sx={{ 
+                  fontSize: '0.85rem', 
+                  fontWeight: 500, 
+                  color: isZero ? 'text.disabled' : 'text.primary' 
+                }}>
+                  {val}
+                </Typography>
+                <Typography sx={{ 
+                  fontSize: '0.85rem', 
+                  fontWeight: 400, 
+                  color: isZero ? 'text.disabled' : 'text.secondary' 
+                }}>
+                  {item.label(val)}
+                </Typography>
+              </>
+            )}
+          </ButtonBase>
+        );
+      })}
     </Box>
   );
 }
 
-// ── Main ───────────────────────────────────────────────────────────────────────
 export default function CalendarPage() {
   const [events,       setEvents]       = useState<VisitEvent[]>([]);
   const [loading,      setLoading]      = useState(true);
@@ -350,11 +317,14 @@ export default function CalendarPage() {
   const [weekStats,    setWeekStats]    = useState<WeekStats | null>(null);
   const [refreshing,   setRefreshing]   = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [calendarView, setCalendarView] = useState<'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'listDay'>('timeGridWeek');
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
-  // Touch swipe state
+  const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  
+  const calendarRef = useRef<FullCalendar>(null);
   const touchStartX = useRef<number | null>(null);
 
   const fetchEvents = useCallback(async (showRefreshing = false) => {
@@ -395,10 +365,7 @@ export default function CalendarPage() {
 
   useEffect(() => { fetchEvents(); fetchStats(); }, []);
 
-  // Swipe to change day
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-  };
+  const handleTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX; };
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (touchStartX.current === null) return;
     const dx = e.changedTouches[0].clientX - touchStartX.current;
@@ -415,90 +382,155 @@ export default function CalendarPage() {
     next.setDate(selectedDate.getDate() + offset);
     setSelectedDate(next);
   };
+  
+  useEffect(() => {
+    if (calendarRef.current) {
+      calendarRef.current.getApi().gotoDate(selectedDate);
+    }
+  }, [selectedDate]);
+  
+  useEffect(() => {
+    if (calendarRef.current) {
+      calendarRef.current.getApi().changeView(calendarView);
+    }
+  }, [calendarView]);
 
-  // Filter visits for selected day
-  const dayEvents = events
+  const filteredEvents = activeFilter ? events.filter(e => e.extendedProps.status === activeFilter) : events;
+
+  const dayEvents = filteredEvents
     .filter(e => sameDay(new Date(e.start), selectedDate))
     .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
 
   const refresh = () => { fetchEvents(true); fetchStats(); };
 
   return (
-    <Box sx={{ pb: isMobile ? 10 : 2 }}>
+    <Box sx={{ pb: isMobile ? 10 : 2, display: 'flex', flexDirection: 'column', height: '100%' }}>
       <PageHeader
-        title="Kalendarz wizyt"
-        subtitle="Harmonogram i zarządzanie wizytami"
+        title={<Typography sx={{ fontSize: { xs: 20, md: 22 }, fontWeight: 500, m: 0, p: 0 }}>Kalendarz</Typography>}
+        subtitle={<Typography sx={{ fontSize: 13, fontWeight: 400, color: 'text.secondary' }}>Harmonogram i zarządzanie wizytami</Typography>}
         action={
-          <Tooltip title="Odśwież">
-            <IconButton onClick={refresh} disabled={refreshing} size="small">
-              <Refresh sx={{
-                fontSize: 20,
-                animation: refreshing ? 'spin 1s linear infinite' : 'none',
-              }} />
-            </IconButton>
-          </Tooltip>
+          <Stack direction="row" spacing={1} alignItems="center">
+            {!isMobile && (
+              <Button
+                variant="contained"
+                size="small"
+                disableElevation
+                startIcon={<Add />}
+                onClick={() => navigate('/visits/new')}
+                sx={{
+                  bgcolor: '#007AFF',
+                  color: 'white',
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  borderRadius: 2,
+                  px: 2,
+                  '&:hover': { bgcolor: '#0051D5' },
+                }}
+              >
+                Zaplanuj wizytę
+              </Button>
+            )}
+            <Tooltip title="Odśwież">
+              <IconButton onClick={refresh} disabled={refreshing} size="small">
+                <Refresh sx={{ fontSize: 20, animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
+              </IconButton>
+            </Tooltip>
+          </Stack>
         }
       />
-
-      {/* ── STATS ──────────────────────────────────────────────────── */}
-      <StatsRow stats={weekStats} loading={statsLoading} />
-
-      <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexDirection: { xs: 'column', lg: 'row' } }}>
-
-        {/* ── LEFT: Day Panel ───────────────────────────────────────── */}
-        <Box
-          sx={{
-            width: { xs: '100%', lg: 360 },
-            flexShrink: 0,
-          }}
-        >
-          {/* Week strip */}
-          <Paper
-            elevation={0}
-            sx={{
-              p: 2,
-              borderRadius: 3,
-              border: '1px solid',
-              borderColor: 'divider',
-              mb: 2,
-              background: theme.palette.mode === 'dark'
-                ? alpha('#1E293B', 0.8)
-                : '#fff',
+      
+      {/* ── NAWIGACJA (NavBar) ────────────────────────────────────────── */}
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between', 
+        flexDirection: isMobile ? 'column' : 'row',
+        gap: 1.5,
+        borderTop: '1px solid',
+        borderBottom: '1px solid',
+        borderColor: 'divider',
+        py: 1,
+        mb: 2,
+        minHeight: 40
+      }}>
+        <Stack direction="row" alignItems="center" spacing={1.5} sx={{ width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'center' : 'flex-start' }}>
+          <ButtonGroup size="small" variant="outlined" sx={{ '& .MuiButton-root': { px: 1, minWidth: 'auto', borderColor: 'divider', color: 'text.secondary' } }}>
+            <Button onClick={() => goDay(-1)}><ChevronLeft sx={{ fontSize: 18 }} /></Button>
+            <Button onClick={() => goDay(1)}><ChevronRight sx={{ fontSize: 18 }} /></Button>
+          </ButtonGroup>
+          
+          {isMobile ? (
+            <IconButton size="small" onClick={() => setSelectedDate(new Date())} sx={{ border: '1px solid', borderColor: 'divider' }}>
+              <TodayRounded sx={{ fontSize: 16 }} />
+            </IconButton>
+          ) : (
+            <Button 
+              size="small" 
+              variant="outlined"
+              disabled={sameDay(selectedDate, new Date())}
+              onClick={() => setSelectedDate(new Date())}
+              sx={{ textTransform: 'none', px: 1.5, borderColor: 'divider', color: 'text.primary', '&.Mui-disabled': { borderColor: 'transparent' } }}
+            >
+              Dziś
+            </Button>
+          )}
+          
+          <Typography sx={{ fontSize: 13, fontWeight: 500, tabularNums: true, whiteSpace: 'nowrap' }}>
+            {format(selectedDate, 'd', { locale: pl })}–{format(new Date(selectedDate.getTime() + 6 * 24*60*60*1000), 'd MMMM yyyy', { locale: pl })}
+          </Typography>
+        </Stack>
+        
+        {isSmallMobile ? (
+          <Select
+            size="small"
+            value={calendarView}
+            onChange={(e) => setCalendarView(e.target.value as any)}
+            sx={{ width: '100%', fontSize: 13, '& .MuiSelect-select': { py: 0.75 } }}
+          >
+            <MenuItem value="dayGridMonth">Miesiąc</MenuItem>
+            <MenuItem value="timeGridWeek">Tydzień</MenuItem>
+            <MenuItem value="timeGridDay">Dzień</MenuItem>
+            <MenuItem value="listDay">Plan dnia</MenuItem>
+          </Select>
+        ) : (
+          <ToggleButtonGroup 
+            size="small"
+            value={calendarView}
+            exclusive
+            onChange={(_, val) => val && setCalendarView(val)}
+            sx={{ 
+              height: 26,
+              '& .MuiToggleButton-root': { 
+                textTransform: 'none', 
+                px: 1.2, 
+                fontSize: 11.5, 
+                whiteSpace: 'nowrap',
+                border: '1px solid divider',
+                color: 'text.secondary',
+                '&.Mui-selected': {
+                  bgcolor: 'action.selected',
+                  color: 'text.primary',
+                }
+              } 
             }}
           >
-            {/* Month label */}
-            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
-              <Typography variant="subtitle2" fontWeight={700} color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.7rem' }}>
-                {MONTH_NAMES[selectedDate.getMonth()]} {selectedDate.getFullYear()}
-              </Typography>
-              <Stack direction="row" spacing={0.5}>
-                <IconButton
-                  size="small"
-                  onClick={() => goDay(-1)}
-                  sx={{ bgcolor: alpha(theme.palette.primary.main, 0.06), width: 28, height: 28 }}
-                >
-                  <ChevronLeft sx={{ fontSize: 18 }} />
-                </IconButton>
-                <Tooltip title="Dzisiaj">
-                  <IconButton
-                    size="small"
-                    onClick={() => setSelectedDate(new Date())}
-                    sx={{ bgcolor: alpha(theme.palette.primary.main, 0.06), width: 28, height: 28 }}
-                  >
-                    <TodayRounded sx={{ fontSize: 16 }} />
-                  </IconButton>
-                </Tooltip>
-                <IconButton
-                  size="small"
-                  onClick={() => goDay(1)}
-                  sx={{ bgcolor: alpha(theme.palette.primary.main, 0.06), width: 28, height: 28 }}
-                >
-                  <ChevronRight sx={{ fontSize: 18 }} />
-                </IconButton>
-              </Stack>
-            </Stack>
+            <ToggleButton value="dayGridMonth">Miesiąc</ToggleButton>
+            <ToggleButton value="timeGridWeek">Tydzień</ToggleButton>
+            <ToggleButton value="timeGridDay">Dzień</ToggleButton>
+            <ToggleButton value="listDay">Plan dnia</ToggleButton>
+          </ToggleButtonGroup>
+        )}
+      </Box>
 
-            <WeekStrip selectedDate={selectedDate} onSelect={setSelectedDate} events={events} />
+      {/* ── STATS ──────────────────────────────────────────────────── */}
+      <StatsRow stats={weekStats} loading={statsLoading} activeFilter={activeFilter} onFilterChange={setActiveFilter} />
+
+      <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', flexDirection: { xs: 'column', lg: 'row' }, flex: 1, minHeight: 0 }}>
+
+        {/* ── LEFT: Day Panel ───────────────────────────────────────── */}
+        <Box sx={{ width: { xs: '100%', lg: 300 }, flexShrink: 0 }}>
+          <Paper elevation={0} sx={{ p: 2, borderRadius: 3, border: '1px solid', borderColor: 'divider', mb: 2, background: theme.palette.mode === 'dark' ? alpha('#1E293B', 0.8) : '#fff' }}>
+            <MiniCalendar selectedDate={selectedDate} onSelect={setSelectedDate} events={filteredEvents} />
           </Paper>
 
           {/* Day visits panel */}
@@ -626,38 +658,43 @@ export default function CalendarPage() {
               </Box>
             )}
             <FullCalendar
+              ref={calendarRef}
               plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
-              initialView={isMobile ? 'timeGridDay' : 'timeGridWeek'}
-              headerToolbar={{
-                left:   'prev,next today',
-                center: 'title',
-                right:  isMobile
-                  ? 'timeGridDay,listMonth'
-                  : 'dayGridMonth,timeGridWeek,timeGridDay,listWeek',
-              }}
+              initialView={isMobile ? 'listDay' : 'timeGridWeek'}
+              headerToolbar={false}
               locales={[plLocale]}
               locale="pl"
               timeZone="UTC"
               events={events}
               nowIndicator={true}
-              height={isMobile ? 'auto' : 'auto'}
-              aspectRatio={isMobile ? '1 / 1.1' : undefined}
-              contentHeight={isMobile ? undefined : '75vh'}
+              height="100%"
+              aspectRatio={isMobile ? 1 : undefined}
               allDaySlot={false}
-              slotMinTime="07:00:00"
-              slotMaxTime="21:00:00"
-              eventTimeFormat={{ hour: '2-digit', minute: '2-digit', meridiem: false }}
+              slotMinTime="08:00:00"
+              slotMaxTime="20:00:00"
+              slotDuration="00:30:00"
+              slotLabelInterval="01:00"
+              slotLabelFormat={{ hour: '2-digit', omitZeroMinute: true, meridiem: false }}
+              dayHeaderContent={(arg) => (
+                <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="center">
+                  <Typography sx={{ fontSize: '11px', fontWeight: 400, color: 'text.secondary', textTransform: 'lowercase' }}>
+                    {format(arg.date, 'E', { locale: pl }).slice(0, 2)}
+                  </Typography>
+                  <Typography sx={{ fontSize: '13px', fontWeight: 500, color: 'text.primary' }}>
+                    {arg.date.getDate()}
+                  </Typography>
+                </Stack>
+              )}
               eventClick={(info) => {
                 const { patientId } = info.event.extendedProps;
                 if (patientId) navigate(`/patients/${patientId}?tab=visits&visitId=${info.event.id}`);
-                // Also sync day panel
-                setSelectedDate(info.event.start!);
               }}
               dateClick={(info) => setSelectedDate(info.date)}
               views={{
                 timeGridDay:  { titleFormat: { day: 'numeric', month: 'long' } },
                 listMonth:    { noEventsText: 'Brak wizyt w tym miesiącu' },
                 listWeek:     { noEventsText: 'Brak wizyt w tym tygodniu' },
+                listDay:      { noEventsText: 'Brak wizyt w tym dniu' },
               }}
               eventContent={(arg) => {
                 const viewType = arg.view.type;
@@ -669,31 +706,43 @@ export default function CalendarPage() {
                 if (viewType === 'dayGridMonth') {
                   return (
                     <Box sx={{
-                      px: 0.75, py: 0.1,
+                      px: 0.5, py: 0.1,
                       bgcolor: bgColor,
-                      borderRadius: '4px',
+                      borderRadius: 1,
                       overflow: 'hidden',
                       width: '100%',
                     }}>
-                      <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {arg.timeText && <span style={{ opacity: 0.85, marginRight: 3 }}>{arg.timeText}</span>}
+                      <Typography sx={{ fontSize: '11px', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {patientName}
                       </Typography>
                     </Box>
                   );
                 }
 
-                // Time grid / list view — full card
+                // Time grid / list view
                 return (
-                  <Box sx={{ px: 0.75, py: 0.25, overflow: 'hidden', lineHeight: 1.35 }}>
-                    <Typography sx={{ fontSize: '0.72rem', fontWeight: 800, color: '#fff' }} noWrap>
-                      {arg.timeText}
-                    </Typography>
-                    <Typography sx={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.95)', fontWeight: 600 }} noWrap>
+                  <Box sx={{ 
+                    px: 0.75, py: 0.5, 
+                    overflow: 'hidden', 
+                    lineHeight: 1.2,
+                    borderLeft: `2px solid ${bgColor}`,
+                    bgcolor: alpha(bgColor, 0.1),
+                    color: theme.palette.mode === 'dark' ? '#fff' : darken(bgColor, 0.35),
+                    height: '100%',
+                    width: '100%',
+                    borderRadius: 0,
+                    transition: 'all 0.12s',
+                    '&:hover': {
+                      borderLeftWidth: '3px',
+                      filter: 'brightness(0.97)'
+                    }
+                  }}>
+                    <Typography sx={{ fontSize: '11.5px', fontWeight: 600, mb: 0.25 }} noWrap>
                       {patientName}
                     </Typography>
-                    {!isMobile && (
-                      <Typography sx={{ fontSize: '0.64rem', color: 'rgba(255,255,255,0.78)' }} noWrap>
+                    {/* Render visit type only if height allows (e.g. at least 40px height, ~40 mins) */}
+                    {(arg.event.end!.getTime() - arg.event.start!.getTime()) >= 40 * 60000 && (
+                      <Typography sx={{ fontSize: '11px', fontWeight: 400, opacity: 0.85 }} noWrap>
                         {visitType}
                       </Typography>
                     )}
@@ -722,42 +771,59 @@ export default function CalendarPage() {
       <style>{`
         @keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
         .fc .fc-button {
-          border-radius: 10px !important;
-          font-weight: 600 !important;
+          border-radius: 8px !important;
+          font-weight: 500 !important;
           text-transform: none !important;
-          border: 1px solid rgba(0,0,0,0.08) !important;
-          padding: 8px 14px !important;
-          box-shadow: 0 2px 6px rgba(0,0,0,0.04) !important;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+          border: 1px solid rgba(0,0,0,0.12) !important;
+          padding: 6px 12px !important;
+          box-shadow: none !important;
+          transition: all 0.15s ease !important;
         }
         .fc .fc-button-primary {
-          background-color: #ffffff !important;
-          color: #1d1d1f !important;
+          background-color: transparent !important;
+          color: #475569 !important;
         }
         .fc .fc-button-primary:hover {
-          background-color: #f5f5f7 !important;
+          background-color: #f1f5f9 !important;
           border-color: rgba(0,0,0,0.15) !important;
         }
         .fc .fc-button-primary:not(:disabled).fc-button-active,
         .fc .fc-button-primary:not(:disabled):active {
-          background-color: #007AFF !important;
-          color: #ffffff !important;
-          border-color: #007AFF !important;
-          box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3) !important;
+          background-color: #f1f5f9 !important;
+          color: #0f172a !important;
+          border-color: rgba(0,0,0,0.2) !important;
+          box-shadow: inset 0 2px 4px rgba(0,0,0,0.05) !important;
         }
         .fc .fc-today-button {
-          background-color: #f5f5f7 !important;
-          color: #1d1d1f !important;
-          font-weight: 700 !important;
+          background-color: transparent !important;
+          color: #0f172a !important;
+          font-weight: 600 !important;
         }
-        .fc .fc-event { border-radius:6px !important; border:none !important; }
-        .fc .fc-timegrid-event { border-radius:6px !important; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .fc .fc-col-header-cell-cushion { font-weight:700; color: #1d1d1f; }
-        .fc .fc-daygrid-day-number { font-weight:600; color: #1d1d1f; }
-        .fc .fc-list-event:hover td { background:rgba(0,122,255,0.06) !important; }
-        .fc .fc-theme-standard td, .fc .fc-theme-standard th, .fc .fc-theme-standard .fc-scrollgrid {
-          border-color: rgba(0,0,0,0.06) !important;
-        }
+        .fc-theme-standard .fc-scrollgrid { border: none !important; }
+        .fc .fc-timegrid-slot { height: 22px !important; } /* 44px per hour */
+        .fc .fc-timegrid-slot-label { font-size: 11px; color: #64748b; font-weight: 500; border: none !important; vertical-align: top; padding-top: 4px; padding-right: 8px; }
+        .fc .fc-timegrid-axis { border: none !important; }
+        .fc .fc-timegrid-col-events { margin: 0 2px !important; }
+        .fc .fc-col-header-cell { padding: 8px 0; border-top: none !important; border-bottom: 1px solid rgba(0,0,0,0.06) !important; border-left: 1px solid rgba(0,0,0,0.06) !important; border-right: none !important; }
+        .fc .fc-col-header-cell:first-of-type { border-left: none !important; }
+        .fc .fc-col-header-cell-cushion { padding: 4px 8px !important; }
+        
+        .fc-day-sat, .fc-day-sun { background-color: #f8fafc !important; }
+        .fc .fc-day-today { background-color: rgba(59, 130, 246, 0.04) !important; }
+        .fc .fc-timegrid-now-indicator-line { border-color: #0ea5e9 !important; border-width: 1.5px !important; }
+        .fc .fc-timegrid-now-indicator-arrow { display: none; }
+        .fc .fc-timegrid-now-indicator-line::before { content: ""; position: absolute; width: 6px; height: 6px; background: #0ea5e9; border-radius: 50%; left: -3px; top: -2.5px; }
+        
+        .fc .fc-event { border: none !important; background: transparent !important; }
+        .fc .fc-timegrid-event-harness { padding: 0 2px; }
+        .fc .fc-v-event { background: transparent !important; border: none !important; box-shadow: none !important; }
+        .fc .fc-theme-standard td, .fc .fc-theme-standard th { border-color: rgba(0,0,0,0.04) !important; }
+        .fc .fc-timegrid-slot-minor { border-top-style: dashed !important; border-color: rgba(0,0,0,0.03) !important; }
+        
+        .fc .fc-list-event:hover td { background:rgba(0,122,255,0.04) !important; }
+        .fc .fc-list-day-cushion { background-color: #f8fafc !important; padding: 8px 14px !important; font-weight: 600 !important; }
+        .fc .fc-list-event-time { font-weight: 600 !important; color: #475569 !important; }
+        .fc .fc-list-event-title { font-weight: 500 !important; color: #0f172a !important; }
       `}</style>
     </Box>
   );
