@@ -565,7 +565,7 @@ export default function DashboardPage() {
         return (
             <Box sx={{ pb: 4, px: { xs: 1, sm: 2, md: 3 } }}>
                 <PageHeader
-                    title={user?.name ? `Witaj, ${user.name}!` : "Witaj w systemie!"}
+                    title="Witaj w Light Clinic 2026!"
                     subtitle={format(new Date(), "EEEE, d MMMM yyyy", { locale: pl })}
                 />
                 <Box sx={{ mt: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', p: { xs: 3, md: 8 }, bgcolor: 'white', borderRadius: 4, border: '2px dashed', borderColor: alpha('#1976d2', 0.2) }}>
@@ -596,7 +596,7 @@ export default function DashboardPage() {
         <Box sx={{ pb: 4, display: 'flex', flexDirection: 'column' }}>
             {/* Header Section */}
             <PageHeader
-                title={user?.name ? `Witaj, ${user.name}!` : "Panel Główny"}
+                title="Panel Główny"
                 subtitle={format(new Date(), "EEEE, d MMMM yyyy", { locale: pl })}
                 action={
                     <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
