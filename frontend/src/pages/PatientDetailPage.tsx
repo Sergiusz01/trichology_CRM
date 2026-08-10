@@ -161,7 +161,9 @@ export default function PatientDetailPage() {
     open: boolean;
     mode: 'add' | 'edit';
     id: string | null;
-    data: string;
+    datePart: string;
+    hour: string;
+    minute: string;
     rodzajZabiegu: string;
     notatki: string;
     status: 'ZAPLANOWANA' | 'ODBYTA' | 'NIEOBECNOSC' | 'ANULOWANA';
@@ -172,7 +174,9 @@ export default function PatientDetailPage() {
     open: false,
     mode: 'add',
     id: null,
-    data: '',
+    datePart: '',
+    hour: '09',
+    minute: '00',
     rodzajZabiegu: '',
     notatki: '',
     status: 'ZAPLANOWANA',
@@ -500,6 +504,9 @@ export default function PatientDetailPage() {
     }
   };
 
+const MINUTE_OPTIONS = ['00', '15', '30', '45'];
+const HOUR_OPTIONS = Array.from({ length: 15 }, (_, i) => String(8 + i).padStart(2, '0'));
+
   const openAddVisitDialog = () => {
     // Set default date to now in local time format
     // Use local time for the default, but it will be stored as UTC preserving the hour/minute
@@ -507,15 +514,14 @@ export default function PatientDetailPage() {
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const localDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
 
     setVisitDialog({
       open: true,
       mode: 'add',
       id: null,
-      data: localDateTime,
+      datePart: `${year}-${month}-${day}`,
+      hour: '09',
+      minute: '00',
       rodzajZabiegu: '',
       notatki: '',
       status: 'ZAPLANOWANA',
@@ -526,11 +532,27 @@ export default function PatientDetailPage() {
   };
 
   const openEditVisitDialog = (visit: Visit) => {
+    const date = new Date(visit.data);
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const h = String(date.getUTCHours()).padStart(2, '0');
+    let m = String(date.getUTCMinutes()).padStart(2, '0');
+    
+    // Round to nearest 15 minutes if not strictly matching
+    if (!MINUTE_OPTIONS.includes(m)) {
+      const min = parseInt(m, 10);
+      const roundedMin = Math.round(min / 15) * 15;
+      m = String(roundedMin === 60 ? 0 : roundedMin).padStart(2, '0');
+    }
+
     setVisitDialog({
       open: true,
       mode: 'edit',
       id: visit.id,
-      data: formatDateTimeLocal(visit.data),
+      datePart: `${year}-${month}-${day}`,
+      hour: h,
+      minute: m,
       rodzajZabiegu: visit.rodzajZabiegu,
       notatki: visit.notatki || '',
       status: visit.status,
@@ -547,9 +569,11 @@ export default function PatientDetailPage() {
     }
 
     try {
-      const visitData = {
+      const data = `${visitDialog.datePart}T${visitDialog.hour}:${visitDialog.minute}`;
+
+      const visitData: any = {
         patientId: id!,
-        data: visitDialog.data,
+        data,
         rodzajZabiegu: visitDialog.rodzajZabiegu,
         notatki: visitDialog.notatki || null,
         status: visitDialog.status,
@@ -567,7 +591,7 @@ export default function PatientDetailPage() {
       }
 
       setVisitDialog({
-        open: false, mode: 'add', id: null, data: '', rodzajZabiegu: '',
+        open: false, mode: 'add', id: null, datePart: '', hour: '09', minute: '00', rodzajZabiegu: '',
         notatki: '', status: 'ZAPLANOWANA', numerWSerii: '', liczbaSerii: '', cena: '',
       });
     } catch (err: any) {
@@ -2304,15 +2328,41 @@ export default function PatientDetailPage() {
         </DialogTitle>
         <DialogContent>
           <Stack spacing={3} sx={{ mt: 1 }}>
-            <TextField
-              label="Data i godzina wizyty"
-              type="datetime-local"
-              value={visitDialog.data}
-              onChange={(e) => setVisitDialog({ ...visitDialog, data: e.target.value })}
-              fullWidth
-              required
-              InputLabelProps={{ shrink: true }}
-            />
+            <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
+              <TextField
+                label="Data wizyty"
+                type="date"
+                value={visitDialog.datePart}
+                onChange={(e) => setVisitDialog({ ...visitDialog, datePart: e.target.value })}
+                fullWidth
+                required
+                InputLabelProps={{ shrink: true }}
+              />
+              <FormControl fullWidth required>
+                <InputLabel>Godzina</InputLabel>
+                <Select
+                  value={visitDialog.hour}
+                  label="Godzina"
+                  onChange={(e) => setVisitDialog({ ...visitDialog, hour: e.target.value as string })}
+                >
+                  {HOUR_OPTIONS.map((h) => (
+                    <MenuItem key={h} value={h}>{h}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl fullWidth required>
+                <InputLabel>Minuty</InputLabel>
+                <Select
+                  value={visitDialog.minute}
+                  label="Minuty"
+                  onChange={(e) => setVisitDialog({ ...visitDialog, minute: e.target.value as string })}
+                >
+                  {MINUTE_OPTIONS.map((m) => (
+                    <MenuItem key={m} value={m}>:{m}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
             <TextField
               label="Rodzaj zabiegu"
               value={visitDialog.rodzajZabiegu}
