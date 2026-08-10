@@ -667,7 +667,8 @@ export default function CalendarPage() {
               aspectRatio={isMobile ? 1 : undefined}
               allDaySlot={false}
               slotMinTime="08:00:00"
-              slotMaxTime="20:00:00"
+              slotMaxTime="22:00:00"
+              slotEventOverlap={false}
               slotDuration="00:30:00"
               slotLabelInterval="01:00"
               slotLabelFormat={{ hour: '2-digit', omitZeroMinute: true, meridiem: false }}
