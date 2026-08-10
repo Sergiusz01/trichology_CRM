@@ -47,9 +47,9 @@ export const theme = createTheme({
     button: { textTransform: 'none', fontWeight: 600 },
   },
   shape: {
-    borderRadius: 14, // Radius 14-16px as requested
+    borderRadius: 12,
   },
-  spacing: 8, // Grid 8px
+  spacing: 8,
   components: {
     MuiButton: {
       styleOverrides: {
@@ -106,15 +106,15 @@ export const theme = createTheme({
       },
     },
     MuiCard: {
+      defaultProps: {
+        variant: 'outlined' as const,
+      },
       styleOverrides: {
         root: {
-          borderRadius: 16,
+          borderRadius: 12,
           border: `1px solid ${borderLight}`,
-          boxShadow: '0 1px 3px 0 rgba(0,0,0,0.02), 0 0 0 1px rgba(0,0,0,0.02)',
+          boxShadow: 'none',
           backgroundImage: 'none',
-          '&:hover': {
-            // Remove the aggressive hover jump from previous theme
-          }
         },
       },
     },

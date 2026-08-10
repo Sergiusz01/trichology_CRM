@@ -51,8 +51,8 @@ export const TodoWidget: React.FC<{ userId: string }> = ({ userId }) => {
         <AppCard sx={{ height: '100%', display: 'flex', flexDirection: 'column', p: 3, borderRadius: 4, backdropFilter: 'blur(10px)', backgroundColor: 'rgba(255, 255, 255, 0.8)' }}>
             <Box sx={{ mb: 2 }}>
                 <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary' }}>Zadania na dziś</Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                    Prywatna lista szybkiego dostępu – zapisuj ważne rzeczy do zrobienia podczas swojej zmiany. Tylko Ty masz do niej wgląd.
+                <Typography variant="caption" color="text.secondary">
+                    Prywatna lista — widoczna tylko dla Ciebie
                 </Typography>
             </Box>
             <Box component="form" onSubmit={handleAdd} sx={{ display: 'flex', mb: 2 }}>
@@ -70,7 +70,7 @@ export const TodoWidget: React.FC<{ userId: string }> = ({ userId }) => {
             </Box>
             <List sx={{ flexGrow: 1, overflowY: 'auto', p: 0, maxHeight: 300 }}>
                 {todos.length === 0 && (
-                    <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', mt: 4 }}>Brak zadań na dziś. Odpocznij!</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', mt: 4 }}>Brak zadań. Dodaj pierwsze powyżej.</Typography>
                 )}
                 {todos.map(todo => (
                     <ListItem

@@ -7,8 +7,6 @@ import {
     Grid,
     Paper,
     Typography,
-    Card,
-    CardContent,
     List,
     ListItem,
     ListItemText,
@@ -19,11 +17,9 @@ import {
     CircularProgress,
     IconButton,
     ListItemButton,
-    ListItemIcon,
     alpha,
     TextField,
     InputAdornment,
-    LinearProgress,
     useTheme,
     useMediaQuery,
     Chip,
@@ -34,23 +30,19 @@ import {
     DialogContent,
     DialogActions,
     ButtonBase,
+    Skeleton,
+    Stack,
 } from '@mui/material';
 import {
     PersonAdd,
-    EventNote,
     ArrowForward,
     Search,
-    Warning,
-    Assessment,
-    EventAvailable,
-    AttachMoney,
     Refresh,
     Add,
-    CalendarToday,
-    Today,
-    Schedule,
     Notifications,
     DeleteSweep,
+    Close,
+    MailOutline,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
@@ -58,12 +50,10 @@ import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { useNotification } from '../hooks/useNotification';
 import { useAuth } from '../contexts/AuthContext';
-import { AppCard, AppButton, AppTextField, PageHeader } from '../ui';
+import { AppButton, AppTextField } from '../ui';
 import { ErrorState } from '../ui/ErrorState';
 import { formatPhone } from '../utils/formatPhone';
-import { QuickActionsWidget } from '../components/dashboard/QuickActionsWidget';
 import { TodoWidget } from '../components/dashboard/TodoWidget';
-import { RevenueWidget } from '../components/dashboard/RevenueWidget';
 import { AgendaWidget } from '../components/dashboard/AgendaWidget';
 
 interface DashboardStats {
@@ -121,11 +111,11 @@ interface VisitEvent {
     };
 }
 
-const EVENT_CONFIG: Record<string, { label: string; icon: string; color: string }> = {
-    CONFIRMED: { label: 'Potwierdzono wizytę', icon: '✅', color: '#4caf50' },
-    CANCELED: { label: 'Anulowano wizytę', icon: '❌', color: '#f44336' },
-    RESCHEDULE_REQUESTED: { label: 'Prośba o zmianę terminu', icon: '🔄', color: '#ff9800' },
-    REMINDER_SENT: { label: 'Wysłano przypomnienie', icon: '📧', color: '#1976d2' },
+const EVENT_CONFIG: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
+    CONFIRMED: { label: 'Potwierdzono wizytę', icon: <MailOutline sx={{ fontSize: 14 }} />, color: '#4caf50' },
+    CANCELED: { label: 'Anulowano wizytę', icon: <MailOutline sx={{ fontSize: 14 }} />, color: '#f44336' },
+    RESCHEDULE_REQUESTED: { label: 'Prośba o zmianę terminu', icon: <MailOutline sx={{ fontSize: 14 }} />, color: '#ff9800' },
+    REMINDER_SENT: { label: 'Wysłano przypomnienie', icon: <MailOutline sx={{ fontSize: 14 }} />, color: '#1976d2' },
 };
 
 function relativeTime(dateStr: string): string {
@@ -140,7 +130,7 @@ function relativeTime(dateStr: string): string {
     return new Date(dateStr).toLocaleDateString('pl-PL', { day: '2-digit', month: 'short' });
 }
 
-const ACTIVITY_INITIAL = 8;
+const ACTIVITY_INITIAL = 3;
 
 function PatientActivityCard() {
     const navigate = useNavigate();
@@ -190,14 +180,13 @@ function PatientActivityCard() {
     return (
         <Box sx={{ mb: 4, px: { xs: 1, sm: 0 } }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-                <Typography variant="h6" sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Notifications sx={{ color: '#1976d2', fontSize: 22 }} />
+                <Typography sx={{ fontSize: 15, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
                     Aktywność pacjentów
                     {unreadCount > 0 && (
                         <Chip
                             label={unreadCount}
                             size="small"
-                            sx={{ bgcolor: '#1976d2', color: 'white', fontWeight: 700, height: 18, fontSize: '0.7rem', ml: 0.5 }}
+                            sx={{ bgcolor: '#0A84FF', color: 'white', fontWeight: 700, height: 18, fontSize: '0.7rem', ml: 0.5 }}
                         />
                     )}
                 </Typography>
@@ -271,6 +260,7 @@ function PatientActivityCard() {
                                                 bgcolor: alpha(config.color, 0.12),
                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                 fontSize: '0.9rem', flexShrink: 0, mr: 1.5,
+                                                color: config.color,
                                             }}>
                                                 {config.icon}
                                             </Box>
@@ -324,10 +314,11 @@ export default function DashboardPage() {
     const { error: showError, success: showSuccess } = useNotification();
     const { user } = useAuth();
 
-    // --- Search & Modal Local State ---
+    // --- Search State ---
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<Patient[]>([]);
     const [searchLoading, setSearchLoading] = useState(false);
+    const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
     const [reminderDialog, setReminderDialog] = useState<{
         open: boolean;
@@ -350,7 +341,7 @@ export default function DashboardPage() {
     });
     const [sendingReminder, setSendingReminder] = useState(false);
 
-    // --- Data Fetching with React Query ---
+    // --- Data Fetching ---
     const {
         data: dashboardData,
         isLoading: loading,
@@ -391,27 +382,20 @@ export default function DashboardPage() {
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    const dayAfterTomorrow = new Date(tomorrow);
-    dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
 
     const todayVisits = upcomingVisits.filter((visit: UpcomingVisit) => {
         const visitDate = new Date(visit.data);
         return visitDate >= today && visitDate < tomorrow;
     });
 
-    const tomorrowVisits = upcomingVisits.filter((visit: UpcomingVisit) => {
-        const visitDate = new Date(visit.data);
-        return visitDate >= tomorrow && visitDate < dayAfterTomorrow;
-    });
+    const visitsThisWeekTotal = Object.values(weeklyRevenue.visitsThisWeek).reduce((a, b) => (a as number) + (b as number), 0);
 
     const handleSendVisitReminder = async () => {
         if (!reminderDialog.visitId) return;
-
         if (!reminderDialog.recipientEmail) {
             showError('Podaj adres email odbiorcy');
             return;
         }
-
         try {
             setSendingReminder(true);
             await api.post(`/visits/${reminderDialog.visitId}/reminder`, {
@@ -420,43 +404,15 @@ export default function DashboardPage() {
             });
             showSuccess('Przypomnienie wysłane pomyślnie!');
             setReminderDialog({
-                open: false,
-                visitId: null,
-                visitData: '',
-                rodzajZabiegu: '',
-                patientName: '',
-                patientEmail: '',
-                customMessage: '',
-                recipientEmail: '',
+                open: false, visitId: null, visitData: '', rodzajZabiegu: '',
+                patientName: '', patientEmail: '', customMessage: '', recipientEmail: '',
             });
-            refetch(); // Reload dashboard data
+            refetch();
         } catch (err: any) {
             showError(err.response?.data?.error || 'Błąd wysyłania przypomnienia');
         } finally {
             setSendingReminder(false);
         }
-    };
-
-    const openReminderDialog = async (visit: UpcomingVisit) => {
-        // Try to fetch patient email if not available
-        let patientEmail = '';
-        try {
-            const patientRes = await api.get(`/patients/${visit.patient.id}`);
-            patientEmail = patientRes.data.patient?.email || '';
-        } catch (err) {
-            console.error('Błąd pobierania email pacjenta:', err);
-        }
-
-        setReminderDialog({
-            open: true,
-            visitId: visit.id,
-            visitData: visit.data,
-            rodzajZabiegu: visit.rodzajZabiegu,
-            patientName: `${visit.patient.firstName} ${visit.patient.lastName}`,
-            patientEmail: patientEmail,
-            customMessage: '',
-            recipientEmail: patientEmail,
-        });
     };
 
     // Wyszukiwanie z debounce
@@ -488,34 +444,32 @@ export default function DashboardPage() {
         return () => clearTimeout(timeoutId);
     }, [searchQuery]);
 
-    const formatVisitTime = (dateString: string): string => {
-        const date = new Date(dateString);
-        const hours = String(date.getUTCHours()).padStart(2, '0');
-        const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-        return `${hours}:${minutes}`;
-    };
+    const isEmptyDb = stats.patientsCount === 0 && !searchQuery;
 
-    const formatVisitDate = (dateString: string): string => {
-        const date = new Date(dateString);
-        const day = String(date.getUTCDate()).padStart(2, '0');
-        const month = format(date, 'MMM', { locale: pl });
-        return `${day} ${month}`;
-    };
-
+    // ===== LOADING STATE =====
     if (loading) {
         return (
-            <Box sx={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                minHeight: '60vh'
-            }}>
-                <CircularProgress size={60} thickness={4} />
+            <Box sx={{ pb: 4, display: 'flex', flexDirection: 'column', maxWidth: '100%', overflowX: 'hidden' }}>
+                <Box sx={{ mb: 3 }}>
+                    <Skeleton width={200} height={28} />
+                    <Skeleton width={160} height={18} sx={{ mt: 0.5 }} />
+                </Box>
+                <Skeleton height={36} sx={{ mb: 3, borderRadius: 1 }} />
+                <Grid container spacing={3}>
+                    <Grid size={{ xs: 12, md: 8 }}>
+                        {[1, 2, 3, 4].map(i => (
+                            <Skeleton key={i} height={isMobile ? 72 : 56} sx={{ mb: 1, borderRadius: 1 }} />
+                        ))}
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 4 }}>
+                        <Skeleton height={200} sx={{ borderRadius: 2 }} />
+                    </Grid>
+                </Grid>
             </Box>
         );
     }
 
-    if (error && stats.patientsCount === 0 && todayVisits.length === 0 && tomorrowVisits.length === 0) {
+    if (error && stats.patientsCount === 0 && todayVisits.length === 0) {
         return (
             <Box sx={{ pt: 10, pb: 4 }}>
                 <ErrorState message={error} onRetry={() => refetch()} />
@@ -523,378 +477,368 @@ export default function DashboardPage() {
         );
     }
 
-    const visitsThisWeekTotal = Object.values(weeklyRevenue.visitsThisWeek).reduce((a, b) => (a as number) + (b as number), 0);
-
-    const topStatCards = [
-        {
-            title: 'Dzisiejsze wizyty',
-            value: todayVisits.length,
-            subtitle: `${tomorrowVisits.length} zaplanowano na jutro`,
-            icon: CalendarToday,
-            color: '#34C759', // Green
-            progress: 0,
-            link: '#visits',
-        },
-        {
-            title: 'Wizyty w tym tygodniu',
-            value: visitsThisWeekTotal,
-            subtitle: `Z ${stats.patientsCount} pacjentów łącznie`,
-            icon: EventAvailable,
-            color: '#AF52DE', // Purple
-            progress: 0,
-            link: '/visits',
-        }
-    ];
-
-    const bottomStatCards = [
-        {
-            title: 'Pacjenci w bazie',
-            value: stats.patientsCount,
-            subtitle: `+${stats.patientsThisWeek} w tym tyg.`,
-            icon: PersonAdd,
-            color: '#007AFF', // iOS Blue
-            progress: stats.patientsThisWeek > 0 && stats.patientsCount > 0 ? (stats.patientsThisWeek / stats.patientsCount) * 100 : 0,
-            link: '/patients',
-        },
-        {
-            title: 'Konsultacje',
-            value: stats.consultationsCount,
-            subtitle: `+${stats.consultationsThisWeek} w tym tyg.`,
-            icon: EventNote,
-            color: '#5856D6', // Purple
-            progress: stats.consultationsThisWeek > 0 && stats.consultationsCount > 0 ? (stats.consultationsThisWeek / stats.consultationsCount) * 100 : 0,
-            link: '/consultations',
-        }
-    ];
-
-    const isEmptyDb = stats.patientsCount === 0 && !searchQuery;
-
     if (isEmptyDb) {
         return (
             <Box sx={{ pb: 4, px: { xs: 1, sm: 2, md: 3 } }}>
-                <PageHeader
-                    title="Witaj w Light Clinic 2026!"
-                    subtitle={format(new Date(), "EEEE, d MMMM yyyy", { locale: pl })}
-                />
-                <Box sx={{ mt: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', p: { xs: 3, md: 8 }, bgcolor: 'white', borderRadius: 4, border: '2px dashed', borderColor: alpha('#1976d2', 0.2) }}>
-                    <Avatar sx={{ width: 80, height: 80, bgcolor: alpha('#1976d2', 0.1), color: '#1976d2', mb: 3 }}>
-                        <PersonAdd sx={{ fontSize: 40 }} />
+                <Box sx={{ mb: 3 }}>
+                    <Typography sx={{ fontSize: 22, fontWeight: 600, color: 'text.primary' }}>
+                        Witaj w Light Clinic 2026
+                    </Typography>
+                    <Typography sx={{ fontSize: 13, fontWeight: 400, color: 'text.secondary', mt: 0.5 }}>
+                        {format(new Date(), "EEEE, d MMMM yyyy", { locale: pl })}
+                    </Typography>
+                </Box>
+                <Box sx={{ mt: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', p: { xs: 3, md: 8 }, bgcolor: 'white', borderRadius: 3, border: '2px dashed', borderColor: alpha('#3B82F6', 0.2) }}>
+                    <Avatar sx={{ width: 64, height: 64, bgcolor: alpha('#3B82F6', 0.1), color: '#3B82F6', mb: 3 }}>
+                        <PersonAdd sx={{ fontSize: 32 }} />
                     </Avatar>
-                    <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F172A', mb: 2, fontSize: { xs: '1.75rem', md: '2.5rem' } }}>
+                    <Typography sx={{ fontSize: 22, fontWeight: 600, color: 'text.primary', mb: 2 }}>
                         Twój system jest gotowy do pracy
                     </Typography>
-                    <Typography variant="body1" sx={{ color: 'text.secondary', mb: 4, maxWidth: 600, fontSize: '1.1rem', lineHeight: 1.6 }}>
-                        Wygląda na to, że nie masz jeszcze żadnych pacjentów w swojej bazie. Rozpocznij pracę, dodając pierwszą osobę, a następnie zaplanuj dla niej konsultację lub wizytę w kalendarzu.
+                    <Typography sx={{ color: 'text.secondary', mb: 4, maxWidth: 600, fontSize: 14, lineHeight: 1.6 }}>
+                        Nie masz jeszcze żadnych pacjentów w bazie. Dodaj pierwszą osobę, aby rozpocząć pracę.
                     </Typography>
                     <AppButton
                         variant="contained"
                         startIcon={<Add />}
                         onClick={() => navigate('/patients/new')}
                         size="large"
-                        sx={{ px: 4, py: 1.5, fontSize: '1.1rem' }}
+                        sx={{ px: 4, py: 1.5 }}
                     >
-                        DODAJ PIERWSZEGO PACJENTA
+                        Dodaj pierwszego pacjenta
                     </AppButton>
                 </Box>
             </Box>
         );
     }
 
-    return (
-        <Box sx={{ pb: 4, display: 'flex', flexDirection: 'column' }}>
-            {/* Header Section */}
-            <PageHeader
-                title="Panel Główny"
-                subtitle={format(new Date(), "EEEE, d MMMM yyyy", { locale: pl })}
-                action={
-                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                        <Tooltip title="Odśwież dane">
-                            <IconButton
-                                onClick={() => refetch()}
-                                disabled={refreshing}
-                                sx={{
-                                    bgcolor: alpha('#1976d2', 0.08),
-                                    '&:hover': { bgcolor: alpha('#1976d2', 0.12) },
-                                }}
-                            >
-                                <Refresh sx={{
-                                    color: '#1976d2',
-                                    animation: refreshing ? 'spin 1s linear infinite' : 'none',
-                                    '@keyframes spin': {
-                                        '0%': { transform: 'rotate(0deg)' },
-                                        '100%': { transform: 'rotate(360deg)' },
-                                    },
-                                }} />
-                            </IconButton>
-                        </Tooltip>
-                        <AppButton
-                            variant="contained"
-                            startIcon={<Add />}
-                            onClick={() => navigate('/patients/new')}
-                        >
-                            {isMobile ? 'Dodaj' : 'Dodaj pacjenta'}
-                        </AppButton>
-                    </Box>
-                }
-            />
+    // ===== METRICS DATA =====
+    const metrics = [
+        { label: todayVisits.length === 1 ? 'wizyta dziś' : 'wizyty dziś', value: todayVisits.length, link: '#' },
+        { label: 'w tym tygodniu', value: visitsThisWeekTotal, link: '/visits' },
+        { label: 'pacjentów', value: stats.patientsCount, link: '/patients' },
+    ];
 
-            {/* Search Bar */}
-            <AppCard sx={{ mb: 4 }}>
+    // ===== SEARCH RESULTS COMPONENT =====
+    const searchResultsList = searchResults.length > 0 ? (
+        <List sx={{ p: 0 }}>
+            {searchResults.map((patient) => (
+                <ListItemButton
+                    key={patient.id}
+                    onClick={() => {
+                        navigate(`/patients/${patient.id}`);
+                        setSearchQuery('');
+                        setSearchResults([]);
+                        setMobileSearchOpen(false);
+                    }}
+                    sx={{ borderRadius: 2, mb: 0.5, '&:hover': { bgcolor: '#F1F5F9' } }}
+                >
+                    <ListItemAvatar>
+                        <Avatar sx={{ bgcolor: 'white', color: 'primary.main', border: '1px solid #E2E8F0', fontWeight: 600, width: 36, height: 36, fontSize: 13 }}>
+                            {patient.firstName[0]}{patient.lastName[0]}
+                        </Avatar>
+                    </ListItemAvatar>
+                    <ListItemText
+                        primary={`${patient.firstName} ${patient.lastName}`}
+                        primaryTypographyProps={{ fontWeight: 600, color: '#0F172A', fontSize: 14 }}
+                        secondary={patient.email || formatPhone(patient.phone)}
+                        secondaryTypographyProps={{ fontSize: 12 }}
+                    />
+                    <ArrowForward sx={{ color: 'text.secondary', opacity: 0.5, fontSize: 18 }} />
+                </ListItemButton>
+            ))}
+        </List>
+    ) : null;
+
+    return (
+        <Box sx={{
+            pb: 4, display: 'flex', flexDirection: 'column',
+            maxWidth: '100%', overflowX: 'hidden',
+            px: { xs: 2, sm: 0 },
+        }}>
+            {/* ===== HEADER ===== */}
+            <Box sx={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+                mb: 2, flexWrap: 'wrap', gap: 1,
+            }}>
+                <Box>
+                    <Typography sx={{ fontSize: { xs: 20, sm: 22 }, fontWeight: 600, color: 'text.primary' }}>
+                        Panel główny
+                    </Typography>
+                    <Typography sx={{ fontSize: 13, fontWeight: 400, color: 'text.secondary' }}>
+                        {format(new Date(), "EEEE, d MMMM yyyy", { locale: pl })}
+                    </Typography>
+                </Box>
+
+                {/* Desktop: search + actions */}
+                <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ position: 'relative' }}>
+                        <TextField
+                            placeholder="Szukaj pacjenta…"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            size="small"
+                            sx={{
+                                width: 220,
+                                '& .MuiOutlinedInput-root': {
+                                    height: 36, fontSize: 13,
+                                    '& fieldset': { borderColor: 'divider' },
+                                },
+                            }}
+                            InputProps={{
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        {searchLoading ? <CircularProgress size={16} /> : <Search sx={{ fontSize: 18, color: 'text.secondary' }} />}
+                                    </InputAdornment>
+                                ),
+                            }}
+                        />
+                        {searchResults.length > 0 && (
+                            <Paper sx={{
+                                position: 'absolute', top: '100%', left: 0, right: 0,
+                                mt: 0.5, zIndex: 10, p: 1, maxHeight: 300, overflow: 'auto',
+                                border: '1px solid', borderColor: 'divider',
+                            }}>
+                                {searchResultsList}
+                            </Paper>
+                        )}
+                    </Box>
+                    <AppButton
+                        variant="contained"
+                        size="small"
+                        startIcon={<Add />}
+                        onClick={() => navigate('/visits/new')}
+                        disableElevation
+                        sx={{ height: 36, fontSize: 13 }}
+                    >
+                        Nowa wizyta
+                    </AppButton>
+                    <AppButton
+                        variant="outlined"
+                        size="small"
+                        startIcon={<PersonAdd />}
+                        onClick={() => navigate('/patients/new')}
+                        sx={{ height: 36, fontSize: 13 }}
+                    >
+                        Nowy pacjent
+                    </AppButton>
+                    <Tooltip title="Odśwież dane">
+                        <IconButton
+                            onClick={() => refetch()}
+                            disabled={refreshing}
+                            size="small"
+                            sx={{ width: 36, height: 36 }}
+                        >
+                            <Refresh sx={{
+                                fontSize: 20, color: 'text.secondary',
+                                animation: refreshing ? 'spin 1s linear infinite' : 'none',
+                                '@keyframes spin': {
+                                    '0%': { transform: 'rotate(0deg)' },
+                                    '100%': { transform: 'rotate(360deg)' },
+                                },
+                            }} />
+                        </IconButton>
+                    </Tooltip>
+                </Box>
+            </Box>
+
+            {/* Mobile: action buttons */}
+            <Stack direction="row" spacing={1} sx={{ display: { xs: 'flex', sm: 'none' }, mb: 2 }}>
+                <AppButton
+                    variant="contained"
+                    size="medium"
+                    startIcon={<Add />}
+                    onClick={() => navigate('/visits/new')}
+                    disableElevation
+                    sx={{ flex: 1, height: 44, fontSize: 14 }}
+                >
+                    Nowa wizyta
+                </AppButton>
+                <AppButton
+                    variant="outlined"
+                    size="medium"
+                    startIcon={<PersonAdd />}
+                    onClick={() => navigate('/patients/new')}
+                    sx={{ flex: 1, height: 44, fontSize: 14 }}
+                >
+                    Nowy pacjent
+                </AppButton>
+            </Stack>
+
+            {/* Mobile: top bar with search + refresh */}
+            <Box sx={{ display: { xs: 'flex', sm: 'none' }, alignItems: 'center', gap: 1, mb: 2 }}>
                 <TextField
-                    fullWidth
-                    placeholder="Szybkie wyszukiwanie pacjenta..."
+                    placeholder="Szukaj pacjenta…"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    size="medium"
+                    size="small"
+                    fullWidth
+                    sx={{
+                        '& .MuiOutlinedInput-root': {
+                            height: 36, fontSize: 14,
+                            '& fieldset': { borderColor: 'divider' },
+                        },
+                    }}
                     InputProps={{
                         startAdornment: (
                             <InputAdornment position="start">
-                                {searchLoading ? (
-                                    <CircularProgress size={20} />
-                                ) : (
-                                    <Search sx={{ color: 'text.secondary' }} />
-                                )}
+                                {searchLoading ? <CircularProgress size={16} /> : <Search sx={{ fontSize: 18, color: 'text.secondary' }} />}
                             </InputAdornment>
                         ),
                     }}
-                    sx={{
-                        '& .MuiOutlinedInput-root': {
-                            bgcolor: '#F8FAFC',
-                            '& fieldset': { borderColor: 'transparent' },
-                            '&:hover fieldset': { borderColor: 'transparent' },
-                            '&.Mui-focused fieldset': { borderColor: 'primary.main' },
-                        },
-                    }}
                 />
-                {searchResults.length > 0 && (
-                    <List sx={{ mt: 2, p: 0 }}>
-                        {searchResults.map((patient) => (
-                            <ListItemButton
-                                key={patient.id}
-                                onClick={() => {
-                                    navigate(`/patients/${patient.id}`);
-                                    setSearchQuery('');
-                                    setSearchResults([]);
-                                }}
-                                sx={{
-                                    borderRadius: 2,
-                                    mb: 0.5,
-                                    '&:hover': {
-                                        bgcolor: '#F1F5F9',
-                                    },
-                                }}
-                            >
-                                <ListItemAvatar>
-                                    <Avatar sx={{ bgcolor: 'white', color: 'primary.main', border: '1px solid #E2E8F0', fontWeight: 600 }}>
-                                        {patient.firstName[0]}{patient.lastName[0]}
-                                    </Avatar>
-                                </ListItemAvatar>
-                                <ListItemText
-                                    primary={`${patient.firstName} ${patient.lastName}`}
-                                    primaryTypographyProps={{ fontWeight: 600, color: '#0F172A' }}
-                                    secondary={patient.email || formatPhone(patient.phone)}
-                                />
-                                <ArrowForward sx={{ color: 'text.secondary', opacity: 0.5 }} />
-                            </ListItemButton>
-                        ))}
-                    </List>
-                )}
-            </AppCard>
+                <IconButton
+                    onClick={() => refetch()}
+                    disabled={refreshing}
+                    size="small"
+                    sx={{ width: 36, height: 36, flexShrink: 0 }}
+                >
+                    <Refresh sx={{
+                        fontSize: 20, color: 'text.secondary',
+                        animation: refreshing ? 'spin 1s linear infinite' : 'none',
+                        '@keyframes spin': {
+                            '0%': { transform: 'rotate(0deg)' },
+                            '100%': { transform: 'rotate(360deg)' },
+                        },
+                    }} />
+                </IconButton>
+            </Box>
 
-            {/* Top Stat Cards (Visits) */}
-            <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: 4, px: { xs: 1, sm: 0 }, order: { xs: 5, md: 3 } }}>
-                {topStatCards.map((stat, index) => (
-                    <Grid key={index} size={{ xs: 12, sm: 6, md: 6 }}>
+            {/* Mobile: search results */}
+            {isMobile && searchResults.length > 0 && (
+                <Paper sx={{ mb: 2, p: 1, border: '1px solid', borderColor: 'divider' }}>
+                    {searchResultsList}
+                </Paper>
+            )}
+
+            {/* ===== METRICS BAR ===== */}
+            <Box sx={{
+                display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 2 },
+                height: 36, mb: 3,
+                borderBottom: '1px solid', borderColor: 'divider',
+                overflowX: 'auto', scrollbarWidth: 'none',
+                WebkitOverflowScrolling: 'touch',
+                '&::-webkit-scrollbar': { display: 'none' },
+                whiteSpace: 'nowrap',
+                px: { xs: 0, sm: 0 },
+            }}>
+                {metrics.map((m, idx) => (
+                    <React.Fragment key={m.label}>
+                        {idx > 0 && (
+                            <Typography sx={{ color: 'text.disabled', fontSize: 13, flexShrink: 0 }}>·</Typography>
+                        )}
                         <ButtonBase
-                            onClick={() => stat.link.startsWith('#') ? null : navigate(stat.link)}
+                            onClick={() => m.link !== '#' && navigate(m.link)}
                             sx={{
-                                width: '100%',
-                                display: 'flex',
-                                textAlign: 'left',
-                                borderRadius: 4,
-                                bgcolor: 'rgba(255, 255, 255, 0.7)',
-                                backdropFilter: 'blur(10px)',
-                                border: '1px solid',
-                                borderColor: 'divider',
-                                transition: 'all 0.2s',
-                                '&:hover': stat.link.startsWith('#') ? {} : {
-                                    bgcolor: 'white',
-                                    transform: 'translateY(-2px)',
-                                    boxShadow: `0 8px 24px ${alpha(stat.color, 0.15)}`,
-                                    borderColor: alpha(stat.color, 0.3),
-                                },
+                                borderRadius: 1, px: 0.75, py: 0.25,
+                                '&:hover': m.link !== '#' ? { bgcolor: 'action.hover' } : {},
+                                flexShrink: 0,
                             }}
                         >
-                            <Box sx={{ p: 3, width: '100%', display: 'flex', flexDirection: 'column' }}>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                                    <Avatar sx={{ bgcolor: alpha(stat.color, 0.1), color: stat.color, width: 48, height: 48, borderRadius: 3 }}>
-                                        <stat.icon />
-                                    </Avatar>
-                                </Box>
-                                <Typography variant="h3" sx={{ fontWeight: 800, mb: 0.5, color: '#0F172A', fontSize: '2.25rem' }}>
-                                    {stat.value}
-                                </Typography>
-                                <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.secondary', mb: 1 }}>
-                                    {stat.title}
-                                </Typography>
-                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                    <Typography variant="caption" sx={{ color: stat.color, fontWeight: 700, bgcolor: alpha(stat.color, 0.1), px: 1, py: 0.5, borderRadius: 1 }}>
-                                        {stat.subtitle}
-                                    </Typography>
-                                </Box>
-                            </Box>
+                            <Typography sx={{ fontSize: 13, fontVariantNumeric: 'tabular-nums' }}>
+                                <Box component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>{m.value}</Box>
+                                {' '}
+                                <Box component="span" sx={{ fontWeight: 400, color: 'text.secondary' }}>{m.label}</Box>
+                            </Typography>
                         </ButtonBase>
-                    </Grid>
+                    </React.Fragment>
                 ))}
-            </Grid>
+            </Box>
 
-            {/* Quick Actions */}
-            <QuickActionsWidget />
-
-            {/* New Widgets Grid (Agenda, Todo, Revenue) */}
-            <Grid container spacing={3} sx={{ mb: 4, px: { xs: 1, sm: 0 }, order: { xs: 4, md: 5 } }}>
-                <Grid size={{ xs: 12, md: 6 }}>
-                    <AgendaWidget visits={upcomingVisits.slice(0, 8)} />
+            {/* ===== MAIN CONTENT: AGENDA + TODO ===== */}
+            <Grid container spacing={3} sx={{ mb: 4 }}>
+                <Grid size={{ xs: 12, md: 8 }}>
+                    <AgendaWidget visits={upcomingVisits} loading={loading} />
                 </Grid>
-                <Grid size={{ xs: 12, md: 6 }}>
-                    <Grid container spacing={3}>
-                        <Grid size={{ xs: 12 }}>
-                            {user?.id && <TodoWidget userId={user.id} />}
-                        </Grid>
-                        {(user?.role === 'ADMIN' || user?.role === 'DOCTOR') && (
-                            <Grid size={{ xs: 12 }}>
-                                <RevenueWidget data={weeklyRevenue} />
-                            </Grid>
-                        )}
-                    </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                    {user?.id && <TodoWidget userId={user.id} />}
                 </Grid>
             </Grid>
 
-            {/* Bottom Stat Cards (Patients & Consultations) */}
-            <Typography variant="subtitle1" sx={{ mt: 2, mb: 1, px: { xs: 1, sm: 0 }, fontWeight: 600, color: 'text.secondary', order: { xs: 6, md: 6 } }}>
+            {/* ===== BOTTOM STATS ===== */}
+            <Typography sx={{ fontSize: 15, fontWeight: 600, color: 'text.secondary', mb: 1.5, px: { xs: 0, sm: 0 } }}>
                 Statystyki ogólne
             </Typography>
-            <Grid container spacing={2} sx={{ mb: 4, px: { xs: 1, sm: 0 }, order: { xs: 7, md: 7 } }}>
-                {bottomStatCards.map((stat, index) => (
-                    <Grid key={index} size={{ xs: 12, sm: 6, md: 3 }}>
+            <Grid container spacing={2} sx={{ mb: 4 }}>
+                {[
+                    { title: 'Pacjenci w bazie', value: stats.patientsCount, sub: `+${stats.patientsThisWeek} w tym tyg.`, link: '/patients', color: '#0A84FF' },
+                    { title: 'Konsultacje', value: stats.consultationsCount, sub: `+${stats.consultationsThisWeek} w tym tyg.`, link: '/consultations', color: '#5856D6' },
+                ].map((stat) => (
+                    <Grid key={stat.title} size={{ xs: 6, sm: 3 }}>
                         <ButtonBase
                             onClick={() => navigate(stat.link)}
                             sx={{
-                                width: '100%',
-                                display: 'flex',
-                                textAlign: 'left',
-                                borderRadius: 3,
-                                bgcolor: 'rgba(255, 255, 255, 0.5)',
-                                backdropFilter: 'blur(5px)',
-                                border: '1px solid',
-                                borderColor: 'divider',
-                                transition: 'all 0.2s',
-                                '&:hover': {
-                                    bgcolor: 'white',
-                                    transform: 'translateY(-1px)',
-                                    borderColor: alpha(stat.color, 0.3),
-                                },
+                                width: '100%', display: 'flex', textAlign: 'left',
+                                borderRadius: 2, bgcolor: 'background.paper',
+                                border: '1px solid', borderColor: 'divider',
+                                p: 2, transition: 'all 0.15s',
+                                '&:hover': { borderColor: alpha(stat.color, 0.3) },
                             }}
                         >
-                            <Box sx={{ p: 2, width: '100%', display: 'flex', alignItems: 'center', gap: 2 }}>
-                                <Avatar sx={{ bgcolor: alpha(stat.color, 0.1), color: stat.color, width: 36, height: 36, borderRadius: 2 }}>
-                                    <stat.icon fontSize="small" />
-                                </Avatar>
-                                <Box>
-                                    <Typography variant="h5" sx={{ fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>
-                                        {stat.value}
-                                    </Typography>
-                                    <Typography variant="caption" sx={{ fontWeight: 600, color: 'text.secondary' }}>
-                                        {stat.title}
-                                    </Typography>
-                                </Box>
+                            <Box>
+                                <Typography sx={{ fontSize: 22, fontWeight: 700, color: 'text.primary', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+                                    {stat.value}
+                                </Typography>
+                                <Typography sx={{ fontSize: 12, fontWeight: 500, color: 'text.secondary', mt: 0.5 }}>
+                                    {stat.title}
+                                </Typography>
+                                <Typography sx={{ fontSize: 11, fontWeight: 500, color: stat.color, mt: 0.25 }}>
+                                    {stat.sub}
+                                </Typography>
                             </Box>
                         </ButtonBase>
                     </Grid>
                 ))}
             </Grid>
 
-            {/* Patient Activity — actions from email links */}
+            {/* ===== ACTIVITY ===== */}
             <PatientActivityCard />
 
-
-
-            {/* Reminder Dialog */}
+            {/* ===== REMINDER DIALOG ===== */}
             <Dialog
                 open={reminderDialog.open}
                 onClose={() => setReminderDialog({ ...reminderDialog, open: false })}
                 maxWidth="sm"
                 fullWidth
-                PaperProps={{
-                    sx: {
-                        borderRadius: 3,
-                        p: 1,
-                    },
-                }}
+                PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
             >
                 <DialogTitle sx={{ fontWeight: 600, pb: 2 }}>
                     Wyślij przypomnienie o wizycie
                 </DialogTitle>
                 <DialogContent>
                     <Box sx={{ mb: 2 }}>
-                        <Typography variant="body2" color="text.secondary" gutterBottom>
-                            Pacjent:
-                        </Typography>
-                        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
-                            {reminderDialog.patientName}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" gutterBottom>
-                            Wizyta:
-                        </Typography>
-                        <Typography variant="body1" sx={{ fontWeight: 500, mb: 1 }}>
-                            {reminderDialog.rodzajZabiegu}
-                        </Typography>
+                        <Typography variant="body2" color="text.secondary" gutterBottom>Pacjent:</Typography>
+                        <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>{reminderDialog.patientName}</Typography>
+                        <Typography variant="body2" color="text.secondary" gutterBottom>Wizyta:</Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 500, mb: 1 }}>{reminderDialog.rodzajZabiegu}</Typography>
                         <Typography variant="body2" color="text.secondary">
                             {reminderDialog.visitData ? new Date(reminderDialog.visitData).toLocaleString('pl-PL', {
-                                weekday: 'long',
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                timeZone: 'UTC',
+                                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+                                hour: '2-digit', minute: '2-digit', timeZone: 'UTC',
                             }) : ''}
                         </Typography>
                     </Box>
-
                     <AppTextField
-                        name="email"
-                        fullWidth
-                        label="Adres email odbiorcy"
-                        type="email"
+                        name="email" fullWidth label="Adres email odbiorcy" type="email"
                         value={reminderDialog.recipientEmail}
                         onChange={(e) => setReminderDialog({ ...reminderDialog, recipientEmail: e.target.value })}
-                        required
-                        sx={{ mb: 2 }}
+                        required sx={{ mb: 2 }}
                         helperText={!reminderDialog.patientEmail ? 'Pacjent nie ma zapisanego adresu email' : 'Email pacjenta'}
                     />
-
                     <AppTextField
-                        name="customMessage"
-                        fullWidth
-                        label="Dodatkowa wiadomość (opcjonalnie)"
-                        multiline
-                        rows={4}
+                        name="customMessage" fullWidth label="Dodatkowa wiadomość (opcjonalnie)"
+                        multiline rows={4}
                         value={reminderDialog.customMessage}
                         onChange={(e) => setReminderDialog({ ...reminderDialog, customMessage: e.target.value })}
                         placeholder="Dodaj dodatkową wiadomość do przypomnienia..."
                         sx={{ mb: 2 }}
                     />
-
                     <Alert severity="info" sx={{ mt: 2 }}>
                         Pacjent otrzyma email z przypomnieniem zawierającym przyciski do <strong>potwierdzenia</strong>, <strong>anulowania</strong> lub <strong>zmiany terminu</strong> wizyty oraz możliwością zapisania wizyty do kalendarza.
                     </Alert>
                 </DialogContent>
                 <DialogActions sx={{ p: 2, pt: 1 }}>
-                    <AppButton
-                        onClick={() => setReminderDialog({ ...reminderDialog, open: false })}
-                        disabled={sendingReminder}
-                    >
+                    <AppButton onClick={() => setReminderDialog({ ...reminderDialog, open: false })} disabled={sendingReminder}>
                         Anuluj
                     </AppButton>
                     <AppButton
@@ -902,10 +846,7 @@ export default function DashboardPage() {
                         variant="contained"
                         startIcon={sendingReminder ? <CircularProgress size={20} /> : <Notifications />}
                         disabled={sendingReminder || !reminderDialog.recipientEmail}
-                        sx={{
-                            bgcolor: '#FF9500',
-                            '&:hover': { bgcolor: '#E68900' },
-                        }}
+                        sx={{ bgcolor: '#FF9500', '&:hover': { bgcolor: '#E68900' } }}
                     >
                         {sendingReminder ? 'Wysyłanie...' : 'Wyślij przypomnienie'}
                     </AppButton>
