@@ -35,9 +35,9 @@ export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, breadcr
                         })}
                     </Breadcrumbs>
                 )}
-                <Typography variant="h2" sx={{ m: 0 }}>{title}</Typography>
+                <Typography sx={{ fontSize: { xs: 20, md: 22 }, fontWeight: 500, m: 0, p: 0 }}>{title}</Typography>
                 {subtitle && (
-                    <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5 }}>
+                    <Typography sx={{ fontSize: 13, fontWeight: 400, color: 'text.secondary', mt: 0.5 }}>
                         {subtitle}
                     </Typography>
                 )}

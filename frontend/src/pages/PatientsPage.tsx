@@ -35,9 +35,11 @@ import {
   FormControl,
   Select,
   MenuItem,
+  Menu,
+  Skeleton,
 } from '@mui/material';
 import { AppCard, AppButton, AppTextField, PageHeader } from '../ui';
-import { Add, Visibility, Delete, Search, Person, Download, Restore, DeleteForever, Archive, Phone, Email, ArrowUpward, ArrowDownward } from '@mui/icons-material';
+import { Add, Visibility, Delete, Search, Person, Download, Restore, DeleteForever, Archive, Phone, Email, ArrowUpward, ArrowDownward, MoreVert, ChevronRight } from '@mui/icons-material';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../hooks/useNotification';
@@ -49,6 +51,25 @@ import {
   usePermanentDeletePatient,
 } from '../hooks/queries/usePatients';
 import { formatPhone } from '../utils/formatPhone';
+
+const getInitials = (firstName: string, lastName: string) => {
+  return `${(firstName || '').charAt(0)}${(lastName || '').charAt(0)}`.toUpperCase();
+};
+
+const getDeterministicColor = (id: string) => {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = id.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const colorSchemes = [
+    { bg: '#e0f2fe', color: '#0284c7' }, // blue
+    { bg: '#dcfce7', color: '#16a34a' }, // green
+    { bg: '#f3e8ff', color: '#9333ea' }, // purple
+    { bg: '#ffedd5', color: '#ea580c' }, // orange
+    { bg: '#fce7f3', color: '#db2777' }, // pink
+  ];
+  return colorSchemes[Math.abs(hash) % colorSchemes.length];
+};
 
 export default function PatientsPage() {
   const { user } = useAuth();
@@ -76,6 +97,9 @@ export default function PatientsPage() {
   }>({ open: false, patientId: null, patientName: '' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [headerMenuAnchor, setHeaderMenuAnchor] = useState<null | HTMLElement>(null);
+  const [mobileMenuAnchor, setMobileMenuAnchor] = useState<{ id: string, anchor: HTMLElement, patientName: string } | null>(null);
+  
   const { success: showSuccess, error: showError } = useNotification();
   const navigate = useNavigate();
   const theme = useTheme();
@@ -200,10 +224,6 @@ export default function PatientsPage() {
     }
   };
 
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-  };
-
   const isEmptyDb = total === 0 && !search && !showArchived;
 
   if (!loading && isEmptyDb) {
@@ -211,24 +231,25 @@ export default function PatientsPage() {
       <Container maxWidth="xl" sx={{ px: { xs: 1, sm: 2, md: 3 } }}>
         <Box sx={{ mb: { xs: 2, sm: 3 } }}>
           <PageHeader title="Pacjenci" subtitle="Zarządzaj bazą pacjentów i ich historią medyczną" />
-          <Box sx={{ mt: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', p: { xs: 3, md: 8 }, bgcolor: 'white', borderRadius: 4, border: '2px dashed', borderColor: alpha('#1976d2', 0.2) }}>
-            <Avatar sx={{ width: 80, height: 80, bgcolor: alpha('#1976d2', 0.1), color: '#1976d2', mb: 3 }}>
-              <Person sx={{ fontSize: 40 }} />
+          <Box sx={{ mt: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', p: { xs: 3, md: 8 }, bgcolor: 'background.paper', borderRadius: 4, border: '1px dashed', borderColor: 'divider' }}>
+            <Avatar sx={{ width: 64, height: 64, bgcolor: 'action.hover', color: 'text.disabled', mb: 3 }}>
+              <Person sx={{ fontSize: 32 }} />
             </Avatar>
-            <Typography variant="h4" sx={{ fontWeight: 800, color: '#0F172A', mb: 2, fontSize: { xs: '1.75rem', md: '2.5rem' } }}>
+            <Typography sx={{ fontWeight: 500, color: 'text.primary', mb: 1, fontSize: '18px' }}>
               Brak pacjentów w bazie
             </Typography>
-            <Typography variant="body1" sx={{ color: 'text.secondary', mb: 4, maxWidth: 600, fontSize: '1.1rem', lineHeight: 1.6 }}>
-              Twoja lista pacjentów jest obecnie pusta. Dodaj pierwszego pacjenta, aby rozpocząć budowanie bazy i historii leczenia.
+            <Typography variant="body2" sx={{ color: 'text.secondary', mb: 4, maxWidth: 400, fontSize: '13px' }}>
+              Lista pacjentów jest obecnie pusta. Dodaj pierwszego pacjenta, aby rozpocząć budowanie bazy i historii leczenia.
             </Typography>
             <AppButton
               variant="contained"
-              startIcon={<Add />}
+              disableElevation
+              startIcon={<Add fontSize="small" />}
               onClick={() => navigate('/patients/new')}
-              size="large"
-              sx={{ px: 4, py: 1.5, fontSize: '1.1rem' }}
+              size="small"
+              sx={{ height: 32, textTransform: 'none', fontWeight: 500 }}
             >
-              DODAJ PIERWSZEGO PACJENTA
+              Dodaj pierwszego pacjenta
             </AppButton>
           </Box>
         </Box>
@@ -243,46 +264,84 @@ export default function PatientsPage() {
           title="Pacjenci"
           subtitle="Zarządzaj bazą pacjentów i ich historią medyczną"
           action={
-            <Box sx={{
-              display: 'flex',
-              gap: { xs: 1, sm: 2 },
-              flexWrap: 'wrap',
-              width: { xs: '100%', sm: 'auto' },
-            }}>
-              <AppButton
-                variant={showArchived ? 'contained' : 'outlined'}
-                startIcon={<Archive />}
-                onClick={() => {
-                  setShowArchived(!showArchived);
-                  setPage(0);
-                }}
-                size={isMobile ? 'small' : 'medium'}
-              >
-                {showArchived ? 'Aktywni' : 'Zarchiwizowani'}
-              </AppButton>
-              {canExport && !showArchived && (
-                <AppButton
-                  variant="outlined"
-                  startIcon={exporting ? <CircularProgress size={20} /> : <Download />}
-                  onClick={handleExport}
-                  disabled={exporting}
-                  size={isMobile ? 'small' : 'medium'}
-                >
-                  {exporting ? (isMobile ? 'Eksport...' : 'Eksportowanie...') : (isMobile ? 'Eksport' : 'Eksportuj dane')}
-                </AppButton>
-              )}
-              {!showArchived && (
-                <AppButton
-                  variant="contained"
-                  startIcon={<Add />}
-                  onClick={() => navigate('/patients/new')}
-                  size={isMobile ? 'medium' : 'medium'}
-                  fullWidth={isMobile}
-                >
-                  NOWY PACJENT
-                </AppButton>
-              )}
-            </Box>
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', width: { xs: '100%', sm: 'auto' } }}>
+                {isMobile ? (
+                  <>
+                    <AppButton
+                      variant="contained"
+                      disableElevation
+                      startIcon={<Add />}
+                      onClick={() => navigate('/patients/new')}
+                      size="small"
+                      sx={{ height: 32, flex: 1, textTransform: 'none', fontWeight: 500 }}
+                    >
+                      Dodaj pacjenta
+                    </AppButton>
+                    <IconButton
+                      size="small"
+                      onClick={(e) => setHeaderMenuAnchor(e.currentTarget)}
+                      sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, height: 32, width: 32 }}
+                    >
+                      <MoreVert fontSize="small" />
+                    </IconButton>
+                    <Menu
+                      anchorEl={headerMenuAnchor}
+                      open={Boolean(headerMenuAnchor)}
+                      onClose={() => setHeaderMenuAnchor(null)}
+                      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                      transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                      PaperProps={{ elevation: 2, sx: { minWidth: 180, mt: 0.5, borderRadius: 2 } }}
+                    >
+                      <MenuItem onClick={() => { setShowArchived(!showArchived); setPage(0); setHeaderMenuAnchor(null); }} sx={{ fontSize: '14px' }}>
+                        <Archive fontSize="small" sx={{ mr: 1.5, color: 'text.secondary' }} />
+                        {showArchived ? 'Aktywni' : 'Zarchiwizowani'}
+                      </MenuItem>
+                      {canExport && !showArchived && (
+                        <MenuItem onClick={() => { handleExport(); setHeaderMenuAnchor(null); }} disabled={exporting} sx={{ fontSize: '14px' }}>
+                          {exporting ? <CircularProgress size={16} sx={{ mr: 1.5 }} /> : <Download fontSize="small" sx={{ mr: 1.5, color: 'text.secondary' }} />}
+                          Eksportuj
+                        </MenuItem>
+                      )}
+                    </Menu>
+                  </>
+                ) : (
+                  <>
+                    <AppButton
+                      variant={showArchived ? 'contained' : 'outlined'}
+                      startIcon={<Archive fontSize="small" />}
+                      onClick={() => { setShowArchived(!showArchived); setPage(0); }}
+                      size="small"
+                      sx={{ height: 32, textTransform: 'none', fontWeight: 500 }}
+                    >
+                      {showArchived ? 'Aktywni' : 'Zarchiwizowani'}
+                    </AppButton>
+                    {canExport && !showArchived && (
+                      <AppButton
+                        variant="outlined"
+                        startIcon={exporting ? <CircularProgress size={16} /> : <Download fontSize="small" />}
+                        onClick={handleExport}
+                        disabled={exporting}
+                        size="small"
+                        sx={{ height: 32, textTransform: 'none', fontWeight: 500 }}
+                      >
+                        {exporting ? 'Eksport...' : 'Eksportuj'}
+                      </AppButton>
+                    )}
+                    {!showArchived && (
+                      <AppButton
+                        variant="contained"
+                        disableElevation
+                        startIcon={<Add fontSize="small" />}
+                        onClick={() => navigate('/patients/new')}
+                        size="small"
+                        sx={{ height: 32, textTransform: 'none', fontWeight: 500 }}
+                      >
+                        Dodaj pacjenta
+                      </AppButton>
+                    )}
+                  </>
+                )}
+              </Box>
           }
         />
 
@@ -290,16 +349,19 @@ export default function PatientsPage() {
           <ErrorRetry message={loadError} onRetry={() => refetchPatients()} />
         )}
 
-        <AppCard
+        <Box
           sx={{
-            p: { xs: 1, sm: 2 },
-            mb: 4,
-            border: 'none',
-            boxShadow: 'none',
-            background: 'transparent',
+            display: 'flex', 
+            gap: 2, 
+            flexDirection: { xs: 'column', md: 'row' },
+            alignItems: { xs: 'stretch', md: 'center' },
+            pb: 2,
+            mb: 3,
+            borderBottom: '1px solid',
+            borderColor: 'divider',
           }}
         >
-          <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
+          <Box sx={{ flex: 1, maxWidth: { md: 420 } }}>
             <AppTextField
               name="search"
               fullWidth
@@ -309,367 +371,314 @@ export default function PatientsPage() {
                 setSearch(e.target.value);
                 setPage(0);
               }}
-              size={isMobile ? 'small' : 'medium'}
+              size="small"
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <Search sx={{ color: 'primary.main' }} fontSize={isMobile ? 'small' : 'medium'} />
+                    <Search sx={{ color: 'text.secondary', fontSize: 18 }} />
                   </InputAdornment>
                 ),
-                sx: { borderRadius: 2.5 }
+                sx: { borderRadius: 2, height: 36, bgcolor: 'background.paper', '& fieldset': { borderColor: 'divider' } }
               }}
             />
-            <Box sx={{ display: 'flex', gap: 1, minWidth: { md: 240 } }}>
-              <FormControl size={isMobile ? 'small' : 'medium'} fullWidth>
-                <Select
-                  value={sortBy}
-                  onChange={(e) => { setSortBy(e.target.value as any); setPage(0); }}
-                  sx={{ borderRadius: 2.5, bgcolor: 'white' }}
-                >
-                  <MenuItem value="createdAt">Data dodania</MenuItem>
-                  <MenuItem value="lastName">Nazwisko</MenuItem>
-                  <MenuItem value="lastVisit">Ostatnia wizyta</MenuItem>
-                </Select>
-              </FormControl>
-              <IconButton
-                onClick={() => { setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc'); setPage(0); }}
-                sx={{ bgcolor: 'white', borderRadius: 2.5, border: '1px solid', borderColor: 'divider' }}
-              >
-                {sortOrder === 'asc' ? <ArrowUpward /> : <ArrowDownward />}
-              </IconButton>
-            </Box>
           </Box>
-        </AppCard>
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', justifyContent: 'space-between', flex: { xs: 1, md: 'none' } }}>
+            <FormControl size="small" sx={{ minWidth: 200 }}>
+              <Select
+                value={sortBy}
+                onChange={(e) => { setSortBy(e.target.value as any); setPage(0); }}
+                sx={{ 
+                  borderRadius: 2, height: 36, bgcolor: 'background.paper',
+                  '& .MuiOutlinedInput-notchedOutline': { borderColor: 'divider' }
+                }}
+                IconComponent={() => (
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+                      setPage(0);
+                    }}
+                    sx={{ mr: 0.5, transform: sortOrder === 'asc' ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 150ms' }}
+                  >
+                    <ArrowDownward fontSize="small" />
+                  </IconButton>
+                )}
+              >
+                <MenuItem value="createdAt">Data dodania</MenuItem>
+                <MenuItem value="lastName">Imię i nazwisko (A-Z)</MenuItem>
+                <MenuItem value="lastVisit">Wiek</MenuItem>
+              </Select>
+            </FormControl>
+            <Typography sx={{ fontSize: 12, color: 'text.secondary', whiteSpace: 'nowrap' }}>
+              {loading ? <Skeleton width={60} /> : (search || showArchived) ? `${total} wynik${total === 1 ? '' : (total > 1 && total < 5) ? 'i' : 'ów'} dla "${search}"` : `${total} pacjentów`}
+            </Typography>
+          </Box>
+        </Box>
 
         {isMobile ? (
-          <Grid container spacing={2}>
+          <Grid container spacing={1.5} sx={{ pb: 4 }}>
             {loading ? (
-              <Grid size={{ xs: 12 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                  <CircularProgress />
-                </Box>
-              </Grid>
-            ) : patients.length === 0 ? (
-              <Grid size={{ xs: 12 }}>
-                <Card>
-                  <CardContent>
-                    <Box sx={{ textAlign: 'center', py: 4 }}>
-                      <Search sx={{ fontSize: 64, color: 'text.secondary', mb: 2, opacity: 0.5 }} />
-                      <Typography color="text.secondary">Nie znaleziono pasujących pacjentów</Typography>
+              Array.from(new Array(4)).map((_, idx) => (
+                <Grid size={{ xs: 12 }} key={idx}>
+                  <Card elevation={0} sx={{ p: 1.5, display: 'flex', gap: 1.5, border: '1px solid divider', borderRadius: 3 }}>
+                    <Skeleton variant="circular" width={36} height={36} />
+                    <Box sx={{ flex: 1 }}>
+                      <Skeleton width="60%" />
+                      <Skeleton width="40%" />
+                      <Skeleton width="50%" />
                     </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ) : (
-              patients.map((patient) => (
-                <Grid size={{ xs: 12 }} key={patient.id}>
-                  <AppCard
-                    noPadding
-                    sx={{
-                      transition: 'transform 0.2s ease-in-out',
-                      cursor: 'pointer',
-                      '&:hover': { transform: 'translateY(-2px)' },
-                      '&:active': { transform: 'scale(0.98)' },
-                    }}
-                    onClick={() => navigate(`/patients/${patient.id}`)}
-                  >
-                    <Box sx={{ p: 2.5 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                          <Avatar
-                            sx={{
-                              width: 50,
-                              height: 50,
-                              bgcolor: alpha(theme.palette.primary.main, 0.1),
-                              color: 'primary.main',
-                              fontWeight: 700,
-                              fontSize: '1.2rem',
-                              border: `2px solid ${alpha(theme.palette.primary.main, 0.2)}`
-                            }}
-                          >
-                            {getInitials(patient.firstName, patient.lastName)}
-                          </Avatar>
-                          <Box>
-                            <Typography variant="subtitle1" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
-                              {patient.firstName} {patient.lastName}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
-                              {patient.age ? `${patient.age} lat` : 'Wiek nieznany'} • {patient.gender === 'MALE' ? 'Mężczyzna' : 'Kobieta'}
-                            </Typography>
-                          </Box>
-                        </Box>
-                        <Box sx={{ display: 'flex' }}>
-                          <IconButton
-                            size="small"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/patients/${patient.id}`);
-                            }}
-                            sx={{ color: 'primary.main', bgcolor: alpha(theme.palette.primary.main, 0.05), mr: 0.5 }}
-                          >
-                            <Visibility fontSize="small" />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteClick(patient.id, `${patient.firstName} ${patient.lastName}`);
-                            }}
-                            sx={{ bgcolor: alpha(theme.palette.error.main, 0.05) }}
-                          >
-                            <Delete fontSize="small" />
-                          </IconButton>
-                        </Box>
-                      </Box>
-
-                      <Stack spacing={1}>
-                        {patient.phone && (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Phone sx={{ fontSize: 16, color: 'text.secondary' }} />
-                            <Typography variant="body2" color="text.primary" sx={{ fontWeight: 500 }}>
-                              {formatPhone(patient.phone)}
-                            </Typography>
-                          </Box>
-                        )}
-                        {patient.email && (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Email sx={{ fontSize: 16, color: 'text.secondary' }} />
-                            <Typography noWrap variant="body2" color="text.primary" sx={{ fontWeight: 500 }}>
-                              {patient.email}
-                            </Typography>
-                          </Box>
-                        )}
-                        {user?.role !== 'DOCTOR' && (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Person sx={{ fontSize: 16, color: 'text.secondary' }} />
-                            {patient.assignedDoctor ? (
-                              <Typography variant="body2" color="primary.main" sx={{ fontWeight: 500 }}>
-                                {patient.assignedDoctor.name}
-                              </Typography>
-                            ) : (
-                              <Typography variant="body2" color="text.disabled" sx={{ fontStyle: 'italic' }}>
-                                Nieprzypisany
-                              </Typography>
-                            )}
-                          </Box>
-                        )}
-                      </Stack>
-                    </Box>
-                  </AppCard>
+                  </Card>
                 </Grid>
               ))
+            ) : patients.length === 0 ? (
+              <Grid size={{ xs: 12 }}>
+                <Box sx={{ textAlign: 'center', py: 4 }}>
+                  <Search sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
+                  <Typography color="text.secondary">Nie znaleziono pasujących pacjentów</Typography>
+                </Box>
+              </Grid>
+            ) : (
+              <>
+                {patients.map((patient) => {
+                  const avatarColor = getDeterministicColor(patient.id);
+                  return (
+                    <Grid size={{ xs: 12 }} key={patient.id}>
+                      <Card
+                        elevation={0}
+                        sx={{
+                          border: '1px solid',
+                          borderColor: 'divider',
+                          borderRadius: 3,
+                          cursor: 'pointer',
+                          minHeight: 64,
+                          display: 'flex',
+                          alignItems: 'stretch',
+                          bgcolor: 'background.paper',
+                          '&:hover': { bgcolor: 'action.hover' },
+                        }}
+                        onClick={() => navigate(`/patients/${patient.id}`)}
+                      >
+                        <Box sx={{ p: 1.5, display: 'flex', alignItems: 'center', gap: 1.5, flex: 1, minWidth: 0 }}>
+                          <Avatar sx={{ bgcolor: avatarColor.bg, color: avatarColor.color, width: 36, height: 36, fontSize: '12px', fontWeight: 500, flexShrink: 0 }}>
+                            {getInitials(patient.firstName, patient.lastName)}
+                          </Avatar>
+                          <Box sx={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                            <Typography sx={{ fontWeight: 500, fontSize: '14px', textTransform: 'none', overflowWrap: 'anywhere', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                              {patient.firstName} {patient.lastName}
+                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap', mt: 0.5 }}>
+                              <Typography sx={{ fontSize: '12px', color: 'text.secondary', whiteSpace: 'nowrap' }}>
+                                {patient.age ? `${patient.age} lat` : 'Wiek nieznany'} • {patient.gender === 'MALE' ? 'Mężczyzna' : patient.gender === 'FEMALE' ? 'Kobieta' : '—'}
+                              </Typography>
+                            </Box>
+                            <Typography sx={{ fontSize: '12px', color: 'text.secondary', fontVariantNumeric: 'tabular-nums', mt: 0.25 }}>
+                              {formatPhone(patient.phone) || '—'}
+                            </Typography>
+                          </Box>
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', pr: 1 }}>
+                          <IconButton
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setMobileMenuAnchor({ id: patient.id, anchor: e.currentTarget, patientName: `${patient.firstName} ${patient.lastName}` });
+                            }}
+                            sx={{ width: 32, height: 32 }}
+                          >
+                            <MoreVert fontSize="small" color="action" />
+                          </IconButton>
+                        </Box>
+                      </Card>
+                    </Grid>
+                  );
+                })}
+                <Menu
+                  anchorEl={mobileMenuAnchor?.anchor}
+                  open={Boolean(mobileMenuAnchor)}
+                  onClose={() => setMobileMenuAnchor(null)}
+                  anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                  transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                  PaperProps={{ elevation: 2, sx: { minWidth: 160, borderRadius: 2 } }}
+                >
+                  <MenuItem onClick={() => { navigate(`/patients/${mobileMenuAnchor?.id}`); setMobileMenuAnchor(null); }} sx={{ fontSize: '14px' }}>
+                    <Visibility fontSize="small" sx={{ mr: 1.5, color: 'text.secondary' }} />
+                    Podgląd
+                  </MenuItem>
+                  {showArchived ? (
+                    <>
+                      <MenuItem onClick={() => { handleRestoreClick(mobileMenuAnchor!.id, mobileMenuAnchor!.patientName); setMobileMenuAnchor(null); }} sx={{ fontSize: '14px' }}>
+                        <Restore fontSize="small" sx={{ mr: 1.5, color: 'success.main' }} />
+                        Przywróć
+                      </MenuItem>
+                      {isAdmin && (
+                        <MenuItem onClick={() => { handlePermanentDeleteClick(mobileMenuAnchor!.id, mobileMenuAnchor!.patientName); setMobileMenuAnchor(null); }} sx={{ fontSize: '14px', color: 'error.main' }}>
+                          <DeleteForever fontSize="small" sx={{ mr: 1.5, color: 'inherit' }} />
+                          Trwale usuń
+                        </MenuItem>
+                      )}
+                    </>
+                  ) : (
+                    <MenuItem onClick={() => { handleDeleteClick(mobileMenuAnchor!.id, mobileMenuAnchor!.patientName); setMobileMenuAnchor(null); }} sx={{ fontSize: '14px', color: 'error.main' }}>
+                      <Delete fontSize="small" sx={{ mr: 1.5, color: 'inherit' }} />
+                      Usuń
+                    </MenuItem>
+                  )}
+                </Menu>
+              </>
             )}
           </Grid>
         ) : (
           <TableContainer
-            component={AppCard}
+            component={Paper}
+            elevation={0}
             sx={{
               overflowX: 'auto',
               WebkitOverflowScrolling: 'touch',
+              borderRadius: 3,
+              border: '1px solid',
+              borderColor: 'divider',
             }}
           >
-            <Table sx={{ minWidth: 650 }}>
-              <TableHead>
+            <Table sx={{ minWidth: 650, '& .MuiTableCell-root': { py: 1.5 } }}>
+              <TableHead sx={{ bgcolor: 'background.default' }}>
                 <TableRow>
-                  <TableCell sx={{
-                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                    fontWeight: 600,
-                    whiteSpace: 'nowrap',
-                  }}>
+                  <TableCell sx={{ fontSize: '12px', fontWeight: 500, color: 'text.secondary' }}>
                     Imię i nazwisko
                   </TableCell>
-                  <TableCell sx={{
-                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                    whiteSpace: 'nowrap',
-                  }}>
+                  <TableCell align="right" sx={{ fontSize: '12px', fontWeight: 500, color: 'text.secondary' }}>
                     Wiek
                   </TableCell>
-                  <TableCell sx={{
-                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                    whiteSpace: 'nowrap',
-                  }}>
+                  <TableCell sx={{ fontSize: '12px', fontWeight: 500, color: 'text.secondary' }}>
                     Płeć
                   </TableCell>
-                  <TableCell sx={{
-                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                    whiteSpace: 'nowrap',
-                    display: { xs: 'none', md: 'table-cell' },
-                  }}>
+                  <TableCell sx={{ fontSize: '12px', fontWeight: 500, color: 'text.secondary', display: { xs: 'none', md: 'table-cell' } }}>
                     Telefon
                   </TableCell>
-                  <TableCell sx={{
-                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                    whiteSpace: 'nowrap',
-                    display: { xs: 'none', lg: 'table-cell' },
-                  }}>
+                  <TableCell sx={{ fontSize: '12px', fontWeight: 500, color: 'text.secondary', display: { xs: 'none', lg: 'table-cell' } }}>
                     Email
                   </TableCell>
                   {user?.role !== 'DOCTOR' && (
-                    <TableCell sx={{
-                      fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                      whiteSpace: 'nowrap',
-                      display: { xs: 'none', md: 'table-cell' },
-                    }}>
+                    <TableCell sx={{ fontSize: '12px', fontWeight: 500, color: 'text.secondary', display: { xs: 'none', md: 'table-cell' } }}>
                       Lekarz prowadzący
                     </TableCell>
                   )}
-                  <TableCell align="right" sx={{
-                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                    whiteSpace: 'nowrap',
-                  }}>
+                  <TableCell align="right" sx={{ fontSize: '12px', fontWeight: 500, color: 'text.secondary' }}>
                     Akcje
                   </TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
-                      <CircularProgress />
-                    </TableCell>
-                  </TableRow>
+                  Array.from(new Array(8)).map((_, idx) => (
+                    <TableRow key={idx} sx={{ height: 56 }}>
+                      <TableCell><Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}><Skeleton variant="circular" width={32} height={32} /><Skeleton width={120} /></Box></TableCell>
+                      <TableCell align="right"><Skeleton width={20} sx={{ ml: 'auto' }} /></TableCell>
+                      <TableCell><Skeleton width={60} /></TableCell>
+                      <TableCell display={{ xs: 'none', md: 'table-cell' }}><Skeleton width={100} /></TableCell>
+                      <TableCell display={{ xs: 'none', lg: 'table-cell' }}><Skeleton width={140} /></TableCell>
+                      {user?.role !== 'DOCTOR' && <TableCell display={{ xs: 'none', md: 'table-cell' }}><Skeleton width={100} /></TableCell>}
+                      <TableCell align="right"><Skeleton width={60} sx={{ ml: 'auto' }} /></TableCell>
+                    </TableRow>
+                  ))
                 ) : patients.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} align="center" sx={{ py: 8 }}>
-                      <Search sx={{ fontSize: 64, color: 'text.secondary', mb: 2, opacity: 0.5 }} />
+                    <TableCell colSpan={user?.role !== 'DOCTOR' ? 7 : 6} align="center" sx={{ py: 8 }}>
+                      <Search sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
                       <Typography color="text.secondary" sx={{ fontWeight: 500 }}>Nie znaleziono pasujących pacjentów</Typography>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  patients.map((patient) => (
-                    <TableRow
-                      key={patient.id}
-                      hover
-                      sx={{ cursor: 'pointer' }}
-                      onClick={() => navigate(`/patients/${patient.id}`)}
-                    >
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                          <Avatar sx={{ bgcolor: 'primary.main', width: 40, height: 40, fontSize: '0.9rem', fontWeight: 'bold' }}>
-                            {getInitials(patient.firstName, patient.lastName)}
-                          </Avatar>
-                          <Typography sx={{ fontWeight: 500 }}>
-                            {patient.firstName} {patient.lastName}
-                          </Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell sx={{
-                        fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                      }}>
-                        {patient.age || '-'}
-                      </TableCell>
-                      <TableCell sx={{
-                        fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                      }}>
-                        {patient.gender && (
-                          <Chip
-                            label={patient.gender === 'MALE' ? 'M' : patient.gender === 'FEMALE' ? 'K' : '-'}
-                            size="small"
-                            color={patient.gender === 'MALE' ? 'primary' : 'secondary'}
-                            sx={{
-                              fontSize: { xs: '0.65rem', sm: '0.75rem' },
-                              height: { xs: 20, sm: 24 },
-                            }}
-                          />
-                        )}
-                      </TableCell>
-                      <TableCell sx={{
-                        fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                        display: { xs: 'none', md: 'table-cell' },
-                      }}>
-                        {formatPhone(patient.phone)}
-                      </TableCell>
-                      <TableCell sx={{
-                        fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                        display: { xs: 'none', lg: 'table-cell' },
-                        maxWidth: { lg: 200 },
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}>
-                        {patient.email || '-'}
-                      </TableCell>
-                      {user?.role !== 'DOCTOR' && (
-                        <TableCell sx={{
-                          display: { xs: 'none', md: 'table-cell' },
-                        }}>
-                          {patient.assignedDoctor ? (
-                            <Chip
-                              avatar={<Avatar sx={{ width: 20, height: 20, fontSize: '0.6rem' }}>{patient.assignedDoctor.name.charAt(0)}</Avatar>}
-                              label={patient.assignedDoctor.name}
-                              size="small"
-                              variant="outlined"
-                              color="primary"
-                              sx={{ fontSize: '0.75rem', maxWidth: 160 }}
-                            />
-                          ) : (
-                            <Typography variant="body2" color="text.disabled" sx={{ fontSize: '0.8rem' }}>
-                              Nieprzypisany
+                  patients.map((patient) => {
+                    const avatarColor = getDeterministicColor(patient.id);
+                    return (
+                      <TableRow
+                        key={patient.id}
+                        sx={{ 
+                          height: 56, 
+                          cursor: 'pointer',
+                          transition: 'background-color 0.15s',
+                          '&:hover': { bgcolor: 'action.hover', '& .row-actions': { opacity: 1 } },
+                        }}
+                        onClick={() => navigate(`/patients/${patient.id}`)}
+                      >
+                        <TableCell>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <Avatar sx={{ bgcolor: avatarColor.bg, color: avatarColor.color, width: 32, height: 32, fontSize: '12px', fontWeight: 500 }}>
+                              {getInitials(patient.firstName, patient.lastName)}
+                            </Avatar>
+                            <Typography sx={{ fontWeight: 500, fontSize: '14px', textTransform: 'none' }}>
+                              {patient.firstName} {patient.lastName}
                             </Typography>
-                          )}
+                          </Box>
                         </TableCell>
-                      )}
-                      <TableCell align="right">
-                        <IconButton
-                          size="small"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/patients/${patient.id}`);
-                          }}
-                        >
-                          <Visibility />
-                        </IconButton>
-                        {showArchived ? (
-                          <>
+                        <TableCell align="right" sx={{ fontSize: '13px', color: 'text.secondary', fontVariantNumeric: 'tabular-nums' }}>
+                          {patient.age || '—'}
+                        </TableCell>
+                        <TableCell sx={{ fontSize: '13px', color: 'text.secondary' }}>
+                          {patient.gender === 'MALE' ? 'Mężczyzna' : patient.gender === 'FEMALE' ? 'Kobieta' : '—'}
+                        </TableCell>
+                        <TableCell sx={{ fontSize: '13px', fontVariantNumeric: 'tabular-nums', display: { xs: 'none', md: 'table-cell' } }}>
+                          {formatPhone(patient.phone) || '—'}
+                        </TableCell>
+                        <TableCell sx={{ fontSize: '13px', color: 'text.secondary', display: { xs: 'none', lg: 'table-cell' }, maxWidth: { lg: 200 }, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {patient.email || '—'}
+                        </TableCell>
+                        {user?.role !== 'DOCTOR' && (
+                          <TableCell sx={{ fontSize: '13px', display: { xs: 'none', md: 'table-cell' } }}>
+                            {patient.assignedDoctor ? (
+                              <Typography variant="body2" sx={{ fontSize: '13px' }}>{patient.assignedDoctor.name}</Typography>
+                            ) : (
+                              <Typography variant="body2" color="text.disabled" sx={{ fontSize: '13px' }}>—</Typography>
+                            )}
+                          </TableCell>
+                        )}
+                        <TableCell align="right">
+                          <Box className="row-actions" sx={{ opacity: 0.5, transition: 'opacity 0.2s', display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
                             <IconButton
                               size="small"
-                              color="success"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRestoreClick(
-                                  patient.id,
-                                  `${patient.firstName} ${patient.lastName}`
-                                );
-                              }}
-                              title="Przywróć pacjenta"
+                              onClick={(e) => { e.stopPropagation(); navigate(`/patients/${patient.id}`); }}
+                              sx={{ width: 32, height: 32 }}
+                              aria-label="Podgląd"
                             >
-                              <Restore />
+                              <Visibility fontSize="small" />
                             </IconButton>
-                            {isAdmin && (
+                            {showArchived ? (
+                              <>
+                                <IconButton
+                                  size="small"
+                                  onClick={(e) => { e.stopPropagation(); handleRestoreClick(patient.id, `${patient.firstName} ${patient.lastName}`); }}
+                                  title="Przywróć pacjenta"
+                                  sx={{ width: 32, height: 32 }}
+                                >
+                                  <Restore fontSize="small" />
+                                </IconButton>
+                                {isAdmin && (
+                                  <IconButton
+                                    size="small"
+                                    onClick={(e) => { e.stopPropagation(); handlePermanentDeleteClick(patient.id, `${patient.firstName} ${patient.lastName}`); }}
+                                    title="Trwale usuń (RODO)"
+                                    sx={{ width: 32, height: 32, '&:hover': { color: 'error.main', bgcolor: 'error.50' } }}
+                                  >
+                                    <DeleteForever fontSize="small" />
+                                  </IconButton>
+                                )}
+                              </>
+                            ) : (
                               <IconButton
                                 size="small"
-                                color="error"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handlePermanentDeleteClick(
-                                    patient.id,
-                                    `${patient.firstName} ${patient.lastName}`
-                                  );
-                                }}
-                                title="Trwale usuń (RODO)"
+                                onClick={(e) => { e.stopPropagation(); handleDeleteClick(patient.id, `${patient.firstName} ${patient.lastName}`); }}
+                                sx={{ width: 32, height: 32, '&:hover': { color: 'error.main', bgcolor: 'error.50' } }}
+                                aria-label="Usuń pacjenta"
                               >
-                                <DeleteForever />
+                                <Delete fontSize="small" />
                               </IconButton>
                             )}
-                          </>
-                        ) : (
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteClick(
-                                patient.id,
-                                `${patient.firstName} ${patient.lastName}`
-                              );
-                            }}
-                          >
-                            <Delete />
-                          </IconButton>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
