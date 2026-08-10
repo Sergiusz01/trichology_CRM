@@ -563,8 +563,8 @@ const HOUR_OPTIONS = Array.from({ length: 15 }, (_, i) => String(8 + i).padStart
   };
 
   const handleVisitSubmit = async () => {
-    if (!visitDialog.data || !visitDialog.rodzajZabiegu) {
-      showError('Wypełnij wymagane pola: Data i Rodzaj zabiegu');
+    if (!visitDialog.datePart || !visitDialog.hour || !visitDialog.minute || !visitDialog.rodzajZabiegu) {
+      showError('Wypełnij wymagane pola: Data, Czas i Rodzaj zabiegu');
       return;
     }
 
