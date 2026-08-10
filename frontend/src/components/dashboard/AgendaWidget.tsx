@@ -55,10 +55,10 @@ export const AgendaWidget: React.FC<{ visits: UpcomingVisit[] }> = ({ visits }) 
                             }}>
                                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 60 }}>
                                     <Typography variant="h6" sx={{ fontWeight: 800, color: '#1976d2', lineHeight: 1 }}>
-                                        {format(visitDate, 'HH:mm')}
+                                        {visitDate.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}
                                     </Typography>
                                     <Typography variant="caption" color="text.secondary">
-                                        {format(visitDate, 'dd MMM', { locale: pl })}
+                                        {visitDate.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', timeZone: 'UTC' })}
                                     </Typography>
                                 </Box>
                                 <Box sx={{ width: 4, borderRadius: 2, bgcolor: visit.status === 'ZAPLANOWANA' ? '#34C759' : '#FF9500' }} />
