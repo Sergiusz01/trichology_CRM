@@ -178,7 +178,7 @@ function VisitCard({ event, onClick }: { event: VisitEvent; onClick: () => void 
     <Card
       elevation={0}
       sx={{
-        borderRadius: 6, // matching the very rounded look in the image (like 24px)
+        borderRadius: 3,
         overflow: 'hidden',
         mb: 1.5,
         border: '1px solid',
@@ -189,40 +189,30 @@ function VisitCard({ event, onClick }: { event: VisitEvent; onClick: () => void 
       }}
     >
       <CardActionArea onClick={onClick}>
-        <Stack direction="row" sx={{ p: 2, minHeight: 72 }}>
+        <Stack direction="row" sx={{ p: 1.5, minHeight: 72 }}>
           {/* Status color rail */}
-          <Box sx={{ width: 3, borderRadius: 2, bgcolor: color, mr: 2, my: 0.5, flexShrink: 0 }} />
+          <Box sx={{ width: 3, borderRadius: 2, bgcolor: color, mr: 1.5, flexShrink: 0 }} />
           
           <Stack direction="column" sx={{ flex: 1, minWidth: 0, justifyContent: 'center' }}>
-            <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 0.5 }}>
-              {/* Time */}
-              <Typography sx={{ fontSize: '14px', fontWeight: 700, minWidth: 42 }}>
-                {formatHour(event.start)}
+            <Typography sx={{ fontSize: '11px', fontWeight: 600, color: 'text.secondary', mb: 0.25 }}>
+              {formatHour(event.start)}–{formatHour(event.end)}
+            </Typography>
+            <Typography sx={{ fontSize: '13.5px', fontWeight: 700, mb: 0.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {event.extendedProps.patientName}
+            </Typography>
+            <Stack direction="row" alignItems="center" spacing={0.75} sx={{ overflow: 'hidden' }}>
+              <Typography sx={{ fontSize: '11.5px', color: 'text.secondary', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {event.extendedProps.visitType}
               </Typography>
-              
-              {/* Name */}
-              <Typography sx={{ fontSize: '14px', fontWeight: 500, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {event.extendedProps.patientName}
+              <Typography sx={{ fontSize: '10px', color: 'text.disabled' }}>•</Typography>
+              <Typography sx={{ fontSize: '11.5px', color: color, fontWeight: 500 }}>
+                {label.toLowerCase()}
               </Typography>
-            </Stack>
-            
-            <Stack direction="row" alignItems="center" spacing={2}>
-              <Box sx={{ minWidth: 42, flexShrink: 0 }} />
-              {/* Details */}
-              <Stack direction="row" alignItems="center" spacing={0.75} sx={{ overflow: 'hidden' }}>
-                <Typography sx={{ fontSize: '12px', color: 'text.secondary', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {event.extendedProps.visitType}
-                </Typography>
-                <Typography sx={{ fontSize: '10px', color: 'text.disabled' }}>•</Typography>
-                <Typography sx={{ fontSize: '12px', color: color, fontWeight: 500 }}>
-                  {label.toLowerCase()}
-                </Typography>
-              </Stack>
             </Stack>
           </Stack>
           
           <Box sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
-            <ArrowForwardIos sx={{ fontSize: 14, color: 'text.disabled' }} />
+            <ArrowForwardIos sx={{ fontSize: 12, color: 'text.disabled' }} />
           </Box>
         </Stack>
       </CardActionArea>
@@ -672,7 +662,8 @@ export default function CalendarPage() {
               timeZone="UTC"
               events={events}
               nowIndicator={true}
-              height="100%"
+              height="auto"
+              contentHeight="auto"
               aspectRatio={isMobile ? 1 : undefined}
               allDaySlot={false}
               slotMinTime="08:00:00"
