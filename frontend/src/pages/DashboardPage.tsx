@@ -57,6 +57,7 @@ import { api } from '../services/api';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { useNotification } from '../hooks/useNotification';
+import { useAuth } from '../contexts/AuthContext';
 import { AppCard, AppButton, AppTextField, PageHeader } from '../ui';
 import { ErrorState } from '../ui/ErrorState';
 import { formatPhone } from '../utils/formatPhone';
@@ -317,6 +318,7 @@ export default function DashboardPage() {
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const navigate = useNavigate();
     const { error: showError, success: showSuccess } = useNotification();
+    const { user } = useAuth();
 
     // --- Search & Modal Local State ---
     const [searchQuery, setSearchQuery] = useState('');
@@ -563,7 +565,7 @@ export default function DashboardPage() {
         return (
             <Box sx={{ pb: 4, px: { xs: 1, sm: 2, md: 3 } }}>
                 <PageHeader
-                    title="Witaj w Light Clinic 2026!"
+                    title={user?.name ? `Witaj, ${user.name}!` : "Witaj w systemie!"}
                     subtitle={format(new Date(), "EEEE, d MMMM yyyy", { locale: pl })}
                 />
                 <Box sx={{ mt: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', p: { xs: 3, md: 8 }, bgcolor: 'white', borderRadius: 4, border: '2px dashed', borderColor: alpha('#1976d2', 0.2) }}>
