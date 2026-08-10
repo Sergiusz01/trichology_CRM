@@ -168,7 +168,7 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
               return today;
             })(),
           },
-          status: { in: ['ZAPLANOWANA', 'POTWIERDZONA'] },
+          status: { in: ['ZAPLANOWANA', 'POTWIERDZONA', 'ODBYTA'] },
         },
         include: {
           patient: {
@@ -180,7 +180,7 @@ router.get('/', authenticate, async (req: AuthRequest, res, next) => {
           },
         },
         orderBy: { data: 'asc' },
-        take: 6,
+        take: 20,
       }),
       // Weekly revenue calculation
       (async () => {

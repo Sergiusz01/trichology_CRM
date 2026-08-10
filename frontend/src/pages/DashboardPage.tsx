@@ -415,6 +415,10 @@ export default function DashboardPage() {
         }
     };
 
+    // Normalizacja polskich znaków diakrytycznych
+    const normalize = (str: string): string =>
+        str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\u0142/g, 'l').replace(/\u0141/g, 'L').toLowerCase();
+
     // Wyszukiwanie z debounce
     useEffect(() => {
         if (searchQuery.length < 2) {
@@ -427,11 +431,15 @@ export default function DashboardPage() {
             try {
                 const response = await api.get('/patients');
                 const patients = response.data.patients || [];
-                const filtered = patients.filter((p: Patient) =>
-                    `${p.firstName} ${p.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    p.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    p.phone?.includes(searchQuery)
-                ).slice(0, 5);
+                const q = normalize(searchQuery);
+                const filtered = patients.filter((p: Patient) => {
+                    const fullName = normalize(`${p.firstName} ${p.lastName}`);
+                    const reverseName = normalize(`${p.lastName} ${p.firstName}`);
+                    return fullName.includes(q) ||
+                        reverseName.includes(q) ||
+                        (p.email && normalize(p.email).includes(q)) ||
+                        (p.phone && p.phone.includes(searchQuery));
+                }).slice(0, 8);
                 setSearchResults(filtered);
             } catch (error) {
                 console.error('Search failed', error);
@@ -516,7 +524,6 @@ export default function DashboardPage() {
     const metrics = [
         { label: todayVisits.length === 1 ? 'wizyta dziś' : 'wizyty dziś', value: todayVisits.length, link: '#' },
         { label: 'w tym tygodniu', value: visitsThisWeekTotal, link: '/visits' },
-        { label: 'pacjentów', value: stats.patientsCount, link: '/patients' },
     ];
 
     // ===== SEARCH RESULTS COMPONENT =====
@@ -755,41 +762,7 @@ export default function DashboardPage() {
                 </Grid>
             </Grid>
 
-            {/* ===== BOTTOM STATS ===== */}
-            <Typography sx={{ fontSize: 15, fontWeight: 600, color: 'text.secondary', mb: 1.5, px: { xs: 0, sm: 0 } }}>
-                Statystyki ogólne
-            </Typography>
-            <Grid container spacing={2} sx={{ mb: 4 }}>
-                {[
-                    { title: 'Pacjenci w bazie', value: stats.patientsCount, sub: `+${stats.patientsThisWeek} w tym tyg.`, link: '/patients', color: '#0A84FF' },
-                    { title: 'Konsultacje', value: stats.consultationsCount, sub: `+${stats.consultationsThisWeek} w tym tyg.`, link: '/consultations', color: '#5856D6' },
-                ].map((stat) => (
-                    <Grid key={stat.title} size={{ xs: 6, sm: 3 }}>
-                        <ButtonBase
-                            onClick={() => navigate(stat.link)}
-                            sx={{
-                                width: '100%', display: 'flex', textAlign: 'left',
-                                borderRadius: 2, bgcolor: 'background.paper',
-                                border: '1px solid', borderColor: 'divider',
-                                p: 2, transition: 'all 0.15s',
-                                '&:hover': { borderColor: alpha(stat.color, 0.3) },
-                            }}
-                        >
-                            <Box>
-                                <Typography sx={{ fontSize: 22, fontWeight: 700, color: 'text.primary', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
-                                    {stat.value}
-                                </Typography>
-                                <Typography sx={{ fontSize: 12, fontWeight: 500, color: 'text.secondary', mt: 0.5 }}>
-                                    {stat.title}
-                                </Typography>
-                                <Typography sx={{ fontSize: 11, fontWeight: 500, color: stat.color, mt: 0.25 }}>
-                                    {stat.sub}
-                                </Typography>
-                            </Box>
-                        </ButtonBase>
-                    </Grid>
-                ))}
-            </Grid>
+
 
             {/* ===== ACTIVITY ===== */}
             <PatientActivityCard />
