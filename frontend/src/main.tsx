@@ -16,8 +16,9 @@ import { registerSW } from 'virtual:pwa-register';
 // Auto-register service worker and check for updates
 const updateSW = registerSW({
   onNeedRefresh() {
-    // Force reload to get the new version
-    window.location.reload();
+    // Force install and activate the new service worker immediately.
+    // The plugin will automatically reload the page when the new SW takes over.
+    updateSW(true);
   },
   onOfflineReady() {
     console.log('App is ready for offline use.');

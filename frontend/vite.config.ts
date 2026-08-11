@@ -8,7 +8,7 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       devOptions: {
         enabled: false, // Disabled in dev so we don't accidentally cache dev assets
       },
