@@ -75,7 +75,7 @@ function sameDay(a: Date, b: Date) {
 }
 
 function formatHour(iso: string) {
-  return new Date(iso).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+  return new Date(iso).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
 }
 
 function formatDayHeader(date: Date): string {
@@ -348,7 +348,8 @@ export default function CalendarPage() {
       const apiVisits = res.data.data || res.data;
       setEvents(apiVisits.map((v: any) => {
         const startDate = new Date(v.data);
-        const endDate   = new Date(startDate.getTime() + 60 * 60000);
+        const durationMinutes = v.durationMinutes ?? 60;
+        const endDate   = new Date(startDate.getTime() + durationMinutes * 60000);
         return {
           id: v.id,
           title: `${v.patient?.firstName || ''} ${v.patient?.lastName || ''} — ${v.rodzajZabiegu || 'Wizyta'}`,
@@ -420,6 +421,25 @@ export default function CalendarPage() {
     .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
 
   const refresh = () => { fetchEvents(true); fetchStats(); };
+
+  // Calculate max time of day across all events to prevent cutoff (CB21)
+  const maxEventTimeMins = events.length > 0
+    ? events.reduce((maxMins, e) => {
+        const end = new Date(e.end);
+        const mins = end.getUTCHours() * 60 + end.getUTCMinutes();
+        return mins > maxMins ? mins : maxMins;
+      }, 0)
+    : 0;
+
+  let slotMaxTime = '22:00:00';
+  if (maxEventTimeMins > 0) {
+    const endPlus30Mins = maxEventTimeMins + 30;
+    if (endPlus30Mins > 22 * 60) {
+      const hours = Math.floor(endPlus30Mins / 60);
+      const mins = endPlus30Mins % 60;
+      slotMaxTime = `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:00`;
+    }
+  }
 
   return (
     <Box sx={{ pb: isMobile ? 10 : 2, display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -683,7 +703,7 @@ export default function CalendarPage() {
               headerToolbar={false}
               locales={[plLocale]}
               locale="pl"
-              timeZone="local"
+              timeZone="UTC"
               events={events}
               nowIndicator={true}
               height="auto"
@@ -691,7 +711,7 @@ export default function CalendarPage() {
               aspectRatio={isMobile && calendarView !== 'listDay' ? 1 : undefined}
               allDaySlot={false}
               slotMinTime="08:00:00"
-              slotMaxTime="22:00:00"
+              slotMaxTime={slotMaxTime}
               slotEventOverlap={false}
               slotDuration="00:30:00"
               slotLabelInterval="01:00"
