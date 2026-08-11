@@ -202,7 +202,7 @@ function VisitCard({ event, onClick }: { event: VisitEvent; onClick: () => void 
       <CardActionArea onClick={onClick}>
         <Stack direction="row" sx={{ p: 1.5, minHeight: 72 }}>
           {/* Status color rail */}
-          <Box sx={{ width: 3, borderRadius: 2, bgcolor: color, mr: 1.5, flexShrink: 0 }} />
+          <Box sx={{ width: 3, borderRadius: '4px', bgcolor: color, mr: 1.5, flexShrink: 0 }} />
           
           <Stack direction="column" sx={{ flex: 1, minWidth: 0, justifyContent: 'center' }}>
             <Typography sx={{ fontSize: '11px', fontWeight: 600, color: 'text.secondary', mb: 0.25 }}>
@@ -276,7 +276,7 @@ function StatsRow({ stats, loading, activeFilter, onFilterChange }: { stats: Wee
               gap: 1,
               height: 28,
               px: 1,
-              borderRadius: 2,
+              borderRadius: '6px',
               whiteSpace: 'nowrap',
               bgcolor: isActive ? alpha(theme.palette.action.selected, 0.5) : 'transparent',
               transition: 'background-color 0.15s',
@@ -467,7 +467,6 @@ export default function CalendarPage() {
         borderTop: '1px solid',
         borderBottom: '1px solid',
         borderColor: 'divider',
-        '--fc-now-color': (theme: any) => theme.palette.primary.main,
         py: 1,
         mb: 2,
         minHeight: 40
@@ -548,7 +547,7 @@ export default function CalendarPage() {
 
         {/* ── LEFT: Day Panel ───────────────────────────────────────── */}
         <Box sx={{ width: { xs: '100%', md: 320, lg: 360 }, flexShrink: 0 }}>
-          <Paper elevation={0} sx={{ p: 2, borderRadius: 3, border: '1px solid', borderColor: 'divider', mb: 2, background: theme.palette.mode === 'dark' ? alpha('#1E293B', 0.8) : '#fff' }}>
+          <Paper elevation={0} sx={{ p: 2, borderRadius: '12px', border: '1px solid', borderColor: 'divider', mb: 2, background: theme.palette.mode === 'dark' ? alpha('#1E293B', 0.8) : '#fff' }}>
             <MiniCalendar selectedDate={selectedDate} miniMonth={miniMonth} setMiniMonth={setMiniMonth} onSelect={setSelectedDate} events={filteredEvents} />
           </Paper>
 
@@ -556,7 +555,7 @@ export default function CalendarPage() {
           <Paper
             elevation={0}
             sx={{
-              p: 2, borderRadius: 3,
+              p: 2, borderRadius: '12px',
               border: '1px solid', borderColor: 'divider',
               background: theme.palette.mode === 'dark' ? alpha('#1E293B', 0.8) : '#fff',
             }}
@@ -599,14 +598,14 @@ export default function CalendarPage() {
             {/* Visit list */}
             {loading ? (
               <>
-                <Skeleton variant="rounded" height={72} sx={{ mb: 1.5, borderRadius: 3 }} />
-                <Skeleton variant="rounded" height={72} sx={{ mb: 1.5, borderRadius: 3 }} />
+                <Skeleton variant="rounded" height={72} sx={{ mb: 1.5, borderRadius: '12px' }} />
+                <Skeleton variant="rounded" height={72} sx={{ mb: 1.5, borderRadius: '12px' }} />
               </>
             ) : dayEvents.length === 0 ? (
               <Box sx={{
                 textAlign: 'center', py: 4, px: 2,
                 bgcolor: 'action.hover',
-                borderRadius: 3,
+                borderRadius: '12px',
                 border: `1px dashed ${theme.palette.divider}`,
               }}>
                 <CalendarToday sx={{ fontSize: 28, color: 'text.disabled', mb: 1 }} />
@@ -640,16 +639,16 @@ export default function CalendarPage() {
               onClick={() => navigate('/visits/new')}
               sx={{
                 mt: 2,
-                bgcolor: '#007AFF',
+                bgcolor: 'primary.main',
                 color: 'white',
                 textTransform: 'none',
                 fontWeight: 700,
                 py: 1.5,
-                borderRadius: 2.5,
-                boxShadow: `0 4px 14px ${alpha('#007AFF', 0.4)}`,
+                borderRadius: '8px',
+                boxShadow: (theme) => `0 4px 14px ${alpha(theme.palette.primary.main, 0.4)}`,
                 '&:hover': {
-                  bgcolor: '#0051D5',
-                  boxShadow: `0 6px 20px ${alpha('#007AFF', 0.5)}`,
+                  bgcolor: 'primary.dark',
+                  boxShadow: (theme) => `0 6px 20px ${alpha(theme.palette.primary.main, 0.5)}`,
                 },
               }}
             >
@@ -664,11 +663,12 @@ export default function CalendarPage() {
             elevation={0}
             sx={{
               p: { xs: 1, sm: 2.5 },
-              borderRadius: 3,
+              borderRadius: '12px',
               border: '1px solid',
               borderColor: 'divider',
               position: 'relative',
               overflow: 'hidden',
+              '--fc-now-color': theme.palette.primary.main,
             }}
           >
             {loading && (
@@ -696,16 +696,24 @@ export default function CalendarPage() {
               slotDuration="00:30:00"
               slotLabelInterval="01:00"
               slotLabelFormat={{ hour: '2-digit', omitZeroMinute: true, meridiem: false }}
-              dayHeaderContent={(arg) => (
-                <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="center">
-                  <Typography sx={{ fontSize: '11px', fontWeight: 400, color: 'text.secondary', textTransform: 'lowercase' }}>
-                    {format(arg.date, 'E', { locale: pl }).slice(0, 2)}
-                  </Typography>
-                  <Typography sx={{ fontSize: '13px', fontWeight: 500, color: 'text.primary' }}>
-                    {arg.date.getDate()}
-                  </Typography>
-                </Stack>
-              )}
+              dayHeaderContent={(arg) => {
+                const isToday = sameDay(arg.date, new Date());
+                const isWeekend = arg.date.getDay() === 0 || arg.date.getDay() === 6;
+                return (
+                  <Stack direction="row" spacing={0.5} alignItems="center" justifyContent="center">
+                    <Typography sx={{ fontSize: '11px', fontWeight: 400, color: isWeekend ? 'text.disabled' : 'text.secondary', textTransform: 'lowercase' }}>
+                      {format(arg.date, 'E', { locale: pl }).slice(0, 2)}
+                    </Typography>
+                    <Typography sx={{
+                      fontSize: '13px',
+                      fontWeight: isToday ? 700 : 500,
+                      color: isToday ? 'primary.main' : (isWeekend ? 'text.disabled' : 'text.primary'),
+                    }}>
+                      {arg.date.getDate()}
+                    </Typography>
+                  </Stack>
+                );
+              }}
               eventClick={(info) => {
                 const { patientId } = info.event.extendedProps;
                 if (patientId) navigate(`/patients/${patientId}?tab=visits&visitId=${info.event.id}`);
@@ -722,17 +730,18 @@ export default function CalendarPage() {
                 const patientName = arg.event.extendedProps.patientName;
                 const bgColor     = arg.event.backgroundColor || '#3B82F6';
 
-                // Month view — compact pill
+                // Month view — muted pill (same style family as week/day)
                 if (viewType === 'dayGridMonth') {
                   return (
                     <Box sx={{
                       px: 0.5, py: 0.1,
-                      bgcolor: bgColor,
-                      borderRadius: 1,
+                      bgcolor: alpha(bgColor, 0.12),
+                      borderLeft: `2px solid ${bgColor}`,
+                      borderRadius: '4px',
                       overflow: 'hidden',
                       width: '100%',
                     }}>
-                      <Typography sx={{ fontSize: '11px', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <Typography sx={{ fontSize: '11px', fontWeight: 600, color: darken(bgColor, 0.3), whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {patientName}
                       </Typography>
                     </Box>
@@ -833,9 +842,9 @@ export default function CalendarPage() {
         
         .fc-day-sat, .fc-day-sun { background-color: #f8fafc !important; }
         .fc .fc-day-today { background-color: rgba(59, 130, 246, 0.04) !important; }
-        .fc .fc-timegrid-now-indicator-line { border-color: #0ea5e9 !important; border-width: 1.5px !important; }
+        .fc .fc-timegrid-now-indicator-line { border-color: var(--fc-now-color, #3B82F6) !important; border-width: 1.5px !important; }
         .fc .fc-timegrid-now-indicator-arrow { display: none; }
-        .fc .fc-timegrid-now-indicator-line::before { content: ""; position: absolute; width: 6px; height: 6px; background: #0ea5e9; border-radius: 50%; left: -3px; top: -2.5px; }
+        .fc .fc-timegrid-now-indicator-line::before { content: ""; position: absolute; width: 6px; height: 6px; background: var(--fc-now-color, #3B82F6); border-radius: 50%; left: -3px; top: -2.5px; }
         
         .fc .fc-event { border: none !important; background: transparent !important; }
         .fc .fc-timegrid-event-harness { padding: 0 2px; }
