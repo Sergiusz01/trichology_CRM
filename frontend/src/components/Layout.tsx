@@ -92,13 +92,15 @@ export default function Layout() {
 
   const drawerContent = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'background.paper' }}>
-      {/* Brand Header */}
-      <Box 
-        onClick={() => handleNavigate('/')} 
-        sx={{ p: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-      >
-        <img src="/logo.png" alt="Logo" style={{ maxHeight: 60, maxWidth: '100%' }} />
-      </Box>
+      {/* Brand Header — desktop only; on mobile the AppBar already shows the logo */}
+      {!isMobile && (
+        <Box
+          onClick={() => handleNavigate('/')}
+          sx={{ p: 3, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+        >
+          <img src="/logo.png" alt="Logo" style={{ maxHeight: 60, maxWidth: '100%' }} />
+        </Box>
+      )}
 
       {/* Navigation */}
       <Box sx={{ flex: 1, overflowY: 'auto', px: 2, pb: 2 }}>
@@ -284,6 +286,8 @@ export default function Layout() {
           bgcolor: 'background.paper',
           borderBottom: '1px solid',
           borderColor: 'divider',
+          borderRadius: 0,
+          boxShadow: 'none',
         }}
       >
         <Toolbar>
