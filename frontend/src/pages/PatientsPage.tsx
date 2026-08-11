@@ -267,20 +267,20 @@ export default function PatientsPage() {
               <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', width: { xs: '100%', sm: 'auto' } }}>
                 {isMobile ? (
                   <>
-                    <AppButton
+                    <Button
                       variant="contained"
                       disableElevation
                       startIcon={<Add />}
                       onClick={() => navigate('/patients/new')}
                       size="small"
-                      sx={{ height: 32, flex: 1, textTransform: 'none', fontWeight: 500 }}
+                      sx={{ height: 36, flex: 1, textTransform: 'none', fontWeight: 500, borderRadius: 2, px: 2, whiteSpace: 'nowrap' }}
                     >
                       Dodaj pacjenta
-                    </AppButton>
+                    </Button>
                     <IconButton
                       size="small"
                       onClick={(e) => setHeaderMenuAnchor(e.currentTarget)}
-                      sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, height: 32, width: 32 }}
+                      sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, height: 36, width: 36 }}
                     >
                       <MoreVert fontSize="small" />
                     </IconButton>
@@ -361,8 +361,8 @@ export default function PatientsPage() {
             borderColor: 'divider',
           }}
         >
-          <Box sx={{ flex: 1, maxWidth: { md: 420 } }}>
-            <AppTextField
+          <Box sx={{ flex: 1, maxWidth: { md: 420 }, display: 'flex', alignItems: 'center' }}>
+            <TextField
               name="search"
               fullWidth
               placeholder={isMobile ? "Szukaj pacjenta..." : "Szukaj po imieniu, nazwisku, nr telefonu lub emailu..."}
@@ -380,6 +380,7 @@ export default function PatientsPage() {
                 ),
                 sx: { borderRadius: 2, height: 36, bgcolor: 'background.paper', '& fieldset': { borderColor: 'divider' } }
               }}
+              sx={{ '& .MuiInputBase-root': { height: 36 } }}
             />
           </Box>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', justifyContent: 'space-between', flex: { xs: 1, md: 'none' } }}>
@@ -417,7 +418,8 @@ export default function PatientsPage() {
         </Box>
 
         {isMobile ? (
-          <Grid container spacing={1.5} sx={{ pb: 4 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+            <Grid container spacing={1.5} sx={{ pb: 2 }}>
             {loading ? (
               Array.from(new Array(4)).map((_, idx) => (
                 <Grid size={{ xs: 12 }} key={idx}>
@@ -527,7 +529,19 @@ export default function PatientsPage() {
                 </Menu>
               </>
             )}
-          </Grid>
+            </Grid>
+            <TablePagination
+              component="div"
+              count={total}
+              page={page}
+              onPageChange={handleChangePage}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={handleChangeRowsPerPage}
+              rowsPerPageOptions={[10, 25, 50]}
+              labelRowsPerPage=""
+              sx={{ borderBottom: 'none', '& .MuiTablePagination-toolbar': { pl: 0 } }}
+            />
+          </Box>
         ) : (
           <TableContainer
             component={Paper}
