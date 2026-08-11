@@ -59,12 +59,7 @@ const STATUS_LABEL: Record<string, string> = {
   NIEOBECNOSC: 'Nieobecność',
 };
 
-const STATUS_BG: Record<string, string> = {
-  ZAPLANOWANA: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)',
-  ODBYTA:      'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-  ANULOWANA:   'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
-  NIEOBECNOSC: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
-};
+
 
 const DAY_NAMES_SHORT = ['Nd', 'Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb'];
 const DAY_NAMES_LONG  = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota'];
@@ -96,11 +91,11 @@ function formatDayHeader(date: Date): string {
 }
 
 // ── Mini Calendar ──────────────────────────────────────────────────────────────
-function MiniCalendar({ selectedDate, onSelect, events }: { selectedDate: Date; onSelect: (d: Date) => void; events: VisitEvent[] }) {
+function MiniCalendar({ selectedDate, miniMonth, setMiniMonth, onSelect, events }: { selectedDate: Date; miniMonth: Date; setMiniMonth: (d: Date) => void; onSelect: (d: Date) => void; events: VisitEvent[] }) {
   const theme = useTheme();
   
-  const year = selectedDate.getFullYear();
-  const month = selectedDate.getMonth();
+  const year = miniMonth.getFullYear();
+  const month = miniMonth.getMonth();
   const firstDay = new Date(year, month, 1);
   const startingDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1; // Mon=0, Sun=6
   
@@ -118,19 +113,19 @@ function MiniCalendar({ selectedDate, onSelect, events }: { selectedDate: Date; 
     <Box>
       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
         <Typography variant="subtitle2" fontWeight={500} sx={{ fontSize: '0.75rem', textTransform: 'capitalize' }}>
-          {format(selectedDate, 'LLLL yyyy', { locale: pl })}
+          {format(miniMonth, 'LLLL yyyy', { locale: pl })}
         </Typography>
         <Stack direction="row" spacing={0.5}>
-          <IconButton size="small" onClick={() => onSelect(new Date(year, month - 1, 1))} sx={{ width: 24, height: 24 }}>
+          <IconButton size="small" onClick={() => setMiniMonth(new Date(year, month - 1, 1))} sx={{ width: 24, height: 24 }}>
             <ChevronLeft sx={{ fontSize: 16 }} />
           </IconButton>
-          <IconButton size="small" onClick={() => onSelect(new Date(year, month + 1, 1))} sx={{ width: 24, height: 24 }}>
+          <IconButton size="small" onClick={() => setMiniMonth(new Date(year, month + 1, 1))} sx={{ width: 24, height: 24 }}>
             <ChevronRight sx={{ fontSize: 16 }} />
           </IconButton>
         </Stack>
       </Stack>
       
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', textAlign: 'center' }}>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', justifyItems: 'center', gap: '2px', textAlign: 'center' }}>
         {['pn', 'wt', 'śr', 'cz', 'pt', 'sb', 'nd'].map(d => (
           <Typography key={d} sx={{ fontSize: '11px', color: 'text.disabled', mb: 0.5 }}>{d}</Typography>
         ))}
@@ -147,9 +142,9 @@ function MiniCalendar({ selectedDate, onSelect, events }: { selectedDate: Date; 
               onClick={() => onSelect(d)}
               sx={{
                 width: 28, height: 28,
-                borderRadius: 1.5,
+                borderRadius: 6,
                 fontSize: '0.75rem',
-                fontFamily: 'monospace',
+                fontVariantNumeric: 'tabular-nums',
                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                 bgcolor: isSelected ? 'primary.main' : 'transparent',
                 color: isSelected ? '#fff' : (isCurrentMonth ? (isToday ? 'primary.main' : 'text.primary') : 'text.disabled'),
@@ -314,6 +309,7 @@ export default function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [calendarView, setCalendarView] = useState<'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'listDay'>('timeGridWeek');
+  const [miniMonth, setMiniMonth] = useState(selectedDate);
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -372,11 +368,16 @@ export default function CalendarPage() {
     touchStartX.current = null;
   };
 
-  const goDay = (offset: number) => {
-    const next = new Date(selectedDate);
-    next.setDate(selectedDate.getDate() + offset);
-    setSelectedDate(next);
-  };
+  const goPrev = () => {
+      calendarRef.current?.getApi().prev();
+      const newDate = calendarRef.current?.getApi().getDate();
+      if (newDate) setSelectedDate(newDate);
+    };
+    const goNext = () => {
+      calendarRef.current?.getApi().next();
+      const newDate = calendarRef.current?.getApi().getDate();
+      if (newDate) setSelectedDate(newDate);
+    };
   
   useEffect(() => {
     if (calendarRef.current) {
@@ -450,8 +451,8 @@ export default function CalendarPage() {
       }}>
         <Stack direction="row" alignItems="center" spacing={1.5} sx={{ width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'center' : 'flex-start' }}>
           <ButtonGroup size="small" variant="outlined" sx={{ '& .MuiButton-root': { px: 1, minWidth: 'auto', borderColor: 'divider', color: 'text.secondary' } }}>
-            <Button onClick={() => goDay(-1)}><ChevronLeft sx={{ fontSize: 18 }} /></Button>
-            <Button onClick={() => goDay(1)}><ChevronRight sx={{ fontSize: 18 }} /></Button>
+            <Button onClick={goPrev}><ChevronLeft sx={{ fontSize: 18 }} /></Button>
+            <Button onClick={goNext}><ChevronRight sx={{ fontSize: 18 }} /></Button>
           </ButtonGroup>
           
           {isMobile ? (
@@ -464,13 +465,13 @@ export default function CalendarPage() {
               variant="outlined"
               disabled={sameDay(selectedDate, new Date())}
               onClick={() => setSelectedDate(new Date())}
-              sx={{ textTransform: 'none', px: 1.5, borderColor: 'divider', color: 'text.primary', '&.Mui-disabled': { borderColor: 'transparent' } }}
+              sx={{ textTransform: 'none', px: 1.5, borderColor: 'divider', color: 'text.primary', '&.Mui-disabled': { borderColor: 'divider', color: 'text.disabled' } }}
             >
               Dziś
             </Button>
           )}
           
-          <Typography sx={{ fontSize: 13, fontWeight: 500, tabularNums: true, whiteSpace: 'nowrap' }}>
+          <Typography sx={{ fontSize: 13, fontWeight: 500, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
             {format(selectedDate, 'd', { locale: pl })}–{format(new Date(selectedDate.getTime() + 6 * 24*60*60*1000), 'd MMMM yyyy', { locale: pl })}
           </Typography>
         </Stack>
@@ -525,7 +526,7 @@ export default function CalendarPage() {
         {/* ── LEFT: Day Panel ───────────────────────────────────────── */}
         <Box sx={{ width: { xs: '100%', md: 320, lg: 360 }, flexShrink: 0 }}>
           <Paper elevation={0} sx={{ p: 2, borderRadius: 3, border: '1px solid', borderColor: 'divider', mb: 2, background: theme.palette.mode === 'dark' ? alpha('#1E293B', 0.8) : '#fff' }}>
-            <MiniCalendar selectedDate={selectedDate} onSelect={setSelectedDate} events={filteredEvents} />
+            <MiniCalendar selectedDate={selectedDate} miniMonth={miniMonth} setMiniMonth={setMiniMonth} onSelect={setSelectedDate} events={filteredEvents} />
           </Paper>
 
           {/* Day visits panel */}
@@ -581,12 +582,12 @@ export default function CalendarPage() {
             ) : dayEvents.length === 0 ? (
               <Box sx={{
                 textAlign: 'center', py: 4, px: 2,
-                bgcolor: alpha(theme.palette.success.main, 0.05),
+                bgcolor: 'action.hover',
                 borderRadius: 3,
-                border: `1px dashed ${alpha(theme.palette.success.main, 0.25)}`,
+                border: `1px dashed ${theme.palette.divider}`,
               }}>
-                <Typography sx={{ fontSize: '2.2rem', mb: 0.75 }}>🗓️</Typography>
-                <Typography variant="body2" fontWeight={600} color="text.secondary">
+                <CalendarToday sx={{ fontSize: 28, color: 'text.disabled', mb: 1 }} />
+                <Typography variant="body2" fontWeight={500} color="text.secondary">
                   Brak wizyt w tym dniu
                 </Typography>
                 <Typography variant="caption" color="text.disabled">
@@ -648,7 +649,7 @@ export default function CalendarPage() {
             }}
           >
             {loading && (
-              <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'rgba(255,255,255,0.7)', zIndex: 10 }}>
+              <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: theme.palette.background.default, zIndex: 10 }}>
                 <CircularProgress />
               </Box>
             )}
@@ -664,7 +665,7 @@ export default function CalendarPage() {
               nowIndicator={true}
               height="auto"
               contentHeight="auto"
-              aspectRatio={isMobile ? 1 : undefined}
+              aspectRatio={isMobile && calendarView !== 'listDay' ? 1 : undefined}
               allDaySlot={false}
               slotMinTime="08:00:00"
               slotMaxTime="22:00:00"
@@ -696,7 +697,6 @@ export default function CalendarPage() {
               eventContent={(arg) => {
                 const viewType = arg.view.type;
                 const patientName = arg.event.extendedProps.patientName;
-                const visitType   = arg.event.extendedProps.visitType;
                 const bgColor     = arg.event.backgroundColor || '#3B82F6';
 
                 // Month view — compact pill
@@ -760,7 +760,7 @@ export default function CalendarPage() {
           color="primary"
           sx={{
             position: 'fixed', bottom: 82, right: 18, zIndex: 1200,
-            boxShadow: '0 6px 24px rgba(59,130,246,0.45)',
+            boxShadow: `0 6px 24px ${alpha(theme.palette.primary.main, 0.45)}`,
           }}
           onClick={() => navigate('/visits/new')}
         >
