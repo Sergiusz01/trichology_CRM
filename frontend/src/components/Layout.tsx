@@ -18,6 +18,7 @@ import {
   Avatar,
   Divider,
   Collapse,
+  alpha,
 } from '@mui/material';
 import {
   People,
@@ -47,7 +48,7 @@ const allMainMenuItems = [
   { text: 'Pacjenci',        icon: <People sx={{ fontSize: 20 }} />,        path: '/patients',     roles: ['ADMIN','DOCTOR','ASSISTANT'] },
   { text: 'Kalendarz',       icon: <CalendarMonth sx={{ fontSize: 20 }} />, path: '/calendar',     roles: ['ADMIN','DOCTOR','ASSISTANT'] },
   { text: 'Konsultacje',     icon: <EventNote sx={{ fontSize: 20 }} />,     path: '/consultations',roles: ['ADMIN','DOCTOR','ASSISTANT'] },
-  { text: 'Wizyty / Zabiegi',icon: <EventAvailable sx={{ fontSize: 20 }} />,path: '/visits',      roles: ['ADMIN','DOCTOR','ASSISTANT'] },
+  { text: 'Wizyty i zabiegi', icon: <EventAvailable sx={{ fontSize: 20 }} />, path: '/visits',     roles: ['ADMIN','DOCTOR','ASSISTANT'] },
   { text: 'Przychody',       icon: <AttachMoney sx={{ fontSize: 20 }} />,  path: '/revenue',      roles: ['ADMIN','DOCTOR'] },  // ukryte dla ASSISTANT
 ];
 
@@ -90,7 +91,7 @@ export default function Layout() {
   };
 
   const drawerContent = (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: '#FFFFFF' }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'background.paper' }}>
       {/* Brand Header */}
       <Box 
         onClick={() => handleNavigate('/')} 
@@ -114,15 +115,16 @@ export default function Layout() {
                   selected={active}
                   onClick={() => handleNavigate(item.path)}
                   sx={{
-                    borderRadius: 2,
+                    borderRadius: '8px',
                     py: 1,
+                    minHeight: 44,
                     '&.Mui-selected': {
-                      bgcolor: 'primary.50',
-                      '&:hover': { bgcolor: 'primary.50' },
+                      bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                      '&:hover': { bgcolor: (theme) => alpha(theme.palette.primary.main, 0.12) },
                       '& .MuiListItemIcon-root': { color: 'primary.main' },
                       '& .MuiListItemText-primary': { color: 'primary.main', fontWeight: 600 },
                     },
-                    '&:hover': { bgcolor: '#F1F5F9' },
+                    '&:hover': { bgcolor: 'action.hover' },
                   }}
                 >
                   <ListItemIcon sx={{ minWidth: 36, color: active ? 'primary.main' : 'text.secondary' }}>
@@ -134,7 +136,7 @@ export default function Layout() {
             );
           })}
 
-          <Box sx={{ my: 2 }}><Divider sx={{ borderColor: '#F1F5F9' }} /></Box>
+          <Box sx={{ my: 2 }}><Divider sx={{ borderColor: 'divider' }} /></Box>
 
           {user?.role === 'ADMIN' && (
             <>
@@ -145,7 +147,7 @@ export default function Layout() {
               <ListItem disablePadding sx={{ mb: 0.5 }}>
                 <ListItemButton
                   onClick={() => setTemplatesOpen(!templatesOpen)}
-                  sx={{ borderRadius: 2, py: 1, '&:hover': { bgcolor: '#F1F5F9' } }}
+                  sx={{ borderRadius: '8px', py: 1, minHeight: 44, '&:hover': { bgcolor: 'action.hover' } }}
                 >
                   <ListItemIcon sx={{ minWidth: 36, color: 'text.secondary' }}>
                     <FolderSpecial sx={{ fontSize: 20 }} />
@@ -165,7 +167,7 @@ export default function Layout() {
                         selected={active}
                         onClick={() => handleNavigate(item.path)}
                         sx={{
-                          borderRadius: 2,
+                          borderRadius: '8px',
                           py: 0.75,
                           mb: 0.5,
                           '&.Mui-selected': {
@@ -173,7 +175,7 @@ export default function Layout() {
                             '& .MuiListItemIcon-root': { color: 'primary.main' },
                             '& .MuiListItemText-primary': { color: 'primary.main', fontWeight: 600 },
                           },
-                          '&:hover': { bgcolor: '#F1F5F9' },
+                          '&:hover': { bgcolor: 'action.hover' },
                         }}
                       >
                         <ListItemIcon sx={{ minWidth: 32, color: active ? 'primary.main' : 'text.secondary' }}>
@@ -191,14 +193,16 @@ export default function Layout() {
                   selected={activeRoute('/settings')}
                   onClick={() => handleNavigate('/settings')}
                   sx={{
-                    borderRadius: 2,
+                    borderRadius: '8px',
                     py: 1,
+                    minHeight: 44,
                     '&.Mui-selected': {
-                      bgcolor: 'primary.50',
+                      bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                      '&:hover': { bgcolor: (theme) => alpha(theme.palette.primary.main, 0.12) },
                       '& .MuiListItemIcon-root': { color: 'primary.main' },
                       '& .MuiListItemText-primary': { color: 'primary.main', fontWeight: 600 },
                     },
-                    '&:hover': { bgcolor: '#F1F5F9' },
+                    '&:hover': { bgcolor: 'action.hover' },
                   }}
                 >
                   <ListItemIcon sx={{ minWidth: 36, color: activeRoute('/settings') ? 'primary.main' : 'text.secondary' }}>
@@ -216,14 +220,16 @@ export default function Layout() {
                 selected={activeRoute('/users')}
                 onClick={() => handleNavigate('/users')}
                 sx={{
-                  borderRadius: 2,
+                  borderRadius: '8px',
                   py: 1,
+                  minHeight: 44,
                   '&.Mui-selected': {
-                    bgcolor: 'primary.50',
+                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                    '&:hover': { bgcolor: (theme) => alpha(theme.palette.primary.main, 0.12) },
                     '& .MuiListItemIcon-root': { color: 'primary.main' },
                     '& .MuiListItemText-primary': { color: 'primary.main', fontWeight: 600 },
                   },
-                  '&:hover': { bgcolor: '#F1F5F9' },
+                  '&:hover': { bgcolor: 'action.hover' },
                 }}
               >
                 <ListItemIcon sx={{ minWidth: 36, color: activeRoute('/users') ? 'primary.main' : 'text.secondary' }}>
@@ -238,7 +244,7 @@ export default function Layout() {
       </Box>
 
       {/* User Profile Footer */}
-      <Box sx={{ p: 2, borderTop: '1px solid #F1F5F9' }}>
+      <Box sx={{ p: 2, borderTop: '1px solid', borderColor: 'divider' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, px: 1 }}>
           <Avatar sx={{ width: 36, height: 36, bgcolor: 'primary.light', fontSize: 14, fontWeight: 600 }}>
             {user?.name?.charAt(0).toUpperCase() || 'U'}
@@ -253,11 +259,11 @@ export default function Layout() {
           </Box>
         </Box>
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <ListItemButton onClick={() => handleNavigate('/profile')} sx={{ borderRadius: 2, py: 0.5, justifyContent: 'center', bgcolor: '#F8FAFC' }}>
+          <ListItemButton onClick={() => handleNavigate('/profile')} sx={{ borderRadius: '8px', py: 1, minHeight: 44, justifyContent: 'center', bgcolor: 'action.hover' }}>
             <AccountCircle sx={{ fontSize: 18, color: 'text.secondary', mr: 1 }} />
             <Typography variant="caption" fontWeight={600} color="text.secondary">Profil</Typography>
           </ListItemButton>
-          <ListItemButton onClick={logout} sx={{ borderRadius: 2, py: 0.5, justifyContent: 'center', bgcolor: '#FEF2F2', '&:hover': { bgcolor: '#FEE2E2' } }}>
+          <ListItemButton onClick={logout} sx={{ borderRadius: '8px', py: 1, minHeight: 44, justifyContent: 'center', bgcolor: (theme) => alpha(theme.palette.error.main, 0.08), '&:hover': { bgcolor: (theme) => alpha(theme.palette.error.main, 0.16) } }}>
             <Logout sx={{ fontSize: 18, color: 'error.main', mr: 1 }} />
             <Typography variant="caption" fontWeight={600} color="error.main">Wyjdź</Typography>
           </ListItemButton>
@@ -275,8 +281,9 @@ export default function Layout() {
         sx={{
           zIndex: theme.zIndex.drawer + 1,
           display: { md: 'none' },
-          bgcolor: '#FFFFFF',
-          borderBottom: '1px solid #E2E8F0',
+          bgcolor: 'background.paper',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
         }}
       >
         <Toolbar>
@@ -307,7 +314,7 @@ export default function Layout() {
           variant="permanent"
           sx={{
             display: { xs: 'none', md: 'block' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth, borderRight: '1px solid #E2E8F0' },
+            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth, borderRight: '1px solid', borderColor: 'divider' },
           }}
           open
         >
