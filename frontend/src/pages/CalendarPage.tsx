@@ -75,7 +75,7 @@ function sameDay(a: Date, b: Date) {
 }
 
 function formatHour(iso: string) {
-  return new Date(iso).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
+  return new Date(iso).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
 }
 
 function formatDayHeader(date: Date): string {
@@ -683,7 +683,7 @@ export default function CalendarPage() {
               headerToolbar={false}
               locales={[plLocale]}
               locale="pl"
-              timeZone="UTC"
+              timeZone="local"
               events={events}
               nowIndicator={true}
               height="auto"
