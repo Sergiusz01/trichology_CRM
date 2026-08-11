@@ -92,6 +92,9 @@ export default function Layout() {
 
   const drawerContent = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'background.paper' }}>
+      {/* Spacer to push content below the fixed AppBar on mobile */}
+      {isMobile && <Toolbar />}
+      
       {/* Brand Header — desktop only; on mobile the AppBar already shows the logo */}
       {!isMobile && (
         <Box
