@@ -90,6 +90,22 @@ function formatDayHeader(date: Date): string {
   return `${DAY_NAMES_LONG[date.getDay()]}, ${date.getDate()} ${MONTH_NAMES[date.getMonth()]}`;
 }
 
+// Helper to format date range label based on view
+function formatRangeLabel(date: Date, view: string): string {
+  switch (view) {
+    case 'dayGridMonth':
+      return format(date, 'LLLL yyyy', { locale: pl });
+    case 'timeGridDay':
+    case 'listDay':
+      return format(date, 'd MMMM yyyy', { locale: pl });
+    case 'timeGridWeek':
+    default: {
+      const end = new Date(date.getTime() + 6 * 24 * 60 * 60 * 1000);
+      return `${format(date, 'd', { locale: pl })}–${format(end, 'd MMMM yyyy', { locale: pl })}`;
+    }
+  }
+}
+
 // ── Mini Calendar ──────────────────────────────────────────────────────────────
 function MiniCalendar({ selectedDate, miniMonth, setMiniMonth, onSelect, events }: { selectedDate: Date; miniMonth: Date; setMiniMonth: (d: Date) => void; onSelect: (d: Date) => void; events: VisitEvent[] }) {
   const theme = useTheme();
@@ -142,7 +158,7 @@ function MiniCalendar({ selectedDate, miniMonth, setMiniMonth, onSelect, events 
               onClick={() => onSelect(d)}
               sx={{
                 width: 28, height: 28,
-                borderRadius: 6,
+                borderRadius: '6px',
                 fontSize: '0.75rem',
                 fontVariantNumeric: 'tabular-nums',
                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -173,7 +189,7 @@ function VisitCard({ event, onClick }: { event: VisitEvent; onClick: () => void 
     <Card
       elevation={0}
       sx={{
-        borderRadius: 3,
+        borderRadius: '12px',
         overflow: 'hidden',
         mb: 1.5,
         border: '1px solid',
@@ -310,6 +326,12 @@ export default function CalendarPage() {
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [calendarView, setCalendarView] = useState<'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'listDay'>('timeGridWeek');
   const [miniMonth, setMiniMonth] = useState(selectedDate);
+
+  // Keep mini calendar month in sync when selectedDate changes
+  useEffect(() => {
+    setMiniMonth(selectedDate);
+  }, [selectedDate]);
+
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -414,13 +436,13 @@ export default function CalendarPage() {
                 startIcon={<Add />}
                 onClick={() => navigate('/visits/new')}
                 sx={{
-                  bgcolor: '#007AFF',
+                  bgcolor: 'primary.main',
                   color: 'white',
                   textTransform: 'none',
                   fontWeight: 600,
-                  borderRadius: 2,
+                  borderRadius: '8px',
                   px: 2,
-                  '&:hover': { bgcolor: '#0051D5' },
+                  '&:hover': { bgcolor: 'primary.dark' },
                 }}
               >
                 Zaplanuj wizytę
@@ -445,6 +467,7 @@ export default function CalendarPage() {
         borderTop: '1px solid',
         borderBottom: '1px solid',
         borderColor: 'divider',
+        '--fc-now-color': (theme: any) => theme.palette.primary.main,
         py: 1,
         mb: 2,
         minHeight: 40
@@ -472,7 +495,7 @@ export default function CalendarPage() {
           )}
           
           <Typography sx={{ fontSize: 13, fontWeight: 500, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-            {format(selectedDate, 'd', { locale: pl })}–{format(new Date(selectedDate.getTime() + 6 * 24*60*60*1000), 'd MMMM yyyy', { locale: pl })}
+            {formatRangeLabel(selectedDate, calendarView)}
           </Typography>
         </Stack>
         
