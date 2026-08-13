@@ -287,9 +287,9 @@ export default function PatientDetailPage() {
     const searchParams = new URLSearchParams(location.search);
     const tabParam = searchParams.get('tab');
     if (tabParam === 'visits') {
-      setTabValue(5);
-    } else if (tabParam === 'care-plans') {
       setTabValue(4);
+    } else if (tabParam === 'care-plans') {
+      setTabValue(3);
     }
   }, [location.search]);
 
@@ -729,11 +729,11 @@ const HOUR_OPTIONS = Array.from({ length: 15 }, (_, i) => String(8 + i).padStart
   }
 
   const stats = [
-    { label: 'Konsultacje', value: consultations.length, icon: Assignment, color: '#007AFF', sectionId: 'patient-tabpanel-1' },
-    { label: 'Wyniki badań', value: labResults.length, icon: Science, color: '#34C759', sectionId: 'patient-tabpanel-2' },
-    { label: 'Zdjęcia', value: scalpPhotos.length, icon: PhotoCamera, color: '#FF9500', sectionId: 'patient-tabpanel-3' },
-    { label: 'Plany opieki', value: carePlans.length, icon: LocalHospital, color: '#FF3B30', sectionId: 'patient-tabpanel-4' },
-    { label: 'Wizyty', value: visits.length, icon: EventAvailable, color: '#AF52DE', sectionId: 'patient-tabpanel-5' },
+    { label: 'Konsultacje', value: consultations.length, icon: Assignment, color: '#007AFF', sectionId: 'patient-tabpanel-0' },
+    { label: 'Wyniki badań', value: labResults.length, icon: Science, color: '#34C759', sectionId: 'patient-tabpanel-1' },
+    { label: 'Zdjęcia', value: scalpPhotos.length, icon: PhotoCamera, color: '#FF9500', sectionId: 'patient-tabpanel-2' },
+    { label: 'Plany opieki', value: carePlans.length, icon: LocalHospital, color: '#FF3B30', sectionId: 'patient-tabpanel-3' },
+    { label: 'Wizyty', value: visits.length, icon: EventAvailable, color: '#AF52DE', sectionId: 'patient-tabpanel-4' },
   ];
 
   return (
@@ -918,7 +918,7 @@ const HOUR_OPTIONS = Array.from({ length: 15 }, (_, i) => String(8 + i).padStart
                     <Box
                       key={index}
                       onClick={() => {
-                        setTabValue(index + 1);
+                        setTabValue(index);
                         setTimeout(() => {
                           document.getElementById(stat.sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                         }, 50);
@@ -1002,7 +1002,7 @@ const HOUR_OPTIONS = Array.from({ length: 15 }, (_, i) => String(8 + i).padStart
         <Paper
           elevation={0}
           sx={{
-            borderRadius: 3,
+            borderRadius: '12px',
             bgcolor: 'background.paper',
             border: '1px solid',
             borderColor: 'divider',
@@ -1040,7 +1040,6 @@ const HOUR_OPTIONS = Array.from({ length: 15 }, (_, i) => String(8 + i).padStart
               },
             }}
           >
-            <Tab label="Przegląd" />
             <Tab label="Konsultacje" />
             <Tab label="Wyniki" />
             <Tab label="Zdjęcia" />
@@ -1048,29 +1047,21 @@ const HOUR_OPTIONS = Array.from({ length: 15 }, (_, i) => String(8 + i).padStart
             <Tab label="Wizyty" />
           </Tabs>
 
-          {/* Tab Panel 0: Overview */}
+          {/* Tab Panel 0: Consultations */}
           <TabPanel value={tabValue} index={0}>
-            <Typography sx={{ color: 'text.secondary', fontSize: '13px', textAlign: 'center', py: 4 }}>
-              Szczegółowe dane pacjenta znajdują się w głównym panelu powyżej.
-            </Typography>
-          </TabPanel>
-
-          {/* Tab Panel 1: Consultations */}
-          <TabPanel value={tabValue} index={1}>
             <Box sx={{ mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
               <Button
                 variant="contained"
                 startIcon={<Add />}
                 onClick={() => navigate(`/patients/${id}/consultations/new`)}
                 sx={{
-                  bgcolor: '#007AFF',
-                  color: 'white',
+                  bgcolor: 'primary.main',
                   textTransform: 'none',
                   fontWeight: 600,
-                  borderRadius: 2,
+                  borderRadius: '8px',
                   boxShadow: 'none',
                   '&:hover': {
-                    bgcolor: '#0051D5',
+                    bgcolor: 'primary.dark',
                     boxShadow: 'none',
                   },
                 }}
@@ -1084,16 +1075,16 @@ const HOUR_OPTIONS = Array.from({ length: 15 }, (_, i) => String(8 + i).padStart
                   setShowArchived(prev => ({ ...prev, consultations: !prev.consultations }));
                 }}
                 sx={{
-                  borderColor: '#d2d2d7',
-                  color: showArchived.consultations ? 'white' : '#1d1d1f',
-                  bgcolor: showArchived.consultations ? '#007AFF' : 'transparent',
+                  borderColor: 'divider',
+                  color: showArchived.consultations ? 'white' : 'text.primary',
+                  bgcolor: showArchived.consultations ? 'primary.main' : 'transparent',
                   textTransform: 'none',
                   fontWeight: 600,
-                  borderRadius: 2,
+                  borderRadius: '8px',
                   boxShadow: 'none',
                   '&:hover': {
-                    borderColor: '#1d1d1f',
-                    bgcolor: showArchived.consultations ? '#0051D5' : alpha('#000', 0.02),
+                    borderColor: 'text.primary',
+                    bgcolor: showArchived.consultations ? 'primary.dark' : 'action.hover',
                     boxShadow: 'none',
                   },
                 }}
@@ -1103,8 +1094,8 @@ const HOUR_OPTIONS = Array.from({ length: 15 }, (_, i) => String(8 + i).padStart
             </Box>
             {consultations.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 8 }}>
-                <Assignment sx={{ fontSize: 64, color: '#d2d2d7', mb: 2 }} />
-                <Typography variant="h6" sx={{ color: '#86868b', fontWeight: 500 }}>
+                <Assignment sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
+                <Typography variant="h6" sx={{ color: 'text.secondary', fontWeight: 500 }}>
                   Brak konsultacji
                 </Typography>
               </Box>
@@ -1116,19 +1107,20 @@ const HOUR_OPTIONS = Array.from({ length: 15 }, (_, i) => String(8 + i).padStart
                     elevation={0}
                     sx={{
                       p: { xs: 2, sm: 3 },
-                      borderRadius: 2,
+                      borderRadius: '12px',
                       border: '1px solid',
                       borderColor: 'divider',
-                      transition: 'all 0.2s',
+                      transition: 'all 0.2s ease-in-out',
                       '&:hover': {
-                        borderColor: '#007AFF',
+                        borderColor: 'primary.main',
                         transform: 'translateY(-2px)',
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
                       },
                     }}
                   >
                     <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: 'flex-start', gap: 2 }}>
                       <Box sx={{ flex: 1 }}>
-                        <Typography variant="h6" sx={{ fontWeight: 700, color: '#1d1d1f', mb: 1, fontSize: '1.15rem' }}>
+                        <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary', mb: 1, fontSize: '1.15rem' }}>
                           {new Date(consultation.createdAt || consultation.consultationDate).toLocaleString('pl-PL', {
                             year: 'numeric',
                             month: '2-digit',
@@ -1138,7 +1130,7 @@ const HOUR_OPTIONS = Array.from({ length: 15 }, (_, i) => String(8 + i).padStart
                           }).replace(',', '')}
                         </Typography>
                         {consultation.diagnosis && (
-                          <Typography variant="body2" sx={{ color: '#86868b', fontSize: '0.95rem', lineHeight: 1.6 }}>
+                          <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.95rem', lineHeight: 1.6 }}>
                             {consultation.diagnosis}
                           </Typography>
                         )}
@@ -1149,14 +1141,14 @@ const HOUR_OPTIONS = Array.from({ length: 15 }, (_, i) => String(8 + i).padStart
                           variant="outlined"
                           onClick={() => navigate(`/consultations/${consultation.id}`)}
                           sx={{
-                            borderColor: '#d2d2d7',
-                            color: '#1d1d1f',
+                            borderColor: 'divider',
+                            color: 'text.primary',
                             textTransform: 'none',
                             fontWeight: 600,
-                            borderRadius: 1.5,
+                            borderRadius: '8px',
                             '&:hover': {
-                              borderColor: '#1d1d1f',
-                              bgcolor: alpha('#000', 0.02),
+                              borderColor: 'text.primary',
+                              bgcolor: 'action.hover',
                             },
                           }}
                         >
@@ -1170,14 +1162,13 @@ const HOUR_OPTIONS = Array.from({ length: 15 }, (_, i) => String(8 + i).padStart
                             onClick={() => handleSendEmail('consultation', consultation.id, 'Konsultacja')}
                             disabled={loading}
                             sx={{
-                              bgcolor: '#007AFF',
-                              color: 'white',
+                              bgcolor: 'primary.main',
                               textTransform: 'none',
                               fontWeight: 600,
-                              borderRadius: 1.5,
+                              borderRadius: '8px',
                               boxShadow: 'none',
                               '&:hover': {
-                                bgcolor: '#0051D5',
+                                bgcolor: 'primary.dark',
                                 boxShadow: 'none',
                               },
                             }}
@@ -1190,14 +1181,14 @@ const HOUR_OPTIONS = Array.from({ length: 15 }, (_, i) => String(8 + i).padStart
                             <IconButton
                               size="small"
                               onClick={() => handleRestoreClick('consultation', consultation.id, 'Konsultacja')}
-                              sx={{ color: '#34C759' }}
+                              sx={{ color: 'success.main' }}
                             >
                               <Restore />
                             </IconButton>
                             <IconButton
                               size="small"
                               onClick={() => handlePermanentDeleteClick('consultation', consultation.id, 'Konsultacja')}
-                              sx={{ color: '#FF3B30' }}
+                              sx={{ color: 'error.main' }}
                             >
                               <DeleteForever />
                             </IconButton>
@@ -1206,7 +1197,7 @@ const HOUR_OPTIONS = Array.from({ length: 15 }, (_, i) => String(8 + i).padStart
                           <IconButton
                             size="small"
                             onClick={() => handleDeleteClick('consultation', consultation.id, 'Konsultacja')}
-                            sx={{ color: '#FF3B30' }}
+                            sx={{ color: 'error.main' }}
                           >
                             <Delete />
                           </IconButton>
@@ -1219,8 +1210,8 @@ const HOUR_OPTIONS = Array.from({ length: 15 }, (_, i) => String(8 + i).padStart
             )}
           </TabPanel>
 
-          {/* Tab Panel 2: Lab Results */}
-          <TabPanel value={tabValue} index={2}>
+          {/* Tab Panel 1: Lab Results */}
+          <TabPanel value={tabValue} index={1}>
             <Box sx={{ mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
               <Button
                 variant="contained"
@@ -1436,7 +1427,7 @@ const HOUR_OPTIONS = Array.from({ length: 15 }, (_, i) => String(8 + i).padStart
           </TabPanel>
 
           {/* Tab Panel 3: Photos */}
-          <TabPanel value={tabValue} index={3}>
+          <TabPanel value={tabValue} index={2}>
             <Box sx={{ mb: 3 }}>
               <Button
                 variant="contained"
@@ -1561,7 +1552,7 @@ const HOUR_OPTIONS = Array.from({ length: 15 }, (_, i) => String(8 + i).padStart
           </TabPanel>
 
           {/* Tab Panel 4: Care Plans */}
-          <TabPanel value={tabValue} index={4}>
+          <TabPanel value={tabValue} index={3}>
             <Box sx={{ mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
               <Button
                 variant="contained"
@@ -1775,7 +1766,7 @@ const HOUR_OPTIONS = Array.from({ length: 15 }, (_, i) => String(8 + i).padStart
           </TabPanel>
 
           {/* Tab Panel 5: Visits */}
-          <TabPanel value={tabValue} index={5}>
+          <TabPanel value={tabValue} index={4}>
             <Box sx={{ mb: 3 }}>
               <Button
                 variant="contained"
