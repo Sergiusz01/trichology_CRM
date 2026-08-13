@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   Box,
+  SwipeableDrawer,
   Drawer,
   AppBar,
   Toolbar,
@@ -19,7 +20,9 @@ import {
   Divider,
   Collapse,
   alpha,
+  LinearProgress,
 } from '@mui/material';
+import { useIsFetching } from '@tanstack/react-query';
 import {
   People,
   Logout,
@@ -72,6 +75,22 @@ export default function Layout() {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(true);
+
+  // ── Page transition loader ─────────────────────────────────────────────────
+  const isFetching = useIsFetching();
+  const [routeTransition, setRouteTransition] = useState(false);
+  const prevPathRef = useRef(location.pathname);
+
+  useEffect(() => {
+    if (location.pathname !== prevPathRef.current) {
+      setRouteTransition(true);
+      prevPathRef.current = location.pathname;
+      const timer = setTimeout(() => setRouteTransition(false), 600);
+      return () => clearTimeout(timer);
+    }
+  }, [location.pathname]);
+
+  const showLoader = isFetching > 0 || routeTransition;
 
   // Filter menu items by current user role
   const mainMenuItems = allMainMenuItems.filter(
@@ -301,14 +320,33 @@ export default function Layout() {
             <img src="/logo.png" alt="Logo" style={{ maxHeight: 40 }} />
           </Typography>
         </Toolbar>
+        {/* Thin page transition loader */}
+        {showLoader && (
+          <LinearProgress
+            sx={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: 2,
+              '& .MuiLinearProgress-bar': {
+                bgcolor: 'primary.main',
+              },
+            }}
+          />
+        )}
       </AppBar>
 
       {/* Drawer */}
       <Box component="nav" sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}>
-        <Drawer
+        <SwipeableDrawer
           variant="temporary"
           open={mobileOpen}
+          onOpen={() => setMobileOpen(true)}
           onClose={handleDrawerToggle}
+          disableBackdropTransition
+          disableDiscovery
+          swipeAreaWidth={20}
           ModalProps={{ keepMounted: true }}
           sx={{
             display: { xs: 'block', md: 'none' },
@@ -316,7 +354,7 @@ export default function Layout() {
           }}
         >
           {drawerContent}
-        </Drawer>
+        </SwipeableDrawer>
         <Drawer
           variant="permanent"
           sx={{
@@ -337,8 +375,26 @@ export default function Layout() {
           p: { xs: 2, sm: 3, md: 4 },
           width: { xs: '100%', md: `calc(100% - ${drawerWidth}px)` },
           mt: { xs: 7, md: 0 },
+          position: 'relative',
         }}
       >
+        {/* Desktop loader (no AppBar on desktop, so render at top of main) */}
+        {showLoader && (
+          <LinearProgress
+            sx={{
+              position: 'fixed',
+              top: 0,
+              left: { xs: 0, md: drawerWidth },
+              right: 0,
+              height: 2,
+              zIndex: theme.zIndex.appBar + 1,
+              display: { xs: 'none', md: 'block' },
+              '& .MuiLinearProgress-bar': {
+                bgcolor: 'primary.main',
+              },
+            }}
+          />
+        )}
         <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
           <Outlet />
         </Box>
