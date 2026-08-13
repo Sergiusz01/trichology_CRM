@@ -39,6 +39,22 @@ import { ErrorState } from '../ui/ErrorState';
 import { useConsultations } from '../hooks/queries/useConsultations';
 import { PageHeader } from '../ui/PageHeader';
 
+const getDeterministicColor = (id: string) => {
+  if (!id) return { bg: '#e0f2fe', color: '#0284c7' };
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = id.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const colorSchemes = [
+    { bg: '#e0f2fe', color: '#0284c7' }, // blue
+    { bg: '#dcfce7', color: '#16a34a' }, // green
+    { bg: '#f3e8ff', color: '#9333ea' }, // purple
+    { bg: '#ffedd5', color: '#ea580c' }, // orange
+    { bg: '#fce7f3', color: '#db2777' }, // pink
+  ];
+  return colorSchemes[Math.abs(hash) % colorSchemes.length];
+};
+
 export default function ConsultationsPage() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
@@ -81,23 +97,6 @@ export default function ConsultationsPage() {
       <PageHeader
         title="Konsultacje"
         subtitle="Lista wszystkich konsultacji. Kliknij, aby zobaczyć szczegóły."
-        action={
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={() => navigate('/patients')}
-            sx={{
-              borderRadius: '8px',
-              textTransform: 'none',
-              fontWeight: 600,
-              bgcolor: 'primary.main',
-              boxShadow: (theme) => `0 4px 12px ${alpha(theme.palette.primary.main, 0.2)}`,
-              '&:hover': { bgcolor: 'primary.dark' },
-            }}
-          >
-            Nowa konsultacja
-          </Button>
-        }
       />
 
       {/* Search & Filter Switch */}
@@ -197,10 +196,15 @@ export default function ConsultationsPage() {
               >
                 <CardContent sx={{ py: 2, '&:last-child': { pb: 2 } }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Avatar sx={{ bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1), color: 'primary.main', fontWeight: 600 }}>
-                      {c.patient.firstName[0]}
-                      {c.patient.lastName[0]}
-                    </Avatar>
+                    {(() => {
+                      const avatarColor = getDeterministicColor(c.patientId || c.patient?.id || c.id);
+                      return (
+                        <Avatar sx={{ bgcolor: avatarColor.bg, color: avatarColor.color, fontWeight: 600 }}>
+                          {c.patient.firstName[0]}
+                          {c.patient.lastName[0]}
+                        </Avatar>
+                      );
+                    })()}
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                       <Typography variant="body1" fontWeight={600}>
                         {c.patient.firstName} {c.patient.lastName}
@@ -244,10 +248,15 @@ export default function ConsultationsPage() {
                 >
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <Avatar sx={{ width: 36, height: 36, bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1), color: 'primary.main', fontSize: '0.875rem', fontWeight: 600 }}>
-                        {c.patient.firstName[0]}
-                        {c.patient.lastName[0]}
-                      </Avatar>
+                      {(() => {
+                        const avatarColor = getDeterministicColor(c.patientId || c.patient?.id || c.id);
+                        return (
+                          <Avatar sx={{ width: 36, height: 36, bgcolor: avatarColor.bg, color: avatarColor.color, fontSize: '0.875rem', fontWeight: 600 }}>
+                            {c.patient.firstName[0]}
+                            {c.patient.lastName[0]}
+                          </Avatar>
+                        );
+                      })()}
                       <Box>
                         <Typography variant="body2" fontWeight={600}>
                           {c.patient.firstName} {c.patient.lastName}
