@@ -216,12 +216,18 @@ const consultationSchema = z.object({
 // Get all consultations (paginated, with optional search)
 router.get('/', authenticate, async (req: AuthRequest, res, next) => {
   try {
-    const { limit = '25', page = '1', search = '' } = req.query;
+    const { limit = '25', page = '1', search = '', archived = 'false' } = req.query;
     const limitNum = Math.min(parseInt(limit as string, 10) || 25, 100);
     const pageNum = Math.max(parseInt(page as string, 10) || 1, 1);
     const skip = (pageNum - 1) * limitNum;
 
     const where: Prisma.ConsultationWhereInput = {};
+
+    if (archived === 'false') {
+      where.isArchived = false;
+    } else if (archived === 'true') {
+      where.isArchived = true;
+    }
 
     // [C-1] Defence-in-depth: scope by clinic if set
     const user = req.user!;

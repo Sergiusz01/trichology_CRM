@@ -13,6 +13,7 @@ export interface ConsultationsParams {
   page: number;
   limit: number;
   search?: string;
+  archived?: 'true' | 'false' | 'all';
 }
 
 export interface ConsultationsResponse {
@@ -39,6 +40,7 @@ export function useConsultations(params: ConsultationsParams) {
           page: params.page + 1, // MUI is 0-indexed, API is 1-indexed
           limit: params.limit,
           search: params.search || undefined,
+          archived: params.archived || undefined,
         },
       });
       return res.data;

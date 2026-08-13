@@ -23,6 +23,8 @@ import {
   TablePagination,
   TextField,
   InputAdornment,
+  FormControlLabel,
+  Switch,
 } from '@mui/material';
 import {
   Add,
@@ -35,12 +37,14 @@ import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { ErrorState } from '../ui/ErrorState';
 import { useConsultations } from '../hooks/queries/useConsultations';
+import { PageHeader } from '../ui/PageHeader';
 
 export default function ConsultationsPage() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [showArchived, setShowArchived] = useState(false);
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -58,6 +62,7 @@ export default function ConsultationsPage() {
     page,
     limit: rowsPerPage,
     search: debouncedSearch,
+    archived: showArchived ? 'all' : 'false',
   });
 
   const consultations = data?.consultations ?? [];
@@ -73,67 +78,68 @@ export default function ConsultationsPage() {
 
   return (
     <Box sx={{ p: { xs: 1, sm: 2 } }}>
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: { xs: 'column', sm: 'row' },
-          justifyContent: 'space-between',
-          alignItems: { xs: 'flex-start', sm: 'center' },
-          gap: 2,
-          mb: 4,
-        }}
-      >
-        <Box>
-          <Typography
-            variant="h4"
+      <PageHeader
+        title="Konsultacje"
+        subtitle="Lista wszystkich konsultacji. Kliknij, aby zobaczyć szczegóły."
+        action={
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => navigate('/patients')}
             sx={{
-              fontWeight: 700,
-              color: 'text.primary',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1.5,
-              fontSize: { xs: '1.5rem', sm: '1.75rem' },
+              borderRadius: '8px',
+              textTransform: 'none',
+              fontWeight: 600,
+              bgcolor: 'primary.main',
+              boxShadow: (theme) => `0 4px 12px ${alpha(theme.palette.primary.main, 0.2)}`,
+              '&:hover': { bgcolor: 'primary.dark' },
             }}
           >
-            <EventNote fontSize="large" sx={{ color: '#1976d2' }} />
-            Konsultacje
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            Lista wszystkich konsultacji. Kliknij, aby zobaczyć szczegóły.
-          </Typography>
-        </Box>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => navigate('/patients')}
-          sx={{
-            borderRadius: 2,
-            textTransform: 'none',
-            fontWeight: 600,
-            bgcolor: '#1976d2',
-            '&:hover': { bgcolor: '#1565c0' },
-          }}
-        >
-          Nowa konsultacja
-        </Button>
-      </Box>
-
-      {/* Search */}
-      <TextField
-        fullWidth
-        size="small"
-        placeholder="Szukaj po nazwisku lub imieniu pacjenta…"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        sx={{ mb: 2, maxWidth: 420 }}
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <Search sx={{ color: 'text.secondary', fontSize: 20 }} />
-            </InputAdornment>
-          ),
-        }}
+            Nowa konsultacja
+          </Button>
+        }
       />
+
+      {/* Search & Filter Switch */}
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 3, alignItems: { xs: 'flex-start', sm: 'center' } }}>
+        <TextField
+          size="small"
+          placeholder="Szukaj po nazwisku lub imieniu pacjenta…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          sx={{
+            maxWidth: 420,
+            width: '100%',
+            '& .MuiOutlinedInput-root': {
+              borderRadius: '8px',
+            }
+          }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <Search sx={{ color: 'text.secondary', fontSize: 20 }} />
+              </InputAdornment>
+            ),
+          }}
+        />
+        <FormControlLabel
+          control={
+            <Switch
+              checked={showArchived}
+              onChange={(e) => {
+                setShowArchived(e.target.checked);
+                setPage(0);
+              }}
+              color="primary"
+            />
+          }
+          label={
+            <Typography sx={{ fontSize: '0.875rem', fontWeight: 500, color: 'text.secondary' }}>
+              Pokaż zarchiwizowane
+            </Typography>
+          }
+        />
+      </Box>
 
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 280 }}>
@@ -143,16 +149,17 @@ export default function ConsultationsPage() {
         <ErrorState message={error} onRetry={() => refetch()} />
       ) : consultations.length === 0 ? (
         <Paper
+          elevation={0}
           sx={{
             p: 6,
             textAlign: 'center',
-            borderRadius: 3,
+            borderRadius: '12px',
             border: '1px solid',
             borderColor: 'divider',
           }}
         >
           <EventNote sx={{ fontSize: 56, color: 'text.disabled', mb: 2 }} />
-          <Typography variant="h6" color="text.secondary" gutterBottom>
+          <Typography variant="h6" color="text.secondary" gutterBottom sx={{ fontWeight: 600 }}>
             Brak konsultacji
           </Typography>
           <Typography variant="body2" color="text.disabled" sx={{ mb: 3 }}>
@@ -162,7 +169,7 @@ export default function ConsultationsPage() {
             variant="outlined"
             startIcon={<Person />}
             onClick={() => navigate('/patients')}
-            sx={{ borderRadius: 2, textTransform: 'none' }}
+            sx={{ borderRadius: '8px', textTransform: 'none', fontWeight: 600 }}
           >
             Przejdź do pacjentów
           </Button>
@@ -172,23 +179,25 @@ export default function ConsultationsPage() {
           {consultations.map((c) => (
             <Grid key={c.id} size={{ xs: 12 }}>
               <Card
+                elevation={0}
                 onClick={() => navigate(`/consultations/${c.id}`)}
                 sx={{
-                  borderRadius: 3,
+                  borderRadius: '12px',
                   border: '1px solid',
                   borderColor: 'divider',
                   cursor: 'pointer',
-                  transition: 'all 0.2s',
+                  transition: 'all 0.2s ease-in-out',
                   '&:hover': {
-                    boxShadow: 2,
-                    borderColor: '#1976d2',
-                    bgcolor: alpha('#1976d2', 0.02),
+                    borderColor: 'primary.main',
+                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.02),
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
                   },
                 }}
               >
                 <CardContent sx={{ py: 2, '&:last-child': { pb: 2 } }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Avatar sx={{ bgcolor: alpha('#1976d2', 0.1), color: '#1976d2' }}>
+                    <Avatar sx={{ bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1), color: 'primary.main', fontWeight: 600 }}>
                       {c.patient.firstName[0]}
                       {c.patient.lastName[0]}
                     </Avatar>
@@ -196,13 +205,13 @@ export default function ConsultationsPage() {
                       <Typography variant="body1" fontWeight={600}>
                         {c.patient.firstName} {c.patient.lastName}
                       </Typography>
-                      <Typography variant="caption" color="text.secondary">
+                      <Typography variant="caption" color="text.secondary" sx={{ fontVariantNumeric: 'tabular-nums' }}>
                         {formatDate(c.consultationDate)}
                         {c.doctor?.name ? ` • ${c.doctor.name}` : ''}
                       </Typography>
                     </Box>
                     {c.isArchived && (
-                      <Chip label="Zarchiwizowana" size="small" color="default" />
+                      <Chip label="Zarchiwizowana" size="small" variant="outlined" color="warning" sx={{ borderRadius: '6px' }} />
                     )}
                     <ChevronRight sx={{ color: 'text.secondary' }} />
                   </Box>
@@ -212,13 +221,13 @@ export default function ConsultationsPage() {
           ))}
         </Grid>
       ) : (
-        <TableContainer component={Paper} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
+        <TableContainer component={Paper} elevation={0} sx={{ borderRadius: '12px', border: '1px solid', borderColor: 'divider', overflow: 'hidden' }}>
           <Table>
             <TableHead>
-              <TableRow sx={{ bgcolor: alpha('#1976d2', 0.04) }}>
-                <TableCell sx={{ fontWeight: 600 }}>Pacjent</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Data konsultacji</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Lekarz</TableCell>
+              <TableRow sx={{ bgcolor: (theme) => alpha(theme.palette.primary.main, 0.03), borderBottom: '1px solid', borderColor: 'divider' }}>
+                <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Pacjent</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Data konsultacji</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: 'text.primary' }}>Lekarz</TableCell>
                 <TableCell align="right" sx={{ fontWeight: 600 }} />
               </TableRow>
             </TableHead>
@@ -229,12 +238,13 @@ export default function ConsultationsPage() {
                   onClick={() => navigate(`/consultations/${c.id}`)}
                   sx={{
                     cursor: 'pointer',
-                    '&:hover': { bgcolor: alpha('#1976d2', 0.04) },
+                    transition: 'background-color 0.15s ease-in-out',
+                    '&:hover': { bgcolor: 'action.hover' },
                   }}
                 >
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <Avatar sx={{ width: 36, height: 36, bgcolor: alpha('#1976d2', 0.1), color: '#1976d2', fontSize: '0.875rem' }}>
+                      <Avatar sx={{ width: 36, height: 36, bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1), color: 'primary.main', fontSize: '0.875rem', fontWeight: 600 }}>
                         {c.patient.firstName[0]}
                         {c.patient.lastName[0]}
                       </Avatar>
@@ -250,11 +260,11 @@ export default function ConsultationsPage() {
                       </Box>
                     </Box>
                   </TableCell>
-                  <TableCell>{formatDate(c.consultationDate)}</TableCell>
+                  <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{formatDate(c.consultationDate)}</TableCell>
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                      {c.doctor?.name ?? '—'}
-                      {c.isArchived && <Chip label="Zarchiwizowana" size="small" />}
+                      <Typography variant="body2">{c.doctor?.name ?? '—'}</Typography>
+                      {c.isArchived && <Chip label="Zarchiwizowana" size="small" variant="outlined" color="warning" sx={{ borderRadius: '6px' }} />}
                     </Box>
                   </TableCell>
                   <TableCell align="right">
@@ -276,6 +286,11 @@ export default function ConsultationsPage() {
             }}
             rowsPerPageOptions={[10, 25, 50, 100]}
             labelRowsPerPage="Wierszy na stronę:"
+            sx={{
+              borderTop: '1px solid',
+              borderColor: 'divider',
+              bgcolor: 'background.paper',
+            }}
           />
         </TableContainer>
       )
